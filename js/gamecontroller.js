@@ -72,7 +72,9 @@ class GameController {
             attempts++;
         } while (
             (questionNumber === this.previousAnswer || // No consecutive duplicates
-             (this.previousAnswer === 0 && questionNumber === 1)) && // Don't start with 1
+             (this.previousAnswer === 0 && questionNumber === 1) || // Don't start with 1
+             (this.currentDifficulty === CONFIG.DIFFICULTY.HARD && 
+              this.previousAnswer >= 7 && questionNumber >= 7)) && // In hard level, don't follow 7+ with another 7+
             attempts < maxAttempts
         );
         
