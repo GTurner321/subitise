@@ -30,7 +30,11 @@ class IconRenderer {
         const margin = CONFIG.ICON_MARGIN;
         const minDistance = CONFIG.MIN_ICON_DISTANCE;
         
-        const maxAttempts = 100; // Prevent infinite loops
+        // Calculate usable area for positioning
+        const usableWidth = gameArea.width - 2 * margin;
+        const usableHeight = gameArea.height - 2 * margin;
+        
+        const maxAttempts = 200; // Increased attempts for better placement
         
         for (let i = 0; i < count; i++) {
             let attempts = 0;
@@ -38,9 +42,9 @@ class IconRenderer {
             let x, y;
             
             while (!validPosition && attempts < maxAttempts) {
-                // Generate random position within bounds
-                x = margin + Math.random() * (gameArea.width - 2 * margin);
-                y = margin + Math.random() * (gameArea.height - 2 * margin);
+                // Generate random position within usable bounds
+                x = margin + Math.random() * usableWidth;
+                y = margin + Math.random() * usableHeight;
                 
                 // Check if position is far enough from existing positions
                 validPosition = true;
@@ -57,11 +61,48 @@ class IconRenderer {
                 attempts++;
             }
             
-            // If we couldn't find a non-overlapping position, use the last generated one
+            // If we couldn't find a non-overlapping position after many attempts,
+            // use a grid-based fallback to ensure distinct placement
+            if (!validPosition) {
+                const fallbackPos = this.getFallbackPosition(i, count, gameArea, margin);
+                x = fallbackPos.x;
+                y = fallbackPos.y;
+            }
+            
             positions.push({ x, y });
         }
         
         return positions;
+    }
+
+    // Fallback grid-based positioning to ensure icons never overlap
+    getFallbackPosition(index, totalCount, gameArea, margin) {
+        const usableWidth = gameArea.width - 2 * margin;
+        const usableHeight = gameArea.height - 2 * margin;
+        
+        // Create a simple grid based on the number of icons
+        const cols = Math.ceil(Math.sqrt(totalCount));
+        const rows = Math.ceil(totalCount / cols);
+        
+        const cellWidth = usableWidth / cols;
+        const cellHeight = usableHeight / rows;
+        
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+        
+        // Position icon in center of its grid cell with some randomness
+        const cellCenterX = margin + col * cellWidth + cellWidth / 2;
+        const cellCenterY = margin + row * cellHeight + cellHeight / 2;
+        
+        // Add small random offset within the cell (but not too close to edges)
+        const offsetRange = Math.min(cellWidth, cellHeight) * 0.3;
+        const offsetX = (Math.random() - 0.5) * offsetRange;
+        const offsetY = (Math.random() - 0.5) * offsetRange;
+        
+        return {
+            x: cellCenterX + offsetX,
+            y: cellCenterY + offsetY
+        };
     }
 
     renderIcons(count) {
