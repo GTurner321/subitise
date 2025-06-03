@@ -31,7 +31,6 @@ const CONFIG = {
         'fas fa-bed',
         'fas fa-chair',
         'fas fa-baby',
-        'fas fa-user',
         'fas fa-futbol',
         'fas fa-car',
         'fas fa-bicycle',
@@ -40,7 +39,6 @@ const CONFIG = {
         'fas fa-puzzle-piece',
         'fas fa-apple-alt',
         'fas fa-carrot',
-        'fas fa-cookie-bite',
         'fas fa-ice-cream',
         'fas fa-birthday-cake',
         'fas fa-tree',
@@ -53,7 +51,6 @@ const CONFIG = {
         'fas fa-heart',
         'fas fa-circle',
         'fas fa-square',
-        'fas fa-book',
         'fas fa-music',
         'fas fa-bell',
         'fas fa-smile',
@@ -103,7 +100,6 @@ const CONFIG = {
     QUESTIONS_PER_LEVEL: 3,
     CONSECUTIVE_WRONG_TO_DROP: 2,
     RAINBOW_PIECES: 10,
-    RAINBOW_ARC_DEGREES: 18,
 
     // Icon positioning
     ICON_MARGIN: 120, // Minimum distance from edges (increased for larger icons)
