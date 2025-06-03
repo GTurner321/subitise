@@ -11,6 +11,7 @@ class GameController {
         this.wrongStreak = 0;
         this.questionsInLevel = 0;
         this.gameComplete = false;
+        this.hasSeenHigherNumbers = false; // Track if user has seen higher numbers in current level
         
         // DOM elements
         this.numberButtons = document.querySelectorAll('.number-btn');
@@ -54,13 +55,32 @@ class GameController {
             return;
         }
 
+        // Check if we need to force higher numbers before allowing progression
+        let forceHigherNumbers = false;
+        if (this.correctStreak === 2 && !this.hasSeenHigherNumbers) {
+            forceHigherNumbers = true;
+        }
+
         // Generate random number of icons based on current difficulty
         let questionNumber;
         let attempts = 0;
         const maxAttempts = 50; // Increased attempts for better coverage
         
         do {
-            if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
+            if (forceHigherNumbers) {
+                // Force higher numbers in current level
+                if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
+                    // Force 4 (highest in easy level)
+                    questionNumber = 4;
+                } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
+                    // Force 5 or 6 (higher numbers in medium level)
+                    questionNumber = Math.random() < 0.5 ? 5 : 6;
+                } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
+                    // Force 7-10 (higher numbers in hard level)
+                    const higherNumbers = [7, 8, 9, 10];
+                    questionNumber = higherNumbers[Math.floor(Math.random() * higherNumbers.length)];
+                }
+            } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
                 // Use weighted probability for hard level
                 questionNumber = this.getWeightedHardNumber();
             } else {
@@ -72,7 +92,7 @@ class GameController {
             attempts++;
             
             // Debug logging (remove in production)
-            console.log(`Attempt ${attempts}: Generated ${questionNumber}, Previous was ${this.previousAnswer}, Difficulty: ${this.currentDifficulty.name}`);
+            console.log(`Attempt ${attempts}: Generated ${questionNumber}, Previous was ${this.previousAnswer}, Difficulty: ${this.currentDifficulty.name}, Force higher: ${forceHigherNumbers}`);
             
         } while (
             (questionNumber === this.previousAnswer || // No consecutive duplicates
@@ -83,17 +103,30 @@ class GameController {
             attempts < maxAttempts
         );
         
+        // Check if this question contains higher numbers for current level
+        this.checkForHigherNumbers(questionNumber);
+        
         // Store the current answer as previous for next time BEFORE updating currentAnswer
         this.previousAnswer = this.currentAnswer;
         this.currentAnswer = questionNumber;
         
-        console.log(`Final: Using ${questionNumber}, storing ${this.previousAnswer} as previous`);
+        console.log(`Final: Using ${questionNumber}, storing ${this.previousAnswer} as previous, hasSeenHigher: ${this.hasSeenHigherNumbers}`);
         
         // Render the icons
         this.iconRenderer.renderIcons(this.currentAnswer);
         
         // Reset button states
         this.resetButtonStates();
+    }
+
+    checkForHigherNumbers(questionNumber) {
+        if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY && questionNumber === 4) {
+            this.hasSeenHigherNumbers = true;
+        } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM && (questionNumber === 5 || questionNumber === 6)) {
+            this.hasSeenHigherNumbers = true;
+        } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD && questionNumber >= 7) {
+            this.hasSeenHigherNumbers = true;
+        }
     }
 
     getWeightedHardNumber() {
@@ -218,9 +251,10 @@ class GameController {
             this.currentDifficulty = CONFIG.DIFFICULTY.HARD;
         }
         
-        // Reset streak counter for new level
+        // Reset streak counter and higher numbers flag for new level
         this.correctStreak = 0;
         this.questionsInLevel = 0;
+        this.hasSeenHigherNumbers = false;
     }
 
     dropDifficulty() {
@@ -230,10 +264,11 @@ class GameController {
             this.currentDifficulty = CONFIG.DIFFICULTY.EASY;
         }
         
-        // Reset streak counters
+        // Reset streak counters and higher numbers flag
         this.wrongStreak = 0;
         this.correctStreak = 0;
         this.questionsInLevel = 0;
+        this.hasSeenHigherNumbers = false;
     }
 
     completeGame() {
