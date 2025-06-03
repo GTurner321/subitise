@@ -30,7 +30,6 @@ const CONFIG = {
         'fas fa-home',
         'fas fa-bed',
         'fas fa-chair',
-        'fas fa-baby',
         'fas fa-futbol',
         'fas fa-car',
         'fas fa-bicycle',
