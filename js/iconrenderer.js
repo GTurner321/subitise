@@ -2,6 +2,8 @@ class IconRenderer {
     constructor() {
         this.gameArea = document.querySelector('.game-area');
         this.currentIcons = [];
+        this.previousIcon = null; // Track previous icon type
+        this.previousColor = null; // Track previous color
     }
 
     clearIcons() {
@@ -16,12 +18,34 @@ class IconRenderer {
 
     getRandomIcon() {
         const icons = CONFIG.ICONS;
-        return icons[Math.floor(Math.random() * icons.length)];
+        let selectedIcon;
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        do {
+            selectedIcon = icons[Math.floor(Math.random() * icons.length)];
+            attempts++;
+        } while (selectedIcon === this.previousIcon && attempts < maxAttempts);
+        
+        // Update previous icon for next time
+        this.previousIcon = selectedIcon;
+        return selectedIcon;
     }
 
     getRandomColor() {
         const colors = CONFIG.COLORS;
-        return colors[Math.floor(Math.random() * colors.length)];
+        let selectedColor;
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        do {
+            selectedColor = colors[Math.floor(Math.random() * colors.length)];
+            attempts++;
+        } while (selectedColor === this.previousColor && attempts < maxAttempts);
+        
+        // Update previous color for next time
+        this.previousColor = selectedColor;
+        return selectedColor;
     }
 
     generateNonOverlappingPositions(count) {
@@ -108,7 +132,7 @@ class IconRenderer {
     renderIcons(count) {
         this.clearIcons();
         
-        // Choose one icon type and color for all icons in this round
+        // Choose one icon type and color for all icons in this round (avoiding consecutive repeats)
         const iconClass = this.getRandomIcon();
         const iconColor = this.getRandomColor();
         
@@ -133,5 +157,12 @@ class IconRenderer {
     // Helper method to get current icon count (for verification)
     getCurrentCount() {
         return this.currentIcons.length;
+    }
+
+    // Reset method to clear previous choices (useful for new games)
+    reset() {
+        this.previousIcon = null;
+        this.previousColor = null;
+        this.clearIcons();
     }
 }
