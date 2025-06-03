@@ -39,7 +39,7 @@ class Rainbow {
         if (this.pieces < this.maxPieces) {
             const arc = document.getElementById(`arc-${this.pieces}`);
             if (arc) {
-                arc.style.opacity = '0.6';
+                arc.style.opacity = '0.4';
                 this.pieces++;
             }
         }
