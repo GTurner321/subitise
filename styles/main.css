@@ -74,25 +74,26 @@ body {
 }
 
 .number-btn {
-    width: 70px;
-    height: 70px;
+    width: 80px;
+    height: 80px;
     border: none;
     border-radius: 15px;
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: bold;
     color: white;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 .number-btn:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.3);
 }
 
 .number-btn:active {
     transform: translateY(0);
+    transition: all 0.1s ease;
 }
 
 .number-btn.correct {
@@ -106,20 +107,24 @@ body {
 @keyframes flashGreen {
     0%, 100% { 
         background-color: var(--btn-color); 
+        transform: scale(1);
     }
     50% { 
         background-color: #4caf50; 
-        transform: scale(1.1); 
+        transform: scale(1.2);
+        box-shadow: 0 0 20px #4caf50;
     }
 }
 
 @keyframes flashRed {
     0%, 100% { 
         background-color: var(--btn-color); 
+        transform: scale(1);
     }
     50% { 
         background-color: #f44336; 
-        transform: scale(1.1); 
+        transform: scale(1.2);
+        box-shadow: 0 0 20px #f44336;
     }
 }
 
