@@ -57,7 +57,7 @@ class GameController {
         // Generate random number of icons based on current difficulty
         let questionNumber;
         let attempts = 0;
-        const maxAttempts = 20; // Prevent infinite loops
+        const maxAttempts = 50; // Increased attempts for better coverage
         
         do {
             if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
@@ -70,16 +70,24 @@ class GameController {
                 questionNumber = Math.floor(Math.random() * (max - min + 1)) + min;
             }
             attempts++;
+            
+            // Debug logging (remove in production)
+            console.log(`Attempt ${attempts}: Generated ${questionNumber}, Previous was ${this.previousAnswer}, Difficulty: ${this.currentDifficulty.name}`);
+            
         } while (
             (questionNumber === this.previousAnswer || // No consecutive duplicates
              (this.previousAnswer === 0 && questionNumber === 1) || // Don't start with 1
              (this.currentDifficulty === CONFIG.DIFFICULTY.HARD && 
-              this.previousAnswer >= 7 && questionNumber >= 7)) && // In hard level, don't follow 7+ with another 7+
+              this.previousAnswer >= 7 && this.previousAnswer <= 10 && 
+              questionNumber >= 7 && questionNumber <= 10)) && // In hard level, don't follow 7-10 with another 7-10
             attempts < maxAttempts
         );
         
-        this.previousAnswer = this.currentAnswer; // Store previous answer
+        // Store the current answer as previous for next time BEFORE updating currentAnswer
+        this.previousAnswer = this.currentAnswer;
         this.currentAnswer = questionNumber;
+        
+        console.log(`Final: Using ${questionNumber}, storing ${this.previousAnswer} as previous`);
         
         // Render the icons
         this.iconRenderer.renderIcons(this.currentAnswer);
