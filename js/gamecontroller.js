@@ -53,15 +53,55 @@ class GameController {
         }
 
         // Generate random number of icons based on current difficulty
-        const min = this.currentDifficulty.min;
-        const max = this.currentDifficulty.max;
-        this.currentAnswer = Math.floor(Math.random() * (max - min + 1)) + min;
+        let questionNumber;
+        if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
+            // Use weighted probability for hard level
+            questionNumber = this.getWeightedHardNumber();
+        } else {
+            // Use uniform distribution for easy and medium levels
+            const min = this.currentDifficulty.min;
+            const max = this.currentDifficulty.max;
+            questionNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        
+        this.currentAnswer = questionNumber;
         
         // Render the icons
         this.iconRenderer.renderIcons(this.currentAnswer);
         
         // Reset button states
         this.resetButtonStates();
+    }
+
+    getWeightedHardNumber() {
+        // Weighted probabilities for hard level (3-10)
+        const weights = [
+            { number: 3, weight: 10 },  // 10%
+            { number: 4, weight: 16 },  // 16%
+            { number: 5, weight: 17 },  // 17%
+            { number: 6, weight: 17 },  // 17%
+            { number: 7, weight: 16 },  // 16%
+            { number: 8, weight: 8 },   // 8%
+            { number: 9, weight: 8 },   // 8%
+            { number: 10, weight: 8 }   // 8%
+        ];
+        
+        // Calculate total weight
+        const totalWeight = weights.reduce((sum, item) => sum + item.weight, 0);
+        
+        // Generate random number between 0 and total weight
+        let random = Math.random() * totalWeight;
+        
+        // Find which number this random value corresponds to
+        for (let item of weights) {
+            random -= item.weight;
+            if (random <= 0) {
+                return item.number;
+            }
+        }
+        
+        // Fallback (shouldn't happen)
+        return 5;
     }
 
     handleNumberClick(selectedNumber, buttonElement) {
@@ -96,7 +136,7 @@ class GameController {
             if (this.rainbow.isComplete()) {
                 setTimeout(() => {
                     this.completeGame();
-                }, CONFIG.NEXT_QUESTION_DELAY);
+                }, CONFIG.NEXT_QUESTION_DELAY + 2000); // Extra 2 seconds to see rainbow flashing
                 return;
             }
             
