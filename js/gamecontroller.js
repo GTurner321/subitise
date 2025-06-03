@@ -50,75 +50,77 @@ class GameController {
         this.startNewQuestion();
     }
 
-    startNewQuestion() {
-        if (this.gameComplete) {
-            return;
-        }
-
-        // Check if we need to force higher numbers before allowing progression
-        let forceHigherNumbers = false;
-        if (this.correctStreak === 2 && !this.hasSeenHigherNumbers) {
-            forceHigherNumbers = true;
-        }
-
-        // Generate random number of icons based on current difficulty
-        let questionNumber;
-        let attempts = 0;
-        const maxAttempts = 50; // Increased attempts for better coverage
-        
-        do {
-            if (forceHigherNumbers) {
-                // Force higher numbers in current level
-                if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
-                    // Force 4 (highest in easy level)
-                    questionNumber = 4;
-                } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
-                    // Force 5 or 6 (higher numbers in medium level)
-                    questionNumber = Math.random() < 0.5 ? 5 : 6;
-                } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
-                    // Force 7-10 (higher numbers in hard level)
-                    const higherNumbers = [7, 8, 9, 10];
-                    questionNumber = higherNumbers[Math.floor(Math.random() * higherNumbers.length)];
-                }
-            } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
-                // Use weighted probability for hard level
-                questionNumber = this.getWeightedHardNumber();
-            } else {
-                // Use uniform distribution for easy and medium levels
-                const min = this.currentDifficulty.min;
-                const max = this.currentDifficulty.max;
-                questionNumber = Math.floor(Math.random() * (max - min + 1)) + min;
-            }
-            attempts++;
-            
-            // Debug logging (remove in production)
-            console.log(`Attempt ${attempts}: Generated ${questionNumber}, Previous was ${this.previousAnswer}, Difficulty: ${this.currentDifficulty.name}, Force higher: ${forceHigherNumbers}`);
-            
-        } while (
-            (questionNumber === this.previousAnswer || // No consecutive duplicates
-             (this.previousAnswer === 0 && questionNumber === 1) || // Don't start with 1
-             (this.currentDifficulty === CONFIG.DIFFICULTY.HARD && 
-              this.previousAnswer >= 7 && this.previousAnswer <= 10 && 
-              questionNumber >= 7 && questionNumber <= 10)) && // In hard level, don't follow 7-10 with another 7-10
-            attempts < maxAttempts
-        );
-        
-        // Check if this question contains higher numbers for current level
-        this.checkForHigherNumbers(questionNumber);
-        
-        // Store the current answer as previous for next time BEFORE updating currentAnswer
-        this.previousAnswer = this.currentAnswer;
-        this.currentAnswer = questionNumber;
-        
-        console.log(`Final: Using ${questionNumber}, storing ${this.previousAnswer} as previous, hasSeenHigher: ${this.hasSeenHigherNumbers}`);
-        
-        // Render the icons
-        this.iconRenderer.renderIcons(this.currentAnswer);
-        
-        // Reset button states
-        this.resetButtonStates();
+startNewQuestion() {
+    if (this.gameComplete) {
+        return;
     }
 
+    // Update previous answer BEFORE generating new question
+    this.previousAnswer = this.currentAnswer;
+
+    // Check if we need to force higher numbers before allowing progression
+    let forceHigherNumbers = false;
+    if (this.correctStreak === 2 && !this.hasSeenHigherNumbers) {
+        forceHigherNumbers = true;
+    }
+
+    // Generate random number of icons based on current difficulty
+    let questionNumber;
+    let attempts = 0;
+    const maxAttempts = 50;
+    
+    do {
+        if (forceHigherNumbers) {
+            // Force higher numbers in current level
+            if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
+                // Force 4 (highest in easy level)
+                questionNumber = 4;
+            } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
+                // Force 5 or 6 (higher numbers in medium level)
+                questionNumber = Math.random() < 0.5 ? 5 : 6;
+            } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
+                // Force 7-10 (higher numbers in hard level)
+                const higherNumbers = [7, 8, 9, 10];
+                questionNumber = higherNumbers[Math.floor(Math.random() * higherNumbers.length)];
+            }
+        } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
+            // Use weighted probability for hard level
+            questionNumber = this.getWeightedHardNumber();
+        } else {
+            // Use uniform distribution for easy and medium levels
+            const min = this.currentDifficulty.min;
+            const max = this.currentDifficulty.max;
+            questionNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        attempts++;
+        
+        // Debug logging (remove in production)
+        console.log(`Attempt ${attempts}: Generated ${questionNumber}, Previous was ${this.previousAnswer}, Difficulty: ${this.currentDifficulty.name}, Force higher: ${forceHigherNumbers}`);
+        
+    } while (
+        (questionNumber === this.previousAnswer || // No consecutive duplicates
+         (this.previousAnswer === 0 && questionNumber === 1) || // Don't start with 1
+         (this.currentDifficulty === CONFIG.DIFFICULTY.HARD && 
+          this.previousAnswer >= 7 && this.previousAnswer <= 10 && 
+          questionNumber >= 7 && questionNumber <= 10)) && // In hard level, don't follow 7-10 with another 7-10
+        attempts < maxAttempts
+    );
+    
+    // Check if this question contains higher numbers for current level
+    this.checkForHigherNumbers(questionNumber);
+    
+    // Set the new current answer
+    this.currentAnswer = questionNumber;
+    
+    console.log(`Final: Using ${questionNumber}, previous was ${this.previousAnswer}, hasSeenHigher: ${this.hasSeenHigherNumbers}`);
+    
+    // Render the icons
+    this.iconRenderer.renderIcons(this.currentAnswer);
+    
+    // Reset button states
+    this.resetButtonStates();
+}
+    
     checkForHigherNumbers(questionNumber) {
         if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY && questionNumber === 4) {
             this.hasSeenHigherNumbers = true;
