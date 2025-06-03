@@ -265,10 +265,16 @@ class GameController {
                 }
             });
             
+            // Start fading out the cross during the last second
+            if (crossOverlay && crossOverlay.parentNode) {
+                crossOverlay.style.transition = 'opacity 1s ease-out';
+                crossOverlay.style.opacity = '0';
+            }
+            
             // Re-enable buttons and remove cross after fade in completes (another 1 second)
             setTimeout(() => {
                 this.buttonsDisabled = false;
-                // Remove the cross overlay
+                // Remove the cross overlay (it should be invisible by now)
                 if (crossOverlay && crossOverlay.parentNode) {
                     crossOverlay.parentNode.removeChild(crossOverlay);
                 }
