@@ -74,23 +74,33 @@ class Rainbow {
         let currentFlashIndex = 0;
         
         this.flashInterval = setInterval(() => {
-            // Hide all arcs
+            // Set opacity for all arcs based on wave pattern
             for (let i = 0; i < this.maxPieces; i++) {
                 const arc = document.getElementById(`arc-${i}`);
                 if (arc) {
-                    arc.style.opacity = '0.2';
+                    arc.style.opacity = this.getWaveOpacity(i, currentFlashIndex);
                 }
-            }
-            
-            // Show current arc brightly
-            const currentArc = document.getElementById(`arc-${currentFlashIndex}`);
-            if (currentArc) {
-                currentArc.style.opacity = '1';
             }
             
             // Move to next arc
             currentFlashIndex = (currentFlashIndex + 1) % this.maxPieces;
         }, 300);
+    }
+
+    getWaveOpacity(arcIndex, currentIndex) {
+        // Calculate the distance between arcIndex and currentIndex (handling wrap-around)
+        let distance = Math.abs(arcIndex - currentIndex);
+        let wrapDistance = this.maxPieces - distance;
+        distance = Math.min(distance, wrapDistance);
+        
+        switch (distance) {
+            case 0:
+                return '1'; // Fully visible (current position)
+            case 1:
+                return '0.6'; // Semi-transparent (adjacent positions)
+            default:
+                return '0.2'; // Transparent (all other positions)
+        }
     }
 
     stopFlashing() {
