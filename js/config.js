@@ -9,12 +9,12 @@ const CONFIG = {
         },
         MEDIUM: {
             name: 'medium',
-            min: 4,
-            max: 7
+            min: 3,
+            max: 6
         },
         HARD: {
             name: 'hard',
-            min: 5,
+            min: 3,
             max: 10
         }
     },
