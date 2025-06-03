@@ -106,8 +106,8 @@ const CONFIG = {
     RAINBOW_ARC_DEGREES: 18,
 
     // Icon positioning
-    ICON_MARGIN: 80, // Minimum distance from edges
-    MIN_ICON_DISTANCE: 100, // Minimum distance between icons
+    ICON_MARGIN: 120, // Minimum distance from edges (increased for larger icons)
+    MIN_ICON_DISTANCE: 150, // Minimum distance between icons (increased for larger icons)
 
     // Animation timings
     FLASH_DURATION: 800,
