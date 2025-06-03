@@ -228,6 +228,11 @@ class GameController {
             buttonElement.classList.remove('incorrect');
         }, CONFIG.FLASH_DURATION);
 
+        // Add crimson cross overlay to the incorrect button
+        const crossOverlay = document.createElement('div');
+        crossOverlay.className = 'cross-overlay';
+        buttonElement.appendChild(crossOverlay);
+
         // Mark that an attempt was made
         buttonElement.dataset.attempted = 'true';
         
@@ -260,9 +265,13 @@ class GameController {
                 }
             });
             
-            // Re-enable buttons after fade in completes (another 1 second)
+            // Re-enable buttons and remove cross after fade in completes (another 1 second)
             setTimeout(() => {
                 this.buttonsDisabled = false;
+                // Remove the cross overlay
+                if (crossOverlay && crossOverlay.parentNode) {
+                    crossOverlay.parentNode.removeChild(crossOverlay);
+                }
                 // Clean up transition styles
                 this.numberButtons.forEach(btn => {
                     btn.style.transition = '';
@@ -285,6 +294,11 @@ class GameController {
             // Reset any opacity and transition changes
             btn.style.opacity = '1';
             btn.style.transition = '';
+            // Remove any cross overlays that might still exist
+            const crossOverlay = btn.querySelector('.cross-overlay');
+            if (crossOverlay) {
+                crossOverlay.remove();
+            }
         });
     }
 
