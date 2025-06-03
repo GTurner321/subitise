@@ -74,7 +74,7 @@ class GameController {
         // Generate random number of icons based on current difficulty
         let questionNumber;
         let attempts = 0;
-        const maxAttempts = 50;
+        const maxAttempts = 50; // Increased attempts for better coverage
         
         do {
             if (forceHigherNumbers) {
@@ -101,6 +101,9 @@ class GameController {
             }
             attempts++;
             
+            // Debug logging (remove in production)
+            console.log(`Attempt ${attempts}: Generated ${questionNumber}, Previous was ${this.previousAnswer}, Difficulty: ${this.currentDifficulty.name}, Force higher: ${forceHigherNumbers}`);
+            
         } while (
             (questionNumber === this.previousAnswer || // No consecutive duplicates
              (this.previousAnswer === 0 && questionNumber === 1) || // Don't start with 1
@@ -115,6 +118,8 @@ class GameController {
         
         // Set the new current answer
         this.currentAnswer = questionNumber;
+        
+        console.log(`Final: Using ${questionNumber}, previous was ${this.previousAnswer}, hasSeenHigher: ${this.hasSeenHigherNumbers}`);
         
         // Render the icons
         this.iconRenderer.renderIcons(this.currentAnswer);
