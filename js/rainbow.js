@@ -3,8 +3,10 @@ class Rainbow {
         this.container = document.getElementById('rainbowContainer');
         this.pieces = 0;
         this.maxPieces = CONFIG.RAINBOW_PIECES;
-        this.arcDegrees = CONFIG.RAINBOW_ARC_DEGREES;
         this.colors = CONFIG.RAINBOW_COLORS;
+        this.arcWidth = 15; // Width of each arc strand
+        this.isFlashing = false;
+        this.flashInterval = null;
         
         this.initializeArcs();
     }
@@ -13,23 +15,35 @@ class Rainbow {
         // Clear existing arcs
         this.container.innerHTML = '';
         
+        // Calculate the game area width to make rainbow 80% of it
+        const gameArea = document.querySelector('.game-area');
+        const gameAreaWidth = gameArea ? gameArea.clientWidth : window.innerWidth * 0.8;
+        const rainbowWidth = gameAreaWidth * 0.8;
+        
         // Create all 10 rainbow arcs (initially hidden)
+        // Outermost arc first (largest radius)
         for (let i = 0; i < this.maxPieces; i++) {
             const arc = document.createElement('div');
             arc.className = 'rainbow-arc';
             arc.id = `arc-${i}`;
             
-            // Calculate rotation for this arc
-            const rotation = i * this.arcDegrees - 90; // Start from left (-90 degrees)
+            // Calculate radius for this arc (outermost first)
+            const baseRadius = rainbowWidth / 2;
+            const radius = baseRadius - (i * this.arcWidth);
             
-            // Set arc properties
-            arc.style.width = '100%';
-            arc.style.height = '100%';
-            arc.style.borderTopWidth = '20px';
+            // Set arc properties for semi-circle
+            arc.style.width = radius * 2 + 'px';
+            arc.style.height = radius + 'px';
+            arc.style.borderTopWidth = this.arcWidth + 'px';
             arc.style.borderTopColor = this.colors[i];
-            arc.style.transform = `rotate(${rotation}deg)`;
+            arc.style.borderRadius = radius + 'px ' + radius + 'px 0 0';
+            arc.style.position = 'absolute';
+            arc.style.bottom = '0';
+            arc.style.left = '50%';
+            arc.style.transform = 'translateX(-50%)';
             arc.style.opacity = '0';
             arc.style.transition = 'opacity 0.5s ease-in-out';
+            arc.style.pointerEvents = 'none';
             
             this.container.appendChild(arc);
         }
@@ -39,15 +53,66 @@ class Rainbow {
         if (this.pieces < this.maxPieces) {
             const arc = document.getElementById(`arc-${this.pieces}`);
             if (arc) {
-                arc.style.opacity = '0.4';
+                arc.style.opacity = '0.8';
                 this.pieces++;
+                
+                // If rainbow is complete, start flashing
+                if (this.pieces >= this.maxPieces) {
+                    setTimeout(() => {
+                        this.startFlashing();
+                    }, 500);
+                }
             }
         }
         return this.pieces;
     }
 
+    startFlashing() {
+        if (this.isFlashing) return;
+        
+        this.isFlashing = true;
+        let currentFlashIndex = 0;
+        
+        this.flashInterval = setInterval(() => {
+            // Hide all arcs
+            for (let i = 0; i < this.maxPieces; i++) {
+                const arc = document.getElementById(`arc-${i}`);
+                if (arc) {
+                    arc.style.opacity = '0.2';
+                }
+            }
+            
+            // Show current arc brightly
+            const currentArc = document.getElementById(`arc-${currentFlashIndex}`);
+            if (currentArc) {
+                currentArc.style.opacity = '1';
+            }
+            
+            // Move to next arc
+            currentFlashIndex = (currentFlashIndex + 1) % this.maxPieces;
+        }, 300);
+    }
+
+    stopFlashing() {
+        if (this.flashInterval) {
+            clearInterval(this.flashInterval);
+            this.flashInterval = null;
+        }
+        this.isFlashing = false;
+        
+        // Restore normal opacity for all visible arcs
+        for (let i = 0; i < this.pieces; i++) {
+            const arc = document.getElementById(`arc-${i}`);
+            if (arc) {
+                arc.style.opacity = '0.8';
+            }
+        }
+    }
+
     reset() {
+        this.stopFlashing();
         this.pieces = 0;
+        
         // Hide all arcs
         for (let i = 0; i < this.maxPieces; i++) {
             const arc = document.getElementById(`arc-${i}`);
@@ -55,6 +120,9 @@ class Rainbow {
                 arc.style.opacity = '0';
             }
         }
+        
+        // Reinitialize to handle any screen size changes
+        this.initializeArcs();
     }
 
     isComplete() {
