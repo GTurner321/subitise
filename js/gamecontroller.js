@@ -190,26 +190,38 @@ class GameController {
         // Check if this was the first attempt
         const wasFirstAttempt = !this.hasAttemptedAnswer();
         
+        // Always add rainbow piece for any correct answer
+        const pieces = this.rainbow.addPiece();
+        
+        // Update streaks and difficulty progression based on first attempt performance
         if (wasFirstAttempt) {
+            // First attempt correct - positive progression
             this.correctStreak++;
             this.wrongStreak = 0;
             this.questionsInLevel++;
-            
-            // Add rainbow piece
-            const pieces = this.rainbow.addPiece();
-            
-            // Check if game is complete
-            if (this.rainbow.isComplete()) {
-                setTimeout(() => {
-                    this.completeGame();
-                }, CONFIG.NEXT_QUESTION_DELAY + 3000); // Extra 3 seconds to see rainbow flashing
-                return;
-            }
             
             // Check for difficulty progression
             if (this.correctStreak >= CONFIG.QUESTIONS_PER_LEVEL) {
                 this.progressDifficulty();
             }
+        } else {
+            // Multiple attempts needed - treat as "incorrect on first attempt"
+            this.wrongStreak++;
+            this.correctStreak = 0;
+            this.questionsInLevel++;
+            
+            // Check if we need to drop difficulty
+            if (this.wrongStreak >= CONFIG.CONSECUTIVE_WRONG_TO_DROP) {
+                this.dropDifficulty();
+            }
+        }
+        
+        // Check if game is complete
+        if (this.rainbow.isComplete()) {
+            setTimeout(() => {
+                this.completeGame();
+            }, CONFIG.NEXT_QUESTION_DELAY + 3000); // Extra 3 seconds to see rainbow flashing
+            return;
         }
 
         // Start next question after delay
@@ -236,17 +248,8 @@ class GameController {
         // Mark that an attempt was made
         buttonElement.dataset.attempted = 'true';
         
-        // Check if this is the first incorrect attempt for this question
-        if (!this.hasAttemptedAnswer()) {
-            this.wrongStreak++;
-            this.correctStreak = 0;
-            this.questionsInLevel++;
-            
-            // Check if we need to drop difficulty
-            if (this.wrongStreak >= CONFIG.CONSECUTIVE_WRONG_TO_DROP) {
-                this.dropDifficulty();
-            }
-        }
+        // Note: Streak counting is now handled in handleCorrectAnswer 
+        // based on whether the final correct answer was on first attempt or not
 
         // Fade out all other buttons (not the clicked one)
         this.numberButtons.forEach(btn => {
