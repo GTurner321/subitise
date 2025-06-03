@@ -6,6 +6,7 @@ class GameController {
         // Game state
         this.currentDifficulty = CONFIG.DIFFICULTY.EASY;
         this.currentAnswer = 0;
+        this.previousAnswer = 0; // Track previous question to avoid duplicates
         this.correctStreak = 0;
         this.wrongStreak = 0;
         this.questionsInLevel = 0;
@@ -41,6 +42,7 @@ class GameController {
         this.wrongStreak = 0;
         this.questionsInLevel = 0;
         this.gameComplete = false;
+        this.previousAnswer = 0; // Reset previous answer tracking
         
         this.rainbow.reset();
         this.modal.classList.add('hidden');
@@ -54,16 +56,27 @@ class GameController {
 
         // Generate random number of icons based on current difficulty
         let questionNumber;
-        if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
-            // Use weighted probability for hard level
-            questionNumber = this.getWeightedHardNumber();
-        } else {
-            // Use uniform distribution for easy and medium levels
-            const min = this.currentDifficulty.min;
-            const max = this.currentDifficulty.max;
-            questionNumber = Math.floor(Math.random() * (max - min + 1)) + min;
-        }
+        let attempts = 0;
+        const maxAttempts = 20; // Prevent infinite loops
         
+        do {
+            if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
+                // Use weighted probability for hard level
+                questionNumber = this.getWeightedHardNumber();
+            } else {
+                // Use uniform distribution for easy and medium levels
+                const min = this.currentDifficulty.min;
+                const max = this.currentDifficulty.max;
+                questionNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+            attempts++;
+        } while (
+            (questionNumber === this.previousAnswer || // No consecutive duplicates
+             (this.previousAnswer === 0 && questionNumber === 1)) && // Don't start with 1
+            attempts < maxAttempts
+        );
+        
+        this.previousAnswer = this.currentAnswer; // Store previous answer
         this.currentAnswer = questionNumber;
         
         // Render the icons
