@@ -25,23 +25,20 @@ body {
 /* Rainbow background */
 .rainbow-container {
     position: absolute;
-    top: 50%;
+    bottom: 0;
     left: 50%;
-    transform: translate(-50%, -50%);
-    width: 95%;
-    height: 40vmin;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 50%;
     z-index: 1;
 }
 
 .rainbow-arc {
-    position: absolute;
-    border-radius: 50% 50% 0 0;
-    opacity: 0.2;
-    transform-origin: center bottom;
     border-style: solid;
     border-left: 0;
     border-right: 0;
     border-bottom: 0;
+    box-sizing: border-box;
 }
 
 /* Icons */
