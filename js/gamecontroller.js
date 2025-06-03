@@ -12,6 +12,7 @@ class GameController {
         this.questionsInLevel = 0;
         this.gameComplete = false;
         this.hasSeenHigherNumbers = false; // Track if user has seen higher numbers in current level
+        this.buttonsDisabled = false; // Track if buttons are temporarily disabled
         
         // DOM elements
         this.numberButtons = document.querySelectorAll('.number-btn');
@@ -26,6 +27,11 @@ class GameController {
         // Number button clicks
         this.numberButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
+                // Ignore clicks if buttons are disabled
+                if (this.buttonsDisabled) {
+                    return;
+                }
+                
                 const selectedNumber = parseInt(e.target.dataset.number);
                 this.handleNumberClick(selectedNumber, e.target);
             });
@@ -44,83 +50,79 @@ class GameController {
         this.questionsInLevel = 0;
         this.gameComplete = false;
         this.previousAnswer = 0; // Reset previous answer tracking
+        this.buttonsDisabled = false; // Reset button state
         
         this.rainbow.reset();
         this.modal.classList.add('hidden');
         this.startNewQuestion();
     }
 
-startNewQuestion() {
-    if (this.gameComplete) {
-        return;
-    }
-
-    // Update previous answer BEFORE generating new question
-    this.previousAnswer = this.currentAnswer;
-
-    // Check if we need to force higher numbers before allowing progression
-    let forceHigherNumbers = false;
-    if (this.correctStreak === 2 && !this.hasSeenHigherNumbers) {
-        forceHigherNumbers = true;
-    }
-
-    // Generate random number of icons based on current difficulty
-    let questionNumber;
-    let attempts = 0;
-    const maxAttempts = 50;
-    
-    do {
-        if (forceHigherNumbers) {
-            // Force higher numbers in current level
-            if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
-                // Force 4 (highest in easy level)
-                questionNumber = 4;
-            } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
-                // Force 5 or 6 (higher numbers in medium level)
-                questionNumber = Math.random() < 0.5 ? 5 : 6;
-            } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
-                // Force 7-10 (higher numbers in hard level)
-                const higherNumbers = [7, 8, 9, 10];
-                questionNumber = higherNumbers[Math.floor(Math.random() * higherNumbers.length)];
-            }
-        } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
-            // Use weighted probability for hard level
-            questionNumber = this.getWeightedHardNumber();
-        } else {
-            // Use uniform distribution for easy and medium levels
-            const min = this.currentDifficulty.min;
-            const max = this.currentDifficulty.max;
-            questionNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+    startNewQuestion() {
+        if (this.gameComplete) {
+            return;
         }
-        attempts++;
+
+        // Update previous answer BEFORE generating new question
+        this.previousAnswer = this.currentAnswer;
+
+        // Check if we need to force higher numbers before allowing progression
+        let forceHigherNumbers = false;
+        if (this.correctStreak === 2 && !this.hasSeenHigherNumbers) {
+            forceHigherNumbers = true;
+        }
+
+        // Generate random number of icons based on current difficulty
+        let questionNumber;
+        let attempts = 0;
+        const maxAttempts = 50;
         
-        // Debug logging (remove in production)
-        console.log(`Attempt ${attempts}: Generated ${questionNumber}, Previous was ${this.previousAnswer}, Difficulty: ${this.currentDifficulty.name}, Force higher: ${forceHigherNumbers}`);
+        do {
+            if (forceHigherNumbers) {
+                // Force higher numbers in current level
+                if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
+                    // Force 4 (highest in easy level)
+                    questionNumber = 4;
+                } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
+                    // Force 5 or 6 (higher numbers in medium level)
+                    questionNumber = Math.random() < 0.5 ? 5 : 6;
+                } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
+                    // Force 7-10 (higher numbers in hard level)
+                    const higherNumbers = [7, 8, 9, 10];
+                    questionNumber = higherNumbers[Math.floor(Math.random() * higherNumbers.length)];
+                }
+            } else if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
+                // Use weighted probability for hard level
+                questionNumber = this.getWeightedHardNumber();
+            } else {
+                // Use uniform distribution for easy and medium levels
+                const min = this.currentDifficulty.min;
+                const max = this.currentDifficulty.max;
+                questionNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+            attempts++;
+            
+        } while (
+            (questionNumber === this.previousAnswer || // No consecutive duplicates
+             (this.previousAnswer === 0 && questionNumber === 1) || // Don't start with 1
+             (this.currentDifficulty === CONFIG.DIFFICULTY.HARD && 
+              this.previousAnswer >= 7 && this.previousAnswer <= 10 && 
+              questionNumber >= 7 && questionNumber <= 10)) && // In hard level, don't follow 7-10 with another 7-10
+            attempts < maxAttempts
+        );
         
-    } while (
-        (questionNumber === this.previousAnswer || // No consecutive duplicates
-         (this.previousAnswer === 0 && questionNumber === 1) || // Don't start with 1
-         (this.currentDifficulty === CONFIG.DIFFICULTY.HARD && 
-          this.previousAnswer >= 7 && this.previousAnswer <= 10 && 
-          questionNumber >= 7 && questionNumber <= 10)) && // In hard level, don't follow 7-10 with another 7-10
-        attempts < maxAttempts
-    );
-    
-    // Check if this question contains higher numbers for current level
-    this.checkForHigherNumbers(questionNumber);
-    
-    // Set the new current answer
-    this.currentAnswer = questionNumber;
-    
-    console.log(`Final: Using ${questionNumber}, previous was ${this.previousAnswer}, hasSeenHigher: ${this.hasSeenHigherNumbers}`);
-    
-    // Render the icons
-    this.iconRenderer.renderIcons(this.currentAnswer);
-    
-    // Reset button states
-    this.resetButtonStates();
-}
-    
+        // Check if this question contains higher numbers for current level
+        this.checkForHigherNumbers(questionNumber);
+        
+        // Set the new current answer
+        this.currentAnswer = questionNumber;
+        
+        // Render the icons
+        this.iconRenderer.renderIcons(this.currentAnswer);
+        
+        // Reset button states
+        this.resetButtonStates();
+    }
+
     checkForHigherNumbers(questionNumber) {
         if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY && questionNumber === 4) {
             this.hasSeenHigherNumbers = true;
@@ -211,7 +213,10 @@ startNewQuestion() {
     }
 
     handleIncorrectAnswer(buttonElement) {
-        // Flash red
+        // Disable buttons during the fade sequence
+        this.buttonsDisabled = true;
+        
+        // Flash red on the clicked button
         buttonElement.classList.add('incorrect');
         setTimeout(() => {
             buttonElement.classList.remove('incorrect');
@@ -231,6 +236,33 @@ startNewQuestion() {
                 this.dropDifficulty();
             }
         }
+
+        // Fade out all other buttons (not the clicked one)
+        this.numberButtons.forEach(btn => {
+            if (btn !== buttonElement) {
+                btn.style.transition = 'opacity 1s ease-in-out';
+                btn.style.opacity = '0.1';
+            }
+        });
+
+        // After 1 second (fade out complete), wait 1 second, then fade back in
+        setTimeout(() => {
+            // Start fading back in after the 1 second pause
+            this.numberButtons.forEach(btn => {
+                if (btn !== buttonElement) {
+                    btn.style.opacity = '1';
+                }
+            });
+            
+            // Re-enable buttons after fade in completes (another 1 second)
+            setTimeout(() => {
+                this.buttonsDisabled = false;
+                // Clean up transition styles
+                this.numberButtons.forEach(btn => {
+                    btn.style.transition = '';
+                });
+            }, 1000);
+        }, 2000); // 1 second fade out + 1 second pause
     }
 
     hasAttemptedAnswer() {
@@ -240,9 +272,13 @@ startNewQuestion() {
     }
 
     resetButtonStates() {
+        this.buttonsDisabled = false;
         this.numberButtons.forEach(btn => {
             btn.dataset.attempted = 'false';
             btn.classList.remove('correct', 'incorrect');
+            // Reset any opacity and transition changes
+            btn.style.opacity = '1';
+            btn.style.transition = '';
         });
     }
 
