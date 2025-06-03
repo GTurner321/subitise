@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subitising Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div class="game-area">
+        <div class="rainbow-container" id="rainbowContainer">
+            <!-- Rainbow arcs will be added here by JavaScript -->
+        </div>
+        <!-- Game icons will be added here by JavaScript -->
+    </div>
+
+    <div class="number-buttons">
+        <button class="number-btn" data-number="1">1</button>
+        <button class="number-btn" data-number="2">2</button>
+        <button class="number-btn" data-number="3">3</button>
+        <button class="number-btn" data-number="4">4</button>
+        <button class="number-btn" data-number="5">5</button>
+        <button class="number-btn" data-number="6">6</button>
+        <button class="number-btn" data-number="7">7</button>
+        <button class="number-btn" data-number="8">8</button>
+        <button class="number-btn" data-number="9">9</button>
+        <button class="number-btn" data-number="10">10</button>
+    </div>
+
+    <!-- Game completion modal -->
+    <div class="modal hidden" id="gameModal">
+        <div class="modal-content">
+            <h2>🌈 Well Done! 🌈</h2>
+            <button class="play-again-btn" id="playAgainBtn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/rainbow.js"></script>
+    <script src="js/iconrenderer.js"></script>
+    <script src="js/gamecontroller.js"></script>
+</body>
+</html>
