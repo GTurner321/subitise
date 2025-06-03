@@ -53,6 +53,7 @@ class GameController {
         this.buttonsDisabled = false; // Reset button state
         
         this.rainbow.reset();
+        this.iconRenderer.reset(); // Reset icon and color tracking
         this.modal.classList.add('hidden');
         this.startNewQuestion();
     }
