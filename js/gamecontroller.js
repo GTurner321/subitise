@@ -201,7 +201,7 @@ class GameController {
             if (this.rainbow.isComplete()) {
                 setTimeout(() => {
                     this.completeGame();
-                }, CONFIG.NEXT_QUESTION_DELAY + 2000); // Extra 2 seconds to see rainbow flashing
+                }, CONFIG.NEXT_QUESTION_DELAY + 3000); // Extra 3 seconds to see rainbow flashing
                 return;
             }
             
