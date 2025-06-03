@@ -24,7 +24,7 @@ const CONFIG = {
         'fas fa-cat',
         'fas fa-dog',
         'fas fa-fish',
-        'fas fa-bird',
+        'fas fa-dove',
         'fas fa-frog',
         'fas fa-bug',
         'fas fa-home',
