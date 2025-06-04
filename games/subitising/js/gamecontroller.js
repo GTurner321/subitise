@@ -231,85 +231,31 @@ class GameController {
     }
 
     handleIncorrectAnswer(buttonElement) {
-        // Disable buttons during the fade sequence
-        this.buttonsDisabled = true;
-        
-        // Flash red on the clicked button
-        buttonElement.classList.add('incorrect');
-        setTimeout(() => {
-            buttonElement.classList.remove('incorrect');
-        }, CONFIG.FLASH_DURATION);
-
-        // Add crimson cross overlay to the incorrect button
-        const crossOverlay = document.createElement('div');
-        crossOverlay.className = 'cross-overlay';
-        buttonElement.appendChild(crossOverlay);
-
-        // Mark that an attempt was made
-        buttonElement.dataset.attempted = 'true';
-        
-        // Note: Streak counting is now handled in handleCorrectAnswer 
-        // based on whether the final correct answer was on first attempt or not
-
-        // Fade out all other buttons (not the clicked one)
-        this.numberButtons.forEach(btn => {
-            if (btn !== buttonElement) {
-                btn.style.transition = 'opacity 1s ease-in-out';
-                btn.style.opacity = '0.1';
-            }
-        });
-
-        // After 1 second (fade out complete), wait 1 second, then fade back in
-        setTimeout(() => {
-            // Start fading back in after the 1 second pause
-            this.numberButtons.forEach(btn => {
-                if (btn !== buttonElement) {
-                    btn.style.opacity = '1';
-                }
-            });
-            
-            // Start fading out the cross during the last second
-            if (crossOverlay && crossOverlay.parentNode) {
-                crossOverlay.style.transition = 'opacity 1s ease-out';
-                crossOverlay.style.opacity = '0';
-            }
-            
-            // Re-enable buttons and remove cross after fade in completes (another 1 second)
-            setTimeout(() => {
-                this.buttonsDisabled = false;
-                // Remove the cross overlay (it should be invisible by now)
-                if (crossOverlay && crossOverlay.parentNode) {
-                    crossOverlay.parentNode.removeChild(crossOverlay);
-                }
-                // Clean up transition styles
-                this.numberButtons.forEach(btn => {
-                    btn.style.transition = '';
-                });
-            }, 1000);
-        }, 2000); // 1 second fade out + 1 second pause
-    }
+    this.buttonsDisabled = true;
+    
+    SharedErrorHandler.handleIncorrectAnswer(
+        buttonElement, 
+        this.numberButtons, 
+        () => {
+            // Callback to re-enable buttons
+            this.buttonsDisabled = false;
+        },
+        {
+            flashDuration: CONFIG.FLASH_DURATION,
+            disableTimeout: 3000, // Change this value to adjust timeout
+            fadeTransition: 1000
+        }
+    );
+}
 
     hasAttemptedAnswer() {
-        return Array.from(this.numberButtons).some(btn => 
-            btn.dataset.attempted === 'true'
-        );
-    }
+    return SharedErrorHandler.hasAttemptedAnswer(this.numberButtons);
+}
 
-    resetButtonStates() {
-        this.buttonsDisabled = false;
-        this.numberButtons.forEach(btn => {
-            btn.dataset.attempted = 'false';
-            btn.classList.remove('correct', 'incorrect');
-            // Reset any opacity and transition changes
-            btn.style.opacity = '1';
-            btn.style.transition = '';
-            // Remove any cross overlays that might still exist
-            const crossOverlay = btn.querySelector('.cross-overlay');
-            if (crossOverlay) {
-                crossOverlay.remove();
-            }
-        });
-    }
+   resetButtonStates() {
+    this.buttonsDisabled = false;
+    SharedErrorHandler.resetButtonStates(this.numberButtons);
+}
 
     progressDifficulty() {
         if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
