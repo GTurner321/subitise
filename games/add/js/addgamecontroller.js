@@ -333,7 +333,10 @@ class AddGameController {
                     crossOverlay.style.opacity = '0';
                 }
                 
-                // Re-enable buttons and clean up after fade in completes
+                // Re-enable buttons as soon as fade-in starts (after 2 seconds total)
+                this.buttonsDisabled = false;
+                
+                // Clean up after fade in completes (1 second later)
                 setTimeout(() => {
                     // Remove the cross overlay
                     if (crossOverlay && crossOverlay.parentNode) {
@@ -344,9 +347,6 @@ class AddGameController {
                     this.numberButtons.forEach(btn => {
                         btn.style.transition = '';
                     });
-                    
-                    // Re-enable buttons
-                    this.buttonsDisabled = false;
                 }, 1000);
             }, 1000);
         }, 1000);
