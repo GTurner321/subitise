@@ -352,12 +352,9 @@ class AddGameController {
         }, 1000);
     }
 
-    fadeOutQuestion() {
-        // Add fade out class to all game elements
-        const gameElements = [
-            ...this.iconRenderer.currentIcons,
-            this.sumRow
-        ];
+fadeOutQuestion() {
+        // Add fade out class to icons only, NOT the sum row
+        const gameElements = [...this.iconRenderer.currentIcons];
         
         gameElements.forEach(element => {
             if (element) {
@@ -369,12 +366,9 @@ class AddGameController {
         setTimeout(() => {
             this.startNewQuestion();
             
-            // Remove fade out classes and add fade in
+            // Remove fade out classes and add fade in to new icons only
             setTimeout(() => {
-                const newElements = [
-                    ...this.iconRenderer.currentIcons,
-                    this.sumRow
-                ];
+                const newElements = [...this.iconRenderer.currentIcons];
                 
                 newElements.forEach(element => {
                     if (element) {
