@@ -1,0 +1,294 @@
+/* Landing page specific styles */
+.landing-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.landing-header {
+    text-align: center;
+    color: white;
+    margin-bottom: 40px;
+    padding: 20px 0;
+}
+
+.landing-header h1 {
+    font-size: 3.5rem;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-weight: bold;
+}
+
+.landing-header p {
+    font-size: 1.5rem;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+.landing-header i {
+    margin-right: 15px;
+    color: #ffd700;
+}
+
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex: 1;
+    align-content: start;
+}
+
+.game-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 400px;
+}
+
+.game-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.game-card.hover .game-preview {
+    transform: scale(1.05);
+}
+
+.game-preview {
+    height: 200px;
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.preview-icons {
+    display: flex;
+    gap: 20px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -70%);
+}
+
+.preview-icons i {
+    font-size: 3rem;
+    color: #ff6b6b;
+    animation: float 3s ease-in-out infinite;
+}
+
+.preview-icons i:nth-child(2) {
+    color: #4ecdc4;
+    animation-delay: 0.5s;
+}
+
+.preview-icons i:nth-child(3) {
+    color: #45b7d1;
+    animation-delay: 1s;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.mini-rainbow {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.mini-arc {
+    width: 80px;
+    height: 40px;
+    border-style: solid;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-top-width: 8px;
+    border-radius: 40px 40px 0 0;
+    margin-top: -4px;
+}
+
+.game-info {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.game-info h2 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.game-info p {
+    color: #666;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+
+.game-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.feature-tag {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.play-button {
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+    border: none;
+    padding: 15px 20px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 20px 20px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.play-button:hover {
+    background: linear-gradient(135deg, #45a049, #4caf50);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    transform: translateY(-2px);
+}
+
+.play-button:active {
+    transform: translateY(0);
+}
+
+.play-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.play-button:disabled:hover {
+    transform: none;
+}
+
+/* Coming soon card styles */
+.game-card.coming-soon {
+    opacity: 0.7;
+}
+
+.coming-soon .game-preview {
+    background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+}
+
+.coming-soon-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #999;
+}
+
+.coming-soon-content i {
+    font-size: 4rem;
+    margin-bottom: 10px;
+}
+
+.coming-soon-content span {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.landing-footer {
+    text-align: center;
+    color: white;
+    margin-top: 40px;
+    padding: 20px 0;
+    opacity: 0.8;
+}
+
+.landing-footer p {
+    font-size: 1rem;
+    font-weight: 300;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .landing-header h1 {
+        font-size: 2.5rem;
+    }
+    
+    .landing-header p {
+        font-size: 1.2rem;
+    }
+    
+    .games-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 0 10px;
+    }
+    
+    .game-card {
+        height: auto;
+        min-height: 350px;
+    }
+    
+    .preview-icons i {
+        font-size: 2.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .landing-container {
+        padding: 10px;
+    }
+    
+    .landing-header h1 {
+        font-size: 2rem;
+    }
+    
+    .landing-header p {
+        font-size: 1rem;
+    }
+    
+    .game-info h2 {
+        font-size: 1.5rem;
+    }
+    
+    .preview-icons i {
+        font-size: 2rem;
+    }
+}
