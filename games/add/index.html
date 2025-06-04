@@ -24,6 +24,7 @@
         <!-- Left side for icons -->
         <div class="left-side" id="leftSide">
             <!-- Left side icons will be added here by JavaScript -->
+            <div class="input-box left-input-box hidden" id="leftInputBox"></div>
         </div>
         
         <!-- Middle section with plus sign -->
@@ -36,6 +37,16 @@
         <!-- Right side for icons -->
         <div class="right-side" id="rightSide">
             <!-- Right side icons will be added here by JavaScript -->
+            <div class="input-box right-input-box hidden" id="rightInputBox"></div>
+        </div>
+        
+        <!-- Equals section for final answer -->
+        <div class="equals-section hidden" id="equalsSection">
+            <div class="equals-sign">=</div>
+            <div class="total-input-box" id="totalInputBox"></div>
+            <div class="check-mark" id="checkMark">
+                <i class="fas fa-check"></i>
+            </div>
         </div>
     </div>
     
@@ -66,6 +77,7 @@
     <!-- JavaScript files -->
     <script src="js/addconfig.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
+    <script src="../../js/shared/errorhandler.js"></script>
     <script src="js/addiconrenderer.js"></script>
     <script src="js/addgamecontroller.js"></script>
 </body>
