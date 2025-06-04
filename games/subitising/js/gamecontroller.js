@@ -181,69 +181,69 @@ class GameController {
     }
 
     handleCorrectAnswer(buttonElement) {
-        // Flash green
-        buttonElement.classList.add('correct');
-        setTimeout(() => {
-            buttonElement.classList.remove('correct');
-        }, CONFIG.FLASH_DURATION);
+    // Use shared correct answer visual feedback
+    SharedErrorHandler.handleCorrectAnswer(buttonElement, {
+        flashDuration: CONFIG.FLASH_DURATION
+    });
 
-        // Check if this was the first attempt
-        const wasFirstAttempt = !this.hasAttemptedAnswer();
+    // Check if this was the first attempt
+    const wasFirstAttempt = !SharedErrorHandler.hasAttemptedAnswer(this.numberButtons);
+    
+    // Always add rainbow piece for any correct answer
+    const pieces = this.rainbow.addPiece();
+    console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}`);
+    
+    // Update streaks and difficulty progression based on first attempt performance
+    if (wasFirstAttempt) {
+        // First attempt correct - positive progression
+        this.correctStreak++;
+        this.wrongStreak = 0;
+        this.questionsInLevel++;
         
-        // Always add rainbow piece for any correct answer
-        const pieces = this.rainbow.addPiece();
-        
-        // Update streaks and difficulty progression based on first attempt performance
-        if (wasFirstAttempt) {
-            // First attempt correct - positive progression
-            this.correctStreak++;
-            this.wrongStreak = 0;
-            this.questionsInLevel++;
-            
-            // Check for difficulty progression
-            if (this.correctStreak >= CONFIG.QUESTIONS_PER_LEVEL) {
-                this.progressDifficulty();
-            }
-        } else {
-            // Multiple attempts needed - treat as "incorrect on first attempt"
-            this.wrongStreak++;
-            this.correctStreak = 0;
-            this.questionsInLevel++;
-            
-            // Check if we need to drop difficulty
-            if (this.wrongStreak >= CONFIG.CONSECUTIVE_WRONG_TO_DROP) {
-                this.dropDifficulty();
-            }
+        // Check for difficulty progression
+        if (this.correctStreak >= CONFIG.QUESTIONS_PER_LEVEL) {
+            this.progressDifficulty();
         }
+    } else {
+        // Multiple attempts needed - treat as "incorrect on first attempt"
+        this.wrongStreak++;
+        this.correctStreak = 0;
+        this.questionsInLevel++;
         
-        // Check if game is complete
-        if (this.rainbow.isComplete()) {
-            setTimeout(() => {
-                this.completeGame();
-            }, CONFIG.NEXT_QUESTION_DELAY + 3000); // Extra 3 seconds to see rainbow flashing
-            return;
+        // Check if we need to drop difficulty
+        if (this.wrongStreak >= CONFIG.CONSECUTIVE_WRONG_TO_DROP) {
+            this.dropDifficulty();
         }
-
-        // Start next question after delay
+    }
+    
+    // Check if game is complete
+    if (this.rainbow.isComplete()) {
         setTimeout(() => {
-            this.startNewQuestion();
-        }, CONFIG.NEXT_QUESTION_DELAY);
+            this.completeGame();
+        }, CONFIG.NEXT_QUESTION_DELAY + 3000);
+        return;
     }
 
+    // Start next question after delay
+    setTimeout(() => {
+        this.startNewQuestion();
+    }, CONFIG.NEXT_QUESTION_DELAY);
+}
+    
     handleIncorrectAnswer(buttonElement) {
+    // Disable buttons during error handling
     this.buttonsDisabled = true;
     
+    // Use shared error handling: 1s fade out + 1s pause + 1s fade in
     SharedErrorHandler.handleIncorrectAnswer(
         buttonElement, 
         this.numberButtons, 
         () => {
-            // Callback to re-enable buttons
+            // Callback to re-enable buttons after full sequence
             this.buttonsDisabled = false;
         },
         {
-            flashDuration: CONFIG.FLASH_DURATION,
-            disableTimeout: 3000, // Change this value to adjust timeout
-            fadeTransition: 1000
+            flashDuration: CONFIG.FLASH_DURATION
         }
     );
 }
