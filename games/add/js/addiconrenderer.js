@@ -77,24 +77,114 @@ class AddIconRenderer {
             const row = Math.floor(gridPos / 5);
             const col = gridPos % 5;
             
+    generateGridPositions(count, container) {
+        const containerRect = container.getBoundingClientRect();
+        
+        // Calculate usable area (90% of width and height)
+        const usableWidth = containerRect.width * 0.9;
+        const usableHeight = (containerRect.height - 120) * 0.9; // Subtract sum row space
+        
+        // Calculate cell dimensions for 5x5 grid
+        const cellWidth = usableWidth / 5;
+        const cellHeight = usableHeight / 5;
+        
+        // Calculate starting position (5% margin)
+        const startX = containerRect.width * 0.05;
+        const startY = containerRect.height * 0.05;
+        
+        // Create array of all 25 grid positions (0-24)
+        const allPositions = [];
+        for (let i = 0; i < 25; i++) {
+            allPositions.push(i);
+        }
+        
+        // Shuffle and select the required number of positions
+        const shuffled = allPositions.sort(() => Math.random() - 0.5);
+        const selectedPositions = shuffled.slice(0, count);
+        
+        // Create a set of occupied positions for quick lookup
+        const occupiedPositions = new Set(selectedPositions);
+        
+        // Convert grid numbers to actual coordinates
+        const positions = selectedPositions.map(gridPos => {
+            const row = Math.floor(gridPos / 5);
+            const col = gridPos % 5;
+            
             // Calculate center of grid cell
             const centerX = startX + (col * cellWidth) + (cellWidth / 2);
             const centerY = startY + (row * cellHeight) + (cellHeight / 2);
             
-            // Add small random offset within cell (max 5% of cell size)
-            const maxOffsetX = cellWidth * 0.05;
-            const maxOffsetY = cellHeight * 0.05;
+            // Choose random offset magnitude (10%, 20%, 30%, or 40%)
+            const offsetMagnitudes = [0.1, 0.2, 0.3, 0.4];
+            const offsetPercent = offsetMagnitudes[Math.floor(Math.random() * offsetMagnitudes.length)];
+            
+            // Calculate actual offset distances
+            const maxOffsetX = cellWidth * offsetPercent;
+            const maxOffsetY = cellHeight * offsetPercent;
+            
+            // Try to apply random offset, checking adjacent cells
+            let finalOffsetX = 0;
+            let finalOffsetY = 0;
+            
+            // Generate random offset direction
             const offsetX = (Math.random() - 0.5) * maxOffsetX;
             const offsetY = (Math.random() - 0.5) * maxOffsetY;
+            
+            // Check if this offset would bring us closer to an occupied adjacent cell
+            const canOffsetX = this.canOffsetInDirection(gridPos, offsetX > 0 ? 'right' : 'left', occupiedPositions);
+            const canOffsetY = this.canOffsetInDirection(gridPos, offsetY > 0 ? 'down' : 'up', occupiedPositions);
+            
+            // Apply offsets only if safe
+            if (canOffsetX) {
+                finalOffsetX = offsetX;
+            }
+            if (canOffsetY) {
+                finalOffsetY = offsetY;
+            }
             
             // Convert from center position to top-left for CSS positioning
             const iconSize = 100; // 5rem ≈ 80px, but we use 100px for safety
             const iconRadius = iconSize / 2;
             
             return {
-                x: centerX + offsetX - iconRadius,
-                y: centerY + offsetY - iconRadius
+                x: centerX + finalOffsetX - iconRadius,
+                y: centerY + finalOffsetY - iconRadius
             };
+        });
+        
+        return positions;
+    }
+
+    canOffsetInDirection(gridPos, direction, occupiedPositions) {
+        const row = Math.floor(gridPos / 5);
+        const col = gridPos % 5;
+        
+        let adjacentPos;
+        
+        switch (direction) {
+            case 'left':
+                if (col === 0) return true; // Edge of grid, safe to offset
+                adjacentPos = row * 5 + (col - 1);
+                break;
+            case 'right':
+                if (col === 4) return true; // Edge of grid, safe to offset
+                adjacentPos = row * 5 + (col + 1);
+                break;
+            case 'up':
+                if (row === 0) return true; // Edge of grid, safe to offset
+                adjacentPos = (row - 1) * 5 + col;
+                break;
+            case 'down':
+                if (row === 4) return true; // Edge of grid, safe to offset
+                adjacentPos = (row + 1) * 5 + col;
+                break;
+            default:
+                return false;
+        }
+        
+        // Return true if adjacent cell is empty (safe to offset toward it)
+        return !occupiedPositions.has(adjacentPos);
+    }
         });
         
         return positions;
