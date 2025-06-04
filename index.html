@@ -46,24 +46,43 @@
                 </button>
             </div>
             
-            <!-- Placeholder for second game -->
-            <div class="game-card coming-soon" data-game="placeholder">
+            <!-- Addition Game -->
+            <div class="game-card" data-game="add">
                 <div class="game-preview">
-                    <div class="coming-soon-content">
-                        <i class="fas fa-tools"></i>
-                        <span>Coming Soon</span>
+                    <div class="preview-icons addition-preview">
+                        <div class="preview-left">
+                            <i class="fas fa-apple-alt"></i>
+                            <i class="fas fa-apple-alt"></i>
+                        </div>
+                        <div class="preview-plus">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="preview-right">
+                            <i class="fas fa-apple-alt"></i>
+                            <i class="fas fa-apple-alt"></i>
+                            <i class="fas fa-apple-alt"></i>
+                        </div>
+                    </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
                     </div>
                 </div>
                 <div class="game-info">
-                    <h2>Next Game</h2>
-                    <p>Another exciting learning game is in development!</p>
+                    <h2>Addition</h2>
+                    <p>Add the objects on both sides and build a rainbow!</p>
                     <div class="game-features">
-                        <span class="feature-tag">Coming Soon</span>
+                        <span class="feature-tag">Addition</span>
+                        <span class="feature-tag">Numbers 1-12</span>
+                        <span class="feature-tag">Ages 4-7</span>
                     </div>
                 </div>
-                <button class="play-button" disabled>
-                    <i class="fas fa-clock"></i>
-                    Coming Soon
+                <button class="play-button">
+                    <i class="fas fa-play"></i>
+                    Play Now
                 </button>
             </div>
         </main>
@@ -146,6 +165,47 @@
                 opacity: 0;
                 transform: scale(0) rotate(360deg);
             }
+        }
+
+        /* Addition game preview specific styles */
+        .addition-preview {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .preview-left,
+        .preview-right {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .preview-left i,
+        .preview-right i {
+            font-size: 1.5rem !important;
+            color: #ff6b6b !important;
+            animation: none !important;
+        }
+
+        .preview-plus {
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .preview-plus i {
+            font-size: 1.2rem !important;
+            color: white !important;
+            animation: none !important;
         }
     </style>
 </body>
