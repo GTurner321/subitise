@@ -70,7 +70,7 @@ class AddGameController {
             forceHigherNumbers = true;
         }
 
-        let leftCount, rightCount, sum;
+        let leftCount, rightCount, sum, currentAddition;
         let attempts = 0;
         const maxAttempts = 100;
         
@@ -87,9 +87,8 @@ class AddGameController {
                 sum = addition.sum;
             }
             
+            currentAddition = this.getCanonicalAddition(leftCount, rightCount);
             attempts++;
-            
-            const currentAddition = this.getCanonicalAddition(leftCount, rightCount);
             
         } while (
             (sum === this.previousSum || 
