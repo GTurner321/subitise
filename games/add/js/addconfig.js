@@ -1,6 +1,6 @@
 // Addition game configuration settings
 const CONFIG = {
-    // Difficulty levels
+    // Difficulty levels - UPDATED: All capped at 10
     DIFFICULTY: {
         EASY: {
             name: 'easy',
@@ -9,15 +9,15 @@ const CONFIG = {
         },
         MEDIUM: {
             name: 'medium',
-            maxTotal: 8,
-            higherNumbers: [6, 7, 8],
-            description: 'Level 2: totals up to 8'
+            maxTotal: 7,
+            higherNumbers: [6, 7],
+            description: 'Level 2: totals up to 7'
         },
         HARD: {
             name: 'hard',
-            maxTotal: 12,
-            higherNumbers: [9, 10, 11, 12],
-            description: 'Level 3: totals up to 12'
+            maxTotal: 10,
+            higherNumbers: [8, 9, 10],
+            description: 'Level 3: totals up to 10'
         }
     },
 
@@ -113,8 +113,8 @@ const CONFIG = {
     ICON_FADE_DURATION: 500,
     NEXT_QUESTION_DELAY: 1500,
 
-    // Addition specific settings
+    // Addition specific settings - UPDATED: Capped at 10
     MIN_ICONS_PER_SIDE: 1,
     MAX_ICONS_PER_SIDE: 10,
-    MAX_TOTAL_ICONS: 12
+    MAX_TOTAL_ICONS: 10 // Changed from 12 to 10
 };
