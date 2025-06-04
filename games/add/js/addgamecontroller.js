@@ -77,7 +77,7 @@ class AddGameController {
         this.rightAnswered = false;
     }
 
-    startNewQuestion() {
+ startNewQuestion() {
         if (this.gameComplete) {
             return;
         }
@@ -135,15 +135,11 @@ class AddGameController {
         // Render the icons (avoiding sum row area)
         this.iconRenderer.renderIcons(leftCount, rightCount);
         
-        // Reset button states and start with left side
+        // Reset button states and immediately show flashing left box
         this.resetButtonStates();
-        
-        // Add small delay to ensure DOM is ready, then show flashing left box
-        setTimeout(() => {
-            this.showLeftInputBox();
-        }, 100);
+        this.showLeftInputBox(); // No delay - immediate
     }
-
+    
     hideAllInputBoxes() {
         this.checkMark.classList.remove('visible');
         
@@ -212,29 +208,27 @@ class AddGameController {
         }
     }
 
-    handleCorrectStepAnswer(buttonElement, selectedNumber, step) {
+handleCorrectStepAnswer(buttonElement, selectedNumber, step) {
         // Flash green on correct answer
         buttonElement.classList.add('correct');
         setTimeout(() => {
             buttonElement.classList.remove('correct');
         }, CONFIG.FLASH_DURATION);
 
-        // Fill the box with the number
+        // Fill the box with the number and immediately move to next step
         if (step === 'left') {
             this.leftInputBox.textContent = selectedNumber;
             this.leftAnswered = true;
-            setTimeout(() => {
-                this.showRightInputBox();
-            }, 800);
+            // Immediately show right input box (no delay)
+            this.showRightInputBox();
         } else if (step === 'right') {
             this.rightInputBox.textContent = selectedNumber;
             this.rightAnswered = true;
-            setTimeout(() => {
-                this.showTotalInputBox();
-            }, 800);
+            // Immediately show total input box (no delay)
+            this.showTotalInputBox();
         }
     }
-
+    
     handleCorrectFinalAnswer(buttonElement, selectedNumber) {
         // Check if this was the first attempt for the entire question BEFORE any processing
         const wasFirstAttempt = !this.hasAttemptedAnswer();
