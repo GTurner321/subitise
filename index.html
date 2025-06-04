@@ -3,42 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subitising Game</title>
+    <title>Educational Games Hub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/landing.css">
 </head>
 <body>
-    <div class="game-area">
-        <div class="rainbow-container" id="rainbowContainer">
-            <!-- Rainbow arcs will be added here by JavaScript -->
-        </div>
-        <!-- Game icons will be added here by JavaScript -->
+    <div class="landing-container">
+        <header class="landing-header">
+            <h1><i class="fas fa-gamepad"></i> Learning Games</h1>
+            <p>Choose a game to start learning!</p>
+        </header>
+        
+        <main class="games-grid">
+            <div class="game-card" data-game="subitising">
+                <div class="game-preview">
+                    <div class="preview-icons">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-heart"></i>
+                        <i class="fas fa-circle"></i>
+                    </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>Subitising</h2>
+                    <p>Count the objects and build a rainbow!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Counting</span>
+                        <span class="feature-tag">Numbers 1-10</span>
+                        <span class="feature-tag">Ages 3-6</span>
+                    </div>
+                </div>
+                <button class="play-button">
+                    <i class="fas fa-play"></i>
+                    Play Now
+                </button>
+            </div>
+            
+            <!-- Placeholder for second game -->
+            <div class="game-card coming-soon" data-game="placeholder">
+                <div class="game-preview">
+                    <div class="coming-soon-content">
+                        <i class="fas fa-tools"></i>
+                        <span>Coming Soon</span>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>Next Game</h2>
+                    <p>Another exciting learning game is in development!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Coming Soon</span>
+                    </div>
+                </div>
+                <button class="play-button" disabled>
+                    <i class="fas fa-clock"></i>
+                    Coming Soon
+                </button>
+            </div>
+        </main>
+        
+        <footer class="landing-footer">
+            <p>Educational games designed for young learners</p>
+        </footer>
     </div>
 
-    <div class="number-buttons">
-        <button class="number-btn" data-number="1">1</button>
-        <button class="number-btn" data-number="2">2</button>
-        <button class="number-btn" data-number="3">3</button>
-        <button class="number-btn" data-number="4">4</button>
-        <button class="number-btn" data-number="5">5</button>
-        <button class="number-btn" data-number="6">6</button>
-        <button class="number-btn" data-number="7">7</button>
-        <button class="number-btn" data-number="8">8</button>
-        <button class="number-btn" data-number="9">9</button>
-        <button class="number-btn" data-number="10">10</button>
-    </div>
-
-    <!-- Game completion modal -->
-    <div class="modal hidden" id="gameModal">
-        <div class="modal-content">
-            <h2>🌈 Well Done! 🌈</h2>
-            <button class="play-again-btn" id="playAgainBtn">PLAY AGAIN</button>
-        </div>
-    </div>
-
-    <script src="js/config.js"></script>
-    <script src="js/rainbow.js"></script>
-    <script src="js/iconrenderer.js"></script>
-    <script src="js/gamecontroller.js"></script>
+    <script>
+        // Game navigation
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameCards = document.querySelectorAll('.game-card:not(.coming-soon)');
+            
+            gameCards.forEach(card => {
+                const playButton = card.querySelector('.play-button');
+                const gameName = card.dataset.game;
+                
+                // Add click handlers to both card and button
+                [card, playButton].forEach(element => {
+                    element.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        navigateToGame(gameName);
+                    });
+                });
+                
+                // Add hover effects
+                card.addEventListener('mouseenter', () => {
+                    card.classList.add('hover');
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.classList.remove('hover');
+                });
+            });
+        });
+        
+        function navigateToGame(gameName) {
+            // Navigate to the specific game
+            window.location.href = `games/${gameName}/index.html`;
+        }
+        
+        // Add some sparkle animation
+        function createSparkle() {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+            sparkle.innerHTML = '✨';
+            sparkle.style.position = 'fixed';
+            sparkle.style.left = Math.random() * window.innerWidth + 'px';
+            sparkle.style.top = Math.random() * window.innerHeight + 'px';
+            sparkle.style.pointerEvents = 'none';
+            sparkle.style.fontSize = '20px';
+            sparkle.style.zIndex = '1000';
+            sparkle.style.animation = 'sparkle 3s ease-out forwards';
+            
+            document.body.appendChild(sparkle);
+            
+            setTimeout(() => {
+                if (sparkle.parentNode) {
+                    sparkle.parentNode.removeChild(sparkle);
+                }
+            }, 3000);
+        }
+        
+        // Create sparkles periodically
+        setInterval(createSparkle, 2000);
+    </script>
+    
+    <style>
+        @keyframes sparkle {
+            0% {
+                opacity: 1;
+                transform: scale(0) rotate(0deg);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1) rotate(180deg);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0) rotate(360deg);
+            }
+        }
+    </style>
 </body>
 </html>
