@@ -77,7 +77,7 @@ class AddGameController {
         this.rightAnswered = false;
     }
 
- startNewQuestion() {
+    startNewQuestion() {
         if (this.gameComplete) {
             return;
         }
@@ -139,7 +139,7 @@ class AddGameController {
         this.resetButtonStates();
         this.showLeftInputBox(); // No delay - immediate
     }
-    
+
     hideAllInputBoxes() {
         this.checkMark.classList.remove('visible');
         
@@ -208,7 +208,7 @@ class AddGameController {
         }
     }
 
-handleCorrectStepAnswer(buttonElement, selectedNumber, step) {
+    handleCorrectStepAnswer(buttonElement, selectedNumber, step) {
         // Flash green on correct answer
         buttonElement.classList.add('correct');
         setTimeout(() => {
@@ -228,7 +228,7 @@ handleCorrectStepAnswer(buttonElement, selectedNumber, step) {
             this.showTotalInputBox();
         }
     }
-    
+
     handleCorrectFinalAnswer(buttonElement, selectedNumber) {
         // Check if this was the first attempt for the entire question BEFORE any processing
         const wasFirstAttempt = !this.hasAttemptedAnswer();
@@ -346,7 +346,7 @@ handleCorrectStepAnswer(buttonElement, selectedNumber, step) {
         }, 1000);
     }
 
-fadeOutQuestion() {
+    fadeOutQuestion() {
         // Add fade out class to icons only, NOT the sum row
         const gameElements = [...this.iconRenderer.currentIcons];
         
@@ -447,7 +447,7 @@ fadeOutQuestion() {
 
     isConsecutiveHighNumbers(currentSum, previousSum) {
         if (this.currentDifficulty.name === 'hard') {
-            const highNumbers = [9, 10, 11, 12];
+            const highNumbers = [8, 9, 10]; // Updated: removed 11, 12
             return highNumbers.includes(currentSum) && highNumbers.includes(previousSum);
         }
         return false;
