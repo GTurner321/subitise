@@ -137,7 +137,11 @@ class AddGameController {
         
         // Reset button states and start with left side
         this.resetButtonStates();
-        this.showLeftInputBox();
+        
+        // Add small delay to ensure DOM is ready, then show flashing left box
+        setTimeout(() => {
+            this.showLeftInputBox();
+        }, 100);
     }
 
     hideAllInputBoxes() {
