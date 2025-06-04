@@ -10,8 +10,9 @@ class SharedErrorHandler {
         // Default configuration
         const settings = {
             flashDuration: config.flashDuration || 800,
-            disableTimeout: config.disableTimeout || 3000,
-            fadeTransition: config.fadeTransition || 1000,
+            fadeOutDuration: 1000,
+            stayTransparentDuration: 1000,
+            fadeInDuration: 1000,
             ...config
         };
 
@@ -29,47 +30,68 @@ class SharedErrorHandler {
         // Mark that an attempt was made
         buttonElement.dataset.attempted = 'true';
         
-        // Fade out all other buttons (not the clicked one)
+        // Fade out all other buttons (not the clicked one) - 1 second
         numberButtons.forEach(btn => {
             if (btn !== buttonElement) {
-                btn.style.transition = `opacity ${settings.fadeTransition}ms ease-in-out`;
+                btn.style.transition = `opacity ${settings.fadeOutDuration}ms ease-in-out`;
                 btn.style.opacity = '0.1';
             }
         });
 
-        // After the disable timeout, start fading back in
+        // After fade out completes, wait 1 second, then fade back in
         setTimeout(() => {
-            // Start fading back in
-            numberButtons.forEach(btn => {
-                if (btn !== buttonElement) {
-                    btn.style.opacity = '1';
-                }
-            });
-            
-            // Start fading out the cross during the last part of transition
-            if (crossOverlay && crossOverlay.parentNode) {
-                crossOverlay.style.transition = `opacity ${settings.fadeTransition}ms ease-out`;
-                crossOverlay.style.opacity = '0';
-            }
-            
-            // Re-enable buttons and clean up after fade completes
+            // After 1 second pause, start fading back in - 1 second
             setTimeout(() => {
-                // Remove the cross overlay
-                if (crossOverlay && crossOverlay.parentNode) {
-                    crossOverlay.parentNode.removeChild(crossOverlay);
-                }
-                
-                // Clean up transition styles
                 numberButtons.forEach(btn => {
-                    btn.style.transition = '';
+                    if (btn !== buttonElement) {
+                        btn.style.transition = `opacity ${settings.fadeInDuration}ms ease-in-out`;
+                        btn.style.opacity = '1';
+                    }
                 });
                 
-                // Call the callback to re-enable game functionality
-                if (callback) {
-                    callback();
+                // Start fading out the cross during the last second
+                if (crossOverlay && crossOverlay.parentNode) {
+                    crossOverlay.style.transition = `opacity ${settings.fadeInDuration}ms ease-out`;
+                    crossOverlay.style.opacity = '0';
                 }
-            }, settings.fadeTransition);
-        }, settings.disableTimeout);
+                
+                // Re-enable buttons and clean up after fade in completes
+                setTimeout(() => {
+                    // Remove the cross overlay
+                    if (crossOverlay && crossOverlay.parentNode) {
+                        crossOverlay.parentNode.removeChild(crossOverlay);
+                    }
+                    
+                    // Clean up transition styles
+                    numberButtons.forEach(btn => {
+                        btn.style.transition = '';
+                    });
+                    
+                    // Call the callback to re-enable game functionality
+                    if (callback) {
+                        callback();
+                    }
+                }, settings.fadeInDuration);
+            }, settings.stayTransparentDuration);
+        }, settings.fadeOutDuration);
+    }
+
+    /**
+     * Handles correct answer visual feedback
+     * @param {HTMLElement} buttonElement - The button that was clicked correctly
+     * @param {Object} config - Configuration options
+     */
+    static handleCorrectAnswer(buttonElement, config = {}) {
+        const settings = {
+            flashDuration: config.flashDuration || 800,
+            ...config
+        };
+
+        // Flash green
+        buttonElement.classList.add('correct');
+        setTimeout(() => {
+            buttonElement.classList.remove('correct');
+        }, settings.flashDuration);
     }
 
     /**
