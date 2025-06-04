@@ -53,6 +53,8 @@ body {
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
     animation: pulse 2s ease-in-out infinite;
+    z-index: 10; /* Higher than rainbow */
+    position: relative;
 }
 
 .plus-sign i {
@@ -88,7 +90,7 @@ body {
     transform: translateX(-50%);
     width: 100%;
     height: 50%;
-    z-index: 1;
+    z-index: 1; /* Behind everything except game area background */
     pointer-events: none;
 }
 
@@ -103,7 +105,7 @@ body {
 /* Icons */
 .game-icon {
     position: absolute;
-    z-index: 2;
+    z-index: 5; /* Above rainbow, below plus and sum */
     font-size: 5rem;
     animation: fadeIn 0.5s ease-in;
     pointer-events: none;
@@ -201,7 +203,7 @@ body {
 .number-btn:nth-child(11) { background-color: #00cec9; --btn-color: #00cec9; }
 .number-btn:nth-child(12) { background-color: #e17055; --btn-color: #e17055; }
 
-/* Game over modal */
+/* Game over modal - FIXED: Allow back button to work */
 .modal {
     position: fixed;
     top: 0;
@@ -213,6 +215,7 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    pointer-events: none; /* Allow clicks to pass through */
 }
 
 .modal-content {
@@ -221,6 +224,7 @@ body {
     border-radius: 20px;
     text-align: center;
     animation: modalAppear 0.5s ease;
+    pointer-events: auto; /* Re-enable clicks for modal content */
 }
 
 @keyframes modalAppear {
@@ -319,7 +323,7 @@ body {
     position: relative;
 }
 
-/* Sum row at bottom of game area */
+/* Sum row at bottom of game area - FIXED: Higher z-index and no fade animations */
 .sum-row {
     position: absolute;
     bottom: 20px;
@@ -328,12 +332,21 @@ body {
     display: flex;
     align-items: center;
     gap: 20px;
-    z-index: 5;
+    z-index: 15; /* Higher than everything else */
     height: 80px;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     padding: 10px 20px;
     border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 2px solid #e0e0e0;
+}
+
+/* Prevent sum row from fading */
+.sum-row.fade-out,
+.sum-row.fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: translateX(-50%) !important;
 }
 
 .sum-plus-sign,
@@ -401,12 +414,12 @@ body {
     opacity: 1;
 }
 
-/* Fade animations */
-.fade-out {
+/* Fade animations - FIXED: Exclude sum row */
+.fade-out:not(.sum-row) {
     animation: fadeOut 1s ease-out forwards;
 }
 
-.fade-in {
+.fade-in:not(.sum-row) {
     animation: fadeIn 1s ease-in forwards;
 }
 
