@@ -54,8 +54,8 @@ class AddIconRenderer {
         const minDistance = CONFIG.MIN_ICON_DISTANCE;
         
         // Calculate usable area for positioning within this side
-        const usableWidth = containerRect.width - 2 * margin;
-        const usableHeight = containerRect.height - 2 * margin;
+        const usableWidth = Math.max(containerRect.width - 2 * margin, 100);
+        const usableHeight = Math.max(containerRect.height - 2 * margin, 100);
         
         const maxAttempts = 200;
         
@@ -130,36 +130,47 @@ class AddIconRenderer {
         const iconClass = this.getRandomIcon();
         const iconColor = this.getRandomColor();
         
-        // Generate positions for left side
-        const leftPositions = this.generateNonOverlappingPositions(leftCount, this.leftSide);
+        console.log(`Rendering ${leftCount} left icons and ${rightCount} right icons`);
         
-        // Create and position left side icons
-        for (let i = 0; i < leftCount; i++) {
-            const icon = document.createElement('i');
-            icon.className = `game-icon ${iconClass}`;
-            icon.style.color = iconColor;
-            icon.style.left = leftPositions[i].x + 'px';
-            icon.style.top = leftPositions[i].y + 'px';
+        // Generate positions for left side
+        if (leftCount > 0) {
+            const leftPositions = this.generateNonOverlappingPositions(leftCount, this.leftSide);
             
-            this.leftSide.appendChild(icon);
-            this.currentIcons.push(icon);
+            // Create and position left side icons
+            for (let i = 0; i < leftCount; i++) {
+                const icon = document.createElement('i');
+                icon.className = `game-icon ${iconClass}`;
+                icon.style.color = iconColor;
+                icon.style.left = leftPositions[i].x + 'px';
+                icon.style.top = leftPositions[i].y + 'px';
+                icon.style.position = 'absolute';
+                
+                this.leftSide.appendChild(icon);
+                this.currentIcons.push(icon);
+                console.log(`Added left icon at ${leftPositions[i].x}, ${leftPositions[i].y}`);
+            }
         }
         
         // Generate positions for right side
-        const rightPositions = this.generateNonOverlappingPositions(rightCount, this.rightSide);
-        
-        // Create and position right side icons
-        for (let i = 0; i < rightCount; i++) {
-            const icon = document.createElement('i');
-            icon.className = `game-icon ${iconClass}`;
-            icon.style.color = iconColor;
-            icon.style.left = rightPositions[i].x + 'px';
-            icon.style.top = rightPositions[i].y + 'px';
+        if (rightCount > 0) {
+            const rightPositions = this.generateNonOverlappingPositions(rightCount, this.rightSide);
             
-            this.rightSide.appendChild(icon);
-            this.currentIcons.push(icon);
+            // Create and position right side icons
+            for (let i = 0; i < rightCount; i++) {
+                const icon = document.createElement('i');
+                icon.className = `game-icon ${iconClass}`;
+                icon.style.color = iconColor;
+                icon.style.left = rightPositions[i].x + 'px';
+                icon.style.top = rightPositions[i].y + 'px';
+                icon.style.position = 'absolute';
+                
+                this.rightSide.appendChild(icon);
+                this.currentIcons.push(icon);
+                console.log(`Added right icon at ${rightPositions[i].x}, ${rightPositions[i].y}`);
+            }
         }
         
+        console.log(`Total icons rendered: ${this.currentIcons.length}`);
         return { left: leftCount, right: rightCount, total: leftCount + rightCount };
     }
 
