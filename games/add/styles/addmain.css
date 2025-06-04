@@ -345,22 +345,51 @@ body {
     position: relative;
 }
 
+/* Sum row at bottom of game area */
+.sum-row {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 5;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.sum-plus-sign,
+.sum-equals-sign {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #333;
+    min-width: 40px;
+    text-align: center;
+}
+
+.left-sum-box,
+.right-sum-box,
+.total-sum-box {
+    width: 70px;
+    height: 70px;
+}
+
 /* Input boxes for step-by-step addition */
 .input-box {
-    position: absolute;
-    width: 80px;
-    height: 80px;
     background: white;
     border: 4px solid #007bff;
     border-radius: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3rem;
+    font-size: 2.5rem;
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
-    z-index: 5;
     transition: all 0.3s ease;
 }
 
@@ -385,67 +414,13 @@ body {
     }
 }
 
-.left-input-box {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.right-input-box {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.equals-section {
-    position: absolute;
-    bottom: 20%;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    z-index: 5;
-}
-
-.equals-sign {
-    font-size: 3rem;
-    font-weight: bold;
-    color: #333;
-}
-
-.total-input-box {
-    width: 80px;
-    height: 80px;
-    background: white;
-    border: 4px solid #007bff;
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    font-weight: bold;
-    color: #333;
-    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
-    transition: all 0.3s ease;
-}
-
-.total-input-box.flashing {
-    animation: flashingBox 1s ease-in-out infinite;
-}
-
-.total-input-box.filled {
-    background: #e8f5e8;
-    border-color: #28a745;
-    animation: none;
-}
-
 .check-mark {
-    font-size: 3rem;
+    font-size: 2.5rem;
     color: #28a745;
-    margin-left: 20px;
     opacity: 0;
     transition: opacity 0.5s ease;
+    min-width: 50px;
+    text-align: center;
 }
 
 .check-mark.visible {
