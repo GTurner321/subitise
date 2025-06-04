@@ -12,32 +12,6 @@ body {
     background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
 }
 
-/* Back button */
-.back-button {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    color: #333;
-    text-decoration: none;
-    padding: 10px 20px;
-    border-radius: 25px;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    z-index: 100;
-}
-
-.back-button:hover {
-    background: white;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-}
-
-.back-button i {
-    margin-right: 8px;
-}
-
 /* Game area */
 .game-area {
     flex: 1;
@@ -457,6 +431,7 @@ body {
         transform: scale(1);
     }
 }
+
 @media (max-width: 768px) {
     .game-area {
         width: 95%;
