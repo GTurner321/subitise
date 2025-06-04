@@ -72,36 +72,6 @@ class AddIconRenderer {
         const shuffled = allPositions.sort(() => Math.random() - 0.5);
         const selectedPositions = shuffled.slice(0, count);
         
-        // Convert grid numbers to actual coordinates
-        const positions = selectedPositions.map(gridPos => {
-            const row = Math.floor(gridPos / 5);
-            const col = gridPos % 5;
-            
-    generateGridPositions(count, container) {
-        const containerRect = container.getBoundingClientRect();
-        
-        // Calculate usable area (90% of width and height)
-        const usableWidth = containerRect.width * 0.9;
-        const usableHeight = (containerRect.height - 120) * 0.9; // Subtract sum row space
-        
-        // Calculate cell dimensions for 5x5 grid
-        const cellWidth = usableWidth / 5;
-        const cellHeight = usableHeight / 5;
-        
-        // Calculate starting position (5% margin)
-        const startX = containerRect.width * 0.05;
-        const startY = containerRect.height * 0.05;
-        
-        // Create array of all 25 grid positions (0-24)
-        const allPositions = [];
-        for (let i = 0; i < 25; i++) {
-            allPositions.push(i);
-        }
-        
-        // Shuffle and select the required number of positions
-        const shuffled = allPositions.sort(() => Math.random() - 0.5);
-        const selectedPositions = shuffled.slice(0, count);
-        
         // Create a set of occupied positions for quick lookup
         const occupiedPositions = new Set(selectedPositions);
         
@@ -184,10 +154,6 @@ class AddIconRenderer {
         
         // Return true if adjacent cell is empty (safe to offset toward it)
         return !occupiedPositions.has(adjacentPos);
-    }
-        });
-        
-        return positions;
     }
 
     renderIcons(leftCount, rightCount) {
