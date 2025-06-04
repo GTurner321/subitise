@@ -28,7 +28,7 @@ class AddGameController {
         this.playAgainBtn = document.getElementById('playAgainBtn');
         this.leftInputBox = document.getElementById('leftInputBox');
         this.rightInputBox = document.getElementById('rightInputBox');
-        this.equalsSection = document.getElementById('equalsSection');
+        this.sumRow = document.getElementById('sumRow');
         this.totalInputBox = document.getElementById('totalInputBox');
         this.checkMark = document.getElementById('checkMark');
         
@@ -132,8 +132,8 @@ class AddGameController {
         
         console.log(`Question: ${leftCount} + ${rightCount} = ${sum}, Level: ${this.currentDifficulty.name}`);
         
-        // Render the icons with input box avoidance
-        this.iconRenderer.renderIcons(leftCount, rightCount, true);
+        // Render the icons (avoiding sum row area)
+        this.iconRenderer.renderIcons(leftCount, rightCount);
         
         // Reset button states and start with left side
         this.resetButtonStates();
@@ -141,9 +141,6 @@ class AddGameController {
     }
 
     hideAllInputBoxes() {
-        this.leftInputBox.classList.add('hidden');
-        this.rightInputBox.classList.add('hidden');
-        this.equalsSection.classList.add('hidden');
         this.checkMark.classList.remove('visible');
         
         // Clear box contents
@@ -159,7 +156,6 @@ class AddGameController {
 
     showLeftInputBox() {
         this.gameStep = 'left';
-        this.leftInputBox.classList.remove('hidden');
         this.leftInputBox.classList.add('flashing');
     }
 
@@ -168,7 +164,6 @@ class AddGameController {
         this.leftInputBox.classList.remove('flashing');
         this.leftInputBox.classList.add('filled');
         
-        this.rightInputBox.classList.remove('hidden');
         this.rightInputBox.classList.add('flashing');
     }
 
@@ -177,7 +172,6 @@ class AddGameController {
         this.rightInputBox.classList.remove('flashing');
         this.rightInputBox.classList.add('filled');
         
-        this.equalsSection.classList.remove('hidden');
         this.totalInputBox.classList.add('flashing');
     }
 
@@ -319,13 +313,13 @@ class AddGameController {
         // Add fade out class to all game elements
         const gameElements = [
             ...this.iconRenderer.currentIcons,
-            this.leftInputBox,
-            this.rightInputBox,
-            this.equalsSection
+            this.sumRow
         ];
         
         gameElements.forEach(element => {
-            element.classList.add('fade-out');
+            if (element) {
+                element.classList.add('fade-out');
+            }
         });
         
         // Start new question after fade out completes
@@ -334,15 +328,24 @@ class AddGameController {
             
             // Remove fade out classes and add fade in
             setTimeout(() => {
-                gameElements.forEach(element => {
-                    element.classList.remove('fade-out');
-                    element.classList.add('fade-in');
+                const newElements = [
+                    ...this.iconRenderer.currentIcons,
+                    this.sumRow
+                ];
+                
+                newElements.forEach(element => {
+                    if (element) {
+                        element.classList.remove('fade-out');
+                        element.classList.add('fade-in');
+                    }
                 });
                 
                 // Clean up fade in classes
                 setTimeout(() => {
-                    gameElements.forEach(element => {
-                        element.classList.remove('fade-in');
+                    newElements.forEach(element => {
+                        if (element) {
+                            element.classList.remove('fade-in');
+                        }
                     });
                 }, 1000);
             }, 100);
