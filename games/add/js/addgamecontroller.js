@@ -87,8 +87,9 @@ class AddGameController {
                 sum = addition.sum;
             }
             
-            const currentAddition = this.getCanonicalAddition(leftCount, rightCount);
             attempts++;
+            
+            const currentAddition = this.getCanonicalAddition(leftCount, rightCount);
             
         } while (
             (sum === this.previousSum || 
