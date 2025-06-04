@@ -51,18 +51,18 @@ class AddIconRenderer {
         const positions = [];
         const containerRect = container.getBoundingClientRect();
         const margin = CONFIG.ICON_MARGIN;
-        const minDistance = CONFIG.MIN_ICON_DISTANCE;
         
-        // Icon size estimation (font-size is 5rem = 80px, but icons can be wider)
-        const iconSize = 80; // Approximate icon dimensions
+        // Much more aggressive spacing for 5rem (80px) icons
+        const iconSize = 100; // Increased from 80px to account for font variations
         const iconRadius = iconSize / 2;
+        const minDistance = iconSize * 1.8; // Much larger minimum distance (144px)
         
         // Calculate usable area - account for icon size and sum row
         const sumRowHeight = 120; // Height to reserve for sum row at bottom
-        const usableWidth = Math.max(containerRect.width - 2 * margin - iconSize, 100);
-        const usableHeight = Math.max(containerRect.height - 2 * margin - sumRowHeight - iconSize, 100);
+        const usableWidth = Math.max(containerRect.width - 2 * margin - iconSize, 150);
+        const usableHeight = Math.max(containerRect.height - 2 * margin - sumRowHeight - iconSize, 150);
         
-        const maxAttempts = 300; // Increased attempts for better placement
+        const maxAttempts = 500; // More attempts for better placement
         
         for (let i = 0; i < count; i++) {
             let attempts = 0;
@@ -91,7 +91,7 @@ class AddIconRenderer {
             
             // Fallback grid positioning if needed
             if (!validPosition) {
-                const fallbackPos = this.getFallbackPosition(i, count, containerRect, margin, sumRowHeight, iconRadius);
+                const fallbackPos = this.getFallbackPosition(i, count, containerRect, margin, sumRowHeight, iconRadius, minDistance);
                 x = fallbackPos.x;
                 y = fallbackPos.y;
             }
@@ -106,11 +106,12 @@ class AddIconRenderer {
         return positions;
     }
 
-    getFallbackPosition(index, totalCount, containerRect, margin, sumRowHeight, iconRadius) {
+    getFallbackPosition(index, totalCount, containerRect, margin, sumRowHeight, iconRadius, minDistance) {
         const usableWidth = containerRect.width - 2 * margin - iconRadius * 2;
         const usableHeight = containerRect.height - 2 * margin - sumRowHeight - iconRadius * 2;
         
-        const cols = Math.ceil(Math.sqrt(totalCount));
+        // Create a more spaced out grid
+        const cols = Math.min(Math.ceil(Math.sqrt(totalCount)), Math.floor(usableWidth / minDistance));
         const rows = Math.ceil(totalCount / cols);
         
         const cellWidth = usableWidth / cols;
@@ -123,8 +124,8 @@ class AddIconRenderer {
         const cellCenterX = margin + iconRadius + col * cellWidth + cellWidth / 2;
         const cellCenterY = margin + iconRadius + row * cellHeight + cellHeight / 2;
         
-        // Add small random offset within safe bounds
-        const maxOffset = Math.min(cellWidth, cellHeight) * 0.15;
+        // Smaller random offset to maintain grid spacing
+        const maxOffset = Math.min(cellWidth, cellHeight) * 0.1;
         const offsetX = (Math.random() - 0.5) * maxOffset;
         const offsetY = (Math.random() - 0.5) * maxOffset;
         
