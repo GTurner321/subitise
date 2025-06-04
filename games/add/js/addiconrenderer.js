@@ -53,12 +53,16 @@ class AddIconRenderer {
         const margin = CONFIG.ICON_MARGIN;
         const minDistance = CONFIG.MIN_ICON_DISTANCE;
         
-        // Calculate usable area, avoiding the sum row at the bottom
-        const sumRowHeight = 100; // Height to reserve for sum row
-        const usableWidth = Math.max(containerRect.width - 2 * margin, 100);
-        const usableHeight = Math.max(containerRect.height - 2 * margin - sumRowHeight, 100);
+        // Icon size estimation (font-size is 5rem = 80px, but icons can be wider)
+        const iconSize = 80; // Approximate icon dimensions
+        const iconRadius = iconSize / 2;
         
-        const maxAttempts = 200;
+        // Calculate usable area - account for icon size and sum row
+        const sumRowHeight = 120; // Height to reserve for sum row at bottom
+        const usableWidth = Math.max(containerRect.width - 2 * margin - iconSize, 100);
+        const usableHeight = Math.max(containerRect.height - 2 * margin - sumRowHeight - iconSize, 100);
+        
+        const maxAttempts = 300; // Increased attempts for better placement
         
         for (let i = 0; i < count; i++) {
             let attempts = 0;
@@ -66,11 +70,11 @@ class AddIconRenderer {
             let x, y;
             
             while (!validPosition && attempts < maxAttempts) {
-                // Generate random position within usable bounds (above sum row)
-                x = margin + Math.random() * usableWidth;
-                y = margin + Math.random() * usableHeight;
+                // Generate random position within safe bounds (icon positioned by top-left)
+                x = margin + iconRadius + Math.random() * (usableWidth - iconRadius * 2);
+                y = margin + iconRadius + Math.random() * (usableHeight - iconRadius * 2);
                 
-                // Check if position is far enough from existing positions
+                // Check if position is far enough from existing positions (center-to-center)
                 validPosition = true;
                 for (let pos of positions) {
                     const distance = Math.sqrt(
@@ -87,20 +91,24 @@ class AddIconRenderer {
             
             // Fallback grid positioning if needed
             if (!validPosition) {
-                const fallbackPos = this.getFallbackPosition(i, count, containerRect, margin, sumRowHeight);
+                const fallbackPos = this.getFallbackPosition(i, count, containerRect, margin, sumRowHeight, iconRadius);
                 x = fallbackPos.x;
                 y = fallbackPos.y;
             }
             
-            positions.push({ x, y });
+            // Convert from center position to top-left position for CSS
+            positions.push({ 
+                x: x - iconRadius, 
+                y: y - iconRadius 
+            });
         }
         
         return positions;
     }
 
-    getFallbackPosition(index, totalCount, containerRect, margin, sumRowHeight) {
-        const usableWidth = containerRect.width - 2 * margin;
-        const usableHeight = containerRect.height - 2 * margin - sumRowHeight;
+    getFallbackPosition(index, totalCount, containerRect, margin, sumRowHeight, iconRadius) {
+        const usableWidth = containerRect.width - 2 * margin - iconRadius * 2;
+        const usableHeight = containerRect.height - 2 * margin - sumRowHeight - iconRadius * 2;
         
         const cols = Math.ceil(Math.sqrt(totalCount));
         const rows = Math.ceil(totalCount / cols);
@@ -111,12 +119,14 @@ class AddIconRenderer {
         const row = Math.floor(index / cols);
         const col = index % cols;
         
-        const cellCenterX = margin + col * cellWidth + cellWidth / 2;
-        const cellCenterY = margin + row * cellHeight + cellHeight / 2;
+        // Calculate center of grid cell
+        const cellCenterX = margin + iconRadius + col * cellWidth + cellWidth / 2;
+        const cellCenterY = margin + iconRadius + row * cellHeight + cellHeight / 2;
         
-        const offsetRange = Math.min(cellWidth, cellHeight) * 0.2;
-        const offsetX = (Math.random() - 0.5) * offsetRange;
-        const offsetY = (Math.random() - 0.5) * offsetRange;
+        // Add small random offset within safe bounds
+        const maxOffset = Math.min(cellWidth, cellHeight) * 0.15;
+        const offsetX = (Math.random() - 0.5) * maxOffset;
+        const offsetY = (Math.random() - 0.5) * maxOffset;
         
         return {
             x: cellCenterX + offsetX,
@@ -133,7 +143,7 @@ class AddIconRenderer {
         
         console.log(`Rendering ${leftCount} left icons and ${rightCount} right icons`);
         
-        // Generate positions for left side (avoiding sum row)
+        // Generate positions for left side (avoiding sum row and middle section)
         if (leftCount > 0) {
             const leftPositions = this.generateNonOverlappingPositions(leftCount, this.leftSide);
             
@@ -152,7 +162,7 @@ class AddIconRenderer {
             }
         }
         
-        // Generate positions for right side (avoiding sum row)
+        // Generate positions for right side (avoiding sum row and middle section)
         if (rightCount > 0) {
             const rightPositions = this.generateNonOverlappingPositions(rightCount, this.rightSide);
             
