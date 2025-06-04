@@ -166,7 +166,7 @@ body {
 .number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
 .number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
 
-/* Game over modal */
+/* Game over modal - FIXED: Allow back button to work */
 .modal {
     position: fixed;
     top: 0;
@@ -178,6 +178,7 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    pointer-events: none; /* Allow clicks to pass through */
 }
 
 .modal-content {
@@ -186,6 +187,7 @@ body {
     border-radius: 20px;
     text-align: center;
     animation: modalAppear 0.5s ease;
+    pointer-events: auto; /* Re-enable clicks for modal content */
 }
 
 @keyframes modalAppear {
