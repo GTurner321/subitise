@@ -209,11 +209,10 @@ class AddGameController {
     }
 
     handleCorrectStepAnswer(buttonElement, selectedNumber, step) {
-        // Flash green
-        buttonElement.classList.add('correct');
-        setTimeout(() => {
-            buttonElement.classList.remove('correct');
-        }, CONFIG.FLASH_DURATION);
+        // Use shared correct answer visual feedback
+        SharedErrorHandler.handleCorrectAnswer(buttonElement, {
+            flashDuration: CONFIG.FLASH_DURATION
+        });
 
         // Fill the box with the number
         if (step === 'left') {
@@ -232,11 +231,10 @@ class AddGameController {
     }
 
     handleCorrectFinalAnswer(buttonElement, selectedNumber) {
-        // Flash green
-        buttonElement.classList.add('correct');
-        setTimeout(() => {
-            buttonElement.classList.remove('correct');
-        }, CONFIG.FLASH_DURATION);
+        // Use shared correct answer visual feedback
+        SharedErrorHandler.handleCorrectAnswer(buttonElement, {
+            flashDuration: CONFIG.FLASH_DURATION
+        });
 
         // Fill the total box
         this.totalInputBox.textContent = selectedNumber;
@@ -247,12 +245,13 @@ class AddGameController {
         this.checkMark.classList.add('visible');
 
         // Check if this was the first attempt for the entire question
-        const wasFirstAttempt = !this.hasAttemptedAnswer();
+        const wasFirstAttempt = !SharedErrorHandler.hasAttemptedAnswer(this.numberButtons);
         
-        // Add rainbow piece
+        // Add rainbow piece - THIS IS CRITICAL!
         const pieces = this.rainbow.addPiece();
+        console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}`);
         
-        // Update streaks and difficulty progression based on first attempt performance
+        // Update streaks and difficulty progression
         if (wasFirstAttempt) {
             this.correctStreak++;
             this.wrongStreak = 0;
@@ -286,20 +285,19 @@ class AddGameController {
     }
 
     handleIncorrectStepAnswer(buttonElement) {
-        // Use shared error handling logic with 3-second timeout
+        // Disable buttons during error handling
         this.buttonsDisabled = true;
         
+        // Use shared error handling with proper timing: 1s fade out + 1s pause + 1s fade in
         SharedErrorHandler.handleIncorrectAnswer(
             buttonElement, 
             this.numberButtons, 
             () => {
-                // Callback to re-enable buttons
+                // Callback to re-enable buttons after full sequence
                 this.buttonsDisabled = false;
             },
             {
-                flashDuration: CONFIG.FLASH_DURATION,
-                disableTimeout: 3000, // 3 seconds as requested
-                fadeTransition: 1000
+                flashDuration: CONFIG.FLASH_DURATION
             }
         );
     }
