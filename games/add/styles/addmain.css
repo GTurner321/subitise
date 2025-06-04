@@ -122,24 +122,24 @@ body {
     }
 }
 
-/* Number buttons */
+/* Number buttons - UPDATED: Same styling as subitising game */
 .number-buttons {
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px;
     background: #f5f5f5;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
     min-height: 120px;
 }
 
 .number-btn {
-    width: 80px;
-    height: 80px;
+    width: 90px;
+    height: 90px;
     border: none;
-    border-radius: 15px;
-    font-size: 2.5rem;
+    border-radius: 18px;
+    font-size: 3rem;
     font-weight: bold;
     color: white;
     cursor: pointer;
@@ -189,7 +189,7 @@ body {
     }
 }
 
-/* Button colors - extended for 12 buttons */
+/* Button colors - UPDATED: Only 10 buttons like subitising game */
 .number-btn:nth-child(1) { background-color: #ff6b6b; --btn-color: #ff6b6b; }
 .number-btn:nth-child(2) { background-color: #4ecdc4; --btn-color: #4ecdc4; }
 .number-btn:nth-child(3) { background-color: #45b7d1; --btn-color: #45b7d1; }
@@ -200,8 +200,6 @@ body {
 .number-btn:nth-child(8) { background-color: #a29bfe; --btn-color: #a29bfe; }
 .number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
 .number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
-.number-btn:nth-child(11) { background-color: #00cec9; --btn-color: #00cec9; }
-.number-btn:nth-child(12) { background-color: #e17055; --btn-color: #e17055; }
 
 /* Game over modal - FIXED: Allow back button to work */
 .modal {
