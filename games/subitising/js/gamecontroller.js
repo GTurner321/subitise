@@ -181,81 +181,139 @@ class GameController {
     }
 
     handleCorrectAnswer(buttonElement) {
-    // Use shared correct answer visual feedback
-    SharedErrorHandler.handleCorrectAnswer(buttonElement, {
-        flashDuration: CONFIG.FLASH_DURATION
-    });
-
-    // Check if this was the first attempt
-    const wasFirstAttempt = !SharedErrorHandler.hasAttemptedAnswer(this.numberButtons);
-    
-    // Always add rainbow piece for any correct answer
-    const pieces = this.rainbow.addPiece();
-    console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}`);
-    
-    // Update streaks and difficulty progression based on first attempt performance
-    if (wasFirstAttempt) {
-        // First attempt correct - positive progression
-        this.correctStreak++;
-        this.wrongStreak = 0;
-        this.questionsInLevel++;
+        // Check if this was the first attempt BEFORE any button processing
+        const wasFirstAttempt = !this.hasAttemptedAnswer();
         
-        // Check for difficulty progression
-        if (this.correctStreak >= CONFIG.QUESTIONS_PER_LEVEL) {
-            this.progressDifficulty();
-        }
-    } else {
-        // Multiple attempts needed - treat as "incorrect on first attempt"
-        this.wrongStreak++;
-        this.correctStreak = 0;
-        this.questionsInLevel++;
-        
-        // Check if we need to drop difficulty
-        if (this.wrongStreak >= CONFIG.CONSECUTIVE_WRONG_TO_DROP) {
-            this.dropDifficulty();
-        }
-    }
-    
-    // Check if game is complete
-    if (this.rainbow.isComplete()) {
+        // Flash green on correct answer
+        buttonElement.classList.add('correct');
         setTimeout(() => {
-            this.completeGame();
-        }, CONFIG.NEXT_QUESTION_DELAY + 3000);
-        return;
-    }
+            buttonElement.classList.remove('correct');
+        }, CONFIG.FLASH_DURATION);
 
-    // Start next question after delay
-    setTimeout(() => {
-        this.startNewQuestion();
-    }, CONFIG.NEXT_QUESTION_DELAY);
-}
+        // Always add rainbow piece for any correct answer
+        const pieces = this.rainbow.addPiece();
+        console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}`);
+        
+        // Update streaks and difficulty progression based on first attempt performance
+        if (wasFirstAttempt) {
+            // First attempt correct - positive progression
+            this.correctStreak++;
+            this.wrongStreak = 0;
+            this.questionsInLevel++;
+            
+            // Check for difficulty progression
+            if (this.correctStreak >= CONFIG.QUESTIONS_PER_LEVEL) {
+                this.progressDifficulty();
+            }
+        } else {
+            // Multiple attempts needed - treat as "incorrect on first attempt"
+            this.wrongStreak++;
+            this.correctStreak = 0;
+            this.questionsInLevel++;
+            
+            // Check if we need to drop difficulty
+            if (this.wrongStreak >= CONFIG.CONSECUTIVE_WRONG_TO_DROP) {
+                this.dropDifficulty();
+            }
+        }
+        
+        // Check if game is complete
+        if (this.rainbow.isComplete()) {
+            setTimeout(() => {
+                this.completeGame();
+            }, CONFIG.NEXT_QUESTION_DELAY + 3000);
+            return;
+        }
+
+        // Start next question after delay
+        setTimeout(() => {
+            this.startNewQuestion();
+        }, CONFIG.NEXT_QUESTION_DELAY);
+    }
     
     handleIncorrectAnswer(buttonElement) {
-    // Disable buttons during error handling
-    this.buttonsDisabled = true;
-    
-    // Use shared error handling: 1s fade out + 1s pause + 1s fade in
-    SharedErrorHandler.handleIncorrectAnswer(
-        buttonElement, 
-        this.numberButtons, 
-        () => {
-            // Callback to re-enable buttons after full sequence
-            this.buttonsDisabled = false;
-        },
-        {
-            flashDuration: CONFIG.FLASH_DURATION
-        }
-    );
-}
+        // Disable buttons during error handling
+        this.buttonsDisabled = true;
+        
+        // Flash red on the clicked button
+        buttonElement.classList.add('incorrect');
+        setTimeout(() => {
+            buttonElement.classList.remove('incorrect');
+        }, CONFIG.FLASH_DURATION);
+
+        // Add crimson cross overlay to the incorrect button
+        const crossOverlay = document.createElement('div');
+        crossOverlay.className = 'cross-overlay';
+        buttonElement.appendChild(crossOverlay);
+
+        // Mark that an attempt was made
+        buttonElement.dataset.attempted = 'true';
+        
+        // Fade out all other buttons (not the clicked one) - 1 second
+        this.numberButtons.forEach(btn => {
+            if (btn !== buttonElement) {
+                btn.style.transition = 'opacity 1000ms ease-in-out';
+                btn.style.opacity = '0.1';
+            }
+        });
+
+        // After fade out completes, wait 1 second, then fade back in
+        setTimeout(() => {
+            // After 1 second pause, start fading back in - 1 second
+            setTimeout(() => {
+                this.numberButtons.forEach(btn => {
+                    if (btn !== buttonElement) {
+                        btn.style.transition = 'opacity 1000ms ease-in-out';
+                        btn.style.opacity = '1';
+                    }
+                });
+                
+                // Start fading out the cross during the last second
+                if (crossOverlay && crossOverlay.parentNode) {
+                    crossOverlay.style.transition = 'opacity 1000ms ease-out';
+                    crossOverlay.style.opacity = '0';
+                }
+                
+                // Re-enable buttons and clean up after fade in completes
+                setTimeout(() => {
+                    // Remove the cross overlay
+                    if (crossOverlay && crossOverlay.parentNode) {
+                        crossOverlay.parentNode.removeChild(crossOverlay);
+                    }
+                    
+                    // Clean up transition styles
+                    this.numberButtons.forEach(btn => {
+                        btn.style.transition = '';
+                    });
+                    
+                    // Re-enable buttons
+                    this.buttonsDisabled = false;
+                }, 1000);
+            }, 1000);
+        }, 1000);
+    }
 
     hasAttemptedAnswer() {
-    return SharedErrorHandler.hasAttemptedAnswer(this.numberButtons);
-}
+        return Array.from(this.numberButtons).some(btn => 
+            btn.dataset.attempted === 'true'
+        );
+    }
 
-   resetButtonStates() {
-    this.buttonsDisabled = false;
-    SharedErrorHandler.resetButtonStates(this.numberButtons);
-}
+    resetButtonStates() {
+        this.buttonsDisabled = false;
+        this.numberButtons.forEach(btn => {
+            btn.dataset.attempted = 'false';
+            btn.classList.remove('correct', 'incorrect');
+            btn.style.opacity = '1';
+            btn.style.transition = '';
+            
+            // Remove any existing cross overlays
+            const crossOverlay = btn.querySelector('.cross-overlay');
+            if (crossOverlay) {
+                crossOverlay.remove();
+            }
+        });
+    }
 
     progressDifficulty() {
         if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
