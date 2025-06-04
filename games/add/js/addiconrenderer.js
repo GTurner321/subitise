@@ -47,7 +47,7 @@ class AddIconRenderer {
         return selectedColor;
     }
 
-    generateNonOverlappingPositions(count, container) {
+    generateNonOverlappingPositions(count, container, avoidBox = null) {
         const positions = [];
         const containerRect = container.getBoundingClientRect();
         const margin = CONFIG.ICON_MARGIN;
@@ -81,12 +81,27 @@ class AddIconRenderer {
                     }
                 }
                 
+                // Check if position overlaps with input box (if present)
+                if (validPosition && avoidBox) {
+                    const boxCenterX = containerRect.width / 2;
+                    const boxCenterY = containerRect.height / 2;
+                    const boxSize = 80; // Input box size
+                    
+                    const distanceFromBox = Math.sqrt(
+                        Math.pow(x - boxCenterX, 2) + Math.pow(y - boxCenterY, 2)
+                    );
+                    
+                    if (distanceFromBox < (boxSize + minDistance) / 2) {
+                        validPosition = false;
+                    }
+                }
+                
                 attempts++;
             }
             
             // Fallback grid positioning if needed
             if (!validPosition) {
-                const fallbackPos = this.getFallbackPosition(i, count, containerRect, margin);
+                const fallbackPos = this.getFallbackPosition(i, count, containerRect, margin, avoidBox);
                 x = fallbackPos.x;
                 y = fallbackPos.y;
             }
@@ -97,7 +112,7 @@ class AddIconRenderer {
         return positions;
     }
 
-    getFallbackPosition(index, totalCount, containerRect, margin) {
+    getFallbackPosition(index, totalCount, containerRect, margin, avoidBox = null) {
         const usableWidth = containerRect.width - 2 * margin;
         const usableHeight = containerRect.height - 2 * margin;
         
@@ -110,10 +125,26 @@ class AddIconRenderer {
         const row = Math.floor(index / cols);
         const col = index % cols;
         
-        const cellCenterX = margin + col * cellWidth + cellWidth / 2;
-        const cellCenterY = margin + row * cellHeight + cellHeight / 2;
+        let cellCenterX = margin + col * cellWidth + cellWidth / 2;
+        let cellCenterY = margin + row * cellHeight + cellHeight / 2;
         
-        const offsetRange = Math.min(cellWidth, cellHeight) * 0.3;
+        // Adjust if too close to input box
+        if (avoidBox) {
+            const boxCenterX = containerRect.width / 2;
+            const boxCenterY = containerRect.height / 2;
+            
+            const distanceFromBox = Math.sqrt(
+                Math.pow(cellCenterX - boxCenterX, 2) + Math.pow(cellCenterY - boxCenterY, 2)
+            );
+            
+            if (distanceFromBox < 100) {
+                // Move away from center
+                cellCenterX += cellCenterX > boxCenterX ? 50 : -50;
+                cellCenterY += cellCenterY > boxCenterY ? 50 : -50;
+            }
+        }
+        
+        const offsetRange = Math.min(cellWidth, cellHeight) * 0.2;
         const offsetX = (Math.random() - 0.5) * offsetRange;
         const offsetY = (Math.random() - 0.5) * offsetRange;
         
@@ -123,7 +154,7 @@ class AddIconRenderer {
         };
     }
 
-    renderIcons(leftCount, rightCount) {
+    renderIcons(leftCount, rightCount, avoidBoxes = false) {
         this.clearIcons();
         
         // Choose one icon type and color for all icons in this round
@@ -134,7 +165,7 @@ class AddIconRenderer {
         
         // Generate positions for left side
         if (leftCount > 0) {
-            const leftPositions = this.generateNonOverlappingPositions(leftCount, this.leftSide);
+            const leftPositions = this.generateNonOverlappingPositions(leftCount, this.leftSide, avoidBoxes);
             
             // Create and position left side icons
             for (let i = 0; i < leftCount; i++) {
@@ -153,7 +184,7 @@ class AddIconRenderer {
         
         // Generate positions for right side
         if (rightCount > 0) {
-            const rightPositions = this.generateNonOverlappingPositions(rightCount, this.rightSide);
+            const rightPositions = this.generateNonOverlappingPositions(rightCount, this.rightSide, avoidBoxes);
             
             // Create and position right side icons
             for (let i = 0; i < rightCount; i++) {
