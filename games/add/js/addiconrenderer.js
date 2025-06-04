@@ -47,15 +47,16 @@ class AddIconRenderer {
         return selectedColor;
     }
 
-    generateNonOverlappingPositions(count, container, avoidBox = null) {
+    generateNonOverlappingPositions(count, container) {
         const positions = [];
         const containerRect = container.getBoundingClientRect();
         const margin = CONFIG.ICON_MARGIN;
         const minDistance = CONFIG.MIN_ICON_DISTANCE;
         
-        // Calculate usable area for positioning within this side
+        // Calculate usable area, avoiding the sum row at the bottom
+        const sumRowHeight = 100; // Height to reserve for sum row
         const usableWidth = Math.max(containerRect.width - 2 * margin, 100);
-        const usableHeight = Math.max(containerRect.height - 2 * margin, 100);
+        const usableHeight = Math.max(containerRect.height - 2 * margin - sumRowHeight, 100);
         
         const maxAttempts = 200;
         
@@ -65,7 +66,7 @@ class AddIconRenderer {
             let x, y;
             
             while (!validPosition && attempts < maxAttempts) {
-                // Generate random position within usable bounds
+                // Generate random position within usable bounds (above sum row)
                 x = margin + Math.random() * usableWidth;
                 y = margin + Math.random() * usableHeight;
                 
@@ -81,27 +82,12 @@ class AddIconRenderer {
                     }
                 }
                 
-                // Check if position overlaps with input box (if present)
-                if (validPosition && avoidBox) {
-                    const boxCenterX = containerRect.width / 2;
-                    const boxCenterY = containerRect.height / 2;
-                    const boxSize = 80; // Input box size
-                    
-                    const distanceFromBox = Math.sqrt(
-                        Math.pow(x - boxCenterX, 2) + Math.pow(y - boxCenterY, 2)
-                    );
-                    
-                    if (distanceFromBox < (boxSize + minDistance) / 2) {
-                        validPosition = false;
-                    }
-                }
-                
                 attempts++;
             }
             
             // Fallback grid positioning if needed
             if (!validPosition) {
-                const fallbackPos = this.getFallbackPosition(i, count, containerRect, margin, avoidBox);
+                const fallbackPos = this.getFallbackPosition(i, count, containerRect, margin, sumRowHeight);
                 x = fallbackPos.x;
                 y = fallbackPos.y;
             }
@@ -112,9 +98,9 @@ class AddIconRenderer {
         return positions;
     }
 
-    getFallbackPosition(index, totalCount, containerRect, margin, avoidBox = null) {
+    getFallbackPosition(index, totalCount, containerRect, margin, sumRowHeight) {
         const usableWidth = containerRect.width - 2 * margin;
-        const usableHeight = containerRect.height - 2 * margin;
+        const usableHeight = containerRect.height - 2 * margin - sumRowHeight;
         
         const cols = Math.ceil(Math.sqrt(totalCount));
         const rows = Math.ceil(totalCount / cols);
@@ -125,24 +111,8 @@ class AddIconRenderer {
         const row = Math.floor(index / cols);
         const col = index % cols;
         
-        let cellCenterX = margin + col * cellWidth + cellWidth / 2;
-        let cellCenterY = margin + row * cellHeight + cellHeight / 2;
-        
-        // Adjust if too close to input box
-        if (avoidBox) {
-            const boxCenterX = containerRect.width / 2;
-            const boxCenterY = containerRect.height / 2;
-            
-            const distanceFromBox = Math.sqrt(
-                Math.pow(cellCenterX - boxCenterX, 2) + Math.pow(cellCenterY - boxCenterY, 2)
-            );
-            
-            if (distanceFromBox < 100) {
-                // Move away from center
-                cellCenterX += cellCenterX > boxCenterX ? 50 : -50;
-                cellCenterY += cellCenterY > boxCenterY ? 50 : -50;
-            }
-        }
+        const cellCenterX = margin + col * cellWidth + cellWidth / 2;
+        const cellCenterY = margin + row * cellHeight + cellHeight / 2;
         
         const offsetRange = Math.min(cellWidth, cellHeight) * 0.2;
         const offsetX = (Math.random() - 0.5) * offsetRange;
@@ -154,7 +124,7 @@ class AddIconRenderer {
         };
     }
 
-    renderIcons(leftCount, rightCount, avoidBoxes = false) {
+    renderIcons(leftCount, rightCount) {
         this.clearIcons();
         
         // Choose one icon type and color for all icons in this round
@@ -163,9 +133,9 @@ class AddIconRenderer {
         
         console.log(`Rendering ${leftCount} left icons and ${rightCount} right icons`);
         
-        // Generate positions for left side
+        // Generate positions for left side (avoiding sum row)
         if (leftCount > 0) {
-            const leftPositions = this.generateNonOverlappingPositions(leftCount, this.leftSide, avoidBoxes);
+            const leftPositions = this.generateNonOverlappingPositions(leftCount, this.leftSide);
             
             // Create and position left side icons
             for (let i = 0; i < leftCount; i++) {
@@ -182,9 +152,9 @@ class AddIconRenderer {
             }
         }
         
-        // Generate positions for right side
+        // Generate positions for right side (avoiding sum row)
         if (rightCount > 0) {
-            const rightPositions = this.generateNonOverlappingPositions(rightCount, this.rightSide, avoidBoxes);
+            const rightPositions = this.generateNonOverlappingPositions(rightCount, this.rightSide);
             
             // Create and position right side icons
             for (let i = 0; i < rightCount; i++) {
