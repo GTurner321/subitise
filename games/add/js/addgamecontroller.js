@@ -618,4 +618,75 @@ class AddGameController {
         
         for (let left = CONFIG.MIN_ICONS_PER_SIDE; left <= CONFIG.MAX_ICONS_PER_SIDE; left++) {
             const right = targetSum - left;
-            if (right >= CONFIG.MIN_ICONS_PER_SIDE && right <= CONFIG.MAX_ICONS
+            if (right >= CONFIG.MIN_ICONS_PER_SIDE && right <= CONFIG.MAX_ICONS_PER_SIDE) {
+                combinations.push({ left, right, sum: targetSum });
+            }
+        }
+        
+        if (combinations.length === 0) {
+            return { left: 1, right: 1, sum: 2 };
+        }
+        
+        return combinations[Math.floor(Math.random() * combinations.length)];
+    }
+
+    getCanonicalAddition(left, right) {
+        const smaller = Math.min(left, right);
+        const larger = Math.max(left, right);
+        return `${smaller}+${larger}`;
+    }
+
+    isConsecutiveHighNumbers(currentSum, previousSum) {
+        if (this.currentDifficulty.name === 'hard') {
+            const highNumbers = [8, 9, 10]; // Updated: removed 11, 12
+            return highNumbers.includes(currentSum) && highNumbers.includes(previousSum);
+        }
+        return false;
+    }
+
+    checkForHigherNumbers(sum) {
+        const higherNumbers = this.currentDifficulty.higherNumbers;
+        if (higherNumbers && higherNumbers.includes(sum)) {
+            this.hasSeenHigherNumbers = true;
+        }
+    }
+
+    progressDifficulty() {
+        if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
+            this.currentDifficulty = CONFIG.DIFFICULTY.MEDIUM;
+        } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
+            this.currentDifficulty = CONFIG.DIFFICULTY.HARD;
+        }
+        
+        this.correctStreak = 0;
+        this.questionsInLevel = 0;
+        this.hasSeenHigherNumbers = false;
+    }
+
+    dropDifficulty() {
+        if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
+            this.currentDifficulty = CONFIG.DIFFICULTY.MEDIUM;
+        } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
+            this.currentDifficulty = CONFIG.DIFFICULTY.EASY;
+        }
+        
+        this.wrongStreak = 0;
+        this.correctStreak = 0;
+        this.questionsInLevel = 0;
+        this.hasSeenHigherNumbers = false;
+    }
+
+    completeGame() {
+        this.gameComplete = true;
+        this.stopFlashing();
+        this.modal.classList.remove('hidden');
+        
+        // Start bear celebration when modal opens
+        this.bear.startCelebration();
+    }
+}
+
+// Initialize game when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new AddGameController();
+});
