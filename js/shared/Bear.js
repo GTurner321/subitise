@@ -40,7 +40,7 @@ class Bear {
         // Second bear - left side of modal (after another 3 seconds)
         const secondTimeout = setTimeout(() => {
             if (this.isActive) {
-                this.addBear('left', this.initialSize, -8, true); // 8 degrees anticlockwise, reflected
+                this.addBear('left', this.initialSize, -8, true); // 8 degrees anticlockwise, reflected horizontally
             }
         }, this.initialDelay + this.secondBearDelay);
         this.timeouts.push(secondTimeout);
@@ -48,7 +48,7 @@ class Bear {
         // Third bear - random position (after another 2 seconds)
         const thirdTimeout = setTimeout(() => {
             if (this.isActive) {
-                this.addBear('random', this.initialSize + this.sizeIncrement);
+                this.addBear('random', this.initialSize + this.sizeIncrement, 0, false); // No specific rotation/reflection
                 this.startContinuousSpawning();
             }
         }, this.initialDelay + this.secondBearDelay + this.subsequentDelay);
@@ -61,7 +61,9 @@ class Bear {
             if (!this.isActive) return;
             
             const currentSize = this.initialSize + (this.bearCount * this.sizeIncrement);
-            this.addBear('random', currentSize);
+            // Determine if this bear should be mirrored (even numbered bears: 4th, 6th, 8th, etc.)
+            const shouldMirror = (this.bearCount + 1) % 2 === 0; // bearCount is 0-indexed, so +1 gives actual bear number
+            this.addBear('random', currentSize, 0, shouldMirror);
             
             // Schedule next bear (continue until manually stopped)
             const nextTimeout = setTimeout(spawnNextBear, this.finalDelay);
@@ -95,9 +97,9 @@ class Bear {
         // Build transform string
         let transformString = '';
         
-        // Add reflection if needed
+        // Add horizontal reflection if needed (left-right flip)
         if (reflected) {
-            transformString += ' scaleY(-1)';
+            transformString += ' scaleX(-1)'; // Changed from scaleY(-1) to scaleX(-1)
         }
         
         // Add rotation
