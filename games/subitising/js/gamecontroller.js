@@ -2,6 +2,7 @@ class GameController {
     constructor() {
         this.iconRenderer = new IconRenderer();
         this.rainbow = new Rainbow();
+        this.bear = new Bear(); // Add this line
         
         // Game state
         this.currentDifficulty = CONFIG.DIFFICULTY.EASY;
@@ -49,11 +50,12 @@ class GameController {
         this.wrongStreak = 0;
         this.questionsInLevel = 0;
         this.gameComplete = false;
-        this.previousAnswer = 0; // Reset previous answer tracking
-        this.buttonsDisabled = false; // Reset button state
+        this.previousAnswer = 0;
+        this.buttonsDisabled = false;
         
         this.rainbow.reset();
-        this.iconRenderer.reset(); // Reset icon and color tracking
+        this.bear.reset(); // Add this line to stop bears
+        this.iconRenderer.reset();
         this.modal.classList.add('hidden');
         this.startNewQuestion();
     }
@@ -345,6 +347,9 @@ class GameController {
     completeGame() {
         this.gameComplete = true;
         this.modal.classList.remove('hidden');
+        
+        // Start bear celebration when modal opens
+        this.bear.startCelebration();
     }
 }
 
