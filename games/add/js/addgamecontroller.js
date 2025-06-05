@@ -26,6 +26,7 @@ class AddGameController {
         
         // Flashing intervals
         this.flashingInterval = null;
+        this.flashingTimeout = null;
         
         // DOM elements
         this.numberButtons = document.querySelectorAll('.number-btn');
@@ -111,46 +112,35 @@ class AddGameController {
         this.stopFlashing(); // Clear any existing interval
         
         const flashElements = () => {
-            // Remove existing flash classes
-            this.leftSide.classList.remove('area-flash');
-            this.rightSide.classList.remove('area-flash');
-            this.leftInputBox.classList.remove('box-flash');
-            this.rightInputBox.classList.remove('box-flash');
-            this.totalInputBox.classList.remove('box-flash');
+            // Determine what should flash based on current step
+            if (this.gameStep === 'left' && !this.leftAnswered) {
+                this.leftSide.classList.add('area-flash');
+                this.leftInputBox.classList.add('box-flash');
+            } else if (this.gameStep === 'right' && !this.rightAnswered) {
+                this.rightSide.classList.add('area-flash');
+                this.rightInputBox.classList.add('box-flash');
+            } else if (this.gameStep === 'total' && !this.totalAnswered) {
+                this.leftSide.classList.add('area-flash');
+                this.rightSide.classList.add('area-flash');
+                this.totalInputBox.classList.add('box-flash');
+            }
             
+            // Remove flash classes after a slower flash duration
             setTimeout(() => {
-                // Determine what should flash based on current step
-                if (this.gameStep === 'left' && !this.leftAnswered) {
-                    this.leftSide.classList.add('area-flash');
-                    this.leftInputBox.classList.add('box-flash');
-                } else if (this.gameStep === 'right' && !this.rightAnswered) {
-                    this.rightSide.classList.add('area-flash');
-                    this.rightInputBox.classList.add('box-flash');
-                } else if (this.gameStep === 'total' && !this.totalAnswered) {
-                    this.leftSide.classList.add('area-flash');
-                    this.rightSide.classList.add('area-flash');
-                    this.totalInputBox.classList.add('box-flash');
-                }
-                
-                // Remove flash classes after flash duration
-                setTimeout(() => {
-                    this.leftSide.classList.remove('area-flash');
-                    this.rightSide.classList.remove('area-flash');
-                    this.leftInputBox.classList.remove('box-flash');
-                    this.rightInputBox.classList.remove('box-flash');
-                    this.totalInputBox.classList.remove('box-flash');
-                }, 200); // Flash duration
-            }, 50);
+                this.leftSide.classList.remove('area-flash');
+                this.rightSide.classList.remove('area-flash');
+                this.leftInputBox.classList.remove('box-flash');
+                this.rightInputBox.classList.remove('box-flash');
+                this.totalInputBox.classList.remove('box-flash');
+            }, 600); // Slower, longer flash duration
         };
         
-        // Flash twice immediately
-        flashElements();
-        setTimeout(flashElements, 300);
-        
-        // Set up interval to repeat every 5 seconds
-        this.flashingInterval = setInterval(() => {
-            flashElements();
-            setTimeout(flashElements, 300);
+        // Start flashing after 5 seconds (not immediately)
+        this.flashingTimeout = setTimeout(() => {
+            flashElements(); // Single flash, not double
+            
+            // Set up interval to repeat approximately every 5 seconds
+            this.flashingInterval = setInterval(flashElements, 5000);
         }, 5000);
     }
 
@@ -158,6 +148,11 @@ class AddGameController {
         if (this.flashingInterval) {
             clearInterval(this.flashingInterval);
             this.flashingInterval = null;
+        }
+        
+        if (this.flashingTimeout) {
+            clearTimeout(this.flashingTimeout);
+            this.flashingTimeout = null;
         }
         
         // Remove any existing flash classes
@@ -341,8 +336,8 @@ class AddGameController {
             this.leftAnswered = true;
             
             if (this.totalAnswered) {
-                // If total is already answered, check if we're done
-                this.checkQuestionCompletion();
+                // If total is already answered, move to right step
+                this.showRightInputBox();
             } else {
                 // Immediately show right input box (no delay)
                 this.showRightInputBox();
