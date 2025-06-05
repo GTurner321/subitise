@@ -2,6 +2,7 @@ class AddGameController {
     constructor() {
         this.iconRenderer = new AddIconRenderer();
         this.rainbow = new Rainbow();
+        this.bear = new Bear(); // Add this line
         
         // Game state
         this.currentDifficulty = CONFIG.DIFFICULTY.EASY;
@@ -65,6 +66,7 @@ class AddGameController {
         this.resetStepState();
         
         this.rainbow.reset();
+        this.bear.reset(); // Add this line to stop bears
         this.iconRenderer.reset();
         this.modal.classList.add('hidden');
         this.hideAllInputBoxes();
@@ -488,6 +490,9 @@ class AddGameController {
     completeGame() {
         this.gameComplete = true;
         this.modal.classList.remove('hidden');
+        
+        // Start bear celebration when modal opens
+        this.bear.startCelebration();
     }
 }
 
