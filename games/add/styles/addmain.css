@@ -138,14 +138,14 @@ body {
     }
 }
 
-/* Number buttons - UPDATED: Enhanced click targets */
+/* Number buttons - UPDATED: Enhanced click targets with proper spacing */
 .number-buttons {
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px;
     background: #f5f5f5;
-    gap: 15px; /* Increased gap for larger touch targets */
+    gap: 10px; /* Back to original gap */
     flex-wrap: wrap;
     min-height: 120px;
 }
@@ -163,20 +163,18 @@ body {
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     position: relative;
     
-    /* Enhanced click target with invisible padding */
-    padding: 15px; /* This increases the clickable area */
-    margin: -15px; /* This negates the visual effect of padding */
+    /* Remove the problematic padding/margin approach */
 }
 
-/* Pseudo-element for larger touch target */
+/* Pseudo-element for larger touch target without affecting layout */
 .number-btn::before {
     content: '';
     position: absolute;
-    top: -10px;
-    left: -10px;
-    right: -10px;
-    bottom: -10px;
-    /* This creates a larger invisible clickable area */
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    /* This creates a larger invisible clickable area without affecting layout */
 }
 
 .number-btn:hover {
@@ -493,8 +491,6 @@ body {
         width: 70px;
         height: 70px;
         font-size: 2rem;
-        padding: 12px;
-        margin: -12px;
     }
     
     .plus-sign {
@@ -517,8 +513,6 @@ body {
         height: 60px;
         font-size: 1.8rem;
         gap: 5px;
-        padding: 10px;
-        margin: -10px;
     }
     
     .plus-sign {
