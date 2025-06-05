@@ -1,5 +1,9 @@
+// Simple Bear.js for testing
+console.log('Bear.js loaded successfully');
+
 class Bear {
     constructor() {
+        console.log('Bear constructor called');
         this.bears = [];
         this.bearCount = 0;
         this.isActive = false;
@@ -13,17 +17,17 @@ class Bear {
         this.initialSize = 30; // 30% of screen height
         this.sizeIncrement = 5; // 5% increase each time
         
-        this.bearImage = 'assets/bear.png';
+        this.bearImage = '../../assets/bear.png';
     }
 
     startCelebration() {
+        console.log('Bear celebration started!');
         if (this.isActive) {
             this.stopCelebration(); // Clean up any existing celebration
         }
         
         this.isActive = true;
         this.bearCount = 0;
-        console.log('Starting bear celebration!');
         
         // First bear - right side of modal (after 3 seconds)
         const firstTimeout = setTimeout(() => {
@@ -69,6 +73,8 @@ class Bear {
     }
 
     addBear(position, sizePercent) {
+        console.log(`Adding bear #${this.bearCount + 1} at ${position}, size: ${sizePercent}%`);
+        
         const bear = document.createElement('img');
         bear.src = this.bearImage;
         bear.className = 'celebration-bear';
@@ -81,7 +87,7 @@ class Bear {
         bear.style.height = `${bearSize}px`;
         
         // Set z-index (behind modal but in front of game elements)
-        bear.style.zIndex = '999'; // Behind modal (1000) but in front of game elements
+        bear.style.zIndex = '999';
         
         // Set position
         this.positionBear(bear, position, bearSize);
@@ -108,7 +114,6 @@ class Bear {
         }, 50);
         
         this.bearCount++;
-        console.log(`Added bear #${this.bearCount} at ${position} position, size: ${sizePercent}%`);
     }
 
     positionBear(bear, position, bearSize) {
@@ -181,21 +186,20 @@ class Bear {
     }
 }
 
-// CSS for celebration bears (add this to your CSS file)
-const bearStyles = `
-.celebration-bear {
-    pointer-events: none;
-    user-select: none;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-    object-fit: contain;
-}
-`;
-
-// Add styles to document if they don't exist
+// Add CSS if it doesn't exist
 if (!document.querySelector('#bear-styles')) {
     const styleSheet = document.createElement('style');
     styleSheet.id = 'bear-styles';
-    styleSheet.textContent = bearStyles;
+    styleSheet.textContent = `
+        .celebration-bear {
+            pointer-events: none;
+            user-select: none;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            object-fit: contain;
+        }
+    `;
     document.head.appendChild(styleSheet);
 }
+
+console.log('Bear.js fully loaded and ready!');
