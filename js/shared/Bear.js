@@ -32,7 +32,7 @@ class Bear {
         // First bear - right side of modal (after 3 seconds)
         const firstTimeout = setTimeout(() => {
             if (this.isActive) {
-                this.addBear('right', this.initialSize);
+                this.addBear('right', this.initialSize, 8); // 8 degrees clockwise
             }
         }, this.initialDelay);
         this.timeouts.push(firstTimeout);
@@ -40,7 +40,7 @@ class Bear {
         // Second bear - left side of modal (after another 3 seconds)
         const secondTimeout = setTimeout(() => {
             if (this.isActive) {
-                this.addBear('left', this.initialSize);
+                this.addBear('left', this.initialSize, -8, true); // 8 degrees anticlockwise, reflected
             }
         }, this.initialDelay + this.secondBearDelay);
         this.timeouts.push(secondTimeout);
@@ -72,7 +72,7 @@ class Bear {
         this.timeouts.push(continuousTimeout);
     }
 
-    addBear(position, sizePercent) {
+    addBear(position, sizePercent, rotation = 0, reflected = false) {
         console.log(`Adding bear #${this.bearCount + 1} at ${position}, size: ${sizePercent}%`);
         
         const bear = document.createElement('img');
@@ -86,22 +86,35 @@ class Bear {
         bear.style.width = `${bearSize}px`;
         bear.style.height = `${bearSize}px`;
         
-        // Set z-index (behind modal but in front of game elements)
+        // Set z-index (behind modal buttons but in front of game elements)
         bear.style.zIndex = '999';
         
-        // Set position
+        // Set position - now position first, then apply transforms
         this.positionBear(bear, position, bearSize);
         
-        // Add random rotation for bears after the first two
-        if (this.bearCount >= 2) {
-            const rotation = this.getRandomRotation();
-            bear.style.transform += ` rotate(${rotation}deg)`;
+        // Build transform string
+        let transformString = '';
+        
+        // Add reflection if needed
+        if (reflected) {
+            transformString += ' scaleY(-1)';
         }
         
-        // Add entrance animation
+        // Add rotation
+        if (rotation !== 0) {
+            transformString += ` rotate(${rotation}deg)`;
+        }
+        
+        // Add random rotation for bears after the first two (if no specific rotation given)
+        if (this.bearCount >= 2 && rotation === 0) {
+            const randomRotation = this.getRandomRotation();
+            transformString += ` rotate(${randomRotation}deg)`;
+        }
+        
+        // Set initial transform for entrance animation
         bear.style.opacity = '0';
-        bear.style.transform += ' scale(0.1)';
-        bear.style.transition = 'all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+        bear.style.transform = 'scale(0.1)' + transformString;
+        bear.style.transition = 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)'; // Changed to 0.3s
         
         // Add to DOM
         document.body.appendChild(bear);
@@ -134,13 +147,13 @@ class Bear {
             bear.style.top = '50%';
             bear.style.transform = 'translateY(-50%)';
         } else {
-            // Random position anywhere on screen
-            const maxX = window.innerWidth;
-            const maxY = window.innerHeight;
+            // Random position anywhere on visible screen
+            const maxX = window.innerWidth - bearSize; // Keep within screen bounds
+            const maxY = window.innerHeight - bearSize; // Keep within screen bounds
             
-            // Allow bears to partially go off screen
-            const x = Math.random() * (maxX + bearSize) - (bearSize / 2);
-            const y = Math.random() * (maxY + bearSize) - (bearSize / 2);
+            // Ensure bears stay mostly on screen but can partially go off
+            const x = Math.random() * (maxX + bearSize * 0.5) - (bearSize * 0.25);
+            const y = Math.random() * (maxY + bearSize * 0.5) - (bearSize * 0.25);
             
             bear.style.left = `${x}px`;
             bear.style.top = `${y}px`;
