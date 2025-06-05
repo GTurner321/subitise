@@ -92,11 +92,11 @@ body {
     transition: background-color 0.2s ease;
 }
 
-/* Area flashing styles - softer, longer duration */
+/* Area flashing styles - softer, longer duration, slower timing */
 .left-side.area-flash,
 .right-side.area-flash {
     background-color: rgba(144, 238, 144, 0.2) !important;
-    transition: background-color 0.6s ease-in-out;
+    transition: background-color 1s ease-in-out; /* Longer transition to match slower timing */
 }
 
 /* Rainbow background */
@@ -422,11 +422,11 @@ body {
     animation: none;
 }
 
-/* Box flashing for hints - softer, longer duration */
+/* Box flashing for hints - softer, longer duration, slower timing */
 .input-box.box-flash {
     background: rgba(144, 238, 144, 0.3) !important;
     border-color: #28a745 !important;
-    transition: all 0.6s ease-in-out;
+    transition: all 1s ease-in-out; /* Longer transition to match slower timing */
 }
 
 @keyframes flashingBox {
