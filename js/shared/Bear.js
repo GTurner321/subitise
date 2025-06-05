@@ -115,6 +115,7 @@ class Bear {
         
         // Set initial transform for entrance animation
         bear.style.opacity = '0';
+        bear.style.transformOrigin = 'center center'; // Ensure rotation happens from center
         bear.style.transform = 'scale(0.1)' + transformString;
         bear.style.transition = 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)'; // Changed to 0.3s
         
