@@ -125,14 +125,14 @@ class AddGameController {
                 this.totalInputBox.classList.add('box-flash');
             }
             
-            // Remove flash classes after a slower flash duration
+            // Remove flash classes after a longer flash duration that syncs with box pulse
             setTimeout(() => {
                 this.leftSide.classList.remove('area-flash');
                 this.rightSide.classList.remove('area-flash');
                 this.leftInputBox.classList.remove('box-flash');
                 this.rightInputBox.classList.remove('box-flash');
                 this.totalInputBox.classList.remove('box-flash');
-            }, 600); // Slower, longer flash duration
+            }, 1000); // 1 second flash duration to sync with the 2s pulse cycle
         };
         
         // Start flashing after 5 seconds (not immediately)
@@ -313,10 +313,10 @@ class AddGameController {
             buttonElement.classList.remove('correct');
         }, CONFIG.FLASH_DURATION);
 
-        // Fill the total box
+        // Fill the total box and mark it as filled (green background)
         this.totalInputBox.textContent = selectedNumber;
         this.totalInputBox.classList.remove('flashing');
-        this.totalInputBox.classList.add('filled');
+        this.totalInputBox.classList.add('filled'); // This makes it green
         this.totalAnswered = true;
 
         // Continue with the current step (left or right)
