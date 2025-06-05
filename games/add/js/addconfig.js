@@ -22,41 +22,75 @@ const CONFIG = {
     },
 
     // Font Awesome icons suitable for nursery age children
-    ICONS: [
-        'fas fa-cat',
-        'fas fa-dog',
-        'fas fa-fish',
-        'fas fa-dove',
-        'fas fa-frog',
-        'fas fa-bug',
-        'fas fa-home',
-        'fas fa-bed',
-        'fas fa-chair',
-        'fas fa-futbol',
-        'fas fa-car',
-        'fas fa-bicycle',
-        'fas fa-plane',
-        'fas fa-rocket',
-        'fas fa-puzzle-piece',
-        'fas fa-apple-alt',
-        'fas fa-carrot',
-        'fas fa-ice-cream',
-        'fas fa-birthday-cake',
-        'fas fa-tree',
-        'fas fa-leaf',
-        'fas fa-sun',
-        'fas fa-cloud',
-        'fas fa-rainbow',
-        'fas fa-star',
-        'fas fa-moon',
-        'fas fa-heart',
-        'fas fa-circle',
-        'fas fa-square',
-        'fas fa-music',
-        'fas fa-bell',
-        'fas fa-smile',
-        'fas fa-thumbs-up',
-        'fas fa-hand-paper'
+ICONS: [
+    // Animals
+    'fas fa-cat',
+    'fas fa-dog',
+    'fas fa-fish',
+    'fas fa-dove',
+    'fas fa-frog',
+    'fas fa-bug',
+    'fas fa-horse',
+    'fas fa-hippo',
+    'fas fa-kiwi-bird',
+    'fas fa-dragon',
+    
+    // Home & Furniture
+    'fas fa-home',
+    'fas fa-bed',
+    'fas fa-chair',
+    
+    // Vehicles & Transportation
+    'fas fa-car',
+    'fas fa-bicycle',
+    'fas fa-plane',
+    'fas fa-rocket',
+    'fas fa-tractor',
+    'fas fa-bus',
+    'fas fa-train',
+    
+    // Sports & Games
+    'fas fa-puzzle-piece',
+    
+    // Food
+    'fas fa-apple-alt',
+    'fas fa-carrot',
+    'fas fa-ice-cream',
+    'fas fa-birthday-cake',
+    'fas fa-pepper-hot',
+    
+    // Nature & Weather
+    'fas fa-tree',
+    'fas fa-leaf',
+    'fas fa-sun',
+    'fas fa-cloud',
+    'fas fa-rainbow',
+    'fas fa-star',
+    'fas fa-moon',
+    'fas fa-snowflake',
+    'fas fa-feather',
+    
+    // Shapes & Symbols
+    'fas fa-heart',
+    
+    // Objects & Tools
+    'fas fa-music',
+    'fas fa-bell',
+    'fas fa-umbrella',
+    'fas fa-anchor',
+    'fas fa-glasses',
+    'fas fa-binoculars',
+    'fas fa-tshirt',
+    'fas fa-stopwatch',
+    
+    // Fantasy & Fun
+    'fas fa-ghost',
+    'fas fa-hat-wizard',
+    
+    // Gestures & Actions
+    'fas fa-smile',
+    'fas fa-thumbs-up',
+    'fas fa-hand-paper',
     ],
 
     // Color palette for icons
