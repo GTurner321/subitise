@@ -17,7 +17,7 @@ class Bear {
         this.initialSize = 30; // 30% of screen height
         this.sizeIncrement = 5; // 5% increase each time
         
-        this.bearImage = '../../assets/bear.png';
+        this.bearImage = '/subitise/assets/bear.png';
     }
 
     startCelebration() {
