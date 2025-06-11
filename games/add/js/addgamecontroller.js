@@ -2,7 +2,7 @@ class AddGameController {
     constructor() {
         this.iconRenderer = new AddIconRenderer();
         this.rainbow = new Rainbow();
-        this.bear = new Bear(); // Add this line
+        this.bear = new Bear();
         
         // Game state
         this.currentDifficulty = CONFIG.DIFFICULTY.EASY;
@@ -18,11 +18,10 @@ class AddGameController {
         this.hasSeenHigherNumbers = false;
         this.buttonsDisabled = false;
         
-        // Step-by-step game state
-        this.gameStep = 'left'; // 'left', 'right', 'total'
-        this.leftAnswered = false;
-        this.rightAnswered = false;
-        this.totalAnswered = false; // Track if total was answered early
+        // Simplified box state - track which boxes are filled
+        this.leftFilled = false;
+        this.rightFilled = false;
+        this.totalFilled = false;
         
         // Flashing intervals
         this.flashingInterval = null;
@@ -90,21 +89,20 @@ class AddGameController {
         this.previousAddition = null;
         this.hasSeenHigherNumbers = false;
         this.buttonsDisabled = false;
-        this.resetStepState();
+        this.resetBoxState();
         
         this.rainbow.reset();
-        this.bear.reset(); // Add this line to stop bears
+        this.bear.reset();
         this.iconRenderer.reset();
         this.modal.classList.add('hidden');
         this.hideAllInputBoxes();
         this.startNewQuestion();
     }
 
-    resetStepState() {
-        this.gameStep = 'left';
-        this.leftAnswered = false;
-        this.rightAnswered = false;
-        this.totalAnswered = false;
+    resetBoxState() {
+        this.leftFilled = false;
+        this.rightFilled = false;
+        this.totalFilled = false;
         this.stopFlashing();
     }
 
@@ -112,34 +110,35 @@ class AddGameController {
         this.stopFlashing(); // Clear any existing interval
         
         const flashElements = () => {
-            // Determine what should flash based on current step
-            if (this.gameStep === 'left' && !this.leftAnswered) {
+            // Flash only the first uncompleted box from left to right
+            if (!this.leftFilled) {
                 this.leftSide.classList.add('area-flash');
                 this.leftInputBox.classList.add('box-flash');
-            } else if (this.gameStep === 'right' && !this.rightAnswered) {
+            } else if (!this.rightFilled) {
                 this.rightSide.classList.add('area-flash');
                 this.rightInputBox.classList.add('box-flash');
-            } else if (this.gameStep === 'total' && !this.totalAnswered) {
+            } else if (!this.totalFilled) {
+                // Flash both areas when total is the only remaining box
                 this.leftSide.classList.add('area-flash');
                 this.rightSide.classList.add('area-flash');
                 this.totalInputBox.classList.add('box-flash');
             }
             
-            // Remove flash classes after a longer flash duration that syncs with box pulse
+            // Remove flash classes after flash duration
             setTimeout(() => {
                 this.leftSide.classList.remove('area-flash');
                 this.rightSide.classList.remove('area-flash');
                 this.leftInputBox.classList.remove('box-flash');
                 this.rightInputBox.classList.remove('box-flash');
                 this.totalInputBox.classList.remove('box-flash');
-            }, 1000); // 1 second flash duration to sync with the 2s pulse cycle
+            }, 1000);
         };
         
-        // Start flashing after 5 seconds (not immediately)
+        // Start flashing after 5 seconds
         this.flashingTimeout = setTimeout(() => {
-            flashElements(); // Single flash, not double
+            flashElements();
             
-            // Set up interval to repeat approximately every 5 seconds
+            // Set up interval to repeat every 5 seconds
             this.flashingInterval = setInterval(flashElements, 5000);
         }, 5000);
     }
@@ -168,7 +167,7 @@ class AddGameController {
             return;
         }
 
-        this.resetStepState();
+        this.resetBoxState();
         this.hideAllInputBoxes();
 
         // Check if we need to force higher numbers
@@ -218,12 +217,12 @@ class AddGameController {
         
         console.log(`Question: ${leftCount} + ${rightCount} = ${sum}, Level: ${this.currentDifficulty.name}`);
         
-        // Render the icons (avoiding sum row area)
+        // Render the icons
         this.iconRenderer.renderIcons(leftCount, rightCount);
         
-        // Reset button states and immediately show flashing left box
+        // Reset button states and show input boxes
         this.resetButtonStates();
-        this.showLeftInputBox(); // No delay - immediate
+        this.showInputBoxes();
     }
 
     hideAllInputBoxes() {
@@ -240,125 +239,96 @@ class AddGameController {
         this.totalInputBox.classList.remove('flashing', 'filled');
     }
 
-    showLeftInputBox() {
-        this.gameStep = 'left';
-        this.leftInputBox.classList.add('flashing');
-        this.startFlashing();
-    }
-
-    showRightInputBox() {
-        this.gameStep = 'right';
-        this.leftInputBox.classList.remove('flashing');
-        this.leftInputBox.classList.add('filled');
-        
-        this.rightInputBox.classList.add('flashing');
-        this.startFlashing();
-    }
-
-    showTotalInputBox() {
-        this.gameStep = 'total';
-        this.rightInputBox.classList.remove('flashing');
-        this.rightInputBox.classList.add('filled');
-        
-        this.totalInputBox.classList.add('flashing');
+    showInputBoxes() {
+        // Show only the first uncompleted box as actively flashing
+        if (!this.leftFilled) {
+            this.leftInputBox.classList.add('flashing');
+        } else if (!this.rightFilled) {
+            this.rightInputBox.classList.add('flashing');
+        } else if (!this.totalFilled) {
+            this.totalInputBox.classList.add('flashing');
+        }
         this.startFlashing();
     }
 
     handleNumberClick(selectedNumber, buttonElement) {
-        // Check if this could be the total answer (even if not the current step)
-        if (!this.totalAnswered && selectedNumber === this.currentAnswer) {
-            if (this.gameStep !== 'total') {
-                // User entered total early - accept it
-                this.handleEarlyTotalAnswer(buttonElement, selectedNumber);
-                return;
-            }
+        let correctAnswer = false;
+        
+        // Check boxes in left-to-right priority order for filling
+        // This ensures duplicates fill left box first, then right box
+        if (!this.leftFilled && selectedNumber === this.currentLeftCount) {
+            this.fillBox('left', selectedNumber, buttonElement);
+            correctAnswer = true;
+        } else if (!this.rightFilled && selectedNumber === this.currentRightCount) {
+            this.fillBox('right', selectedNumber, buttonElement);
+            correctAnswer = true;
+        } else if (!this.totalFilled && selectedNumber === this.currentAnswer) {
+            this.fillBox('total', selectedNumber, buttonElement);
+            correctAnswer = true;
         }
         
-        let isCorrect = false;
-        
-        switch (this.gameStep) {
+        if (correctAnswer) {
+            this.checkQuestionCompletion();
+        } else {
+            this.handleIncorrectAnswer(buttonElement);
+        }
+    }
+
+    fillBox(boxType, selectedNumber, buttonElement) {
+        // Flash green on correct answer
+        buttonElement.classList.add('correct');
+        setTimeout(() => {
+            buttonElement.classList.remove('correct');
+        }, CONFIG.FLASH_DURATION);
+
+        // Fill the appropriate box
+        switch (boxType) {
             case 'left':
-                isCorrect = selectedNumber === this.currentLeftCount;
-                if (isCorrect) {
-                    this.handleCorrectStepAnswer(buttonElement, selectedNumber, 'left');
-                } else {
-                    this.handleIncorrectAnswer(buttonElement);
-                }
+                this.leftInputBox.textContent = selectedNumber;
+                this.leftInputBox.classList.remove('flashing');
+                this.leftInputBox.classList.add('filled');
+                this.leftFilled = true;
                 break;
-                
             case 'right':
-                isCorrect = selectedNumber === this.currentRightCount;
-                if (isCorrect) {
-                    this.handleCorrectStepAnswer(buttonElement, selectedNumber, 'right');
-                } else {
-                    this.handleIncorrectAnswer(buttonElement);
-                }
+                this.rightInputBox.textContent = selectedNumber;
+                this.rightInputBox.classList.remove('flashing');
+                this.rightInputBox.classList.add('filled');
+                this.rightFilled = true;
                 break;
-                
             case 'total':
-                isCorrect = selectedNumber === this.currentAnswer;
-                if (isCorrect) {
-                    this.handleCorrectFinalAnswer(buttonElement, selectedNumber);
-                } else {
-                    this.handleIncorrectAnswer(buttonElement);
-                }
+                this.totalInputBox.textContent = selectedNumber;
+                this.totalInputBox.classList.remove('flashing');
+                this.totalInputBox.classList.add('filled');
+                this.totalFilled = true;
                 break;
         }
+
+        // Update flashing to show next priority box
+        this.updateFlashingBoxes();
     }
 
-    handleEarlyTotalAnswer(buttonElement, selectedNumber) {
-        // Flash green on correct answer
-        buttonElement.classList.add('correct');
-        setTimeout(() => {
-            buttonElement.classList.remove('correct');
-        }, CONFIG.FLASH_DURATION);
-
-        // Fill the total box and mark it as filled (green background)
-        this.totalInputBox.textContent = selectedNumber;
+    updateFlashingBoxes() {
+        // Remove flashing from all boxes first
+        this.leftInputBox.classList.remove('flashing');
+        this.rightInputBox.classList.remove('flashing');
         this.totalInputBox.classList.remove('flashing');
-        this.totalInputBox.classList.add('filled'); // This makes it green
-        this.totalAnswered = true;
-
-        // Continue with the current step (left or right)
-        // The flashing will automatically adjust since totalAnswered is now true
-    }
-
-    handleCorrectStepAnswer(buttonElement, selectedNumber, step) {
-        // Flash green on correct answer
-        buttonElement.classList.add('correct');
-        setTimeout(() => {
-            buttonElement.classList.remove('correct');
-        }, CONFIG.FLASH_DURATION);
-
-        // Fill the box with the number and immediately move to next step
-        if (step === 'left') {
-            this.leftInputBox.textContent = selectedNumber;
-            this.leftAnswered = true;
-            
-            if (this.totalAnswered) {
-                // If total is already answered, move to right step
-                this.showRightInputBox();
-            } else {
-                // Immediately show right input box (no delay)
-                this.showRightInputBox();
-            }
-        } else if (step === 'right') {
-            this.rightInputBox.textContent = selectedNumber;
-            this.rightAnswered = true;
-            
-            if (this.totalAnswered) {
-                // All parts completed
-                this.checkQuestionCompletion();
-            } else {
-                // Immediately show total input box (no delay)
-                this.showTotalInputBox();
-            }
+        
+        // Add flashing to the first uncompleted box (left-to-right priority)
+        if (!this.leftFilled) {
+            this.leftInputBox.classList.add('flashing');
+        } else if (!this.rightFilled) {
+            this.rightInputBox.classList.add('flashing');
+        } else if (!this.totalFilled) {
+            this.totalInputBox.classList.add('flashing');
         }
+        
+        // Restart flashing for the new priority box
+        this.startFlashing();
     }
 
     checkQuestionCompletion() {
-        if (this.leftAnswered && this.rightAnswered && this.totalAnswered) {
-            // All parts completed - treat as correct final answer
+        if (this.leftFilled && this.rightFilled && this.totalFilled) {
+            // All boxes completed
             this.stopFlashing();
             
             // Show check mark
@@ -394,73 +364,15 @@ class AddGameController {
             if (this.rainbow.isComplete()) {
                 setTimeout(() => {
                     this.completeGame();
-                }, 3000); // 2 seconds display + 1 second fade
+                }, 3000);
                 return;
             }
 
-            // Start fade out after 2 seconds, then new question (reduced from 3)
+            // Start fade out after 2 seconds, then new question
             setTimeout(() => {
                 this.fadeOutQuestion();
             }, 2000);
         }
-    }
-
-    handleCorrectFinalAnswer(buttonElement, selectedNumber) {
-        // Check if this was the first attempt for the entire question BEFORE any processing
-        const wasFirstAttempt = !this.hasAttemptedAnswer();
-        
-        // Flash green on correct answer
-        buttonElement.classList.add('correct');
-        setTimeout(() => {
-            buttonElement.classList.remove('correct');
-        }, CONFIG.FLASH_DURATION);
-
-        // Fill the total box
-        this.totalInputBox.textContent = selectedNumber;
-        this.totalInputBox.classList.remove('flashing');
-        this.totalInputBox.classList.add('filled');
-        this.totalAnswered = true;
-        
-        this.stopFlashing();
-
-        // Show check mark
-        this.checkMark.classList.add('visible');
-        
-        // Add rainbow piece - THIS IS CRITICAL!
-        const pieces = this.rainbow.addPiece();
-        console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}`);
-        
-        // Update streaks and difficulty progression
-        if (wasFirstAttempt) {
-            this.correctStreak++;
-            this.wrongStreak = 0;
-            this.questionsInLevel++;
-            
-            if (this.correctStreak >= CONFIG.QUESTIONS_PER_LEVEL) {
-                this.progressDifficulty();
-            }
-        } else {
-            this.wrongStreak++;
-            this.correctStreak = 0;
-            this.questionsInLevel++;
-            
-            if (this.wrongStreak >= CONFIG.CONSECUTIVE_WRONG_TO_DROP) {
-                this.dropDifficulty();
-            }
-        }
-        
-        // Check if game is complete
-        if (this.rainbow.isComplete()) {
-            setTimeout(() => {
-                this.completeGame();
-            }, 3000); // 2 seconds display + 1 second fade
-            return;
-        }
-
-        // Start fade out after 2 seconds, then new question (reduced from 3)
-        setTimeout(() => {
-            this.fadeOutQuestion();
-        }, 2000);
     }
 
     handleIncorrectAnswer(buttonElement) {
@@ -484,7 +396,7 @@ class AddGameController {
         // Mark that an attempt was made
         buttonElement.dataset.attempted = 'true';
         
-        // Fade out all other buttons (not the clicked one) - 0.7 seconds (reduced from 1)
+        // Fade out all other buttons
         this.numberButtons.forEach(btn => {
             if (btn !== buttonElement) {
                 btn.style.transition = 'opacity 700ms ease-in-out';
@@ -492,9 +404,8 @@ class AddGameController {
             }
         });
 
-        // After fade out completes, wait 0.7 seconds, then fade back in (reduced from 1)
+        // After fade out completes, wait, then fade back in
         setTimeout(() => {
-            // After 0.7 second pause, start fading back in - 0.7 seconds (reduced from 1)
             setTimeout(() => {
                 this.numberButtons.forEach(btn => {
                     if (btn !== buttonElement) {
@@ -503,13 +414,13 @@ class AddGameController {
                     }
                 });
                 
-                // Start fading out the cross during the last 0.7 seconds
+                // Start fading out the cross
                 if (crossOverlay && crossOverlay.parentNode) {
                     crossOverlay.style.transition = 'opacity 700ms ease-out';
                     crossOverlay.style.opacity = '0';
                 }
                 
-                // Clean up after fade in completes (0.7 seconds later)
+                // Clean up after fade in completes
                 setTimeout(() => {
                     // Remove the cross overlay
                     if (crossOverlay && crossOverlay.parentNode) {
@@ -523,7 +434,7 @@ class AddGameController {
                 }, 700);
             }, 700);
             
-            // Re-enable buttons at 1.4 seconds total (reduced from 2)
+            // Re-enable buttons
             setTimeout(() => {
                 this.buttonsDisabled = false;
                 // Resume flashing
@@ -533,7 +444,7 @@ class AddGameController {
     }
 
     fadeOutQuestion() {
-        // Add fade out class to icons only, NOT the sum row
+        // Add fade out class to icons only
         const gameElements = [...this.iconRenderer.currentIcons];
         
         gameElements.forEach(element => {
@@ -546,7 +457,7 @@ class AddGameController {
         setTimeout(() => {
             this.startNewQuestion();
             
-            // Remove fade out classes and add fade in to new icons only
+            // Remove fade out classes and add fade in to new icons
             setTimeout(() => {
                 const newElements = [...this.iconRenderer.currentIcons];
                 
@@ -566,7 +477,7 @@ class AddGameController {
                     });
                 }, 1000);
             }, 100);
-        }, 1000); // 1 second fade out
+        }, 1000);
     }
 
     hasAttemptedAnswer() {
@@ -591,7 +502,7 @@ class AddGameController {
         });
     }
 
-    // Addition generation methods
+    // Addition generation methods (unchanged)
     generateForcedHigherAddition() {
         const higherNumbers = this.currentDifficulty.higherNumbers;
         if (!higherNumbers) return this.generateAdditionForDifficulty();
@@ -633,7 +544,7 @@ class AddGameController {
 
     isConsecutiveHighNumbers(currentSum, previousSum) {
         if (this.currentDifficulty.name === 'hard') {
-            const highNumbers = [8, 9, 10]; // Updated: removed 11, 12
+            const highNumbers = [8, 9, 10];
             return highNumbers.includes(currentSum) && highNumbers.includes(previousSum);
         }
         return false;
