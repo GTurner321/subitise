@@ -94,16 +94,23 @@ class TraceGameController {
         
         // Keyboard support for testing
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'n' && e.ctrlKey) {
-                // Ctrl+N to skip to next number (debug)
-                if (CONFIG.DEBUG_MODE) {
+            // Prevent browser shortcuts from interfering
+            if (CONFIG.DEBUG_MODE) {
+                if (e.key === ' ') {
+                    // Spacebar to skip to next number (debug)
+                    e.preventDefault();
                     this.completeCurrentNumber();
                 }
-            }
-            if (e.key === 'r' && e.ctrlKey) {
-                // Ctrl+R to restart current number
-                if (CONFIG.DEBUG_MODE) {
+                if (e.key === 'r' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                    // R key to restart current number (without modifiers)
+                    e.preventDefault();
                     this.startCurrentNumberOver();
+                }
+                // Number keys 0-9 to jump directly to that number
+                if (e.key >= '0' && e.key <= '9' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                    e.preventDefault();
+                    const targetNumber = parseInt(e.key);
+                    this.skipToNumber(targetNumber);
                 }
             }
         });
