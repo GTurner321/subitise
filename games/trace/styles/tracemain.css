@@ -1,0 +1,395 @@
+/* Number Tracing Game Styles */
+
+/* Game area specific styling */
+.game-area {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 80px); /* Account for back button space */
+    padding: 20px;
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+}
+
+/* Rainbow container - positioned at bottom */
+.rainbow-container {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 40%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Main tracing container */
+.trace-container {
+    position: relative;
+    width: 90%;
+    max-width: 500px;
+    height: 60vh;
+    max-height: 500px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    overflow: hidden;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* SVG styling */
+.trace-svg {
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Number word display */
+.number-word-container {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
+}
+
+.number-word {
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+    padding: 15px 30px;
+    border-radius: 25px;
+    font-size: 2rem;
+    font-weight: bold;
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    text-align: center;
+    min-width: 120px;
+}
+
+.number-word.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* SVG element styles */
+.trace-slider {
+    filter: drop-shadow(3px 3px 6px rgba(0,0,0,0.3));
+    cursor: grab;
+    transition: all 0.1s ease;
+}
+
+.trace-slider:active {
+    cursor: grabbing;
+    filter: drop-shadow(4px 4px 8px rgba(0,0,0,0.4));
+}
+
+.direction-arrow {
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.start-point {
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+    animation: startPointPulse 2s ease-in-out infinite;
+}
+
+@keyframes startPointPulse {
+    0%, 100% {
+        opacity: 1;
+        filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+    }
+    50% {
+        opacity: 0.7;
+        filter: drop-shadow(4px 4px 8px rgba(255,107,107,0.5));
+    }
+}
+
+/* Completion effects */
+.completion-effect {
+    pointer-events: none;
+}
+
+.completion-star {
+    animation: starSparkle 1.5s ease-out forwards;
+    transform-origin: center;
+}
+
+@keyframes starSparkle {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8) rotate(360deg);
+    }
+}
+
+/* Path stroke animations */
+.tracing-path-0,
+.tracing-path-1,
+.tracing-path-2,
+.tracing-path-3,
+.tracing-path-4 {
+    transition: stroke-dashoffset 0.1s ease;
+}
+
+/* Number outline styling */
+.number-outline path {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.trace-container:hover .number-outline path {
+    opacity: 1;
+}
+
+/* Game completion modal styling */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    animation: modalAppear 0.5s ease;
+    pointer-events: auto;
+    z-index: 1001;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+@keyframes modalAppear {
+    from { 
+        opacity: 0; 
+        transform: scale(0.5) translateY(-50px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1) translateY(0); 
+    }
+}
+
+.modal h2 {
+    color: white;
+    font-size: 3rem;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    animation: titleBounce 1s ease infinite;
+}
+
+@keyframes titleBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+.modal p {
+    color: white;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+.play-again-btn {
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1002;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 auto;
+}
+
+.play-again-btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.5);
+}
+
+.play-again-btn:active {
+    transform: translateY(0);
+}
+
+.play-again-btn i {
+    font-size: 1.2rem;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Touch feedback and accessibility */
+.trace-container {
+    touch-action: none; /* Prevent scrolling/zooming on touch */
+}
+
+/* Focus states for accessibility */
+.play-again-btn:focus {
+    outline: 3px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+}
+
+.back-button:focus {
+    outline: 3px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .game-area {
+        padding: 10px;
+        min-height: calc(100vh - 60px);
+    }
+    
+    .trace-container {
+        width: 95%;
+        height: 50vh;
+        max-height: 400px;
+    }
+    
+    .number-word {
+        font-size: 1.8rem;
+        padding: 12px 24px;
+        bottom: 30px;
+    }
+    
+    .modal h2 {
+        font-size: 2.5rem;
+    }
+    
+    .play-again-btn {
+        font-size: 1.3rem;
+        padding: 12px 24px;
+    }
+    
+    /* Adjust slider and arrow sizes for mobile */
+    .trace-slider {
+        r: 25; /* Larger touch target on mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .trace-container {
+        width: 98%;
+        height: 45vh;
+        max-height: 350px;
+        border-radius: 15px;
+    }
+    
+    .number-word {
+        font-size: 1.5rem;
+        padding: 10px 20px;
+        bottom: 20px;
+    }
+    
+    .modal-content {
+        padding: 30px 20px;
+        margin: 0 10px;
+    }
+    
+    .modal h2 {
+        font-size: 2rem;
+    }
+    
+    .play-again-btn {
+        font-size: 1.2rem;
+        padding: 10px 20px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .trace-container {
+        border: 3px solid #000;
+    }
+    
+    .number-word {
+        border: 2px solid #000;
+    }
+    
+    .trace-slider {
+        stroke-width: 4;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .number-word {
+        transition: opacity 0.3s ease;
+        transform: none;
+    }
+    
+    .number-word.visible {
+        transform: none;
+    }
+    
+    .completion-star {
+        animation: none;
+        opacity: 1;
+    }
+    
+    .modal-content {
+        animation: none;
+    }
+    
+    .start-point {
+        animation: none;
+    }
+    
+    .modal h2 {
+        animation: none;
+    }
+}
+
+/* Print styles (hide interactive elements) */
+@media print {
+    .back-button,
+    .modal,
+    .rainbow-container {
+        display: none;
+    }
+    
+    .trace-container {
+        box-shadow: none;
+        border: 2px solid #000;
+    }
+}
