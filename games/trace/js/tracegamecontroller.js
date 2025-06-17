@@ -134,9 +134,9 @@ class TraceGameController {
         this.gameComplete = false;
         this.isProcessingCompletion = false;
         
-        // Reset components
+        // Reset components - important to reset rainbow and bear properly
         this.rainbow.reset();
-        this.bear.reset();
+        this.bear.reset(); // This stops any ongoing bear celebration
         this.renderer.reset();
         this.pathManager.reset();
         
@@ -215,19 +215,22 @@ class TraceGameController {
         // Clean up path manager
         this.pathManager.cleanup();
         
-        // Add rainbow piece
+        // Add rainbow piece - this is the key reward system
         const pieces = this.rainbow.addPiece();
         console.log(`Rainbow pieces: ${pieces}/${CONFIG.RAINBOW_PIECES}`);
         
         // Show number word and speak it
         this.showNumberWord();
         
-        // Check if game is complete
+        // Update game progress
         this.numbersCompleted++;
-        if (this.numbersCompleted >= CONFIG.NUMBERS_TO_COMPLETE) {
+        
+        // Check if rainbow is complete (game finished)
+        if (this.rainbow.isComplete()) {
+            console.log('Rainbow completed! Starting end game sequence...');
             setTimeout(() => {
                 this.completeGame();
-            }, 3000);
+            }, 3000); // Wait for rainbow completion animation
             return;
         }
         
@@ -273,17 +276,18 @@ class TraceGameController {
         if (this.gameComplete) return;
         
         this.gameComplete = true;
-        console.log('Game completed! All numbers traced.');
+        console.log('Game completed! All numbers traced and rainbow complete.');
         
         // Clean up current tracing
         this.pathManager.cleanup();
         
-        // Show completion modal
+        // The rainbow should already be in celebration mode from the final addPiece() call
+        // Now show the completion modal
         if (this.modal) {
             this.modal.classList.remove('hidden');
         }
         
-        // Start bear celebration
+        // Start bear celebration when modal opens - this matches your addition game pattern
         this.bear.startCelebration();
         
         // Speak completion message
