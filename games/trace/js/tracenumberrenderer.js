@@ -9,13 +9,18 @@ class TraceNumberRenderer {
     }
 
     initialize(containerId) {
+        console.log('Initializing renderer with container:', containerId);
+        
         this.container = document.getElementById(containerId);
         if (!this.container) {
             console.error('Container not found:', containerId);
             return false;
         }
         
+        console.log('Container found:', this.container);
         this.createSVG();
+        
+        console.log('SVG created:', this.svg);
         return true;
     }
 
@@ -30,6 +35,8 @@ class TraceNumberRenderer {
         this.svg.setAttribute('height', '100%');
         this.svg.setAttribute('class', 'trace-svg');
         
+        console.log('Created SVG element:', this.svg);
+        
         // Add background for debug purposes
         if (CONFIG.DEBUG_MODE) {
             const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -37,9 +44,11 @@ class TraceNumberRenderer {
             background.setAttribute('height', CONFIG.SVG_HEIGHT);
             background.setAttribute('fill', 'rgba(0,0,255,0.1)');
             this.svg.appendChild(background);
+            console.log('Added debug background');
         }
         
         this.container.appendChild(this.svg);
+        console.log('SVG added to container');
     }
 
     renderNumber(number) {
@@ -53,23 +62,29 @@ class TraceNumberRenderer {
         this.clearSVG();
         
         const numberConfig = CONFIG.STROKE_DEFINITIONS[number];
-        if (!numberConfig) {
+        if (!numberConfig || !numberConfig.strokes) {
             console.error('No stroke definition found for number:', number);
             return false;
         }
         
         console.log(`Rendering number ${number} with ${numberConfig.strokes.length} stroke(s)`);
         
-        // Create the number outline (light gray, complete shape)
-        this.createNumberOutline(number);
-        
-        // Create tracing paths for each stroke
-        this.createTracingPaths(numberConfig.strokes);
-        
-        // Show start point for first stroke
-        this.showStartPoint(0);
-        
-        return true;
+        try {
+            // Create the number outline (solid border, empty inside)
+            this.createNumberOutline(number);
+            
+            // Create tracing paths for each stroke
+            this.createTracingPaths(numberConfig.strokes);
+            
+            // Show start point for first stroke
+            this.showStartPoint(0);
+            
+            console.log(`Successfully rendered number ${number}`);
+            return true;
+        } catch (error) {
+            console.error('Error rendering number:', number, error);
+            return false;
+        }
     }
 
     createNumberOutline(number) {
