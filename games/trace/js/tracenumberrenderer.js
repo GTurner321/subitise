@@ -81,10 +81,11 @@ class TraceNumberRenderer {
         
         // Combine all strokes into one path for the outline
         numberConfig.strokes.forEach((stroke, index) => {
+            // Create solid outline path
             const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             outlinePath.setAttribute('d', stroke.path);
-            outlinePath.setAttribute('stroke', '#E0E0E0');
-            outlinePath.setAttribute('stroke-width', CONFIG.PATH_WIDTH);
+            outlinePath.setAttribute('stroke', '#333333'); // Dark solid outline
+            outlinePath.setAttribute('stroke-width', 3); // Thicker for visibility
             outlinePath.setAttribute('fill', 'none');
             outlinePath.setAttribute('stroke-linecap', 'round');
             outlinePath.setAttribute('stroke-linejoin', 'round');
@@ -94,6 +95,27 @@ class TraceNumberRenderer {
         });
         
         this.svg.appendChild(outlineGroup);
+        
+        // Add debug rectangle if in debug mode
+        if (CONFIG.DEBUG_MODE) {
+            this.addDebugRectangle();
+        }
+    }
+
+    addDebugRectangle() {
+        // Show the number rectangle bounds for debugging
+        const debugRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        debugRect.setAttribute('x', CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH/2);
+        debugRect.setAttribute('y', CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT/2);
+        debugRect.setAttribute('width', CONFIG.NUMBER_RECT_WIDTH);
+        debugRect.setAttribute('height', CONFIG.NUMBER_RECT_HEIGHT);
+        debugRect.setAttribute('stroke', 'red');
+        debugRect.setAttribute('stroke-width', 1);
+        debugRect.setAttribute('fill', 'none');
+        debugRect.setAttribute('stroke-dasharray', '5,5');
+        debugRect.setAttribute('class', 'debug-rectangle');
+        
+        this.svg.appendChild(debugRect);
     }
 
     createTracingPaths(strokes) {
