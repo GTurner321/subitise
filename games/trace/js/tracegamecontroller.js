@@ -44,17 +44,14 @@ class TraceGameController {
             console.error('Failed to initialize renderer');
             return;
         }
-        console.log('Renderer initialized successfully');
         
         // Create path manager
         this.pathManager = new TracePathManager(this.renderer.svg, this.renderer);
-        console.log('Path manager initialized successfully');
         
         // Set up event listeners
         this.setupEventListeners();
         
         // Start the first number
-        console.log('Starting first number...');
         this.startNewNumber();
         
         console.log('Game initialized successfully');
@@ -174,28 +171,14 @@ class TraceGameController {
         // Clear any existing number word
         this.updateNumberWordDisplay('');
         
-        // Ensure renderer is ready
-        if (!this.renderer) {
-            console.error('Renderer not initialized');
-            return;
-        }
-        
         // Render the number
         if (!this.renderer.renderNumber(this.currentNumber)) {
             console.error('Failed to render number:', this.currentNumber);
             return;
         }
         
-        // Ensure path manager is ready
-        if (!this.pathManager) {
-            console.error('Path manager not initialized');
-            return;
-        }
-        
-        // Start path manager for first stroke with a small delay
-        setTimeout(() => {
-            this.pathManager.startNewStroke(0);
-        }, 100);
+        // Start path manager for first stroke
+        this.pathManager.startNewStroke(0);
         
         // Announce the number (optional)
         if (this.audioEnabled) {
