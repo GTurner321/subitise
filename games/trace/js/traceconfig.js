@@ -18,7 +18,11 @@ const CONFIG = {
     // SVG dimensions and scaling
     SVG_WIDTH: 400,
     SVG_HEIGHT: 400,
-    NUMBER_SCALE: 0.8, // How much of SVG the number should fill
+    // Number sizing - rectangle is half height of container, width is 60% of height
+    NUMBER_RECT_HEIGHT: 200, // Half of SVG_HEIGHT
+    NUMBER_RECT_WIDTH: 120,  // 60% of NUMBER_RECT_HEIGHT
+    NUMBER_CENTER_X: 200,    // Center of SVG
+    NUMBER_CENTER_Y: 200,    // Center of SVG
     
     // Animation and timing
     COMPLETION_DELAY: 2000, // Delay before next number (ms)
@@ -44,14 +48,15 @@ const CONFIG = {
     },
     
     // Multi-stroke number definitions
-    // Each number can have multiple strokes that must be completed in order
+    // Each number fits in a rectangle: width=120px, height=200px, centered at (200,200)
+    // Rectangle bounds: left=140, right=260, top=100, bottom=300
     STROKE_DEFINITIONS: {
         0: {
             strokes: [
                 {
-                    id: 'main_oval',
-                    startPoint: { x: 200, y: 80 }, // Top center
-                    path: 'M 200 80 C 280 80 320 140 320 200 C 320 260 280 320 200 320 C 120 320 80 260 80 200 C 80 140 120 80 200 80 Z',
+                    id: 'oval',
+                    startPoint: { x: 200, y: 100 }, // Top center
+                    path: 'M 200 100 C 250 100 260 125 260 200 C 260 275 250 300 200 300 C 150 300 140 275 140 200 C 140 125 150 100 200 100 Z',
                     description: 'Draw the oval shape starting from the top'
                 }
             ]
@@ -60,10 +65,10 @@ const CONFIG = {
         1: {
             strokes: [
                 {
-                    id: 'main_line',
-                    startPoint: { x: 180, y: 80 }, // Top left, then down to bottom
-                    path: 'M 180 80 L 200 60 L 200 320',
-                    description: 'Draw from top left, up slightly, then straight down'
+                    id: 'vertical_line',
+                    startPoint: { x: 200, y: 100 }, // Top center
+                    path: 'M 200 100 L 200 300',
+                    description: 'Draw straight down from top to bottom'
                 }
             ]
         },
@@ -71,10 +76,10 @@ const CONFIG = {
         2: {
             strokes: [
                 {
-                    id: 'curve_and_line',
-                    startPoint: { x: 100, y: 140 }, // Start at left side of top curve
-                    path: 'M 100 140 C 100 100 140 80 200 80 C 260 80 300 100 300 140 C 300 180 260 200 220 220 L 120 300 L 300 300',
-                    description: 'Draw the curved top, then diagonal line, then bottom line'
+                    id: 'complete_two',
+                    startPoint: { x: 145, y: 130 }, // Start at left side of top curve
+                    path: 'M 145 130 C 145 110 165 100 200 100 C 235 100 255 110 255 130 C 255 150 235 160 215 170 L 145 280 L 255 280',
+                    description: 'Draw the complete 2 in one movement'
                 }
             ]
         },
@@ -82,16 +87,10 @@ const CONFIG = {
         3: {
             strokes: [
                 {
-                    id: 'top_curve',
-                    startPoint: { x: 120, y: 120 }, // Top curve
-                    path: 'M 120 120 C 120 90 150 80 200 80 C 250 80 280 90 280 120 C 280 150 250 160 220 160',
-                    description: 'Draw the top curved section'
-                },
-                {
-                    id: 'bottom_curve',
-                    startPoint: { x: 220, y: 160 }, // Continue from middle
-                    path: 'M 220 160 C 250 160 280 170 280 200 C 280 230 250 240 200 240 C 150 240 120 230 120 200',
-                    description: 'Draw the bottom curved section'
+                    id: 'complete_three',
+                    startPoint: { x: 145, y: 120 }, // Top left
+                    path: 'M 145 120 C 145 105 165 100 200 100 C 235 100 255 105 255 120 C 255 135 235 140 215 150 C 235 160 255 165 255 180 C 255 195 235 200 200 200 C 165 200 145 195 145 180',
+                    description: 'Draw the complete 3 in one movement'
                 }
             ]
         },
@@ -99,22 +98,16 @@ const CONFIG = {
         4: {
             strokes: [
                 {
-                    id: 'left_vertical',
-                    startPoint: { x: 160, y: 80 }, // Left vertical line
-                    path: 'M 160 80 L 160 200',
-                    description: 'Draw the left vertical line downward'
-                },
-                {
-                    id: 'horizontal',
-                    startPoint: { x: 160, y: 200 }, // Horizontal line
-                    path: 'M 160 200 L 280 200',
-                    description: 'Draw the horizontal line to the right'
+                    id: 'left_and_horizontal',
+                    startPoint: { x: 170, y: 100 }, // Top left, angled inward
+                    path: 'M 170 100 L 170 220 L 250 220',
+                    description: 'Draw down then across'
                 },
                 {
                     id: 'right_vertical',
-                    startPoint: { x: 240, y: 80 }, // Right vertical line
-                    path: 'M 240 80 L 240 320',
-                    description: 'Draw the right vertical line all the way down'
+                    startPoint: { x: 230, y: 100 }, // Right vertical line
+                    path: 'M 230 100 L 230 300',
+                    description: 'Draw the right vertical line'
                 }
             ]
         },
@@ -122,16 +115,10 @@ const CONFIG = {
         5: {
             strokes: [
                 {
-                    id: 'top_horizontal',
-                    startPoint: { x: 120, y: 80 }, // Top line left to right
-                    path: 'M 120 80 L 280 80',
-                    description: 'Draw the top horizontal line'
-                },
-                {
-                    id: 'left_vertical',
-                    startPoint: { x: 120, y: 80 }, // Down and curve
-                    path: 'M 120 80 L 120 180 C 120 180 140 180 180 180 C 220 180 280 180 280 220 C 280 260 240 300 180 300 C 140 300 120 280 120 260',
-                    description: 'Draw down then curve around for the bottom'
+                    id: 'complete_five',
+                    startPoint: { x: 145, y: 100 }, // Top left
+                    path: 'M 145 100 L 245 100 L 245 120 L 155 120 L 155 180 C 155 180 165 180 200 180 C 235 180 255 185 255 210 C 255 235 235 240 200 240 C 165 240 145 235 145 210',
+                    description: 'Draw the complete 5 in one movement'
                 }
             ]
         },
@@ -139,10 +126,10 @@ const CONFIG = {
         6: {
             strokes: [
                 {
-                    id: 'main_curve',
-                    startPoint: { x: 280, y: 140 }, // Start from right side
-                    path: 'M 280 140 C 280 100 240 80 200 80 C 160 80 120 100 120 140 L 120 260 C 120 300 160 320 200 320 C 240 320 280 300 280 260 C 280 220 240 200 200 200 C 160 200 120 220 120 240',
-                    description: 'Draw the complete curved shape of 6'
+                    id: 'complete_six',
+                    startPoint: { x: 240, y: 130 }, // Start from right side
+                    path: 'M 240 130 C 240 110 220 100 200 100 C 180 100 160 110 160 130 L 160 270 C 160 290 180 300 200 300 C 220 300 240 290 240 270 C 240 250 220 240 200 240 C 180 240 160 250 160 260',
+                    description: 'Draw the complete 6 in one continuous movement'
                 }
             ]
         },
@@ -150,10 +137,10 @@ const CONFIG = {
         7: {
             strokes: [
                 {
-                    id: 'top_and_diagonal',
-                    startPoint: { x: 120, y: 80 }, // Top line then diagonal
-                    path: 'M 120 80 L 280 80 L 160 320',
-                    description: 'Draw the top line then diagonal down'
+                    id: 'complete_seven',
+                    startPoint: { x: 145, y: 100 }, // Top left
+                    path: 'M 145 100 L 255 100 L 180 300',
+                    description: 'Draw across then diagonal down'
                 }
             ]
         },
@@ -162,9 +149,9 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'figure_eight',
-                    startPoint: { x: 200, y: 80 }, // Start at top center
-                    path: 'M 200 80 C 160 80 120 100 120 140 C 120 180 160 200 200 200 C 240 200 280 180 280 140 C 280 100 240 80 200 80 M 200 200 C 160 200 120 220 120 260 C 120 300 160 320 200 320 C 240 320 280 300 280 260 C 280 220 240 200 200 200',
-                    description: 'Draw the figure-eight shape'
+                    startPoint: { x: 230, y: 130 }, // Start at right of top circle
+                    path: 'M 230 130 C 230 115 215 105 200 105 C 185 105 170 115 170 130 C 170 145 185 155 200 155 C 215 155 230 165 230 180 C 230 195 215 205 200 205 C 185 205 170 195 170 180 C 170 165 185 155 200 155 C 215 155 230 145 230 130',
+                    description: 'Draw figure-8 starting from top right, going anticlockwise'
                 }
             ]
         },
@@ -172,10 +159,10 @@ const CONFIG = {
         9: {
             strokes: [
                 {
-                    id: 'main_curve',
-                    startPoint: { x: 120, y: 160 }, // Start from left side
-                    path: 'M 120 160 C 120 120 160 100 200 100 C 240 100 280 120 280 160 L 280 260 C 280 300 240 320 200 320 C 160 320 120 300 120 260 C 120 220 160 200 200 200 C 240 200 280 220 280 240',
-                    description: 'Draw the complete curved shape of 9'
+                    id: 'complete_nine',
+                    startPoint: { x: 230, y: 140 }, // Start at right of top circle
+                    path: 'M 230 140 C 230 120 215 110 200 110 C 185 110 170 120 170 140 C 170 160 185 170 200 170 C 215 170 230 160 230 140 L 230 270 C 230 285 220 295 210 300',
+                    description: 'Draw circle at top then stem down'
                 }
             ]
         }
