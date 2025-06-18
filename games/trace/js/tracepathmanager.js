@@ -252,8 +252,8 @@ class TracePathManager {
         let closestDistance = Infinity;
         let closestProgress = null;
         
-        // Sample points along the path to find closest match
-        const samples = Math.max(50, Math.floor(this.pathLengthCache / 5));
+        // More samples for better accuracy with stricter tolerance
+        const samples = Math.max(100, Math.floor(this.pathLengthCache / 3));
         
         for (let i = 0; i <= samples; i++) {
             const progress = i / samples;
@@ -271,10 +271,10 @@ class TracePathManager {
             }
         }
         
-        // Check if closest point is within tolerance
+        // Much stricter tolerance - must stay very close to the path
         if (closestDistance <= CONFIG.PATH_TOLERANCE) {
-            // Ensure progress only moves forward
-            if (closestProgress >= this.currentProgress - 0.05) { // Allow small backward movement
+            // Ensure progress only moves forward (prevent going backward)
+            if (closestProgress >= this.currentProgress - 0.02) { // Very small backward allowance
                 return closestProgress;
             }
         }
