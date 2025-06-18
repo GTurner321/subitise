@@ -168,6 +168,11 @@ class TracePathManager {
                 slider.remove();
             }
             
+            // Hide the arrow once tracing starts
+            if (this.arrow) {
+                this.arrow.style.opacity = '0';
+            }
+            
             console.log('Started tracing at:', point);
         }
     }
