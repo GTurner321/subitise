@@ -81,12 +81,12 @@ class TraceNumberRenderer {
         
         // Combine all strokes into one path for the outline
         numberConfig.strokes.forEach((stroke, index) => {
-            // Create solid outline path
+            // Create solid outline path - empty inside, ready to be filled
             const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             outlinePath.setAttribute('d', stroke.path);
-            outlinePath.setAttribute('stroke', '#333333'); // Dark solid outline
-            outlinePath.setAttribute('stroke-width', 3); // Thicker for visibility
-            outlinePath.setAttribute('fill', 'none');
+            outlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR); // Dark solid outline
+            outlinePath.setAttribute('stroke-width', CONFIG.OUTLINE_WIDTH);
+            outlinePath.setAttribute('fill', 'none'); // Empty inside - ready to be filled by tracing
             outlinePath.setAttribute('stroke-linecap', 'round');
             outlinePath.setAttribute('stroke-linejoin', 'round');
             outlinePath.setAttribute('class', `outline-stroke-${index}`);
@@ -122,11 +122,11 @@ class TraceNumberRenderer {
         this.tracingPaths = [];
         
         strokes.forEach((stroke, index) => {
-            // Create invisible path for collision detection
+            // Create invisible path for collision detection with stricter tolerance
             const invisiblePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             invisiblePath.setAttribute('d', stroke.path);
             invisiblePath.setAttribute('stroke', 'transparent');
-            invisiblePath.setAttribute('stroke-width', CONFIG.PATH_TOLERANCE);
+            invisiblePath.setAttribute('stroke-width', CONFIG.PATH_TOLERANCE * 2); // Collision area
             invisiblePath.setAttribute('fill', 'none');
             invisiblePath.setAttribute('class', `invisible-path-${index}`);
             invisiblePath.setAttribute('pointer-events', 'stroke');
