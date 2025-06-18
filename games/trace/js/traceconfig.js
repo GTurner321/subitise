@@ -1,4 +1,13 @@
-// Number tracing game configuration settings
+8: {
+            strokes: [
+                {
+                    id: 'figure_eight_traditional',
+                    startPoint: { x: 250, y: 130 }, // Start at right of top circle
+                    path: 'M 250 130 C 250 110 230 100 200 100 C 170 100 150 110 150 130 C 150 150 170 160 200 160 C 230 160 250 170 250 190 C 250 210 230 220 200 220 C 170 220 150 210 150 190 C 150 210 170 220 200 220 C 230 220 250 240 250 270 C 250 290 230 300 200 300 C 170 300 150 290 150 270 C 150 240 170 220 200 220 C 230 220 250 210 250 190 C 250 170 230 160 200 160 C 170 160 150 150 150 130 C 150 110 170 100 200 100 C 230 100 250 110 250 130',
+                    description: 'Traditional figure-8 that returns to start'
+                }
+            ]
+        },// Number tracing game configuration settings
 const CONFIG = {
     // Game mechanics
     NUMBERS_TO_COMPLETE: 10, // Complete numbers 0-9
@@ -6,12 +15,14 @@ const CONFIG = {
     
     // Tracing mechanics
     SLIDER_SIZE: 40, // Circle diameter in pixels
-    PATH_TOLERANCE: 35, // How far finger can stray from path (pixels)
+    PATH_TOLERANCE: 15, // Much stricter tolerance - how far finger can stray from path (pixels)
     FILL_COLOR: '#90EE90', // Light green fill color
-    PATH_COLOR: '#E0E0E0', // Light gray for unfilled path
+    PATH_COLOR: '#E0E0E0', // Light gray for unfilled path (not used now - outline only)
+    OUTLINE_COLOR: '#333333', // Dark outline color
     SLIDER_COLOR: '#FF6B6B', // Red slider circle
     ARROW_COLOR: '#4ECDC4', // Teal direction arrow
-    PATH_WIDTH: 12, // Width of the tracing path
+    PATH_WIDTH: 8, // Width of the tracing path
+    OUTLINE_WIDTH: 3, // Width of the solid outline
     ARROW_OFFSET: 50, // Distance arrow appears ahead of slider
     ARROW_SIZE: 20, // Size of direction arrow
     
@@ -77,8 +88,8 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'complete_two',
-                    startPoint: { x: 145, y: 130 }, // Start at left side of top curve
-                    path: 'M 145 130 C 145 110 165 100 200 100 C 235 100 255 110 255 130 C 255 150 235 160 215 170 L 145 280 L 255 280',
+                    startPoint: { x: 140, y: 130 }, // Start at left side of top curve
+                    path: 'M 140 130 C 140 110 165 100 200 100 C 235 100 260 110 260 130 C 260 150 235 160 215 170 L 140 280 L 260 280',
                     description: 'Draw the complete 2 in one movement'
                 }
             ]
@@ -88,9 +99,9 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'complete_three',
-                    startPoint: { x: 145, y: 120 }, // Top left
-                    path: 'M 145 120 C 145 105 165 100 200 100 C 235 100 255 105 255 120 C 255 135 235 140 215 150 C 235 160 255 165 255 180 C 255 195 235 200 200 200 C 165 200 145 195 145 180',
-                    description: 'Draw the complete 3 in one movement'
+                    startPoint: { x: 140, y: 100 }, // Top left
+                    path: 'M 140 100 C 140 100 165 100 200 100 C 235 100 260 105 260 130 C 260 155 235 160 215 180 C 235 200 260 205 260 230 C 260 255 235 260 200 260 C 165 260 140 255 140 230 M 215 180 C 235 200 260 270 260 285 C 260 295 235 300 200 300 C 165 300 140 295 140 285',
+                    description: 'Draw the complete 3 extending to full height'
                 }
             ]
         },
@@ -99,15 +110,15 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'left_and_horizontal',
-                    startPoint: { x: 170, y: 100 }, // Top left, angled inward
-                    path: 'M 170 100 L 170 220 L 250 220',
-                    description: 'Draw down then across'
+                    startPoint: { x: 140, y: 100 }, // Top left, slanted inward
+                    path: 'M 140 100 L 190 250 L 260 250',
+                    description: 'Draw slanted inward down then across to full width'
                 },
                 {
                     id: 'right_vertical',
-                    startPoint: { x: 230, y: 100 }, // Right vertical line
-                    path: 'M 230 100 L 230 300',
-                    description: 'Draw the right vertical line'
+                    startPoint: { x: 210, y: 100 }, // Right vertical line
+                    path: 'M 210 100 L 210 300',
+                    description: 'Draw the right vertical line to full height'
                 }
             ]
         },
@@ -115,10 +126,16 @@ const CONFIG = {
         5: {
             strokes: [
                 {
-                    id: 'complete_five',
-                    startPoint: { x: 145, y: 100 }, // Top left
-                    path: 'M 145 100 L 245 100 L 245 120 L 155 120 L 155 180 C 155 180 165 180 200 180 C 235 180 255 185 255 210 C 255 235 235 240 200 240 C 165 240 145 235 145 210',
-                    description: 'Draw the complete 5 in one movement'
+                    id: 'top_line',
+                    startPoint: { x: 140, y: 100 }, // Top line only
+                    path: 'M 140 100 L 260 100',
+                    description: 'Draw the top horizontal line to full width'
+                },
+                {
+                    id: 'vertical_and_curve',
+                    startPoint: { x: 140, y: 100 }, // Start again at top left
+                    path: 'M 140 100 L 140 200 C 140 200 165 200 200 200 C 235 200 260 210 260 240 C 260 270 235 280 200 280 C 165 280 140 270 140 240',
+                    description: 'Draw down then curve for the bottom'
                 }
             ]
         },
@@ -127,9 +144,9 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'complete_six',
-                    startPoint: { x: 240, y: 130 }, // Start from right side
-                    path: 'M 240 130 C 240 110 220 100 200 100 C 180 100 160 110 160 130 L 160 270 C 160 290 180 300 200 300 C 220 300 240 290 240 270 C 240 250 220 240 200 240 C 180 240 160 250 160 260',
-                    description: 'Draw the complete 6 in one continuous movement'
+                    startPoint: { x: 250, y: 140 }, // Start from right side, avoid bottom overlap
+                    path: 'M 250 140 C 250 115 225 100 200 100 C 175 100 150 115 150 140 L 150 260 C 150 285 175 300 200 300 C 225 300 250 285 250 260 C 250 235 225 220 200 220 C 175 220 150 235 150 250',
+                    description: 'Draw the complete 6 avoiding the overlap issue'
                 }
             ]
         },
@@ -138,9 +155,9 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'complete_seven',
-                    startPoint: { x: 145, y: 100 }, // Top left
-                    path: 'M 145 100 L 255 100 L 180 300',
-                    description: 'Draw across then diagonal down'
+                    startPoint: { x: 140, y: 100 }, // Top left
+                    path: 'M 140 100 L 260 100 L 180 300',
+                    description: 'Draw across full width then diagonal down to full height'
                 }
             ]
         },
@@ -149,9 +166,9 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'figure_eight',
-                    startPoint: { x: 230, y: 130 }, // Start at right of top circle
-                    path: 'M 230 130 C 230 115 215 105 200 105 C 185 105 170 115 170 130 C 170 145 185 155 200 155 C 215 155 230 165 230 180 C 230 195 215 205 200 205 C 185 205 170 195 170 180 C 170 165 185 155 200 155 C 215 155 230 145 230 130',
-                    description: 'Draw figure-8 starting from top right, going anticlockwise'
+                    startPoint: { x: 250, y: 130 }, // Start at right of top circle
+                    path: 'M 250 130 C 250 110 225 100 200 100 C 175 100 150 110 150 130 C 150 150 175 160 200 160 C 225 160 250 170 250 190 C 250 210 225 220 200 220 C 175 220 150 210 150 190 C 150 170 175 160 200 160 C 225 160 250 280 250 290 C 250 295 225 300 200 300 C 175 300 150 295 150 290 C 150 280 175 270 200 270 C 225 270 250 280 250 290 C 250 270 225 260 200 260 C 175 260 150 270 150 290 C 150 270 175 160 200 160 C 225 160 250 150 250 130',
+                    description: 'Draw figure-8 to full dimensions'
                 }
             ]
         },
@@ -160,9 +177,9 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'complete_nine',
-                    startPoint: { x: 230, y: 140 }, // Start at right of top circle
-                    path: 'M 230 140 C 230 120 215 110 200 110 C 185 110 170 120 170 140 C 170 160 185 170 200 170 C 215 170 230 160 230 140 L 230 270 C 230 285 220 295 210 300',
-                    description: 'Draw circle at top then stem down'
+                    startPoint: { x: 250, y: 140 }, // Start at right of top circle
+                    path: 'M 250 140 C 250 115 225 100 200 100 C 175 100 150 115 150 140 C 150 165 175 180 200 180 C 225 180 250 165 250 140 L 250 300',
+                    description: 'Draw circle at top full width then straight stem to full height'
                 }
             ]
         }
