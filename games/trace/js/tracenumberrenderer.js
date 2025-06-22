@@ -146,11 +146,13 @@ class TraceNumberRenderer {
                 pathData = stroke.path;
             }
             
-            // Create invisible path for collision detection with stricter tolerance
+            // Create invisible path for collision detection - much thicker for coordinate precision
             const invisiblePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             invisiblePath.setAttribute('d', pathData);
             invisiblePath.setAttribute('stroke', 'transparent');
-            invisiblePath.setAttribute('stroke-width', CONFIG.PATH_TOLERANCE * 2);
+            // For coordinate-based paths, use much thicker collision detection
+            const collisionWidth = stroke.type === 'coordinates' ? CONFIG.PATH_TOLERANCE * 4 : CONFIG.PATH_TOLERANCE * 2;
+            invisiblePath.setAttribute('stroke-width', collisionWidth);
             invisiblePath.setAttribute('fill', 'none');
             invisiblePath.setAttribute('class', `invisible-path-${index}`);
             invisiblePath.setAttribute('pointer-events', 'stroke');
@@ -190,9 +192,10 @@ class TraceNumberRenderer {
         if (!coordinates || coordinates.length === 0) return '';
         
         // Scale coordinates to fit in the number rectangle (120x200 centered at 200,200)
-        // Original coordinates appear to be in 0-100 range, scale to fit our rectangle
+        // Your coordinates: 0-100 range, with (0,0) at bottom-left
+        // SVG coordinates: (0,0) at top-left, so we need to flip Y
         const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;  // 120px / 100 = 1.2
-        const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200; // 200px / 200 = 1.0 (coordinates go 0-200)
+        const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200; // 200px / 200 = 1.0
         const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2; // 140
         const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2; // 100
         
@@ -200,7 +203,8 @@ class TraceNumberRenderer {
         
         coordinates.forEach((coord, index) => {
             const scaledX = offsetX + (coord.x * scaleX);
-            const scaledY = offsetY + (coord.y * scaleY);
+            // Flip Y coordinate: SVG Y increases downward, your coords Y increases upward
+            const scaledY = offsetY + ((200 - coord.y) * scaleY);
             
             if (index === 0) {
                 pathData += `M ${scaledX} ${scaledY}`;
