@@ -207,7 +207,12 @@ class TraceNumberRenderer {
     }
 
     coordinatesToPath(coordinates) {
-        if (!coordinates || coordinates.length === 0) return '';
+        if (!coordinates || coordinates.length === 0) {
+            console.error('No coordinates provided to coordinatesToPath');
+            return '';
+        }
+        
+        console.log('Converting coordinates to path:', coordinates);
         
         // Scale coordinates to fit in the number rectangle (120x200 centered at 200,200)
         // Your coordinates: 0-100 range, with (0,0) at bottom-left
@@ -219,19 +224,37 @@ class TraceNumberRenderer {
         
         let pathData = '';
         
-        coordinates.forEach((coord, index) => {
-            const scaledX = offsetX + (coord.x * scaleX);
-            // Flip Y coordinate: SVG Y increases downward, your coords Y increases upward
-            const scaledY = offsetY + ((200 - coord.y) * scaleY);
+        try {
+            coordinates.forEach((coord, index) => {
+                if (!coord || typeof coord.x === 'undefined' || typeof coord.y === 'undefined') {
+                    console.error(`Invalid coordinate at index ${index}:`, coord);
+                    return;
+                }
+                
+                const scaledX = offsetX + (coord.x * scaleX);
+                // Flip Y coordinate: SVG Y increases downward, your coords Y increases upward
+                const scaledY = offsetY + ((200 - coord.y) * scaleY);
+                
+                if (index === 0) {
+                    pathData += `M ${scaledX} ${scaledY}`;
+                } else {
+                    pathData += ` L ${scaledX} ${scaledY}`;
+                }
+            });
             
-            if (index === 0) {
-                pathData += `M ${scaledX} ${scaledY}`;
-            } else {
-                pathData += ` L ${scaledX} ${scaledY}`;
+            console.log('Generated path data:', pathData);
+            
+            if (pathData.length === 0) {
+                console.error('Generated empty path data');
+                return 'M 200 200'; // Fallback to prevent errors
             }
-        });
-        
-        return pathData;
+            
+            return pathData;
+            
+        } catch (error) {
+            console.error('Error in coordinatesToPath:', error);
+            return 'M 200 200'; // Fallback path
+        }
     }
 
     getPathLength(pathElement) {
