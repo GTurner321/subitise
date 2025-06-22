@@ -118,17 +118,26 @@ const CONFIG = {
             }]
         },
         4: {
-            strokes: [{
-                id: 'angle',
-                startPoint: { x: 140, y: 100 },
-                path: 'M 140 100 L 190 250 L 260 250',
-                description: 'Draw angle'
-            }, {
-                id: 'vertical',
-                startPoint: { x: 210, y: 100 },
-                path: 'M 210 100 L 210 300',
-                description: 'Draw line'
-            }]
+            strokes: [
+                {
+                    id: 'angle_line',
+                    startPoint: { x: 176, y: 100 }, // Scaled start point for (30,200)
+                    coordinates: [
+                        { x: 30, y: 200 }, { x: 0, y: 75 }, { x: 100, y: 75 }
+                    ],
+                    description: 'Draw the angled line and horizontal line',
+                    type: 'coordinates'
+                },
+                {
+                    id: 'vertical_line',
+                    startPoint: { x: 212, y: 160 }, // Scaled start point for (60,40)
+                    coordinates: [
+                        { x: 60, y: 40 }, { x: 60, y: 0 }
+                    ],
+                    description: 'Draw the vertical line',
+                    type: 'coordinates'
+                }
+            ]
         },
         5: {
             strokes: [{
