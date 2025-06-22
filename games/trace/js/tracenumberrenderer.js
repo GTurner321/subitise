@@ -68,16 +68,34 @@ class TraceNumberRenderer {
         }
         
         console.log(`Rendering number ${number} with ${numberConfig.strokes.length} stroke(s)`);
+        console.log('Number config:', numberConfig);
         
         try {
-            // Create the number outline (solid border, empty inside)
+            // Create the number outline FIRST - this should be visible immediately
+            console.log('Creating outline...');
             this.createNumberOutline(number);
             
-            // Create tracing paths for each stroke
+            // Then create tracing paths
+            console.log('Creating tracing paths...');
             this.createTracingPaths(numberConfig.strokes);
             
             // Show start point for first stroke
+            console.log('Showing start point...');
             this.showStartPoint(0);
+            
+            // Debug: check if outline was actually added
+            const outlines = this.svg.querySelectorAll('.number-outline');
+            console.log(`Outlines in SVG: ${outlines.length}`);
+            outlines.forEach((outline, i) => {
+                console.log(`Outline ${i}:`, outline);
+                const paths = outline.querySelectorAll('path');
+                console.log(`  Paths in outline: ${paths.length}`);
+                paths.forEach((path, j) => {
+                    console.log(`    Path ${j} d attribute:`, path.getAttribute('d'));
+                    console.log(`    Path ${j} stroke:`, path.getAttribute('stroke'));
+                    console.log(`    Path ${j} visibility:`, getComputedStyle(path).visibility);
+                });
+            });
             
             console.log(`Successfully rendered number ${number}`);
             return true;
