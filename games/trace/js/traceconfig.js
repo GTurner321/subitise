@@ -140,17 +140,38 @@ const CONFIG = {
             ]
         },
         5: {
-            strokes: [{
-                id: 'top',
-                startPoint: { x: 140, y: 100 },
-                path: 'M 140 100 L 260 100',
-                description: 'Draw top'
-            }, {
-                id: 'curve',
-                startPoint: { x: 140, y: 100 },
-                path: 'M 140 100 L 140 200 C 140 200 165 200 200 200 C 235 200 260 210 260 240 C 260 270 235 280 200 280 C 165 280 140 270 140 240',
-                description: 'Draw curve'
-            }]
+            strokes: [
+                {
+                    id: 'top_horizontal',
+                    startPoint: { x: 140, y: 100 }, // Scaled start point for (0,200)
+                    coordinates: [
+                        { x: 0, y: 200 }, { x: 100, y: 200 }
+                    ],
+                    description: 'Draw the top horizontal line',
+                    type: 'coordinates'
+                },
+                {
+                    id: 'vertical_and_curve',
+                    startPoint: { x: 140, y: 100 }, // Scaled start point for (0,200)
+                    coordinates: [
+                        { x: 0, y: 200 }, { x: 0, y: 125 }, { x: 25, y: 125 }, { x: 30, y: 125 }, 
+                        { x: 35, y: 124 }, { x: 40, y: 124 }, { x: 45, y: 123 }, { x: 50, y: 121 }, 
+                        { x: 55, y: 120 }, { x: 60, y: 118 }, { x: 65, y: 115 }, { x: 70, y: 113 }, 
+                        { x: 75, y: 109 }, { x: 80, y: 105 }, { x: 85, y: 100 }, { x: 90, y: 94 }, 
+                        { x: 92, y: 91 }, { x: 94, y: 87 }, { x: 96, y: 83 }, { x: 98, y: 77 }, 
+                        { x: 99, y: 73 }, { x: 100, y: 63 }, { x: 99, y: 51 }, { x: 98, y: 47 }, 
+                        { x: 96, y: 41 }, { x: 94, y: 36 }, { x: 92, y: 32 }, { x: 90, y: 29 }, 
+                        { x: 85, y: 22 }, { x: 80, y: 17 }, { x: 75, y: 13 }, { x: 70, y: 9 }, 
+                        { x: 65, y: 6 }, { x: 60, y: 4 }, { x: 55, y: 3 }, { x: 50, y: 1 }, 
+                        { x: 45, y: 0 }, { x: 40, y: 0 }, { x: 35, y: 0 }, { x: 30, y: 0 }, 
+                        { x: 25, y: 1 }, { x: 20, y: 3 }, { x: 15, y: 4 }, { x: 10, y: 6 }, 
+                        { x: 8, y: 7 }, { x: 6, y: 9 }, { x: 4, y: 10 }, { x: 2, y: 11 }, 
+                        { x: 1, y: 12 }, { x: 0, y: 13 }
+                    ],
+                    description: 'Draw the vertical line and curved bottom section',
+                    type: 'coordinates'
+                }
+            ]
         },
         6: {
             strokes: [{
