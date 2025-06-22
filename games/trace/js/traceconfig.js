@@ -3,7 +3,7 @@ const CONFIG = {
     RAINBOW_PIECES: 10,
     
     SLIDER_SIZE: 40,
-    PATH_TOLERANCE: 8, // Much stricter tolerance for precise coordinate following
+    PATH_TOLERANCE: 50, // Large capture zone for easy dragging
     FILL_COLOR: '#90EE90',
     OUTLINE_COLOR: '#333333',
     SLIDER_COLOR: '#FF6B6B',
