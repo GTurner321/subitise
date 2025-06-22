@@ -244,7 +244,24 @@ class TraceNumberRenderer {
         if (!CONFIG.SHOW_START_POINTS) return;
         
         const stroke = this.tracingPaths[strokeIndex];
-        const startPoint = stroke.strokeData.startPoint;
+        let startPoint;
+        
+        // Handle coordinate-based start points
+        if (stroke.strokeData.type === 'coordinates' && stroke.strokeData.coordinates.length > 0) {
+            const firstCoord = stroke.strokeData.coordinates[0];
+            // Apply same scaling as coordinatesToPath
+            const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
+            const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
+            const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
+            const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
+            
+            startPoint = {
+                x: offsetX + (firstCoord.x * scaleX),
+                y: offsetY + ((200 - firstCoord.y) * scaleY)
+            };
+        } else {
+            startPoint = stroke.strokeData.startPoint;
+        }
         
         // Create start point indicator
         const startCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -265,6 +282,8 @@ class TraceNumberRenderer {
         
         startCircle.appendChild(animate);
         this.svg.appendChild(startCircle);
+        
+        console.log(`Start point for stroke ${strokeIndex} at:`, startPoint);
     }
 
     updateTracingProgress(strokeIndex, progress) {
