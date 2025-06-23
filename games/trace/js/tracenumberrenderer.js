@@ -98,16 +98,9 @@ class TraceNumberRenderer {
         const outlineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         outlineGroup.setAttribute('class', 'number-outline');
         
-        // Combine all strokes into one path for the outline
+        // All strokes are now coordinate-based, so convert each to path
         numberConfig.strokes.forEach((stroke, index) => {
-            let pathData;
-            
-            // Handle different stroke types - FIXED: Convert coordinates to path properly
-            if (stroke.type === 'coordinates') {
-                pathData = this.coordinatesToPath(stroke.coordinates, stroke.startPoint);
-            } else {
-                pathData = stroke.path;
-            }
+            const pathData = this.coordinatesToPath(stroke.coordinates, stroke.startPoint);
             
             // Create solid outline path - empty inside, ready to be filled
             const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -150,14 +143,8 @@ class TraceNumberRenderer {
         this.tracingPaths = [];
         
         strokes.forEach((stroke, index) => {
-            let pathData;
-            
-            // Handle different stroke types - FIXED: Use proper coordinates conversion
-            if (stroke.type === 'coordinates') {
-                pathData = this.coordinatesToPath(stroke.coordinates, stroke.startPoint);
-            } else {
-                pathData = stroke.path;
-            }
+            // All strokes are now coordinate-based
+            const pathData = this.coordinatesToPath(stroke.coordinates, stroke.startPoint);
             
             // Create invisible path for collision detection
             const invisiblePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
