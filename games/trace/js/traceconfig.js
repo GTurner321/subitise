@@ -140,7 +140,7 @@ const CONFIG = {
                     id: 'vertical_line',
                     startPoint: { x: 260, y: 240 },
                     coordinates: [
-                        { x: 60, y: 40 }, { x: 60, y: 0 }
+                        { x: 60, y: 140 }, { x: 60, y: 0 }
                     ],
                     description: 'Draw the vertical line',
                     type: 'coordinates'
