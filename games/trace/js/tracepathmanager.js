@@ -103,7 +103,7 @@ class TracePathManager {
         if (!point) return;
         
         // Check if touch/click started near the slider
-        if (this.isPointNearSlider(point)) {
+        if (this.isPointNearSlider(point, false)) { // false = not during drag, initial touch
             this.isDragging = true;
             this.isTracing = true;
             
@@ -123,6 +123,13 @@ class TracePathManager {
         event.preventDefault();
         const point = this.getEventPoint(event);
         if (!point) return;
+        
+        // Check if the drag point is still near the slider - if not, stop tracing
+        if (!this.isPointNearSlider(point, true)) { // true = during drag
+            console.log('Drag moved outside slider area, stopping trace');
+            this.stopTracing();
+            return;
+        }
         
         // Try to advance to the next coordinate
         this.tryAdvanceToNextCoordinate(point);
@@ -159,7 +166,7 @@ class TracePathManager {
         };
     }
 
-    isPointNearSlider(point) {
+    isPointNearSlider(point, isDuringDrag = false) {
         if (!this.slider) return false;
         
         const sliderX = parseFloat(this.slider.getAttribute('cx'));
@@ -170,131 +177,169 @@ class TracePathManager {
             Math.pow(point.y - sliderY, 2)
         );
         
-        return distance <= CONFIG.SLIDER_SIZE;
+        // Different tolerances for initial touch vs during drag
+        if (isDuringDrag) {
+            // During drag, use a slightly larger area but not too large
+            return distance <= CONFIG.SLIDER_SIZE * 1.2;
+        } else {
+            // For initial touch, use larger area for easier grabbing
+            return distance <= CONFIG.SLIDER_SIZE * 1.5;
+        }
     }
 
     tryAdvanceToNextCoordinate(dragPoint) {
-        // Check if we've reached the end of coordinates
-        if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
-            // Stroke is complete
-            this.completeCurrentStroke();
-            return;
+        // Find the best position along the entire path where the slider should be
+        const bestPosition = this.findBestSliderPosition(dragPoint);
+        
+        if (bestPosition !== null) {
+            this.updateSliderPosition(bestPosition);
         }
-        
-        const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-        const nextCoord = this.currentStrokeCoords[this.currentCoordinateIndex + 1];
-        
-        // Calculate direction vector from current to next coordinate
-        const directionX = nextCoord.x - currentCoord.x;
-        const directionY = nextCoord.y - currentCoord.y;
-        const directionLength = Math.sqrt(directionX * directionX + directionY * directionY);
-        
-        if (directionLength === 0) {
-            // Duplicate coordinates, advance immediately
-            this.advanceToCoordinate(this.currentCoordinateIndex + 1);
-            return;
-        }
-        
-        // Normalize direction vector
-        const directionUnitX = directionX / directionLength;
-        const directionUnitY = directionY / directionLength;
-        
-        // Calculate drag vector from current coordinate to drag point
-        const dragX = dragPoint.x - currentCoord.x;
-        const dragY = dragPoint.y - currentCoord.y;
-        
-        // Calculate dot product to see how much the drag is in the direction of movement
-        const dotProduct = dragX * directionUnitX + dragY * directionUnitY;
-        
-        // Calculate distance from drag point to the line between current and next coordinate
-        const dragLength = Math.sqrt(dragX * dragX + dragY * dragY);
-        const projectionLength = Math.abs(dotProduct);
-        const perpendicularDistance = Math.sqrt(Math.max(0, dragLength * dragLength - projectionLength * projectionLength));
-        
-        // Check if drag is within tolerance and in correct direction
-        const withinTolerance = perpendicularDistance <= CONFIG.PATH_TOLERANCE;
-        const correctDirection = dotProduct > 0; // Positive means drag is in forward direction
-        const reachedNext = projectionLength >= directionLength; // Dragged far enough to reach next coordinate
-        
-        if (withinTolerance && correctDirection) {
-            if (reachedNext) {
-                // Advanced far enough to reach the next coordinate
-                this.advanceToCoordinate(this.currentCoordinateIndex + 1);
-            } else {
-                // Move slider along the line proportionally to how far we've dragged
-                const progress = Math.min(projectionLength / directionLength, 1);
-                const intermediateX = currentCoord.x + directionX * progress;
-                const intermediateY = currentCoord.y + directionY * progress;
-                
-                // Update slider position
-                this.slider.setAttribute('cx', intermediateX);
-                this.slider.setAttribute('cy', intermediateY);
-                
-                // Update traced path to show partial progress
-                this.updatePartialProgress(progress);
-            }
-        } else if (withinTolerance && dotProduct < 0) {
-            // Dragging backwards - allow going back to previous coordinates
-            this.handleBackwardDrag(dragPoint, Math.abs(dotProduct));
-        }
-        // If not within tolerance or wrong direction, don't move slider
     }
 
+    findBestSliderPosition(dragPoint) {
+        let bestCoordIndex = this.currentCoordinateIndex;
+        let bestProgress = 0;
+        let bestDistance = Infinity;
+        
+        // Check current segment and a few ahead/behind for the closest valid position
+        const searchRange = 3; // Look 3 coordinates ahead and behind
+        const startIndex = Math.max(0, this.currentCoordinateIndex - searchRange);
+        const endIndex = Math.min(this.currentStrokeCoords.length - 2, this.currentCoordinateIndex + searchRange);
+        
+        for (let i = startIndex; i <= endIndex; i++) {
+            const currentCoord = this.currentStrokeCoords[i];
+            const nextCoord = this.currentStrokeCoords[i + 1];
+            
+            // Calculate segment direction
+            const segmentX = nextCoord.x - currentCoord.x;
+            const segmentY = nextCoord.y - currentCoord.y;
+            const segmentLength = Math.sqrt(segmentX * segmentX + segmentY * segmentY);
+            
+            if (segmentLength === 0) continue; // Skip zero-length segments
+            
+            // Find closest point on this segment to drag point
+            const dragX = dragPoint.x - currentCoord.x;
+            const dragY = dragPoint.y - currentCoord.y;
+            
+            // Project drag vector onto segment
+            const dotProduct = (dragX * segmentX + dragY * segmentY) / segmentLength;
+            const projectionProgress = Math.max(0, Math.min(segmentLength, dotProduct)) / segmentLength;
+            
+            // Calculate point on segment
+            const pointX = currentCoord.x + segmentX * projectionProgress;
+            const pointY = currentCoord.y + segmentY * projectionProgress;
+            
+            // Calculate distance from drag point to this segment point
+            const distanceToSegment = Math.sqrt(
+                Math.pow(dragPoint.x - pointX, 2) + 
+                Math.pow(dragPoint.y - pointY, 2)
+            );
+            
+            // Check if this is the best position so far and within tolerance
+            if (distanceToSegment < bestDistance && distanceToSegment <= CONFIG.PATH_TOLERANCE) {
+                // Additional check: if moving forward, ensure there's forward component
+                if (i > this.currentCoordinateIndex || 
+                    (i === this.currentCoordinateIndex && projectionProgress > 0)) {
+                    
+                    // Check if drag has forward component for this segment
+                    const dragForwardComponent = dotProduct / segmentLength;
+                    
+                    if (dragForwardComponent >= 0 || i < this.currentCoordinateIndex) {
+                        bestDistance = distanceToSegment;
+                        bestCoordIndex = i;
+                        bestProgress = projectionProgress;
+                    }
+                } else if (i < this.currentCoordinateIndex) {
+                    // Allow backward movement
+                    bestDistance = distanceToSegment;
+                    bestCoordIndex = i;
+                    bestProgress = projectionProgress;
+                }
+            }
+        }
+        
+        // Only return position if within tolerance and represents valid movement
+        if (bestDistance <= CONFIG.PATH_TOLERANCE) {
+            return {
+                coordIndex: bestCoordIndex,
+                progress: bestProgress,
+                distance: bestDistance
+            };
+        }
+        
+        return null;
+    }
+
+    updateSliderPosition(position) {
+        const { coordIndex, progress } = position;
+        const currentCoord = this.currentStrokeCoords[coordIndex];
+        const nextCoord = this.currentStrokeCoords[coordIndex + 1];
+        
+        // Calculate slider position along the segment
+        const sliderX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
+        const sliderY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
+        
+        // Update slider visual position
+        this.slider.setAttribute('cx', sliderX);
+        this.slider.setAttribute('cy', sliderY);
+        
+        // Determine how many complete coordinates we've passed
+        let completedCoords = coordIndex;
+        if (progress >= 0.95) { // 95% threshold to complete a coordinate
+            completedCoords = coordIndex + 1;
+        }
+        
+        // Update current coordinate index if we've advanced
+        if (completedCoords !== this.currentCoordinateIndex) {
+            this.currentCoordinateIndex = completedCoords;
+            
+            // Update traced path to show progress
+            this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+            
+            console.log(`Advanced to coordinate ${this.currentCoordinateIndex} of ${this.currentStrokeCoords.length - 1}`);
+            
+            // Check if stroke is complete
+            if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
+                this.completeCurrentStroke();
+            }
+        }
+    }
+
+    stopTracing() {
+        this.isTracing = false;
+        this.isDragging = false;
+        
+        console.log('Tracing stopped - finger/cursor moved outside slider area');
+        
+        // Re-enable the pulsing animation to indicate the slider is ready for interaction again
+        if (this.slider) {
+            // Remove any existing animation first
+            const existingAnimate = this.slider.querySelector('animate');
+            if (existingAnimate) {
+                existingAnimate.remove();
+            }
+            
+            // Add pulsing animation back
+            const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+            animate.setAttribute('attributeName', 'r');
+            animate.setAttribute('values', `${CONFIG.SLIDER_SIZE / 2};${CONFIG.SLIDER_SIZE / 2 + 3};${CONFIG.SLIDER_SIZE / 2}`);
+            animate.setAttribute('dur', '2s');
+            animate.setAttribute('repeatCount', 'indefinite');
+            
+            this.slider.appendChild(animate);
+        }
+    }
     advanceToCoordinate(newCoordIndex) {
-        if (newCoordIndex >= this.currentStrokeCoords.length) {
-            this.completeCurrentStroke();
-            return;
-        }
-        
-        this.currentCoordinateIndex = newCoordIndex;
-        const newCoord = this.currentStrokeCoords[newCoordIndex];
-        
-        // Move slider to exact coordinate position
-        this.slider.setAttribute('cx', newCoord.x);
-        this.slider.setAttribute('cy', newCoord.y);
-        
-        // Update traced path to show progress up to this coordinate
-        this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
-        
-        console.log(`Advanced to coordinate ${this.currentCoordinateIndex} of ${this.currentStrokeCoords.length - 1}`);
-        
-        // Check if stroke is complete
-        if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
-            this.completeCurrentStroke();
-        }
+        // This method is now handled by updateSliderPosition
+        // Keeping for backward compatibility but functionality moved
     }
 
     updatePartialProgress(progress) {
-        // For now, we only update on full coordinate completion
-        // This could be enhanced to show intermediate progress
+        // Handled by updateSliderPosition now
     }
 
     handleBackwardDrag(dragPoint, backwardDistance) {
-        // Allow dragging backward to previous coordinates
-        if (this.currentCoordinateIndex > 0) {
-            const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-            const prevCoord = this.currentStrokeCoords[this.currentCoordinateIndex - 1];
-            
-            const distanceToPrev = Math.sqrt(
-                Math.pow(prevCoord.x - currentCoord.x, 2) +
-                Math.pow(prevCoord.y - currentCoord.y, 2)
-            );
-            
-            // If dragged back far enough, go to previous coordinate
-            if (backwardDistance >= distanceToPrev * 0.5) { // 50% threshold
-                this.currentCoordinateIndex--;
-                const prevCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-                
-                // Move slider to previous coordinate
-                this.slider.setAttribute('cx', prevCoord.x);
-                this.slider.setAttribute('cy', prevCoord.y);
-                
-                // Update traced path
-                this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
-                
-                console.log(`Moved back to coordinate ${this.currentCoordinateIndex}`);
-            }
-        }
+        // Handled by findBestSliderPosition now
     }
 
     completeCurrentStroke() {
