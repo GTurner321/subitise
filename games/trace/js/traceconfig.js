@@ -3,13 +3,14 @@ const CONFIG = {
     RAINBOW_PIECES: 10,
     
     SLIDER_SIZE: 40,
-    PATH_TOLERANCE: 80,
+    PATH_TOLERANCE: 40,
     FILL_COLOR: '#4CAF50',
     OUTLINE_COLOR: '#2C2C2C',
     SLIDER_COLOR: '#FF6B6B',
     ARROW_COLOR: '#4ECDC4',
-    PATH_WIDTH: 12,
-    OUTLINE_WIDTH: 15,
+    PATH_WIDTH: 21,
+    OUTLINE_WIDTH: 25,
+    WHITE_WIDTH: 18,
     ARROW_OFFSET: 50,
     ARROW_SIZE: 20,
     
@@ -72,15 +73,20 @@ const CONFIG = {
                 type: 'coordinates'
             }]
         },
- x: 98, y: 164 }, { x: 99, y: 160 }, 
+        2: {
+            strokes: [{
+                id: 'complete_two_coords',
+                startPoint: { x: 140, y: 250 },
+                coordinates: [
+                    { x: 0, y: 150 }, { x: 1, y: 160 }, { x: 2, y: 164 }, { x: 4, y: 170 }, 
+                    { x: 6, y: 174 }, { x: 8, y: 177 }, { x: 10, y: 180 }, { x: 15, y: 186 }, 
+                    { x: 20, y: 190 }, { x: 25, y: 193 }, { x: 30, y: 196 }, { x: 35, y: 198 }, 
+                    { x: 40, y: 199 }, { x: 45, y: 200 }, { x: 50, y: 200 }, { x: 55, y: 200 }, 
+                    { x: 60, y: 199 }, { x: 65, y: 198 }, { x: 70, y: 196 }, { x: 75, y: 193 }, 
+                    { x: 80, y: 190 }, { x: 85, y: 186 }, { x: 90, y: 180 }, { x: 92, y: 177 }, 
+                    { x: 94, y: 174 }, { x: 96, y: 170 }, { x: 98, y: 164 }, { x: 99, y: 160 }, 
                     { x: 100, y: 150 }, { x: 99, y: 140 }, { x: 98, y: 136 }, { x: 96, y: 130 }, 
-                    { x: 94, y: 126 }, { x: 92, y: 123 }, { x: 90, y: 120 }, 
-                    { x: 80, y: 100 }, { x: 70, y: 80 }, { x: 60, y: 60 }, { x: 50, y: 40 }, 
-                    { x: 40, y: 20 }, { x: 30, y: 10 }, { x: 20, y: 5 }, { x: 10, y: 2 }, 
-                    { x: 5, y: 1 }, { x: 0, y: 0 }, 
-                    { x: 10, y: 0 }, { x: 20, y: 0 }, { x: 30, y: 0 }, { x: 40, y: 0 }, 
-                    { x: 50, y: 0 }, { x: 60, y: 0 }, { x: 70, y: 0 }, { x: 80, y: 0 }, 
-                    { x: 90, y: 0 }, { x: 100, y: 0 }
+                    { x: 94, y: 126 }, { x: 92, y: 123 }, { x: 90, y: 120 }, { x: 0, y: 0 }, { x: 100, y: 0 }
                 ],
                 description: 'Draw 2 using precise coordinates',
                 type: 'coordinates'
@@ -132,9 +138,9 @@ const CONFIG = {
                 },
                 {
                     id: 'vertical_line',
-                    startPoint: { x: 260, y: 140 },
+                    startPoint: { x: 260, y: 240 },
                     coordinates: [
-                        { x: 60, y: 140 }, { x: 60, y: 0 }
+                        { x: 60, y: 40 }, { x: 60, y: 0 }
                     ],
                     description: 'Draw the vertical line',
                     type: 'coordinates'
