@@ -2,10 +2,9 @@ class TraceNumberRenderer {
     constructor() {
         this.svg = null;
         this.currentNumber = null;
-        this.numberPaths = [];
-        this.tracingPaths = [];
         this.currentStroke = 0;
         this.container = null;
+        this.scaledCoordinates = []; // Store scaled coordinates for each stroke
     }
 
     initialize(containerId) {
@@ -60,6 +59,7 @@ class TraceNumberRenderer {
         this.currentNumber = number;
         this.currentStroke = 0;
         this.clearSVG();
+        this.scaledCoordinates = [];
         
         const numberConfig = CONFIG.STROKE_DEFINITIONS[number];
         if (!numberConfig || !numberConfig.strokes) {
@@ -68,20 +68,13 @@ class TraceNumberRenderer {
         }
         
         console.log(`Rendering number ${number} with ${numberConfig.strokes.length} stroke(s)`);
-        console.log('Number config:', numberConfig);
         
         try {
-            // Create the number outline FIRST - this should be visible immediately
-            console.log('Creating outline...');
-            this.createNumberOutline(number);
+            // Process and scale all coordinates first
+            this.processCoordinates(numberConfig.strokes);
             
-            // Then create tracing paths
-            console.log('Creating tracing paths...');
-            this.createTracingPaths(numberConfig.strokes);
-            
-            // Show start point for first stroke
-            console.log('Showing start point...');
-            this.showStartPoint(0);
+            // Create the visible number outline
+            this.createNumberOutline(numberConfig.strokes);
             
             console.log(`Successfully rendered number ${number}`);
             return true;
@@ -91,31 +84,91 @@ class TraceNumberRenderer {
         }
     }
 
-    createNumberOutline(number) {
-        const numberConfig = CONFIG.STROKE_DEFINITIONS[number];
+    processCoordinates(strokes) {
+        strokes.forEach((stroke, strokeIndex) => {
+            if (stroke.type === 'coordinates' && stroke.coordinates) {
+                const scaledCoords = this.scaleCoordinates(stroke.coordinates);
+                this.scaledCoordinates[strokeIndex] = scaledCoords;
+                console.log(`Processed ${scaledCoords.length} coordinates for stroke ${strokeIndex}`);
+            }
+        });
+    }
+
+    scaleCoordinates(coordinates) {
+        console.log('=== scaleCoordinates called ===');
+        console.log('Input coordinates length:', coordinates ? coordinates.length : 'null');
         
-        // Create a group for the complete number outline
-        const outlineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        outlineGroup.setAttribute('class', 'number-outline');
+        if (!coordinates || coordinates.length === 0) {
+            console.error('No coordinates provided to scaleCoordinates');
+            return [];
+        }
         
-        // All strokes are now coordinate-based, so convert each to path
-        numberConfig.strokes.forEach((stroke, index) => {
-            const pathData = this.coordinatesToPath(stroke.coordinates, stroke.startPoint);
+        // Validate coordinates
+        for (let i = 0; i < coordinates.length; i++) {
+            const coord = coordinates[i];
+            if (!coord || typeof coord.x === 'undefined' || typeof coord.y === 'undefined') {
+                console.error(`Invalid coordinate at index ${i}:`, coord);
+                return [];
+            }
+        }
+        
+        // Scale coordinates to fit in the number rectangle
+        const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;  // 120px / 100 = 1.2
+        const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200; // 200px / 200 = 1.0
+        const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2; // 140
+        const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2; // 100
+        
+        console.log('Scaling factors:', { scaleX, scaleY, offsetX, offsetY });
+        
+        const scaledCoords = coordinates.map((coord, index) => {
+            const scaledX = offsetX + (coord.x * scaleX);
+            // Flip Y coordinate: SVG Y increases downward, coordinates Y increases upward
+            const scaledY = offsetY + ((200 - coord.y) * scaleY);
             
-            // Create solid outline path - empty inside, ready to be filled
-            const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            outlinePath.setAttribute('d', pathData);
-            outlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR); // Dark solid outline
-            outlinePath.setAttribute('stroke-width', CONFIG.OUTLINE_WIDTH);
-            outlinePath.setAttribute('fill', 'none'); // Empty inside - ready to be filled by tracing
-            outlinePath.setAttribute('stroke-linecap', 'round');
-            outlinePath.setAttribute('stroke-linejoin', 'round');
-            outlinePath.setAttribute('class', `outline-stroke-${index}`);
+            // Log first few coordinates for debugging
+            if (index < 3) {
+                console.log(`Coord ${index}: (${coord.x}, ${coord.y}) → (${scaledX}, ${scaledY})`);
+            }
             
-            outlineGroup.appendChild(outlinePath);
+            return { x: scaledX, y: scaledY };
         });
         
-        this.svg.appendChild(outlineGroup);
+        console.log('=== Scaled coordinates generated ===');
+        console.log('Scaled coordinates length:', scaledCoords.length);
+        
+        return scaledCoords;
+    }
+
+    createNumberOutline(strokes) {
+        strokes.forEach((stroke, strokeIndex) => {
+            if (stroke.type === 'coordinates' && this.scaledCoordinates[strokeIndex]) {
+                const coords = this.scaledCoordinates[strokeIndex];
+                
+                // Create path data from coordinates
+                let pathData = '';
+                coords.forEach((coord, index) => {
+                    if (index === 0) {
+                        pathData += `M ${coord.x} ${coord.y}`;
+                    } else {
+                        pathData += ` L ${coord.x} ${coord.y}`;
+                    }
+                });
+                
+                // Create outline path
+                const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                outlinePath.setAttribute('d', pathData);
+                outlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR);
+                outlinePath.setAttribute('stroke-width', CONFIG.OUTLINE_WIDTH);
+                outlinePath.setAttribute('fill', 'none');
+                outlinePath.setAttribute('stroke-linecap', 'round');
+                outlinePath.setAttribute('stroke-linejoin', 'round');
+                outlinePath.setAttribute('class', `outline-stroke-${strokeIndex}`);
+                
+                this.svg.appendChild(outlinePath);
+                
+                console.log(`Created outline for stroke ${strokeIndex} with ${coords.length} points`);
+            }
+        });
         
         // Add debug rectangle if in debug mode
         if (CONFIG.DEBUG_MODE) {
@@ -124,7 +177,6 @@ class TraceNumberRenderer {
     }
 
     addDebugRectangle() {
-        // Show the number rectangle bounds for debugging
         const debugRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         debugRect.setAttribute('x', CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH/2);
         debugRect.setAttribute('y', CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT/2);
@@ -139,176 +191,75 @@ class TraceNumberRenderer {
         this.svg.appendChild(debugRect);
     }
 
-    createTracingPaths(strokes) {
-        this.tracingPaths = [];
-        
-        strokes.forEach((stroke, index) => {
-            // All strokes are now coordinate-based
-            const pathData = this.coordinatesToPath(stroke.coordinates, stroke.startPoint);
-            
-            // Create invisible path for collision detection
-            const invisiblePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            invisiblePath.setAttribute('d', pathData);
-            invisiblePath.setAttribute('stroke', 'transparent');
-            invisiblePath.setAttribute('stroke-width', CONFIG.PATH_TOLERANCE);
-            invisiblePath.setAttribute('fill', 'none');
-            invisiblePath.setAttribute('class', `invisible-path-${index}`);
-            invisiblePath.setAttribute('pointer-events', 'stroke');
-            
-            // Create visible tracing path (will be filled as user traces)
-            const tracingPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            tracingPath.setAttribute('d', pathData);
-            tracingPath.setAttribute('stroke', CONFIG.FILL_COLOR);
-            tracingPath.setAttribute('stroke-width', CONFIG.PATH_WIDTH);
-            tracingPath.setAttribute('fill', 'none');
-            tracingPath.setAttribute('stroke-linecap', 'round');
-            tracingPath.setAttribute('stroke-linejoin', 'round');
-            tracingPath.setAttribute('class', `tracing-path-${index}`);
-            
-            // Initially hidden (will be revealed as user traces)
-            const pathLength = this.getPathLength(tracingPath);
-            tracingPath.setAttribute('stroke-dasharray', pathLength);
-            tracingPath.setAttribute('stroke-dashoffset', pathLength);
-            
-            // Store path data
-            this.tracingPaths.push({
-                invisible: invisiblePath,
-                visible: tracingPath,
-                length: pathLength,
-                progress: 0,
-                completed: false,
-                strokeData: stroke,
-                pathData: pathData
-            });
-            
-            // Add to SVG (invisible paths first, then visible)
-            this.svg.appendChild(invisiblePath);
-            this.svg.appendChild(tracingPath);
-        });
+    // Get scaled coordinates for a specific stroke
+    getStrokeCoordinates(strokeIndex) {
+        return this.scaledCoordinates[strokeIndex] || [];
     }
 
-    coordinatesToPath(coordinates, startPoint) {
-        console.log('=== coordinatesToPath called ===');
-        console.log('Input coordinates:', coordinates);
-        console.log('Start point:', startPoint);
-        
-        if (!coordinates || coordinates.length === 0) {
-            console.error('No coordinates provided to coordinatesToPath');
-            return '';
+    // Get the start point for a stroke
+    getStrokeStartPoint(strokeIndex) {
+        const coords = this.getStrokeCoordinates(strokeIndex);
+        return coords.length > 0 ? coords[0] : null;
+    }
+
+    // Get total number of strokes for current number
+    getStrokeCount() {
+        const numberConfig = CONFIG.STROKE_DEFINITIONS[this.currentNumber];
+        return numberConfig ? numberConfig.strokes.length : 0;
+    }
+
+    // Create a traced path element for showing progress
+    createTracedPath(strokeIndex, progressCoordIndex) {
+        const coords = this.getStrokeCoordinates(strokeIndex);
+        if (!coords || coords.length === 0 || progressCoordIndex < 0) {
+            return null;
         }
         
-        // FIXED: Use startPoint as the actual starting position, then use coordinates as relative points
+        // Create path from start to current progress point
+        const endIndex = Math.min(progressCoordIndex + 1, coords.length);
+        const progressCoords = coords.slice(0, endIndex);
+        
         let pathData = '';
+        progressCoords.forEach((coord, index) => {
+            if (index === 0) {
+                pathData += `M ${coord.x} ${coord.y}`;
+            } else {
+                pathData += ` L ${coord.x} ${coord.y}`;
+            }
+        });
         
-        try {
-            // Scale coordinates to fit in the number rectangle
-            const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
-            const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
-            const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
-            const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
-            
-            // Start from the startPoint
-            pathData = `M ${startPoint.x} ${startPoint.y}`;
-            
-            // Add each coordinate as a line segment
-            coordinates.forEach((coord, index) => {
-                const scaledX = offsetX + (coord.x * scaleX);
-                const scaledY = offsetY + ((200 - coord.y) * scaleY);
-                pathData += ` L ${scaledX} ${scaledY}`;
-                
-                if (index < 3) {
-                    console.log(`Coord ${index}: (${coord.x}, ${coord.y}) → (${scaledX}, ${scaledY})`);
-                }
-            });
-            
-            console.log('Final path data:', pathData.substring(0, 100) + '...');
-            return pathData;
-            
-        } catch (error) {
-            console.error('Error in coordinatesToPath:', error);
-            return `M ${startPoint.x} ${startPoint.y}`;
+        // Remove existing traced path for this stroke
+        const existingPath = this.svg.querySelector(`.traced-path-${strokeIndex}`);
+        if (existingPath) {
+            existingPath.remove();
         }
+        
+        // Create new traced path
+        const tracedPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        tracedPath.setAttribute('d', pathData);
+        tracedPath.setAttribute('stroke', CONFIG.FILL_COLOR);
+        tracedPath.setAttribute('stroke-width', CONFIG.PATH_WIDTH);
+        tracedPath.setAttribute('fill', 'none');
+        tracedPath.setAttribute('stroke-linecap', 'round');
+        tracedPath.setAttribute('stroke-linejoin', 'round');
+        tracedPath.setAttribute('class', `traced-path-${strokeIndex}`);
+        
+        this.svg.appendChild(tracedPath);
+        
+        return tracedPath;
     }
 
-    getPathLength(pathElement) {
-        // Temporarily add to DOM to measure if not already there
-        const wasInDOM = pathElement.parentNode;
-        if (!wasInDOM) {
-            this.svg.appendChild(pathElement);
-        }
-        
-        const length = pathElement.getTotalLength();
-        
-        if (!wasInDOM) {
-            this.svg.removeChild(pathElement);
-        }
-        
-        return length;
+    // Update traced path for current progress
+    updateTracingProgress(strokeIndex, coordinateIndex) {
+        this.createTracedPath(strokeIndex, coordinateIndex);
     }
 
-    showStartPoint(strokeIndex) {
-        if (strokeIndex >= this.tracingPaths.length) return;
-        
-        // Remove any existing start point
-        const existingStartPoint = this.svg.querySelector('.start-point');
-        if (existingStartPoint) {
-            existingStartPoint.remove();
-        }
-        
-        if (!CONFIG.SHOW_START_POINTS) return;
-        
-        const stroke = this.tracingPaths[strokeIndex];
-        let startPoint = stroke.strokeData.startPoint;
-        
-        // Create start point indicator
-        const startCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        startCircle.setAttribute('cx', startPoint.x);
-        startCircle.setAttribute('cy', startPoint.y);
-        startCircle.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
-        startCircle.setAttribute('fill', CONFIG.SLIDER_COLOR);
-        startCircle.setAttribute('stroke', 'white');
-        startCircle.setAttribute('stroke-width', 3);
-        startCircle.setAttribute('class', 'start-point');
-        
-        // Add pulsing animation
-        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-        animate.setAttribute('attributeName', 'r');
-        animate.setAttribute('values', `${CONFIG.SLIDER_SIZE / 2};${CONFIG.SLIDER_SIZE / 2 + 5};${CONFIG.SLIDER_SIZE / 2}`);
-        animate.setAttribute('dur', '1.5s');
-        animate.setAttribute('repeatCount', 'indefinite');
-        
-        startCircle.appendChild(animate);
-        this.svg.appendChild(startCircle);
-        
-        console.log(`Start point for stroke ${strokeIndex} at:`, startPoint);
-    }
-
-    updateTracingProgress(strokeIndex, progress) {
-        if (strokeIndex >= this.tracingPaths.length) return;
-        
-        const tracingPath = this.tracingPaths[strokeIndex];
-        const progressLength = tracingPath.length * progress;
-        const dashOffset = tracingPath.length - progressLength;
-        
-        tracingPath.visible.setAttribute('stroke-dashoffset', dashOffset);
-        tracingPath.progress = progress;
-        
-        // Check if stroke is complete
-        if (progress >= 0.95) { // 95% threshold for completion
-            this.completeStroke(strokeIndex);
-        }
-    }
-
+    // Complete a stroke by showing the full traced path
     completeStroke(strokeIndex) {
-        if (strokeIndex >= this.tracingPaths.length) return;
-        
-        const tracingPath = this.tracingPaths[strokeIndex];
-        if (tracingPath.completed) return;
-        
-        // Fully reveal the path
-        tracingPath.visible.setAttribute('stroke-dashoffset', 0);
-        tracingPath.completed = true;
-        tracingPath.progress = 1;
+        const coords = this.getStrokeCoordinates(strokeIndex);
+        if (coords && coords.length > 0) {
+            this.createTracedPath(strokeIndex, coords.length - 1);
+        }
         
         console.log(`Stroke ${strokeIndex} completed for number ${this.currentNumber}`);
         
@@ -318,22 +269,23 @@ class TraceNumberRenderer {
         } else {
             // Move to next stroke
             this.currentStroke++;
-            this.showStartPoint(this.currentStroke);
         }
     }
 
     areAllStrokesComplete() {
-        return this.tracingPaths.every(path => path.completed);
+        const totalStrokes = this.getStrokeCount();
+        // Check if all strokes have traced paths
+        for (let i = 0; i < totalStrokes; i++) {
+            const tracedPath = this.svg.querySelector(`.traced-path-${i}`);
+            if (!tracedPath) {
+                return false;
+            }
+        }
+        return true;
     }
 
     completeNumber() {
         console.log(`Number ${this.currentNumber} fully completed!`);
-        
-        // Remove start point
-        const startPoint = this.svg.querySelector('.start-point');
-        if (startPoint) {
-            startPoint.remove();
-        }
         
         // Add completion effect
         this.addCompletionEffect();
@@ -344,7 +296,7 @@ class TraceNumberRenderer {
         const effectGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         effectGroup.setAttribute('class', 'completion-effect');
         
-        // Add stars or sparkles around the number
+        // Add stars around the number
         const starPositions = [
             { x: 100, y: 100 }, { x: 300, y: 100 },
             { x: 350, y: 200 }, { x: 300, y: 300 },
@@ -385,16 +337,6 @@ class TraceNumberRenderer {
         return this.currentStroke;
     }
 
-    getCurrentStrokeData() {
-        if (this.currentStroke >= this.tracingPaths.length) return null;
-        return this.tracingPaths[this.currentStroke];
-    }
-
-    getStrokeProgress(strokeIndex) {
-        if (strokeIndex >= this.tracingPaths.length) return 0;
-        return this.tracingPaths[strokeIndex].progress;
-    }
-
     isNumberComplete() {
         return this.areAllStrokesComplete();
     }
@@ -404,57 +346,14 @@ class TraceNumberRenderer {
         while (this.svg.firstChild) {
             this.svg.removeChild(this.svg.firstChild);
         }
-        this.numberPaths = [];
-        this.tracingPaths = [];
     }
 
     reset() {
         this.currentNumber = null;
         this.currentStroke = 0;
+        this.scaledCoordinates = [];
         if (this.svg) {
             this.clearSVG();
         }
-    }
-
-    // Debug methods
-    highlightInvisiblePaths() {
-        if (!CONFIG.DEBUG_MODE) return;
-        
-        this.tracingPaths.forEach((path, index) => {
-            path.invisible.setAttribute('stroke', 'rgba(255,0,0,0.3)');
-            path.invisible.setAttribute('stroke-width', CONFIG.PATH_TOLERANCE);
-        });
-    }
-
-    showPathDirections() {
-        if (!CONFIG.DEBUG_MODE) return;
-        
-        this.tracingPaths.forEach((path, index) => {
-            const pathElement = path.visible;
-            const pathLength = path.length;
-            
-            // Add direction arrows along the path
-            for (let i = 0; i < pathLength; i += 50) {
-                const point = pathElement.getPointAtLength(i);
-                const nextPoint = pathElement.getPointAtLength(Math.min(i + 10, pathLength));
-                
-                const angle = Math.atan2(nextPoint.y - point.y, nextPoint.x - point.x);
-                const arrow = this.createDirectionArrow(point.x, point.y, angle);
-                this.svg.appendChild(arrow);
-            }
-        });
-    }
-
-    createDirectionArrow(x, y, angle) {
-        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        const size = 8;
-        const points = `0,0 ${size},-${size/2} ${size/2},0 ${size},${size/2}`;
-        
-        arrow.setAttribute('points', points);
-        arrow.setAttribute('fill', 'blue');
-        arrow.setAttribute('transform', `translate(${x},${y}) rotate(${angle * 180 / Math.PI})`);
-        arrow.setAttribute('class', 'debug-arrow');
-        
-        return arrow;
     }
 }
