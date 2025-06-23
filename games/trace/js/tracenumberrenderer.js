@@ -83,20 +83,6 @@ class TraceNumberRenderer {
             console.log('Showing start point...');
             this.showStartPoint(0);
             
-            // Debug: check if outline was actually added
-            const outlines = this.svg.querySelectorAll('.number-outline');
-            console.log(`Outlines in SVG: ${outlines.length}`);
-            outlines.forEach((outline, i) => {
-                console.log(`Outline ${i}:`, outline);
-                const paths = outline.querySelectorAll('path');
-                console.log(`  Paths in outline: ${paths.length}`);
-                paths.forEach((path, j) => {
-                    console.log(`    Path ${j} d attribute:`, path.getAttribute('d'));
-                    console.log(`    Path ${j} stroke:`, path.getAttribute('stroke'));
-                    console.log(`    Path ${j} visibility:`, getComputedStyle(path).visibility);
-                });
-            });
-            
             console.log(`Successfully rendered number ${number}`);
             return true;
         } catch (error) {
@@ -114,9 +100,18 @@ class TraceNumberRenderer {
         
         // Combine all strokes into one path for the outline
         numberConfig.strokes.forEach((stroke, index) => {
+            let pathData;
+            
+            // Handle different stroke types - FIXED: Convert coordinates to path properly
+            if (stroke.type === 'coordinates') {
+                pathData = this.coordinatesToPath(stroke.coordinates, stroke.startPoint);
+            } else {
+                pathData = stroke.path;
+            }
+            
             // Create solid outline path - empty inside, ready to be filled
             const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            outlinePath.setAttribute('d', stroke.path);
+            outlinePath.setAttribute('d', pathData);
             outlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR); // Dark solid outline
             outlinePath.setAttribute('stroke-width', CONFIG.OUTLINE_WIDTH);
             outlinePath.setAttribute('fill', 'none'); // Empty inside - ready to be filled by tracing
@@ -157,20 +152,18 @@ class TraceNumberRenderer {
         strokes.forEach((stroke, index) => {
             let pathData;
             
-            // Handle different stroke types
+            // Handle different stroke types - FIXED: Use proper coordinates conversion
             if (stroke.type === 'coordinates') {
-                pathData = this.coordinatesToPath(stroke.coordinates);
+                pathData = this.coordinatesToPath(stroke.coordinates, stroke.startPoint);
             } else {
                 pathData = stroke.path;
             }
             
-            // Create invisible path for collision detection - much thicker for coordinate precision
+            // Create invisible path for collision detection
             const invisiblePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             invisiblePath.setAttribute('d', pathData);
             invisiblePath.setAttribute('stroke', 'transparent');
-            // For coordinate-based paths, use much thicker collision detection
-            const collisionWidth = stroke.type === 'coordinates' ? CONFIG.PATH_TOLERANCE * 4 : CONFIG.PATH_TOLERANCE * 2;
-            invisiblePath.setAttribute('stroke-width', collisionWidth);
+            invisiblePath.setAttribute('stroke-width', CONFIG.PATH_TOLERANCE);
             invisiblePath.setAttribute('fill', 'none');
             invisiblePath.setAttribute('class', `invisible-path-${index}`);
             invisiblePath.setAttribute('pointer-events', 'stroke');
@@ -197,7 +190,8 @@ class TraceNumberRenderer {
                 length: pathLength,
                 progress: 0,
                 completed: false,
-                strokeData: stroke
+                strokeData: stroke,
+                pathData: pathData
             });
             
             // Add to SVG (invisible paths first, then visible)
@@ -206,70 +200,46 @@ class TraceNumberRenderer {
         });
     }
 
-    coordinatesToPath(coordinates) {
+    coordinatesToPath(coordinates, startPoint) {
         console.log('=== coordinatesToPath called ===');
         console.log('Input coordinates:', coordinates);
-        console.log('Coordinates length:', coordinates ? coordinates.length : 'null');
+        console.log('Start point:', startPoint);
         
         if (!coordinates || coordinates.length === 0) {
             console.error('No coordinates provided to coordinatesToPath');
             return '';
         }
         
-        // Check if coordinates are valid
-        for (let i = 0; i < coordinates.length; i++) {
-            const coord = coordinates[i];
-            if (!coord || typeof coord.x === 'undefined' || typeof coord.y === 'undefined') {
-                console.error(`Invalid coordinate at index ${i}:`, coord);
-                return 'M 200 200'; // Fallback
-            }
-        }
-        
-        // Scale coordinates to fit in the number rectangle (120x200 centered at 200,200)
-        // Your coordinates: 0-100 range, with (0,0) at bottom-left
-        // SVG coordinates: (0,0) at top-left, so we need to flip Y
-        const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;  // 120px / 100 = 1.2
-        const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200; // 200px / 200 = 1.0
-        const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2; // 140
-        const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2; // 100
-        
-        console.log('Scaling factors:', { scaleX, scaleY, offsetX, offsetY });
-        
+        // FIXED: Use startPoint as the actual starting position, then use coordinates as relative points
         let pathData = '';
         
         try {
+            // Scale coordinates to fit in the number rectangle
+            const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
+            const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
+            const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
+            const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
+            
+            // Start from the startPoint
+            pathData = `M ${startPoint.x} ${startPoint.y}`;
+            
+            // Add each coordinate as a line segment
             coordinates.forEach((coord, index) => {
                 const scaledX = offsetX + (coord.x * scaleX);
-                // Flip Y coordinate: SVG Y increases downward, your coords Y increases upward
                 const scaledY = offsetY + ((200 - coord.y) * scaleY);
+                pathData += ` L ${scaledX} ${scaledY}`;
                 
-                if (index === 0) {
-                    pathData += `M ${scaledX} ${scaledY}`;
-                } else {
-                    pathData += ` L ${scaledX} ${scaledY}`;
-                }
-                
-                // Log first few coordinates for debugging
                 if (index < 3) {
                     console.log(`Coord ${index}: (${coord.x}, ${coord.y}) → (${scaledX}, ${scaledY})`);
                 }
             });
             
-            console.log('=== Final path data ===');
-            console.log('Path length:', pathData.length);
-            console.log('Path preview:', pathData.substring(0, 100) + '...');
-            console.log('Path starts with M:', pathData.startsWith('M'));
-            
-            if (pathData.length === 0) {
-                console.error('Generated empty path data');
-                return 'M 200 200'; // Fallback to prevent errors
-            }
-            
+            console.log('Final path data:', pathData.substring(0, 100) + '...');
             return pathData;
             
         } catch (error) {
             console.error('Error in coordinatesToPath:', error);
-            return 'M 200 200'; // Fallback path
+            return `M ${startPoint.x} ${startPoint.y}`;
         }
     }
 
@@ -301,24 +271,7 @@ class TraceNumberRenderer {
         if (!CONFIG.SHOW_START_POINTS) return;
         
         const stroke = this.tracingPaths[strokeIndex];
-        let startPoint;
-        
-        // Handle coordinate-based start points
-        if (stroke.strokeData.type === 'coordinates' && stroke.strokeData.coordinates.length > 0) {
-            const firstCoord = stroke.strokeData.coordinates[0];
-            // Apply same scaling as coordinatesToPath
-            const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
-            const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
-            const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
-            const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
-            
-            startPoint = {
-                x: offsetX + (firstCoord.x * scaleX),
-                y: offsetY + ((200 - firstCoord.y) * scaleY)
-            };
-        } else {
-            startPoint = stroke.strokeData.startPoint;
-        }
+        let startPoint = stroke.strokeData.startPoint;
         
         // Create start point indicator
         const startCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
