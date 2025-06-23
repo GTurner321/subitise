@@ -85,45 +85,29 @@ class TracePathManager {
     buildCoordinatePoints(strokeData) {
         this.coordinatePoints = [];
         
-        if (strokeData.type === 'coordinates') {
-            // For coordinate-based strokes, use the actual coordinates
-            const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
-            const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
-            const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
-            const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
-            
-            // Start with the start point
+        // All strokes are now coordinate-based
+        const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
+        const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
+        const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
+        const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
+        
+        // Start with the start point
+        this.coordinatePoints.push({
+            x: strokeData.startPoint.x,
+            y: strokeData.startPoint.y,
+            index: 0
+        });
+        
+        // Add each coordinate
+        strokeData.coordinates.forEach((coord, index) => {
+            const scaledX = offsetX + (coord.x * scaleX);
+            const scaledY = offsetY + ((200 - coord.y) * scaleY);
             this.coordinatePoints.push({
-                x: strokeData.startPoint.x,
-                y: strokeData.startPoint.y,
-                index: 0
+                x: scaledX,
+                y: scaledY,
+                index: index + 1
             });
-            
-            // Add each coordinate
-            strokeData.coordinates.forEach((coord, index) => {
-                const scaledX = offsetX + (coord.x * scaleX);
-                const scaledY = offsetY + ((200 - coord.y) * scaleY);
-                this.coordinatePoints.push({
-                    x: scaledX,
-                    y: scaledY,
-                    index: index + 1
-                });
-            });
-        } else {
-            // For path-based strokes, sample points along the path
-            if (this.pathElementCache) {
-                const samples = 20; // Number of sample points
-                for (let i = 0; i <= samples; i++) {
-                    const progress = i / samples;
-                    const point = this.pathElementCache.getPointAtLength(progress * this.pathLengthCache);
-                    this.coordinatePoints.push({
-                        x: point.x,
-                        y: point.y,
-                        index: i
-                    });
-                }
-            }
-        }
+        });
         
         console.log('Built coordinate points:', this.coordinatePoints.length);
     }
