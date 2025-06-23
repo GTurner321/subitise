@@ -89,12 +89,11 @@ class TraceGameController {
             });
         }
         
-        // Listen for stroke completions from renderer
+        // Set up renderer callbacks
         this.setupRendererCallbacks();
         
         // Keyboard support for testing
         document.addEventListener('keydown', (e) => {
-            // Prevent browser shortcuts from interfering
             if (CONFIG.DEBUG_MODE) {
                 if (e.key === ' ') {
                     // Spacebar to skip to next number (debug)
@@ -102,7 +101,7 @@ class TraceGameController {
                     this.completeCurrentNumber();
                 }
                 if (e.key === 'r' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-                    // R key to restart current number (without modifiers)
+                    // R key to restart current number
                     e.preventDefault();
                     this.startCurrentNumberOver();
                 }
@@ -112,12 +111,10 @@ class TraceGameController {
                     const targetNumber = parseInt(e.key);
                     this.skipToNumber(targetNumber);
                 }
-                // Show coordinate points for debugging
-                if (e.key === 'c' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                if (e.key === 'd') {
+                    // D key to show debug coordinate points
                     e.preventDefault();
-                    if (this.pathManager) {
-                        this.pathManager.showCoordinatePoints();
-                    }
+                    this.pathManager.showCoordinatePoints();
                 }
             }
         });
@@ -148,9 +145,9 @@ class TraceGameController {
         this.gameComplete = false;
         this.isProcessingCompletion = false;
         
-        // Reset components - important to reset rainbow and bear properly
+        // Reset components
         this.rainbow.reset();
-        this.bear.reset(); // This stops any ongoing bear celebration
+        this.bear.reset();
         this.renderer.reset();
         this.pathManager.reset();
         
@@ -178,19 +175,14 @@ class TraceGameController {
         // Clear any existing number word
         this.updateNumberWordDisplay('');
         
-        // FIXED: Ensure proper cleanup before rendering new number
-        this.pathManager.cleanup();
-        
         // Render the number
         if (!this.renderer.renderNumber(this.currentNumber)) {
             console.error('Failed to render number:', this.currentNumber);
             return;
         }
         
-        // FIXED: Wait a moment for rendering to complete, then start path manager
-        setTimeout(() => {
-            this.pathManager.startNewStroke(0);
-        }, 100);
+        // Start path manager for first stroke
+        this.pathManager.startNewStroke(0);
         
         // Announce the number (optional)
         if (this.audioEnabled) {
@@ -202,13 +194,8 @@ class TraceGameController {
         console.log('Restarting current number:', this.currentNumber);
         
         // Reset renderer and path manager for current number
-        this.pathManager.cleanup();
         this.renderer.renderNumber(this.currentNumber);
-        
-        // Wait a moment then restart
-        setTimeout(() => {
-            this.pathManager.startNewStroke(0);
-        }, 100);
+        this.pathManager.startNewStroke(0);
         
         // Clear number word display
         this.updateNumberWordDisplay('');
@@ -218,13 +205,11 @@ class TraceGameController {
         console.log(`Stroke ${strokeIndex} completed for number ${this.currentNumber}`);
         
         // Check if there are more strokes for this number
-        const totalStrokes = CONFIG.STROKE_DEFINITIONS[this.currentNumber].strokes.length;
+        const totalStrokes = this.renderer.getStrokeCount();
         
         if (strokeIndex + 1 < totalStrokes) {
-            // Move to next stroke after a small delay
-            setTimeout(() => {
-                this.pathManager.startNewStroke(strokeIndex + 1);
-            }, 300);
+            // Move to next stroke
+            this.pathManager.moveToNextStroke();
         }
         // If no more strokes, handleNumberCompletion will be called by renderer
     }
@@ -238,7 +223,7 @@ class TraceGameController {
         // Clean up path manager
         this.pathManager.cleanup();
         
-        // Add rainbow piece - this is the key reward system
+        // Add rainbow piece
         const pieces = this.rainbow.addPiece();
         console.log(`Rainbow pieces: ${pieces}/${CONFIG.RAINBOW_PIECES}`);
         
@@ -304,13 +289,12 @@ class TraceGameController {
         // Clean up current tracing
         this.pathManager.cleanup();
         
-        // The rainbow should already be in celebration mode from the final addPiece() call
-        // Now show the completion modal
+        // Show the completion modal
         if (this.modal) {
             this.modal.classList.remove('hidden');
         }
         
-        // Start bear celebration when modal opens
+        // Start bear celebration
         this.bear.startCelebration();
         
         // Speak completion message
