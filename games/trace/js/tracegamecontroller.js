@@ -112,6 +112,13 @@ class TraceGameController {
                     const targetNumber = parseInt(e.key);
                     this.skipToNumber(targetNumber);
                 }
+                // Show coordinate points for debugging
+                if (e.key === 'c' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                    e.preventDefault();
+                    if (this.pathManager) {
+                        this.pathManager.showCoordinatePoints();
+                    }
+                }
             }
         });
     }
@@ -171,14 +178,19 @@ class TraceGameController {
         // Clear any existing number word
         this.updateNumberWordDisplay('');
         
+        // FIXED: Ensure proper cleanup before rendering new number
+        this.pathManager.cleanup();
+        
         // Render the number
         if (!this.renderer.renderNumber(this.currentNumber)) {
             console.error('Failed to render number:', this.currentNumber);
             return;
         }
         
-        // Start path manager for first stroke
-        this.pathManager.startNewStroke(0);
+        // FIXED: Wait a moment for rendering to complete, then start path manager
+        setTimeout(() => {
+            this.pathManager.startNewStroke(0);
+        }, 100);
         
         // Announce the number (optional)
         if (this.audioEnabled) {
@@ -190,8 +202,13 @@ class TraceGameController {
         console.log('Restarting current number:', this.currentNumber);
         
         // Reset renderer and path manager for current number
+        this.pathManager.cleanup();
         this.renderer.renderNumber(this.currentNumber);
-        this.pathManager.startNewStroke(0);
+        
+        // Wait a moment then restart
+        setTimeout(() => {
+            this.pathManager.startNewStroke(0);
+        }, 100);
         
         // Clear number word display
         this.updateNumberWordDisplay('');
@@ -201,14 +218,13 @@ class TraceGameController {
         console.log(`Stroke ${strokeIndex} completed for number ${this.currentNumber}`);
         
         // Check if there are more strokes for this number
-        const strokeData = this.renderer.getCurrentStrokeData();
         const totalStrokes = CONFIG.STROKE_DEFINITIONS[this.currentNumber].strokes.length;
         
         if (strokeIndex + 1 < totalStrokes) {
-            // Move to next stroke
+            // Move to next stroke after a small delay
             setTimeout(() => {
                 this.pathManager.startNewStroke(strokeIndex + 1);
-            }, 500); // Small delay between strokes
+            }, 300);
         }
         // If no more strokes, handleNumberCompletion will be called by renderer
     }
@@ -294,7 +310,7 @@ class TraceGameController {
             this.modal.classList.remove('hidden');
         }
         
-        // Start bear celebration when modal opens - this matches your addition game pattern
+        // Start bear celebration when modal opens
         this.bear.startCelebration();
         
         // Speak completion message
