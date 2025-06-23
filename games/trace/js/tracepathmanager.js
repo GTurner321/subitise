@@ -11,8 +11,13 @@ class TracePathManager {
         this.isTracing = false;
         this.currentStroke = 0;
         this.currentProgress = 0;
+        this.currentCoordinateIndex = 0; // NEW: Track which coordinate we're at
         this.lastValidPosition = null;
         this.isDragging = false;
+        
+        // Coordinate tracking for strict progression
+        this.coordinatePoints = []; // Array of actual coordinate positions
+        this.coordinateTolerance = 25; // How close you need to be to a coordinate
         
         // Touch/mouse handling
         this.touchStartTime = 0;
@@ -42,8 +47,11 @@ class TracePathManager {
     }
 
     startNewStroke(strokeIndex) {
+        console.log(`Starting new stroke ${strokeIndex}`);
+        
         this.currentStroke = strokeIndex;
         this.currentProgress = 0;
+        this.currentCoordinateIndex = 0; // Start at first coordinate
         this.isTracing = false;
         this.isDragging = false;
         
@@ -57,6 +65,12 @@ class TracePathManager {
         this.pathElementCache = strokeData.visible;
         this.pathLengthCache = strokeData.length;
         
+        // FIXED: Build coordinate points array for strict progression
+        this.buildCoordinatePoints(strokeData.strokeData);
+        
+        // Remove any existing slider to prevent duplicates
+        this.removeSlider();
+        
         // Create slider at start position
         this.createSlider(strokeData.strokeData.startPoint);
         
@@ -64,15 +78,66 @@ class TracePathManager {
         this.createArrow();
         this.updateArrowPosition(0);
         
-        console.log(`Started stroke ${strokeIndex} for number ${this.renderer.currentNumber}`);
+        console.log(`Started stroke ${strokeIndex} with ${this.coordinatePoints.length} coordinate points`);
         return true;
     }
 
-    createSlider(startPoint) {
-        // Remove existing slider
+    buildCoordinatePoints(strokeData) {
+        this.coordinatePoints = [];
+        
+        if (strokeData.type === 'coordinates') {
+            // For coordinate-based strokes, use the actual coordinates
+            const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
+            const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
+            const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
+            const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
+            
+            // Start with the start point
+            this.coordinatePoints.push({
+                x: strokeData.startPoint.x,
+                y: strokeData.startPoint.y,
+                index: 0
+            });
+            
+            // Add each coordinate
+            strokeData.coordinates.forEach((coord, index) => {
+                const scaledX = offsetX + (coord.x * scaleX);
+                const scaledY = offsetY + ((200 - coord.y) * scaleY);
+                this.coordinatePoints.push({
+                    x: scaledX,
+                    y: scaledY,
+                    index: index + 1
+                });
+            });
+        } else {
+            // For path-based strokes, sample points along the path
+            if (this.pathElementCache) {
+                const samples = 20; // Number of sample points
+                for (let i = 0; i <= samples; i++) {
+                    const progress = i / samples;
+                    const point = this.pathElementCache.getPointAtLength(progress * this.pathLengthCache);
+                    this.coordinatePoints.push({
+                        x: point.x,
+                        y: point.y,
+                        index: i
+                    });
+                }
+            }
+        }
+        
+        console.log('Built coordinate points:', this.coordinatePoints.length);
+    }
+
+    removeSlider() {
         if (this.slider) {
             this.slider.remove();
+            this.slider = null;
         }
+    }
+
+    createSlider(startPoint) {
+        // Remove existing slider first
+        this.removeSlider();
         
         // Create new slider circle
         this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -97,6 +162,8 @@ class TracePathManager {
         
         // Store initial position
         this.lastValidPosition = { x: startPoint.x, y: startPoint.y };
+        
+        console.log('Created slider at:', startPoint);
     }
 
     createArrow() {
@@ -119,7 +186,7 @@ class TracePathManager {
         arrowShape.setAttribute('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))');
         
         this.arrow.appendChild(arrowShape);
-        this.svg.appendChild(this.arrow);
+        this.svg.appendChild(arrowShape);
     }
 
     updateArrowPosition(progress) {
@@ -186,15 +253,186 @@ class TracePathManager {
         
         this.lastTouchPosition = point;
         
-        // Check if point is within path tolerance
-        const pathProgress = this.getProgressAlongPath(point);
+        // FIXED: Check strict coordinate progression
+        const nextCoordinateResult = this.checkNextCoordinate(point);
         
-        if (pathProgress !== null) {
-            // Valid position - update progress
-            this.updateProgress(pathProgress, point);
-        } else {
-            // Invalid position - check if we should stop tracing
-            this.handleInvalidPosition(point);
+        if (nextCoordinateResult.canMove) {
+            this.updateSliderPosition(nextCoordinateResult.position);
+            this.updateProgress();
+        }
+    }
+
+    checkNextCoordinate(dragPoint) {
+        // Get current slider position
+        const currentPos = {
+            x: parseFloat(this.slider.getAttribute('cx')),
+            y: parseFloat(this.slider.getAttribute('cy'))
+        };
+        
+        // Calculate drag vector
+        const dragVector = {
+            x: dragPoint.x - currentPos.x,
+            y: dragPoint.y - currentPos.y
+        };
+        
+        // If at the last coordinate, check if we can complete
+        if (this.currentCoordinateIndex >= this.coordinatePoints.length - 1) {
+            return {
+                canMove: false,
+                position: currentPos,
+                completed: true
+            };
+        }
+        
+        // Get next coordinate point
+        const nextCoord = this.coordinatePoints[this.currentCoordinateIndex + 1];
+        const directionVector = {
+            x: nextCoord.x - currentPos.x,
+            y: nextCoord.y - currentPos.y
+        };
+        
+        // Calculate the dot product to see if we're moving in the right direction
+        const dotProduct = dragVector.x * directionVector.x + dragVector.y * directionVector.y;
+        
+        // Only allow movement if there's a positive component in the right direction
+        if (dotProduct <= 0) {
+            // Allow backward movement to undo progress
+            return this.checkBackwardMovement(dragPoint, currentPos);
+        }
+        
+        // Calculate how far we can move toward the next coordinate
+        const directionLength = Math.sqrt(directionVector.x * directionVector.x + directionVector.y * directionVector.y);
+        const dragLength = Math.sqrt(dragVector.x * dragVector.x + dragVector.y * dragVector.y);
+        
+        if (directionLength === 0) {
+            return { canMove: false, position: currentPos };
+        }
+        
+        // Normalize direction vector
+        const normalizedDirection = {
+            x: directionVector.x / directionLength,
+            y: directionVector.y / directionLength
+        };
+        
+        // Project drag vector onto direction vector
+        const projectionLength = Math.min(dotProduct / directionLength, directionLength);
+        
+        // Calculate new position
+        const newPosition = {
+            x: currentPos.x + normalizedDirection.x * projectionLength,
+            y: currentPos.y + normalizedDirection.y * projectionLength
+        };
+        
+        // Check if we've reached the next coordinate
+        const distanceToNext = Math.sqrt(
+            Math.pow(newPosition.x - nextCoord.x, 2) + 
+            Math.pow(newPosition.y - nextCoord.y, 2)
+        );
+        
+        if (distanceToNext <= this.coordinateTolerance) {
+            // Snap to the coordinate and advance
+            this.currentCoordinateIndex++;
+            console.log(`Reached coordinate ${this.currentCoordinateIndex}/${this.coordinatePoints.length - 1}`);
+            
+            return {
+                canMove: true,
+                position: { x: nextCoord.x, y: nextCoord.y },
+                advancedCoordinate: true
+            };
+        }
+        
+        return {
+            canMove: true,
+            position: newPosition
+        };
+    }
+
+    checkBackwardMovement(dragPoint, currentPos) {
+        // Allow backward movement to undo progress
+        if (this.currentCoordinateIndex <= 0) {
+            return { canMove: false, position: currentPos };
+        }
+        
+        // Get previous coordinate
+        const prevCoord = this.coordinatePoints[this.currentCoordinateIndex - 1];
+        const backwardVector = {
+            x: prevCoord.x - currentPos.x,
+            y: prevCoord.y - currentPos.y
+        };
+        
+        const dragVector = {
+            x: dragPoint.x - currentPos.x,
+            y: dragPoint.y - currentPos.y
+        };
+        
+        // Check if drag is toward previous coordinate
+        const dotProduct = dragVector.x * backwardVector.x + dragVector.y * backwardVector.y;
+        
+        if (dotProduct > 0) {
+            // Moving backward - allow it and potentially undo coordinate
+            const backwardLength = Math.sqrt(backwardVector.x * backwardVector.x + backwardVector.y * backwardVector.y);
+            const dragLength = Math.sqrt(dragVector.x * dragVector.x + dragVector.y * dragVector.y);
+            
+            if (backwardLength > 0) {
+                const normalizedBackward = {
+                    x: backwardVector.x / backwardLength,
+                    y: backwardVector.y / backwardLength
+                };
+                
+                const projectionLength = Math.min(dotProduct / backwardLength, backwardLength);
+                const newPosition = {
+                    x: currentPos.x + normalizedBackward.x * projectionLength,
+                    y: currentPos.y + normalizedBackward.y * projectionLength
+                };
+                
+                // Check if we've gone back to previous coordinate
+                const distanceToPrev = Math.sqrt(
+                    Math.pow(newPosition.x - prevCoord.x, 2) + 
+                    Math.pow(newPosition.y - prevCoord.y, 2)
+                );
+                
+                if (distanceToPrev <= this.coordinateTolerance) {
+                    this.currentCoordinateIndex--;
+                    console.log(`Moved back to coordinate ${this.currentCoordinateIndex}`);
+                    return {
+                        canMove: true,
+                        position: { x: prevCoord.x, y: prevCoord.y },
+                        movedBackward: true
+                    };
+                }
+                
+                return {
+                    canMove: true,
+                    position: newPosition
+                };
+            }
+        }
+        
+        return { canMove: false, position: currentPos };
+    }
+
+    updateSliderPosition(position) {
+        if (!this.slider) return;
+        
+        this.slider.setAttribute('cx', position.x);
+        this.slider.setAttribute('cy', position.y);
+        this.lastValidPosition = position;
+    }
+
+    updateProgress() {
+        // Calculate progress based on current coordinate index
+        const progress = this.currentCoordinateIndex / (this.coordinatePoints.length - 1);
+        this.currentProgress = progress;
+        
+        // Update renderer with progress
+        this.renderer.updateTracingProgress(this.currentStroke, progress);
+        
+        // Update arrow position
+        this.updateArrowPosition(progress);
+        
+        // Check for stroke completion
+        if (this.currentCoordinateIndex >= this.coordinatePoints.length - 1) {
+            this.completeCurrentStroke();
         }
     }
 
@@ -203,13 +441,7 @@ class TracePathManager {
         
         this.isDragging = false;
         
-        // If we're not far enough along the path, reset to last valid position
-        if (this.currentProgress < 0.1) {
-            this.resetSliderPosition();
-            this.isTracing = false;
-        }
-        
-        console.log('Ended tracing. Progress:', this.currentProgress);
+        console.log('Ended tracing. Progress:', this.currentProgress, 'Coordinate:', this.currentCoordinateIndex);
     }
 
     getEventPoint(event) {
@@ -246,107 +478,6 @@ class TracePathManager {
         return distance <= CONFIG.SLIDER_SIZE;
     }
 
-    getProgressAlongPath(point) {
-        if (!this.pathElementCache) return null;
-        
-        let closestDistance = Infinity;
-        let closestProgress = null;
-        
-        // More samples for better accuracy with stricter tolerance
-        const samples = Math.max(100, Math.floor(this.pathLengthCache / 3));
-        
-        for (let i = 0; i <= samples; i++) {
-            const progress = i / samples;
-            const pathLength = progress * this.pathLengthCache;
-            const pathPoint = this.pathElementCache.getPointAtLength(pathLength);
-            
-            const distance = Math.sqrt(
-                Math.pow(point.x - pathPoint.x, 2) +
-                Math.pow(point.y - pathPoint.y, 2)
-            );
-            
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestProgress = progress;
-            }
-        }
-        
-        // Much stricter tolerance - must stay very close to the path
-        if (closestDistance <= CONFIG.PATH_TOLERANCE) {
-            // Ensure progress only moves forward (prevent going backward)
-            if (closestProgress >= this.currentProgress - 0.02) { // Very small backward allowance
-                return closestProgress;
-            }
-        }
-        
-        return null;
-    }
-
-    updateProgress(progress, point) {
-        // Smooth progress updates - don't allow big jumps backward
-        const maxProgressJump = 0.1;
-        if (progress < this.currentProgress - maxProgressJump) {
-            progress = this.currentProgress;
-        }
-        
-        this.currentProgress = Math.max(this.currentProgress, progress);
-        this.lastValidPosition = point;
-        
-        // Update slider position
-        const pathPoint = this.pathElementCache.getPointAtLength(this.currentProgress * this.pathLengthCache);
-        this.slider.setAttribute('cx', pathPoint.x);
-        this.slider.setAttribute('cy', pathPoint.y);
-        
-        // Update arrow position
-        this.updateArrowPosition(this.currentProgress);
-        
-        // Update renderer with progress
-        this.renderer.updateTracingProgress(this.currentStroke, this.currentProgress);
-        
-        // Check for stroke completion
-        if (this.currentProgress >= 0.95) {
-            this.completeCurrentStroke();
-        }
-    }
-
-    handleInvalidPosition(point) {
-        // Calculate distance from last valid position
-        const distance = Math.sqrt(
-            Math.pow(point.x - this.lastValidPosition.x, 2) +
-            Math.pow(point.y - this.lastValidPosition.y, 2)
-        );
-        
-        // If too far from path, stop tracing
-        if (distance > CONFIG.PATH_TOLERANCE * 2) {
-            console.log('Too far from path, stopping trace');
-            this.stopTracing();
-        }
-    }
-
-    stopTracing() {
-        this.isTracing = false;
-        this.isDragging = false;
-        
-        // Animate slider back to last valid position
-        this.resetSliderPosition();
-    }
-
-    resetSliderPosition() {
-        if (!this.slider || !this.lastValidPosition) return;
-        
-        // Smoothly animate back to last valid position
-        this.slider.style.transition = CONFIG.SLIDER_TRANSITION_SPEED;
-        this.slider.setAttribute('cx', this.lastValidPosition.x);
-        this.slider.setAttribute('cy', this.lastValidPosition.y);
-        
-        // Remove transition after animation
-        setTimeout(() => {
-            if (this.slider) {
-                this.slider.style.transition = '';
-            }
-        }, 100);
-    }
-
     completeCurrentStroke() {
         console.log(`Completing stroke ${this.currentStroke}`);
         
@@ -363,10 +494,7 @@ class TracePathManager {
         
         // Remove slider and arrow after fade
         setTimeout(() => {
-            if (this.slider) {
-                this.slider.remove();
-                this.slider = null;
-            }
+            this.removeSlider();
             if (this.arrow) {
                 this.arrow.remove();
                 this.arrow = null;
@@ -396,10 +524,7 @@ class TracePathManager {
 
     cleanup() {
         // Remove all created elements
-        if (this.slider) {
-            this.slider.remove();
-            this.slider = null;
-        }
+        this.removeSlider();
         if (this.arrow) {
             this.arrow.remove();
             this.arrow = null;
@@ -408,7 +533,9 @@ class TracePathManager {
         this.isTracing = false;
         this.isDragging = false;
         this.currentProgress = 0;
+        this.currentCoordinateIndex = 0;
         this.lastValidPosition = null;
+        this.coordinatePoints = [];
     }
 
     reset() {
@@ -419,23 +546,36 @@ class TracePathManager {
     }
 
     // Debug methods
-    showPathSamples() {
-        if (!CONFIG.DEBUG_MODE || !this.pathElementCache) return;
+    showCoordinatePoints() {
+        if (!CONFIG.DEBUG_MODE) return;
         
-        const samples = 20;
-        for (let i = 0; i <= samples; i++) {
-            const progress = i / samples;
-            const point = this.pathElementCache.getPointAtLength(progress * this.pathLengthCache);
-            
+        // Remove existing debug points
+        const existing = this.svg.querySelectorAll('.debug-coordinate');
+        existing.forEach(el => el.remove());
+        
+        this.coordinatePoints.forEach((coord, index) => {
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.setAttribute('cx', point.x);
-            circle.setAttribute('cy', point.y);
-            circle.setAttribute('r', 3);
-            circle.setAttribute('fill', 'red');
-            circle.setAttribute('class', 'debug-sample');
+            circle.setAttribute('cx', coord.x);
+            circle.setAttribute('cy', coord.y);
+            circle.setAttribute('r', 5);
+            circle.setAttribute('fill', index === this.currentCoordinateIndex ? 'red' : 'blue');
+            circle.setAttribute('stroke', 'white');
+            circle.setAttribute('stroke-width', 1);
+            circle.setAttribute('class', 'debug-coordinate');
+            
+            // Add number label
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', coord.x);
+            text.setAttribute('y', coord.y - 10);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', '10');
+            text.setAttribute('fill', 'black');
+            text.setAttribute('class', 'debug-coordinate');
+            text.textContent = index;
             
             this.svg.appendChild(circle);
-        }
+            this.svg.appendChild(text);
+        });
     }
 
     highlightToleranceArea(point) {
@@ -449,7 +589,7 @@ class TracePathManager {
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.setAttribute('cx', point.x);
         circle.setAttribute('cy', point.y);
-        circle.setAttribute('r', CONFIG.PATH_TOLERANCE);
+        circle.setAttribute('r', this.coordinateTolerance);
         circle.setAttribute('fill', 'rgba(255,255,0,0.2)');
         circle.setAttribute('stroke', 'yellow');
         circle.setAttribute('stroke-width', 1);
