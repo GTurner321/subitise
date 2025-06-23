@@ -18,10 +18,10 @@ class TraceGameController {
         this.audioEnabled = CONFIG.AUDIO_ENABLED;
         
         // DOM elements
-        this.modal = null;
-        this.playAgainBtn = null;
-        this.numberWordDisplay = null;
-        this.traceContainer = null;
+        this.modal = document.getElementById('gameModal');
+        this.playAgainBtn = document.getElementById('playAgainBtn');
+        this.numberWordDisplay = document.getElementById('numberWord');
+        this.traceContainer = document.getElementById('traceContainer');
         
         // Game progression
         this.numbersSequence = [...CONFIG.NUMBERS_SEQUENCE];
@@ -223,7 +223,7 @@ class TraceGameController {
         // Clean up path manager
         this.pathManager.cleanup();
         
-        // Add rainbow piece
+        // Add rainbow piece - this is the key reward system
         const pieces = this.rainbow.addPiece();
         console.log(`Rainbow pieces: ${pieces}/${CONFIG.RAINBOW_PIECES}`);
         
@@ -289,12 +289,13 @@ class TraceGameController {
         // Clean up current tracing
         this.pathManager.cleanup();
         
-        // Show the completion modal
+        // The rainbow should already be in celebration mode from the final addPiece() call
+        // Now show the completion modal
         if (this.modal) {
             this.modal.classList.remove('hidden');
         }
         
-        // Start bear celebration
+        // Start bear celebration when modal opens - this matches your addition game pattern
         this.bear.startCelebration();
         
         // Speak completion message
