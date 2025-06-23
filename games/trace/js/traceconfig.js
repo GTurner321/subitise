@@ -3,7 +3,7 @@ const CONFIG = {
     RAINBOW_PIECES: 10,
     
     SLIDER_SIZE: 40,
-    PATH_TOLERANCE: 50, // Large capture zone for easy dragging
+    PATH_TOLERANCE: 50,
     FILL_COLOR: '#90EE90',
     OUTLINE_COLOR: '#333333',
     SLIDER_COLOR: '#FF6B6B',
@@ -34,7 +34,7 @@ const CONFIG = {
         0: {
             strokes: [{
                 id: 'oval_coords',
-                startPoint: { x: 140, y: 200 }, // Scaled start point (flipped Y)
+                startPoint: { x: 140, y: 200 },
                 coordinates: [
                     { x: 0, y: 100 }, { x: 1, y: 120 }, { x: 2, y: 128 }, { x: 4, y: 139 }, 
                     { x: 6, y: 147 }, { x: 8, y: 154 }, { x: 10, y: 160 }, { x: 15, y: 171 }, 
@@ -55,31 +55,7 @@ const CONFIG = {
                 description: 'Draw 0 using precise coordinates',
                 type: 'coordinates'
             }]
-        9: {
-            strokes: [{
-                id: 'nine_coords',
-                startPoint: { x: 254, y: 150 }, // Starting at coordinate (95,150) scaled
-                coordinates: [
-                    { x: 95, y: 150 }, { x: 94, y: 160 }, { x: 92, y: 167 }, { x: 90, y: 172 }, 
-                    { x: 85, y: 181 }, { x: 80, y: 186 }, { x: 75, y: 191 }, { x: 70, y: 194 }, 
-                    { x: 65, y: 196 }, { x: 60, y: 198 }, { x: 55, y: 199 }, { x: 50, y: 200 }, 
-                    { x: 45, y: 200 }, { x: 40, y: 199 }, { x: 35, y: 198 }, { x: 30, y: 196 }, 
-                    { x: 25, y: 194 }, { x: 20, y: 191 }, { x: 15, y: 186 }, { x: 10, y: 181 }, 
-                    { x: 8, y: 178 }, { x: 6, y: 174 }, { x: 4, y: 170 }, { x: 2, y: 164 }, 
-                    { x: 1, y: 160 }, { x: 0, y: 150 }, { x: 1, y: 140 }, { x: 2, y: 136 }, 
-                    { x: 4, y: 130 }, { x: 6, y: 126 }, { x: 8, y: 122 }, { x: 10, y: 119 }, 
-                    { x: 15, y: 114 }, { x: 20, y: 109 }, { x: 25, y: 106 }, { x: 30, y: 104 }, 
-                    { x: 35, y: 102 }, { x: 40, y: 101 }, { x: 45, y: 100 }, { x: 50, y: 100 }, 
-                    { x: 55, y: 101 }, { x: 60, y: 102 }, { x: 65, y: 104 }, { x: 70, y: 106 }, 
-                    { x: 75, y: 109 }, { x: 80, y: 114 }, { x: 85, y: 119 }, { x: 90, y: 128 }, 
-                    { x: 92, y: 133 }, { x: 94, y: 140 }, { x: 95, y: 150 }, { x: 100, y: 190 }, 
-                    { x: 95, y: 150 }, { x: 80, y: 0 }
-                ],
-                description: 'Draw 9 using precise coordinates',
-                type: 'coordinates'
-            }]
-        }
-    },
+        },
         1: {
             strokes: [{
                 id: 'line',
@@ -91,7 +67,7 @@ const CONFIG = {
         2: {
             strokes: [{
                 id: 'complete_two_coords',
-                startPoint: { x: 140, y: 250 }, // Scaled start point
+                startPoint: { x: 140, y: 250 },
                 coordinates: [
                     { x: 0, y: 150 }, { x: 1, y: 160 }, { x: 2, y: 164 }, { x: 4, y: 170 }, 
                     { x: 6, y: 174 }, { x: 8, y: 177 }, { x: 10, y: 180 }, { x: 15, y: 186 }, 
@@ -111,7 +87,7 @@ const CONFIG = {
         3: {
             strokes: [{
                 id: 'three_coords',
-                startPoint: { x: 140, y: 110 }, // Scaled start point (flipped Y)
+                startPoint: { x: 140, y: 110 },
                 coordinates: [
                     { x: 0, y: 190 }, { x: 1, y: 191 }, { x: 2, y: 191 }, { x: 4, y: 192 }, 
                     { x: 6, y: 193 }, { x: 8, y: 194 }, { x: 10, y: 195 }, { x: 15, y: 197 }, 
@@ -145,7 +121,7 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'angle_line',
-                    startPoint: { x: 176, y: 100 }, // Scaled start point for (30,200)
+                    startPoint: { x: 176, y: 100 },
                     coordinates: [
                         { x: 30, y: 200 }, { x: 0, y: 75 }, { x: 100, y: 75 }
                     ],
@@ -154,7 +130,7 @@ const CONFIG = {
                 },
                 {
                     id: 'vertical_line',
-                    startPoint: { x: 212, y: 160 }, // Scaled start point for (60,40)
+                    startPoint: { x: 212, y: 160 },
                     coordinates: [
                         { x: 60, y: 40 }, { x: 60, y: 0 }
                     ],
@@ -167,7 +143,7 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'top_horizontal',
-                    startPoint: { x: 140, y: 100 }, // Scaled start point for (0,200)
+                    startPoint: { x: 140, y: 100 },
                     coordinates: [
                         { x: 0, y: 200 }, { x: 100, y: 200 }
                     ],
@@ -176,7 +152,7 @@ const CONFIG = {
                 },
                 {
                     id: 'vertical_and_curve',
-                    startPoint: { x: 140, y: 100 }, // Scaled start point for (0,200)
+                    startPoint: { x: 140, y: 100 },
                     coordinates: [
                         { x: 0, y: 200 }, { x: 0, y: 125 }, { x: 25, y: 125 }, { x: 30, y: 125 }, 
                         { x: 35, y: 124 }, { x: 40, y: 124 }, { x: 45, y: 123 }, { x: 50, y: 121 }, 
@@ -200,7 +176,7 @@ const CONFIG = {
         6: {
             strokes: [{
                 id: 'six_coords',
-                startPoint: { x: 218, y: 100 }, // Starting at coordinate (65,200) scaled
+                startPoint: { x: 218, y: 100 },
                 coordinates: [
                     { x: 65, y: 200 }, { x: 60, y: 199 }, { x: 55, y: 197 }, { x: 50, y: 194 }, 
                     { x: 45, y: 191 }, { x: 40, y: 186 }, { x: 35, y: 181 }, { x: 30, y: 175 }, 
@@ -229,7 +205,7 @@ const CONFIG = {
         7: {
             strokes: [{
                 id: 'seven_coords',
-                startPoint: { x: 140, y: 100 }, // Starting at coordinate (0,200) scaled
+                startPoint: { x: 140, y: 100 },
                 coordinates: [
                     { x: 0, y: 200 }, { x: 10, y: 200 }, { x: 20, y: 200 }, { x: 30, y: 200 },
                     { x: 40, y: 200 }, { x: 50, y: 200 }, { x: 60, y: 200 }, { x: 70, y: 200 },
@@ -239,14 +215,14 @@ const CONFIG = {
                     { x: 50, y: 10 }, { x: 45, y: 5 }, { x: 40, y: 2 }, { x: 35, y: 1 },
                     { x: 33, y: 0 }
                 ],
-                description: 'Draw 7 using precise coordinates - horizontal line then diagonal',
+                description: 'Draw 7 using precise coordinates',
                 type: 'coordinates'
             }]
         },
         8: {
             strokes: [{
                 id: 'eight_coords',
-                startPoint: { x: 254, y: 147.5 }, // Starting at coordinate (95,152.5) scaled
+                startPoint: { x: 254, y: 147.5 },
                 coordinates: [
                     { x: 95, y: 152.5 }, { x: 94, y: 162.5 }, { x: 92, y: 169.5 }, { x: 90, y: 174.5 }, 
                     { x: 85, y: 182.5 }, { x: 80, y: 188 }, { x: 75, y: 192 }, { x: 70, y: 195 }, 
@@ -275,145 +251,32 @@ const CONFIG = {
                     { x: 85, y: 122.5 }, { x: 90, y: 130.5 }, { x: 92, y: 135.5 }, { x: 94, y: 142.5 }, 
                     { x: 95, y: 152.5 }
                 ],
-                description: 'Draw 8 using precise coordinates - figure eight shape',
+                description: 'Draw 8 using precise coordinates',
                 type: 'coordinates'
-            }]
-        },: 70, y: 100 }, { x: 60, y: 110 },
-                    { x: 50, y: 120 }, { x: 40, y: 130 }, { x: 30, y: 140 }, { x: 20, y: 150 },
-                    { x: 10, y: 160 }, { x: 0, y: 170 }, { x: 0, y: 175 }, { x: 10, y: 175 },
-                    { x: 20, y: 175 }, { x: 30, y: 175 }, { x: 40, y: 175 }, { x: 50, y: 175 },
-                    { x: 60, y: 175 }, { x: 70, y: 175 }, { x: 80, y: 175 }, { x: 90, y: 175 },
-                    { x: 100, y: 175 }
-                ],
-                description: 'Draw 2 using precise coordinates',
-                type: 'coordinates'
-            }]
-        },
-        3: {
-            strokes: [{
-                id: 'three_coords',
-                startPoint: { x: 140, y: 110 },
-                coordinates: [
-                    { x: 0, y: 90 }, { x: 10, y: 85 }, { x: 20, y: 82 }, { x: 30, y: 80 },
-                    { x: 40, y: 80 }, { x: 50, y: 80 }, { x: 60, y: 80 }, { x: 70, y: 82 },
-                    { x: 80, y: 85 }, { x: 90, y: 90 }, { x: 95, y: 95 }, { x: 98, y: 100 },
-                    { x: 100, y: 105 }, { x: 98, y: 110 }, { x: 95, y: 115 }, { x: 90, y: 120 },
-                    { x: 80, y: 125 }, { x: 70, y: 128 }, { x: 60, y: 130 }, { x: 50, y: 130 },
-                    { x: 40, y: 130 }, { x: 50, y: 130 }, { x: 60, y: 130 }, { x: 70, y: 132 },
-                    { x: 80, y: 135 }, { x: 90, y: 140 }, { x: 95, y: 145 }, { x: 98, y: 150 },
-                    { x: 100, y: 155 }, { x: 98, y: 160 }, { x: 95, y: 165 }, { x: 90, y: 170 },
-                    { x: 80, y: 175 }, { x: 70, y: 178 }, { x: 60, y: 180 }, { x: 50, y: 180 },
-                    { x: 40, y: 180 }, { x: 30, y: 180 }, { x: 20, y: 178 }, { x: 10, y: 175 },
-                    { x: 0, y: 170 }
-                ],
-                description: 'Draw 3 using precise coordinates',
-                type: 'coordinates'
-            }]
-        },
-        4: {
-            strokes: [
-                {
-                    id: 'angle_line_coords',
-                    startPoint: { x: 176, y: 100 },
-                    coordinates: [
-                        { x: 30, y: 0 }, { x: 25, y: 20 }, { x: 20, y: 40 }, { x: 15, y: 60 },
-                        { x: 10, y: 80 }, { x: 5, y: 100 }, { x: 0, y: 120 }, { x: 20, y: 120 },
-                        { x: 40, y: 120 }, { x: 60, y: 120 }, { x: 80, y: 120 }, { x: 100, y: 120 }
-                    ],
-                    description: 'Draw the angled line and horizontal line',
-                    type: 'coordinates'
-                },
-                {
-                    id: 'vertical_line_coords',
-                    startPoint: { x: 212, y: 160 },
-                    coordinates: [
-                        { x: 60, y: 40 }, { x: 60, y: 20 }, { x: 60, y: 0 }
-                    ],
-                    description: 'Draw the vertical line',
-                    type: 'coordinates'
-                }
-            ]
-        },
-        5: {
-            strokes: [{
-                id: 'five_coords',
-                startPoint: { x: 140, y: 100 },
-                coordinates: [
-                    { x: 0, y: 0 }, { x: 20, y: 0 }, { x: 40, y: 0 }, { x: 60, y: 0 },
-                    { x: 80, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 20 }, { x: 80, y: 20 },
-                    { x: 60, y: 20 }, { x: 40, y: 20 }, { x: 20, y: 20 }, { x: 0, y: 20 },
-                    { x: 0, y: 40 }, { x: 0, y: 60 }, { x: 0, y: 80 }, { x: 0, y: 100 },
-                    { x: 20, y: 100 }, { x: 40, y: 100 }, { x: 60, y: 102 }, { x: 80, y: 105 },
-                    { x: 90, y: 110 }, { x: 95, y: 115 }, { x: 98, y: 120 }, { x: 100, y: 125 },
-                    { x: 100, y: 130 }, { x: 98, y: 135 }, { x: 95, y: 140 }, { x: 90, y: 145 },
-                    { x: 80, y: 150 }, { x: 70, y: 153 }, { x: 60, y: 155 }, { x: 50, y: 155 },
-                    { x: 40, y: 155 }, { x: 30, y: 153 }, { x: 20, y: 150 }, { x: 10, y: 145 },
-                    { x: 0, y: 140 }
-                ],
-                description: 'Draw 5 using precise coordinates',
-                type: 'coordinates'
-            }]
-        },
-        6: {
-            strokes: [{
-                id: 'six_coords',
-                startPoint: { x: 218, y: 100 }, // Starting at coordinate (65,200) scaled
-                coordinates: [
-                    { x: 65, y: 200 }, { x: 60, y: 199 }, { x: 55, y: 197 }, { x: 50, y: 194 }, 
-                    { x: 45, y: 191 }, { x: 40, y: 186 }, { x: 35, y: 181 }, { x: 30, y: 175 }, 
-                    { x: 25, y: 167 }, { x: 20, y: 158 }, { x: 15, y: 147 }, { x: 10, y: 132 }, 
-                    { x: 8, y: 125 }, { x: 6, y: 117 }, { x: 4, y: 107 }, { x: 2, y: 93 }, 
-                    { x: 1, y: 84 }, { x: 0, y: 60 }, { x: 1, y: 48 }, { x: 2, y: 43 }, 
-                    { x: 4, y: 36 }, { x: 6, y: 32 }, { x: 8, y: 27 }, { x: 10, y: 24 }, 
-                    { x: 15, y: 17 }, { x: 20, y: 12 }, { x: 25, y: 8 }, { x: 30, y: 5 }, 
-                    { x: 35, y: 3 }, { x: 40, y: 1 }, { x: 45, y: 0 }, { x: 50, y: 0 }, 
-                    { x: 55, y: 0 }, { x: 60, y: 1 }, { x: 65, y: 3 }, { x: 70, y: 5 }, 
-                    { x: 75, y: 8 }, { x: 80, y: 12 }, { x: 85, y: 17 }, { x: 90, y: 24 }, 
-                    { x: 92, y: 27 }, { x: 94, y: 32 }, { x: 96, y: 36 }, { x: 98, y: 43 }, 
-                    { x: 99, y: 48 }, { x: 100, y: 60 }, { x: 99, y: 72 }, { x: 98, y: 77 }, 
-                    { x: 96, y: 84 }, { x: 94, y: 88 }, { x: 92, y: 93 }, { x: 90, y: 96 }, 
-                    { x: 85, y: 103 }, { x: 80, y: 108 }, { x: 75, y: 112 }, { x: 70, y: 115 }, 
-                    { x: 65, y: 117 }, { x: 60, y: 119 }, { x: 55, y: 120 }, { x: 50, y: 120 }, 
-                    { x: 45, y: 120 }, { x: 40, y: 119 }, { x: 35, y: 117 }, { x: 30, y: 115 }, 
-                    { x: 25, y: 112 }, { x: 20, y: 108 }, { x: 15, y: 103 }, { x: 10, y: 96 }, 
-                    { x: 8, y: 93 }, { x: 6, y: 88 }, { x: 4, y: 84 }, { x: 2, y: 77 }, 
-                    { x: 1, y: 72 }, { x: 0, y: 60 }
-                ],
-                description: 'Draw 6 using precise coordinates',
-                type: 'coordinates'
-            }]
-        },
-        7: {
-            strokes: [{
-                id: 'seven_coords',
-                startPoint: { x: 140, y: 100 }, // Starting at coordinate (0,200) scaled
-                coordinates: [
-                    { x: 0, y: 200 }, { x: 10, y: 200 }, { x: 20, y: 200 }, { x: 30, y: 200 },
-                    { x: 40, y: 200 }, { x: 50, y: 200 }, { x: 60, y: 200 }, { x: 70, y: 200 },
-                    { x: 80, y: 200 }, { x: 90, y: 200 }, { x: 100, y: 200 }, { x: 95, y: 180 },
-                    { x: 90, y: 160 }, { x: 85, y: 140 }, { x: 80, y: 120 }, { x: 75, y: 100 },
-                    { x: 70, y: 80 }, { x: 65, y: 60 }, { x: 60, y: 40 }, { x: 55, y: 20 },
-                    { x: 50, y: 10 }, { x: 45, y: 5 }, { x: 40, y: 2 }, { x: 35, y: 1 },
-                    { x: 33, y: 0 }
-                ],
-                description: 'Draw 7 using precise coordinates - horizontal line then diagonal',
-                type: 'coordinates'
-            }]
-        },
-        8: {
-            strokes: [{
-                id: 'figure_eight_continuous',
-                startPoint: { x: 240, y: 130 },
-                path: 'M 240 130 C 240 115 225 100 200 100 C 175 100 160 115 160 130 C 160 145 175 160 200 160 C 225 160 240 175 240 200 C 240 225 225 240 200 240 C 175 240 160 255 160 270 C 160 285 175 300 200 300 C 225 300 240 285 240 270 C 240 255 225 240 200 240 C 175 240 160 225 160 200 C 160 175 175 160 200 160 C 225 160 240 145 240 130',
-                description: 'Draw figure-8 in one continuous motion, crossing in middle'
             }]
         },
         9: {
             strokes: [{
-                id: 'nine',
-                startPoint: { x: 250, y: 140 },
-                path: 'M 250 140 C 250 115 225 100 200 100 C 175 100 150 115 150 140 C 150 165 175 180 200 180 C 225 180 250 165 250 140 L 250 300',
-                description: 'Draw 9'
+                id: 'nine_coords',
+                startPoint: { x: 254, y: 150 },
+                coordinates: [
+                    { x: 95, y: 150 }, { x: 94, y: 160 }, { x: 92, y: 167 }, { x: 90, y: 172 }, 
+                    { x: 85, y: 181 }, { x: 80, y: 186 }, { x: 75, y: 191 }, { x: 70, y: 194 }, 
+                    { x: 65, y: 196 }, { x: 60, y: 198 }, { x: 55, y: 199 }, { x: 50, y: 200 }, 
+                    { x: 45, y: 200 }, { x: 40, y: 199 }, { x: 35, y: 198 }, { x: 30, y: 196 }, 
+                    { x: 25, y: 194 }, { x: 20, y: 191 }, { x: 15, y: 186 }, { x: 10, y: 181 }, 
+                    { x: 8, y: 178 }, { x: 6, y: 174 }, { x: 4, y: 170 }, { x: 2, y: 164 }, 
+                    { x: 1, y: 160 }, { x: 0, y: 150 }, { x: 1, y: 140 }, { x: 2, y: 136 }, 
+                    { x: 4, y: 130 }, { x: 6, y: 126 }, { x: 8, y: 122 }, { x: 10, y: 119 }, 
+                    { x: 15, y: 114 }, { x: 20, y: 109 }, { x: 25, y: 106 }, { x: 30, y: 104 }, 
+                    { x: 35, y: 102 }, { x: 40, y: 101 }, { x: 45, y: 100 }, { x: 50, y: 100 }, 
+                    { x: 55, y: 101 }, { x: 60, y: 102 }, { x: 65, y: 104 }, { x: 70, y: 106 }, 
+                    { x: 75, y: 109 }, { x: 80, y: 114 }, { x: 85, y: 119 }, { x: 90, y: 128 }, 
+                    { x: 92, y: 133 }, { x: 94, y: 140 }, { x: 95, y: 150 }, { x: 100, y: 190 }, 
+                    { x: 95, y: 150 }, { x: 80, y: 0 }
+                ],
+                description: 'Draw 9 using precise coordinates',
+                type: 'coordinates'
             }]
         }
     },
