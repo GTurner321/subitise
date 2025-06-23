@@ -72,18 +72,7 @@ const CONFIG = {
                 type: 'coordinates'
             }]
         },
-        2: {
-            strokes: [{
-                id: 'complete_two_coords',
-                startPoint: { x: 140, y: 250 },
-                coordinates: [
-                    { x: 0, y: 150 }, { x: 1, y: 160 }, { x: 2, y: 164 }, { x: 4, y: 170 }, 
-                    { x: 6, y: 174 }, { x: 8, y: 177 }, { x: 10, y: 180 }, { x: 15, y: 186 }, 
-                    { x: 20, y: 190 }, { x: 25, y: 193 }, { x: 30, y: 196 }, { x: 35, y: 198 }, 
-                    { x: 40, y: 199 }, { x: 45, y: 200 }, { x: 50, y: 200 }, { x: 55, y: 200 }, 
-                    { x: 60, y: 199 }, { x: 65, y: 198 }, { x: 70, y: 196 }, { x: 75, y: 193 }, 
-                    { x: 80, y: 190 }, { x: 85, y: 186 }, { x: 90, y: 180 }, { x: 92, y: 177 }, 
-                    { x: 94, y: 174 }, { x: 96, y: 170 }, { x: 98, y: 164 }, { x: 99, y: 160 }, 
+ x: 98, y: 164 }, { x: 99, y: 160 }, 
                     { x: 100, y: 150 }, { x: 99, y: 140 }, { x: 98, y: 136 }, { x: 96, y: 130 }, 
                     { x: 94, y: 126 }, { x: 92, y: 123 }, { x: 90, y: 120 }, 
                     { x: 80, y: 100 }, { x: 70, y: 80 }, { x: 60, y: 60 }, { x: 50, y: 40 }, 
@@ -134,28 +123,20 @@ const CONFIG = {
             strokes: [
                 {
                     id: 'angle_line',
-                    startPoint: { x: 176, y: 100 },
+                    startPoint: { x: 170, y: 300 },
                     coordinates: [
-                        { x: 30, y: 200 }, 
-                        { x: 25, y: 175 }, { x: 20, y: 150 }, { x: 15, y: 125 }, { x: 10, y: 100 }, 
-                        { x: 5, y: 87.5 }, { x: 0, y: 75 }, 
-                        { x: 10, y: 75 }, { x: 20, y: 75 }, { x: 30, y: 75 }, { x: 40, y: 75 }, 
-                        { x: 50, y: 75 }, { x: 60, y: 75 }, { x: 70, y: 75 }, { x: 80, y: 75 }, 
-                        { x: 90, y: 75 }, { x: 100, y: 75 }
+                        { x: 30, y: 200 }, { x: 0, y: 75 }, { x: 100, y: 75 }
                     ],
                     description: 'Draw the angled line and horizontal line',
                     type: 'coordinates'
                 },
                 {
                     id: 'vertical_line',
-                    startPoint: { x: 212, y: 100 },
+                    startPoint: { x: 260, y: 140 },
                     coordinates: [
-                        { x: 60, y: 200 }, 
-                        { x: 60, y: 180 }, { x: 60, y: 160 }, { x: 60, y: 140 }, { x: 60, y: 120 }, 
-                        { x: 60, y: 100 }, { x: 60, y: 80 }, { x: 60, y: 60 }, { x: 60, y: 40 }, 
-                        { x: 60, y: 20 }, { x: 60, y: 0 }
+                        { x: 60, y: 40 }, { x: 60, y: 0 }
                     ],
-                    description: 'Draw the full vertical line from top to bottom',
+                    description: 'Draw the vertical line',
                     type: 'coordinates'
                 }
             ]
@@ -231,17 +212,11 @@ const CONFIG = {
         7: {
             strokes: [{
                 id: 'seven_coords',
-                startPoint: { x: 140, y: 100 },
+                startPoint: { x: 140, y: 300 },
                 coordinates: [
-                    { x: 0, y: 200 }, { x: 10, y: 200 }, { x: 20, y: 200 }, { x: 30, y: 200 },
-                    { x: 40, y: 200 }, { x: 50, y: 200 }, { x: 60, y: 200 }, { x: 70, y: 200 },
-                    { x: 80, y: 200 }, { x: 90, y: 200 }, { x: 100, y: 200 }, 
-                    { x: 95, y: 180 }, { x: 90, y: 160 }, { x: 85, y: 140 }, { x: 80, y: 120 }, 
-                    { x: 75, y: 100 }, { x: 70, y: 80 }, { x: 65, y: 60 }, { x: 60, y: 40 }, 
-                    { x: 55, y: 20 }, { x: 50, y: 10 }, { x: 45, y: 5 }, { x: 40, y: 2 }, 
-                    { x: 35, y: 1 }, { x: 33, y: 0 }
+                    { x: 0, y: 200 }, { x: 100, y: 200 }, { x: 33, y: 0 }
                 ],
-                description: 'Draw 7 with straight diagonal line',
+                description: 'Draw 7 with exact coordinates',
                 type: 'coordinates'
             }]
         },
@@ -284,7 +259,7 @@ const CONFIG = {
         9: {
             strokes: [{
                 id: 'nine_coords',
-                startPoint: { x: 254, y: 150 },
+                startPoint: { x: 235, y: 250 },
                 coordinates: [
                     { x: 95, y: 150 }, { x: 94, y: 160 }, { x: 92, y: 167 }, { x: 90, y: 172 }, 
                     { x: 85, y: 181 }, { x: 80, y: 186 }, { x: 75, y: 191 }, { x: 70, y: 194 }, 
@@ -298,13 +273,10 @@ const CONFIG = {
                     { x: 35, y: 102 }, { x: 40, y: 101 }, { x: 45, y: 100 }, { x: 50, y: 100 }, 
                     { x: 55, y: 101 }, { x: 60, y: 102 }, { x: 65, y: 104 }, { x: 70, y: 106 }, 
                     { x: 75, y: 109 }, { x: 80, y: 114 }, { x: 85, y: 119 }, { x: 90, y: 128 }, 
-                    { x: 92, y: 133 }, { x: 94, y: 140 }, { x: 95, y: 150 }, 
-                    { x: 95, y: 140 }, { x: 95, y: 130 }, { x: 95, y: 120 }, { x: 95, y: 110 }, 
-                    { x: 95, y: 100 }, { x: 95, y: 90 }, { x: 95, y: 80 }, { x: 95, y: 70 }, 
-                    { x: 95, y: 60 }, { x: 95, y: 50 }, { x: 95, y: 40 }, { x: 95, y: 30 }, 
-                    { x: 95, y: 20 }, { x: 95, y: 10 }, { x: 95, y: 0 }
+                    { x: 92, y: 133 }, { x: 94, y: 140 }, { x: 95, y: 150 }, { x: 100, y: 190 }, 
+                    { x: 95, y: 150 }, { x: 80, y: 0 }
                 ],
-                description: 'Draw 9: circle then straight line down',
+                description: 'Draw 9 with exact coordinates',
                 type: 'coordinates'
             }]
         }
