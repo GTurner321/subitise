@@ -1,9 +1,17 @@
-const CONFIG = {
+9: {
+            strokes: [{
+                id: 'nine_coords',
+                startPoint: { x: 254, y: 150 },
+                coordinates: [
+                    { x: 95, y: 150 }, { x: 94, y: 160 }, { x: 92, y: 167 }, { x: 90, y: 172 }, 
+                    { x: 85, y: 181 }, { x: 80, y: 186 }, { x: 75, y: 191 }, { x: 70, y: 194 }, 
+                    { x: 65, y: 196 }, { x: 60, y: 198 }, { x: 55, y: 199 }, { x: 50, y: 200 }, 
+                    { x: 45, y: 200 }, { x: 40, y: 199 }, { x: 35, yconst CONFIG = {
     NUMBERS_TO_COMPLETE: 10,
     RAINBOW_PIECES: 10,
     
     SLIDER_SIZE: 40,
-    PATH_TOLERANCE: 50,
+    PATH_TOLERANCE: 80, // Increased tolerance for easier dragging
     FILL_COLOR: '#90EE90',
     OUTLINE_COLOR: '#333333',
     SLIDER_COLOR: '#FF6B6B',
@@ -85,8 +93,15 @@ const CONFIG = {
                     { x: 80, y: 190 }, { x: 85, y: 186 }, { x: 90, y: 180 }, { x: 92, y: 177 }, 
                     { x: 94, y: 174 }, { x: 96, y: 170 }, { x: 98, y: 164 }, { x: 99, y: 160 }, 
                     { x: 100, y: 150 }, { x: 99, y: 140 }, { x: 98, y: 136 }, { x: 96, y: 130 }, 
-                    { x: 94, y: 126 }, { x: 92, y: 123 }, { x: 90, y: 120 }, { x: 0, y: 0 }, 
-                    { x: 100, y: 0 }
+                    { x: 94, y: 126 }, { x: 92, y: 123 }, { x: 90, y: 120 }, 
+                    // More points along the diagonal to corner
+                    { x: 80, y: 100 }, { x: 70, y: 80 }, { x: 60, y: 60 }, { x: 50, y: 40 }, 
+                    { x: 40, y: 20 }, { x: 30, y: 10 }, { x: 20, y: 5 }, { x: 10, y: 2 }, 
+                    { x: 5, y: 1 }, { x: 0, y: 0 }, 
+                    // More points along the horizontal bottom line
+                    { x: 10, y: 0 }, { x: 20, y: 0 }, { x: 30, y: 0 }, { x: 40, y: 0 }, 
+                    { x: 50, y: 0 }, { x: 60, y: 0 }, { x: 70, y: 0 }, { x: 80, y: 0 }, 
+                    { x: 90, y: 0 }, { x: 100, y: 0 }
                 ],
                 description: 'Draw 2 using precise coordinates',
                 type: 'coordinates'
@@ -107,8 +122,8 @@ const CONFIG = {
                     { x: 100, y: 150 }, { x: 99, y: 141 }, { x: 98, y: 137 }, { x: 96, y: 132 }, 
                     { x: 94, y: 129 }, { x: 92, y: 126 }, { x: 90, y: 123 }, { x: 85, y: 118 }, 
                     { x: 80, y: 113 }, { x: 75, y: 110 }, { x: 70, y: 107 }, { x: 65, y: 105 }, 
-                    { x: 60, y: 103 }, { x: 55, y: 102 }, { x: 50, y: 101 }, { x: 45, y: 100 }, 
-                    { x: 40, y: 100 }, { x: 35, y: 100 }, { x: 40, y: 100 }, { x: 45, y: 100 }, 
+                    { x: 60, y: 103 }, { x: 55, y: 102 }, { x: 50, y: 101 }, { x: 45, y: 100.1 }, 
+                    { x: 40, y: 100.1 }, { x: 35, y: 100 }, { x: 40, y: 99.9 }, { x: 45, y: 99.1 }, 
                     { x: 50, y: 99 }, { x: 55, y: 98 }, { x: 60, y: 97 }, { x: 65, y: 95 }, 
                     { x: 70, y: 93 }, { x: 75, y: 90 }, { x: 80, y: 87 }, { x: 85, y: 82 }, 
                     { x: 90, y: 77 }, { x: 92, y: 74 }, { x: 94, y: 71 }, { x: 96, y: 68 }, 
@@ -121,7 +136,7 @@ const CONFIG = {
                     { x: 10, y: 5 }, { x: 8, y: 6 }, { x: 6, y: 7 }, { x: 4, y: 8 }, 
                     { x: 2, y: 9 }, { x: 1, y: 9 }, { x: 0, y: 10 }
                 ],
-                description: 'Draw 3 using precise coordinates',
+                description: 'Draw 3 using precise coordinates with directional preference',
                 type: 'coordinates'
             }]
         },
@@ -131,18 +146,28 @@ const CONFIG = {
                     id: 'angle_line',
                     startPoint: { x: 176, y: 100 },
                     coordinates: [
-                        { x: 30, y: 200 }, { x: 0, y: 75 }, { x: 100, y: 75 }
+                        { x: 30, y: 200 }, 
+                        // More points along diagonal
+                        { x: 25, y: 175 }, { x: 20, y: 150 }, { x: 15, y: 125 }, { x: 10, y: 100 }, 
+                        { x: 5, y: 87.5 }, { x: 0, y: 75 }, 
+                        // More points along horizontal
+                        { x: 10, y: 75 }, { x: 20, y: 75 }, { x: 30, y: 75 }, { x: 40, y: 75 }, 
+                        { x: 50, y: 75 }, { x: 60, y: 75 }, { x: 70, y: 75 }, { x: 80, y: 75 }, 
+                        { x: 90, y: 75 }, { x: 100, y: 75 }
                     ],
                     description: 'Draw the angled line and horizontal line',
                     type: 'coordinates'
                 },
                 {
                     id: 'vertical_line',
-                    startPoint: { x: 212, y: 160 },
+                    startPoint: { x: 212, y: 100 }, // Start from top instead of middle
                     coordinates: [
-                        { x: 60, y: 40 }, { x: 60, y: 0 }
+                        { x: 60, y: 200 }, // Start from top of the 4
+                        { x: 60, y: 180 }, { x: 60, y: 160 }, { x: 60, y: 140 }, { x: 60, y: 120 }, 
+                        { x: 60, y: 100 }, { x: 60, y: 80 }, { x: 60, y: 60 }, { x: 60, y: 40 }, 
+                        { x: 60, y: 20 }, { x: 60, y: 0 }
                     ],
-                    description: 'Draw the vertical line',
+                    description: 'Draw the full vertical line from top to bottom',
                     type: 'coordinates'
                 }
             ]
@@ -153,16 +178,21 @@ const CONFIG = {
                     id: 'top_horizontal',
                     startPoint: { x: 140, y: 100 },
                     coordinates: [
-                        { x: 0, y: 200 }, { x: 100, y: 200 }
+                        { x: 0, y: 200 }, { x: 10, y: 200 }, { x: 20, y: 200 }, { x: 30, y: 200 }, 
+                        { x: 40, y: 200 }, { x: 50, y: 200 }, { x: 60, y: 200 }, { x: 70, y: 200 }, 
+                        { x: 80, y: 200 }, { x: 90, y: 200 }, { x: 100, y: 200 }
                     ],
-                    description: 'Draw the top horizontal line',
+                    description: 'Draw the top horizontal line with more points',
                     type: 'coordinates'
                 },
                 {
                     id: 'vertical_and_curve',
                     startPoint: { x: 140, y: 100 },
                     coordinates: [
-                        { x: 0, y: 200 }, { x: 0, y: 125 }, { x: 25, y: 125 }, { x: 30, y: 125 }, 
+                        { x: 0, y: 200 }, { x: 0, y: 190 }, { x: 0, y: 180 }, { x: 0, y: 170 }, 
+                        { x: 0, y: 160 }, { x: 0, y: 150 }, { x: 0, y: 140 }, { x: 0, y: 130 }, 
+                        { x: 0, y: 125 }, { x: 5, y: 125 }, { x: 10, y: 125 }, { x: 15, y: 125 }, 
+                        { x: 20, y: 125 }, { x: 25, y: 125 }, { x: 30, y: 125 }, 
                         { x: 35, y: 124 }, { x: 40, y: 124 }, { x: 45, y: 123 }, { x: 50, y: 121 }, 
                         { x: 55, y: 120 }, { x: 60, y: 118 }, { x: 65, y: 115 }, { x: 70, y: 113 }, 
                         { x: 75, y: 109 }, { x: 80, y: 105 }, { x: 85, y: 100 }, { x: 90, y: 94 }, 
@@ -176,7 +206,7 @@ const CONFIG = {
                         { x: 8, y: 7 }, { x: 6, y: 9 }, { x: 4, y: 10 }, { x: 2, y: 11 }, 
                         { x: 1, y: 12 }, { x: 0, y: 13 }
                     ],
-                    description: 'Draw the vertical line and curved bottom section',
+                    description: 'Draw the vertical line and curved bottom section with more points',
                     type: 'coordinates'
                 }
             ]
@@ -217,13 +247,14 @@ const CONFIG = {
                 coordinates: [
                     { x: 0, y: 200 }, { x: 10, y: 200 }, { x: 20, y: 200 }, { x: 30, y: 200 },
                     { x: 40, y: 200 }, { x: 50, y: 200 }, { x: 60, y: 200 }, { x: 70, y: 200 },
-                    { x: 80, y: 200 }, { x: 90, y: 200 }, { x: 100, y: 200 }, { x: 95, y: 180 },
-                    { x: 90, y: 160 }, { x: 85, y: 140 }, { x: 80, y: 120 }, { x: 75, y: 100 },
-                    { x: 70, y: 80 }, { x: 65, y: 60 }, { x: 60, y: 40 }, { x: 55, y: 20 },
-                    { x: 50, y: 10 }, { x: 45, y: 5 }, { x: 40, y: 2 }, { x: 35, y: 1 },
-                    { x: 33, y: 0 }
+                    { x: 80, y: 200 }, { x: 90, y: 200 }, { x: 100, y: 200 }, 
+                    // Straight line down from (100,200) to bottom
+                    { x: 95, y: 180 }, { x: 90, y: 160 }, { x: 85, y: 140 }, { x: 80, y: 120 }, 
+                    { x: 75, y: 100 }, { x: 70, y: 80 }, { x: 65, y: 60 }, { x: 60, y: 40 }, 
+                    { x: 55, y: 20 }, { x: 50, y: 10 }, { x: 45, y: 5 }, { x: 40, y: 2 }, 
+                    { x: 35, y: 1 }, { x: 33, y: 0 }
                 ],
-                description: 'Draw 7 using precise coordinates',
+                description: 'Draw 7 with straight diagonal line',
                 type: 'coordinates'
             }]
         },
