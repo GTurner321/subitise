@@ -12,12 +12,12 @@
     
     SLIDER_SIZE: 40,
     PATH_TOLERANCE: 80, // Increased tolerance for easier dragging
-    FILL_COLOR: '#90EE90',
-    OUTLINE_COLOR: '#333333',
+    FILL_COLOR: '#4CAF50', // Brighter green for better visibility in the channel
+    OUTLINE_COLOR: '#2C2C2C', // Darker for better contrast
     SLIDER_COLOR: '#FF6B6B',
     ARROW_COLOR: '#4ECDC4',
-    PATH_WIDTH: 8,
-    OUTLINE_WIDTH: 3,
+    PATH_WIDTH: 12, // Updated to match traced path width
+    OUTLINE_WIDTH: 15, // Thick outline width
     ARROW_OFFSET: 50,
     ARROW_SIZE: 20,
     
