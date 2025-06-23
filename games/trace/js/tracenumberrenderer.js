@@ -207,12 +207,23 @@ class TraceNumberRenderer {
     }
 
     coordinatesToPath(coordinates) {
+        console.log('=== coordinatesToPath called ===');
+        console.log('Input coordinates:', coordinates);
+        console.log('Coordinates length:', coordinates ? coordinates.length : 'null');
+        
         if (!coordinates || coordinates.length === 0) {
             console.error('No coordinates provided to coordinatesToPath');
             return '';
         }
         
-        console.log('Converting coordinates to path:', coordinates);
+        // Check if coordinates are valid
+        for (let i = 0; i < coordinates.length; i++) {
+            const coord = coordinates[i];
+            if (!coord || typeof coord.x === 'undefined' || typeof coord.y === 'undefined') {
+                console.error(`Invalid coordinate at index ${i}:`, coord);
+                return 'M 200 200'; // Fallback
+            }
+        }
         
         // Scale coordinates to fit in the number rectangle (120x200 centered at 200,200)
         // Your coordinates: 0-100 range, with (0,0) at bottom-left
@@ -222,15 +233,12 @@ class TraceNumberRenderer {
         const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2; // 140
         const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2; // 100
         
+        console.log('Scaling factors:', { scaleX, scaleY, offsetX, offsetY });
+        
         let pathData = '';
         
         try {
             coordinates.forEach((coord, index) => {
-                if (!coord || typeof coord.x === 'undefined' || typeof coord.y === 'undefined') {
-                    console.error(`Invalid coordinate at index ${index}:`, coord);
-                    return;
-                }
-                
                 const scaledX = offsetX + (coord.x * scaleX);
                 // Flip Y coordinate: SVG Y increases downward, your coords Y increases upward
                 const scaledY = offsetY + ((200 - coord.y) * scaleY);
@@ -240,9 +248,17 @@ class TraceNumberRenderer {
                 } else {
                     pathData += ` L ${scaledX} ${scaledY}`;
                 }
+                
+                // Log first few coordinates for debugging
+                if (index < 3) {
+                    console.log(`Coord ${index}: (${coord.x}, ${coord.y}) → (${scaledX}, ${scaledY})`);
+                }
             });
             
-            console.log('Generated path data:', pathData);
+            console.log('=== Final path data ===');
+            console.log('Path length:', pathData.length);
+            console.log('Path preview:', pathData.substring(0, 100) + '...');
+            console.log('Path starts with M:', pathData.startsWith('M'));
             
             if (pathData.length === 0) {
                 console.error('Generated empty path data');
