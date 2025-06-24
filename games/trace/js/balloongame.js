@@ -1,3 +1,4 @@
+// Fixed BalloonGame Class - Complete Implementation
 class BalloonGame {
     constructor(svg, renderer) {
         this.svg = svg;
@@ -28,6 +29,8 @@ class BalloonGame {
         this.gameBottom = CONFIG.SVG_HEIGHT - 100; // Above grass area
         this.gameLeft = 50;
         this.gameRight = CONFIG.SVG_WIDTH - 50;
+        
+        console.log('BalloonGame constructor completed successfully');
     }
 
     startGame(correctNumber, onComplete) {
@@ -186,162 +189,7 @@ class BalloonGame {
         numberText.setAttribute('font-size', '28');
         numberText.setAttribute('font-weight', 'bold');
         numberText.setAttribute('fill', 'white');
-        numberText.textContent = this.correctNumber;
-        
-        numberGroup.appendChild(background);
-        numberGroup.appendChild(numberText);
-        
-        this.svg.appendChild(numberGroup);
-        this.fallingNumber.element = numberGroup;
-        
-        console.log(`Created enhanced falling number ${this.correctNumber} at (${x}, ${y})`);
-    }
-
-    animate() {
-        if (!this.isActive) {
-            console.log('Animation stopped - game not active');
-            return;
-        }
-        
-        const currentTime = Date.now();
-        const deltaTime = currentTime - this.startTime;
-        
-        // Update balloons with enhanced movement
-        this.updateBalloons(deltaTime);
-        
-        // Update falling number
-        this.updateFallingNumber(deltaTime);
-        
-        // Continue animation if game is still active
-        if (this.isActive) {
-            this.animationId = requestAnimationFrame(() => this.animate());
-        } else {
-            console.log('Stopping enhanced balloon animation - game completed');
-        }
-    }
-
-    updateBalloons(totalTime) {
-        let allPopped = true;
-        
-        this.balloons.forEach((balloon, index) => {
-            if (balloon.isPopped) return;
-            
-            allPopped = false;
-            
-            // Calculate time-based movement with individual balloon speeds
-            const balloonTime = totalTime;
-            const verticalProgress = balloon.speed * balloonTime / 1000; // Use individual speed
-            const newY = balloon.originalY - verticalProgress;
-            
-            // Enhanced horizontal drift with individual phases for more natural movement
-            const timeInSeconds = balloonTime / 1000;
-            const driftX = Math.sin((timeInSeconds * this.floatFrequency) + balloon.floatOffset) * this.floatAmplitude;
-            const newX = balloon.x + driftX;
-            
-            // Update position
-            if (balloon.element && balloon.element.parentNode) {
-                balloon.element.setAttribute('transform', `translate(${newX}, ${newY})`);
-            } else {
-                console.warn(`Enhanced balloon ${index} element missing or not in DOM`);
-            }
-            
-            // Check if balloon reached top of full screen area
-            if (newY + this.balloonHeight < this.gameTop) {
-                console.log(`Enhanced balloon ${index} reached top, handling...`);
-                if (balloon.isCorrect && !this.correctAnswerRevealed) {
-                    // Correct balloon reached top without being clicked
-                    this.handleCorrectBalloon(index);
-                } else {
-                    // Wrong balloon or already revealed - just pop
-                    this.popBalloon(index);
-                }
-            }
-        });
-        
-        this.allBalloonsPopped = allPopped;
-    }
-
-    updateFallingNumber(totalTime) {
-        if (!this.fallingNumber || !this.fallingNumber.element) return;
-        
-        const fallTime = totalTime / 1000;
-        const newY = this.fallingNumber.y + (this.fallingNumber.fallSpeed * fallTime);
-        
-        // Check if reached bottom (above grass area)
-        if (newY >= this.gameBottom - 50) {
-            this.fallingNumber.element.setAttribute('transform', `translate(${this.fallingNumber.x}, ${this.gameBottom - 50})`);
-            this.fallingNumber.hasReachedBottom = true;
-        } else {
-            this.fallingNumber.element.setAttribute('transform', `translate(${this.fallingNumber.x}, ${newY})`);
-        }
-    }
-
-    completeGame() {
-        if (!this.isActive) {
-            console.log('Enhanced balloon game already completed or not active');
-            return;
-        }
-        
-        console.log('Enhanced balloon game completed!');
-        this.isActive = false; // Set to false to stop animation
-        
-        // Stop animation
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-            this.animationId = null;
-        }
-        
-        // Clean up after showing final state
-        setTimeout(() => {
-            this.cleanup();
-            if (this.onComplete) {
-                this.onComplete();
-            }
-        }, 1500);
-    }
-
-    cleanup() {
-        console.log('Cleaning up enhanced balloon game');
-        
-        // Remove all balloon elements
-        this.balloons.forEach(balloon => {
-            if (balloon.element && balloon.element.parentNode) {
-                balloon.element.remove();
-            }
-        });
-        
-        // Remove falling number
-        if (this.fallingNumber && this.fallingNumber.element && this.fallingNumber.element.parentNode) {
-            this.fallingNumber.element.remove();
-        }
-        
-        // Remove any pop effects
-        const popEffects = this.svg.querySelectorAll('.pop-effect');
-        popEffects.forEach(effect => effect.remove());
-        
-        // Stop animation
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-            this.animationId = null;
-        }
-        
-        this.balloons = [];
-        this.fallingNumber = null;
-        
-        console.log('Enhanced balloon cleanup completed');
-    }
-
-    reset() {
-        console.log('Resetting enhanced balloon game');
-        this.cleanup();
-        this.correctNumber = null;
-        this.correctAnswerRevealed = false;
-        this.allBalloonsPopped = false;
-    }
-}
-
-// Ensure BalloonGame is available globally
-window.BalloonGame = BalloonGame;numberText.setAttribute('pointer-events', 'none'); // Prevent text from blocking clicks
+        numberText.setAttribute('pointer-events', 'none'); // Prevent text from blocking clicks
         numberText.textContent = CONFIG.NUMBER_WORDS[number];
         
         balloonGroup.appendChild(balloonBody);
@@ -692,3 +540,6 @@ window.BalloonGame = BalloonGame;numberText.setAttribute('pointer-events', 'none
         this.allBalloonsPopped = false;
     }
 }
+
+// Ensure BalloonGame is available globally
+window.BalloonGame = BalloonGame;
