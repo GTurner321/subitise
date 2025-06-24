@@ -45,65 +45,13 @@
         </div>
     </div>
     
-    <!-- JavaScript files - Enhanced loading strategy -->
+    <!-- JavaScript files -->
     <script src="js/traceconfig.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
     <script src="js/tracenumberrenderer.js"></script>
     <script src="js/tracepathmanager.js"></script>
     <script src="js/balloongame.js"></script>
-    
-    <!-- Load controller last with enhanced timing -->
-    <script>
-        // Ensure all classes are available before loading controller
-        function initializeGameWhenReady() {
-            // Check if all required classes are available
-            const requiredClasses = [
-                'CONFIG',
-                'Rainbow', 
-                'Bear',
-                'TraceNumberRenderer',
-                'TracePathManager',
-                'BalloonGame'
-            ];
-            
-            let allClassesReady = true;
-            const missingClasses = [];
-            
-            requiredClasses.forEach(className => {
-                if (typeof window[className] === 'undefined') {
-                    allClassesReady = false;
-                    missingClasses.push(className);
-                }
-            });
-            
-            if (allClassesReady) {
-                console.log('✅ All required classes available, loading controller...');
-                
-                // Create script element for controller
-                const controllerScript = document.createElement('script');
-                controllerScript.src = 'js/tracegamecontroller.js';
-                controllerScript.onload = () => {
-                    console.log('✅ TraceGameController loaded successfully');
-                };
-                controllerScript.onerror = () => {
-                    console.error('❌ Failed to load TraceGameController');
-                };
-                document.head.appendChild(controllerScript);
-            } else {
-                console.warn('⚠️ Missing classes:', missingClasses);
-                console.log('🔄 Retrying in 100ms...');
-                setTimeout(initializeGameWhenReady, 100);
-            }
-        }
-        
-        // Start checking when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeGameWhenReady);
-        } else {
-            // DOM already loaded
-            setTimeout(initializeGameWhenReady, 50);
-        }
-    </script>
+    <script src="js/tracegamecontroller.js"></script>
 </body>
 </html>
