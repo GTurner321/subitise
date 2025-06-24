@@ -56,11 +56,18 @@
 
     <!-- TEMPORARY DEBUG - Check if CONFIG is working -->
     <script>
+        console.log('=== CONFIG DEBUG ===');
         console.log('CONFIG loaded:', typeof CONFIG);
         console.log('NUMBER_PATHS available:', CONFIG?.NUMBER_PATHS ? 'YES' : 'NO');
         if (CONFIG?.NUMBER_PATHS) {
             console.log('Available numbers:', Object.keys(CONFIG.NUMBER_PATHS));
+            console.log('Sample number 0 data:', CONFIG.NUMBER_PATHS[0]);
+            console.log('Sample number 1 data:', CONFIG.NUMBER_PATHS[1]);
+        } else {
+            console.log('CONFIG.NUMBER_PATHS is missing!');
         }
+        console.log('Raw CONFIG object:', CONFIG);
+        console.log('==================');
     </script>
 
     <!-- Load game classes -->
