@@ -230,7 +230,7 @@ class TraceGameController {
         const pieces = this.rainbow.addPiece();
         console.log(`Rainbow pieces: ${pieces}/${CONFIG.RAINBOW_PIECES}`);
         
-        // Show number word and speak it
+        // Show number word and speak it (using SAME voice gender as the initial instruction)
         this.showNumberWord();
         
         // Update game progress
@@ -245,7 +245,7 @@ class TraceGameController {
             return;
         }
         
-        // Switch voice gender for next number
+        // Switch voice gender for NEXT number (after current number is fully complete)
         this.switchVoiceGender();
         
         // Move to next number after delay
@@ -270,7 +270,7 @@ class TraceGameController {
         if (numberWord) {
             this.updateNumberWordDisplay(numberWord);
             
-            // Speak the number word using current voice gender
+            // Speak the number word using SAME voice gender as the initial instruction
             if (this.audioEnabled) {
                 setTimeout(() => {
                     this.speakText(numberWord, this.currentVoiceGender);
