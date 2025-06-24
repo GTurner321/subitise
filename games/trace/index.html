@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Number Tracing Game - Paint Fill</title>
+    <title>Number Tracing Game</title>
     <link rel="stylesheet" href="styles/tracemain.css">
-    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
 </head>
 <body>
     <!-- Back button -->
@@ -30,7 +29,6 @@
     <!-- Rainbow container -->
     <div class="rainbow-container" id="rainbow-container">
         <!-- Rainbow SVG will be inserted here -->
-        <svg id="rainbow-svg" class="rainbow-svg"></svg>
     </div>
 
     <!-- Grass band -->
@@ -51,66 +49,31 @@
     <!-- Font Awesome for icons -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     
-    <!-- Load configuration first -->
+    <!-- Load configuration and dependencies -->
     <script src="js/traceconfig.js"></script>
-
-    <!-- DEBUG SCRIPT - Check CONFIG loading -->
-    <script>
-        console.log('=== CONFIG DEBUG INFO ===');
-        console.log('CONFIG available:', typeof CONFIG);
-        console.log('NUMBER_PATHS available:', typeof CONFIG?.NUMBER_PATHS);
-        console.log('Sample number data (0):', CONFIG?.NUMBER_PATHS?.[0]);
-        console.log('Sample number data (1):', CONFIG?.NUMBER_PATHS?.[1]);
-        console.log('All available numbers:', CONFIG?.NUMBER_PATHS ? Object.keys(CONFIG.NUMBER_PATHS) : 'none');
-        console.log('CONFIG.SVG_WIDTH:', CONFIG?.SVG_WIDTH);
-        console.log('CONFIG.SVG_HEIGHT:', CONFIG?.SVG_HEIGHT);
-        console.log('CONFIG.SLIDER_SIZE:', CONFIG?.SLIDER_SIZE);
-        console.log('CONFIG.SLIDER_COLOR:', CONFIG?.SLIDER_COLOR);
-        console.log('=========================');
-    </script>
-
-    <!-- Load shared dependencies -->
-    <!-- <script src="../../js/shared/rainbow.js"></script> -->
+    <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
 
-    <!-- Load core classes in dependency order -->
-    <script src="js/tracenumberrenderer.js"></script>  <!-- Must be before pathmanager -->
-    <script src="js/tracepathmanager.js"></script>     <!-- Must be before controller -->
-    <script src="js/balloongame.js"></script>          <!-- Must be before controller -->
-
-    <!-- Load controller last -->
-    <script src="js/tracegamecontroller.js"></script>
-
-    <!-- Verify classes loaded -->
+    <!-- TEMPORARY DEBUG - Check if CONFIG is working -->
     <script>
-        console.log('=== CLASS LOADING DEBUG ===');
-        console.log('TraceNumberRenderer available:', typeof TraceNumberRenderer);
-        console.log('TracePathManager available:', typeof TracePathManager);
-        console.log('BalloonGame available:', typeof BalloonGame);
-        console.log('Bear available:', typeof Bear);
-        console.log('============================');
+        console.log('CONFIG loaded:', typeof CONFIG);
+        console.log('NUMBER_PATHS available:', CONFIG?.NUMBER_PATHS ? 'YES' : 'NO');
+        if (CONFIG?.NUMBER_PATHS) {
+            console.log('Available numbers:', Object.keys(CONFIG.NUMBER_PATHS));
+        }
     </script>
+
+    <!-- Load game classes -->
+    <script src="js/tracenumberrenderer.js"></script>
+    <script src="js/tracepathmanager.js"></script>
+    <script src="js/balloongame.js"></script>
+    <script src="js/tracegamecontroller.js"></script>
 
     <!-- Initialize game -->
     <script>
-        console.log('=== GAME INITIALIZATION ===');
-        try {
-            const gameController = new TraceGameController();
-            console.log('TraceGameController created successfully');
-            
-            // Temporarily disable rainbow for paint testing
-            gameController.rainbow = null;
-            console.log('Rainbow disabled for paint system testing');
-            
-            gameController.initializeGame().then(() => {
-                console.log('Game initialization completed');
-            }).catch(error => {
-                console.error('Game initialization failed:', error);
-            });
-        } catch (error) {
-            console.error('Failed to create TraceGameController:', error);
-        }
-        console.log('==============================');
+        // Start the game
+        const gameController = new TraceGameController();
+        gameController.initializeGame();
     </script>
 </body>
 </html>
