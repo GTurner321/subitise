@@ -180,7 +180,8 @@ class BalloonGame {
         // Create falling number figure
         this.createFallingNumber(balloon.x + this.balloonWidth / 2, balloon.y + this.balloonHeight / 2);
         
-        // Speak the number using the game controller's current voice gender
+        // Speak the number using the game controller's SAME voice gender as the tracing instruction
+        // This ensures both "trace the number X" and "X" use the same voice before switching
         if (window.traceGame && window.traceGame.audioEnabled) {
             setTimeout(() => {
                 window.traceGame.speakText(CONFIG.NUMBER_WORDS[this.correctNumber], window.traceGame.currentVoiceGender);
