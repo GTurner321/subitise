@@ -31,7 +31,10 @@ class BalloonGame {
     }
 
     startGame(correctNumber, onComplete) {
-        if (this.isActive) return;
+        if (this.isActive) {
+            console.log('Game already active, skipping start');
+            return;
+        }
         
         console.log('Starting balloon game for number:', correctNumber);
         
@@ -50,9 +53,14 @@ class BalloonGame {
         
         // Start animation immediately
         this.startTime = Date.now();
+        
+        console.log('About to start animation, isActive:', this.isActive);
+        console.log('Created balloons:', this.balloons.length);
+        
+        // Force start animation
         this.animate();
         
-        console.log('Balloon game started with animation');
+        console.log('Balloon game started with animation, animationId:', this.animationId);
     }
 
     createBalloons() {
@@ -324,7 +332,7 @@ class BalloonGame {
 
     animate() {
         if (!this.isActive) {
-            console.log('Animation stopped - game not active');
+            console.log('Animation stopped - game not active, isActive:', this.isActive);
             return;
         }
         
@@ -340,12 +348,18 @@ class BalloonGame {
         // Check game completion
         this.checkGameCompletion();
         
-        // Continue animation
-        this.animationId = requestAnimationFrame(() => this.animate());
+        // Continue animation if game is still active
+        if (this.isActive) {
+            this.animationId = requestAnimationFrame(() => this.animate());
+        } else {
+            console.log('Stopping animation - game completed');
+        }
     }
 
     updateBalloons(totalTime) {
         let allPopped = true;
+        
+        console.log(`Updating balloons - totalTime: ${totalTime}, active balloons: ${this.balloons.filter(b => !b.isPopped).length}`);
         
         this.balloons.forEach((balloon, index) => {
             if (balloon.isPopped) return;
@@ -367,6 +381,9 @@ class BalloonGame {
             // Update position
             if (balloon.element && balloon.element.parentNode) {
                 balloon.element.setAttribute('transform', `translate(${newX}, ${newY})`);
+                console.log(`Balloon ${index} moved to (${newX.toFixed(1)}, ${newY.toFixed(1)})`);
+            } else {
+                console.warn(`Balloon ${index} element missing or not in DOM`);
             }
             
             // Check if balloon reached top
@@ -383,6 +400,7 @@ class BalloonGame {
         });
         
         this.allBalloonsPopped = allPopped;
+        console.log(`All balloons popped: ${allPopped}`);
     }
 
     updateFallingNumber(totalTime) {
@@ -400,11 +418,22 @@ class BalloonGame {
     }
 
     checkGameCompletion() {
-        // Game is complete when:
-        // 1. All balloons are popped AND
-        // 2. Either the correct answer was revealed OR all balloons reached the top
+        // Only complete if we have proper end conditions
         if (this.allBalloonsPopped && (this.correctAnswerRevealed || this.hasCorrectNumberFallen())) {
+            console.log('Game completion conditions met:', {
+                allBalloonsPopped: this.allBalloonsPopped,
+                correctAnswerRevealed: this.correctAnswerRevealed,
+                hasCorrectNumberFallen: this.hasCorrectNumberFallen()
+            });
             this.completeGame();
+        } else {
+            // Log current state for debugging
+            console.log('Game not complete yet:', {
+                allBalloonsPopped: this.allBalloonsPopped,
+                correctAnswerRevealed: this.correctAnswerRevealed,
+                hasCorrectNumberFallen: this.hasCorrectNumberFallen(),
+                activeBalloons: this.balloons.filter(b => !b.isPopped).length
+            });
         }
     }
 
@@ -444,6 +473,8 @@ class BalloonGame {
     }
 
     cleanup() {
+        console.log('Cleaning up balloon game, was active:', this.isActive);
+        
         // Remove all balloon elements
         this.balloons.forEach(balloon => {
             if (balloon.element && balloon.element.parentNode) {
@@ -468,7 +499,9 @@ class BalloonGame {
         
         this.balloons = [];
         this.fallingNumber = null;
-        this.isActive = false;
+        // Don't set isActive to false here - only set it false in completeGame()
+        
+        console.log('Cleanup completed');
     }
 
     reset() {
