@@ -76,7 +76,7 @@ class TracePathManager {
         // Remove existing slider
         this.removeSlider();
         
-        // Create new slider circle
+        // Create new slider circle (larger for full screen)
         this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         this.slider.setAttribute('cx', position.x);
         this.slider.setAttribute('cy', position.y);
@@ -346,7 +346,7 @@ class TracePathManager {
             clientY = event.clientY;
         }
         
-        // Convert to SVG coordinates
+        // Convert to SVG coordinates using dynamic CONFIG dimensions
         const scaleX = CONFIG.SVG_WIDTH / rect.width;
         const scaleY = CONFIG.SVG_HEIGHT / rect.height;
         
@@ -522,6 +522,19 @@ class TracePathManager {
         // Check if stroke is complete
         if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
             this.completeCurrentStroke();
+        }
+    }
+
+    updateDirectionArrow() {
+        // Remove current arrow and create new one with updated direction
+        if (this.directionArrow) {
+            this.removeDirectionArrow();
+            // Only recreate if we're not actively dragging
+            if (!this.isDragging) {
+                setTimeout(() => {
+                    this.createDirectionArrow();
+                }, 100);
+            }
         }
     }
 
