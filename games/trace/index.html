@@ -30,7 +30,7 @@
     <!-- Rainbow container -->
     <div class="rainbow-container" id="rainbow-container">
         <!-- Rainbow SVG will be inserted here -->
-        <div id="rainbow-arcs"></div>
+        <svg id="rainbow-svg" class="rainbow-svg"></svg>
     </div>
 
     <!-- Grass band -->
@@ -70,7 +70,7 @@
     </script>
 
     <!-- Load shared dependencies -->
-    <script src="../../js/shared/rainbow.js"></script>
+    <!-- <script src="../../js/shared/rainbow.js"></script> -->
     <script src="../../js/shared/Bear.js"></script>
 
     <!-- Load core classes in dependency order -->
@@ -100,6 +100,7 @@
             
             // Temporarily disable rainbow for paint testing
             gameController.rainbow = null;
+            console.log('Rainbow disabled for paint system testing');
             
             gameController.initializeGame().then(() => {
                 console.log('Game initialization completed');
