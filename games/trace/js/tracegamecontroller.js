@@ -58,11 +58,23 @@ class TraceGameController {
         // Create path manager
         this.pathManager = new TracePathManager(this.renderer.svg, this.renderer);
         
-        // Create balloon game with full screen support - check if BalloonGame is available
-        if (typeof BalloonGame !== 'undefined') {
-            this.balloonGame = new BalloonGame(this.renderer.svg, this.renderer);
-        } else {
-            console.warn('BalloonGame class not found, balloon mini-game will be disabled');
+        // Wait a moment for all classes to be available, then create balloon game
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Create balloon game with full screen support
+        try {
+            if (typeof BalloonGame !== 'undefined') {
+                this.balloonGame = new BalloonGame(this.renderer.svg, this.renderer);
+                console.log('BalloonGame successfully created');
+            } else if (typeof window.BalloonGame !== 'undefined') {
+                this.balloonGame = new window.BalloonGame(this.renderer.svg, this.renderer);
+                console.log('BalloonGame successfully created from window object');
+            } else {
+                console.warn('BalloonGame class not found, balloon mini-game will be disabled');
+                this.balloonGame = null;
+            }
+        } catch (error) {
+            console.error('Error creating BalloonGame:', error);
             this.balloonGame = null;
         }
         
