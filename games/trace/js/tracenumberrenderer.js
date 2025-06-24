@@ -73,7 +73,7 @@ class TraceNumberRenderer {
             // Process and scale all coordinates first
             this.processCoordinates(numberConfig.strokes);
             
-            // Create the visible number outline
+            // Create the visible number outline with improved layering for number 4
             this.createNumberOutline(numberConfig.strokes);
             
             console.log(`Successfully rendered number ${number}`);
@@ -140,6 +140,13 @@ class TraceNumberRenderer {
     }
 
     createNumberOutline(strokes) {
+        // Special handling for number 4 to prevent overlapping outlines
+        if (this.currentNumber === 4) {
+            this.createNumber4Outline(strokes);
+            return;
+        }
+        
+        // Standard rendering for other numbers
         strokes.forEach((stroke, strokeIndex) => {
             if (stroke.type === 'coordinates' && this.scaledCoordinates[strokeIndex]) {
                 const coords = this.scaledCoordinates[strokeIndex];
@@ -154,22 +161,22 @@ class TraceNumberRenderer {
                     }
                 });
                 
-                // Layer 1: Thick black outline (15px wide)
+                // Layer 1: Thick black outline (increased to 23px from 15px - 50% thicker)
                 const thickOutlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 thickOutlinePath.setAttribute('d', pathData);
                 thickOutlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR);
-                thickOutlinePath.setAttribute('stroke-width', '15');
+                thickOutlinePath.setAttribute('stroke-width', '23');
                 thickOutlinePath.setAttribute('fill', 'none');
                 thickOutlinePath.setAttribute('stroke-linecap', 'round');
                 thickOutlinePath.setAttribute('stroke-linejoin', 'round');
                 thickOutlinePath.setAttribute('class', `thick-outline-stroke-${strokeIndex}`);
                 this.svg.appendChild(thickOutlinePath);
                 
-                // Layer 2: White interior (10px wide) - creates the "channel" to fill
+                // Layer 2: White interior (increased to 15px from 10px - 50% thicker) - creates the "channel" to fill
                 const whiteInteriorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 whiteInteriorPath.setAttribute('d', pathData);
                 whiteInteriorPath.setAttribute('stroke', 'white');
-                whiteInteriorPath.setAttribute('stroke-width', '10');
+                whiteInteriorPath.setAttribute('stroke-width', '15');
                 whiteInteriorPath.setAttribute('fill', 'none');
                 whiteInteriorPath.setAttribute('stroke-linecap', 'round');
                 whiteInteriorPath.setAttribute('stroke-linejoin', 'round');
@@ -179,6 +186,64 @@ class TraceNumberRenderer {
                 console.log(`Created layered outline for stroke ${strokeIndex} with ${coords.length} points`);
             }
         });
+        
+        // Add debug rectangle if in debug mode
+        if (CONFIG.DEBUG_MODE) {
+            this.addDebugRectangle();
+        }
+    }
+
+    createNumber4Outline(strokes) {
+        // For number 4, create all black outlines first, then all white interiors
+        // This prevents the overlapping black outline issue
+        
+        const allPathData = [];
+        
+        // Collect all path data first
+        strokes.forEach((stroke, strokeIndex) => {
+            if (stroke.type === 'coordinates' && this.scaledCoordinates[strokeIndex]) {
+                const coords = this.scaledCoordinates[strokeIndex];
+                
+                let pathData = '';
+                coords.forEach((coord, index) => {
+                    if (index === 0) {
+                        pathData += `M ${coord.x} ${coord.y}`;
+                    } else {
+                        pathData += ` L ${coord.x} ${coord.y}`;
+                    }
+                });
+                
+                allPathData.push({ pathData, strokeIndex });
+            }
+        });
+        
+        // First pass: Create all black outlines
+        allPathData.forEach(({ pathData, strokeIndex }) => {
+            const thickOutlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            thickOutlinePath.setAttribute('d', pathData);
+            thickOutlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR);
+            thickOutlinePath.setAttribute('stroke-width', '23');
+            thickOutlinePath.setAttribute('fill', 'none');
+            thickOutlinePath.setAttribute('stroke-linecap', 'round');
+            thickOutlinePath.setAttribute('stroke-linejoin', 'round');
+            thickOutlinePath.setAttribute('class', `thick-outline-stroke-${strokeIndex}`);
+            this.svg.appendChild(thickOutlinePath);
+        });
+        
+        // Second pass: Create all white interiors
+        allPathData.forEach(({ pathData, strokeIndex }) => {
+            const whiteInteriorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            whiteInteriorPath.setAttribute('d', pathData);
+            whiteInteriorPath.setAttribute('stroke', 'white');
+            whiteInteriorPath.setAttribute('stroke-width', '15');
+            whiteInteriorPath.setAttribute('fill', 'none');
+            whiteInteriorPath.setAttribute('stroke-linecap', 'round');
+            whiteInteriorPath.setAttribute('stroke-linejoin', 'round');
+            whiteInteriorPath.setAttribute('class', `white-interior-stroke-${strokeIndex}`);
+            this.svg.appendChild(whiteInteriorPath);
+        });
+        
+        console.log(`Created proper layered outline for number 4 with ${allPathData.length} strokes`);
         
         // Add debug rectangle if in debug mode
         if (CONFIG.DEBUG_MODE) {
@@ -244,17 +309,23 @@ class TraceNumberRenderer {
             existingPath.remove();
         }
         
-        // Create new traced path (12px wide to fill the channel nicely)
+        // Create new traced path (increased to 18px from 12px - 50% thicker to fill the channel nicely)
         const tracedPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         tracedPath.setAttribute('d', pathData);
         tracedPath.setAttribute('stroke', CONFIG.FILL_COLOR);
-        tracedPath.setAttribute('stroke-width', '12'); // 12px to fill the 10px white channel with slight overlap
+        tracedPath.setAttribute('stroke-width', '18'); // 18px to fill the 15px white channel with slight overlap
         tracedPath.setAttribute('fill', 'none');
         tracedPath.setAttribute('stroke-linecap', 'round');
         tracedPath.setAttribute('stroke-linejoin', 'round');
         tracedPath.setAttribute('class', `traced-path-${strokeIndex}`);
         
-        this.svg.appendChild(tracedPath);
+        // Insert traced path before any sliders to ensure slider stays on top
+        const sliders = this.svg.querySelectorAll('.trace-slider, .direction-arrow');
+        if (sliders.length > 0) {
+            this.svg.insertBefore(tracedPath, sliders[0]);
+        } else {
+            this.svg.appendChild(tracedPath);
+        }
         
         return tracedPath;
     }
