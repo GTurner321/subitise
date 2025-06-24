@@ -4,7 +4,8 @@ class TraceNumberRenderer {
         this.currentNumber = null;
         this.currentStroke = 0;
         this.container = null;
-        this.scaledCoordinates = []; // Store scaled coordinates for each stroke
+        this.scaledCoordinates = [];
+        this.handleResize = null;
     }
 
     initialize(containerId) {
@@ -19,6 +20,18 @@ class TraceNumberRenderer {
         console.log('Container found:', this.container);
         this.createSVG();
         
+        // Add window resize handler for dynamic dimensions
+        this.handleResize = () => {
+            if (this.svg) {
+                this.updateSVGDimensions();
+                // Re-render current number if one is displayed
+                if (this.currentNumber !== null) {
+                    this.renderNumber(this.currentNumber);
+                }
+            }
+        };
+        window.addEventListener('resize', this.handleResize);
+        
         console.log('SVG created:', this.svg);
         return true;
     }
@@ -29,9 +42,7 @@ class TraceNumberRenderer {
         
         // Create main SVG element
         this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        this.svg.setAttribute('viewBox', `0 0 ${CONFIG.SVG_WIDTH} ${CONFIG.SVG_HEIGHT}`);
-        this.svg.setAttribute('width', '100%');
-        this.svg.setAttribute('height', '100%');
+        this.updateSVGDimensions();
         this.svg.setAttribute('class', 'trace-svg');
         
         console.log('Created SVG element:', this.svg);
@@ -48,6 +59,14 @@ class TraceNumberRenderer {
         
         this.container.appendChild(this.svg);
         console.log('SVG added to container');
+    }
+
+    updateSVGDimensions() {
+        // Update SVG dimensions dynamically using CONFIG getters
+        this.svg.setAttribute('viewBox', `0 0 ${CONFIG.SVG_WIDTH} ${CONFIG.SVG_HEIGHT}`);
+        this.svg.setAttribute('width', '100%');
+        this.svg.setAttribute('height', '100%');
+        console.log(`SVG dimensions updated: ${CONFIG.SVG_WIDTH} x ${CONFIG.SVG_HEIGHT}`);
     }
 
     renderNumber(number) {
@@ -112,13 +131,15 @@ class TraceNumberRenderer {
             }
         }
         
-        // Scale coordinates to fit in the number rectangle
+        // Scale coordinates to fit in the centered number rectangle using dynamic CONFIG
         const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;  // 120px / 100 = 1.2
         const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200; // 200px / 200 = 1.0
-        const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2; // 140
-        const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2; // 100
+        const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2; // Dynamic center
+        const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2; // Dynamic center
         
         console.log('Scaling factors:', { scaleX, scaleY, offsetX, offsetY });
+        console.log('Screen dimensions:', { width: CONFIG.SVG_WIDTH, height: CONFIG.SVG_HEIGHT });
+        console.log('Number center:', { x: CONFIG.NUMBER_CENTER_X, y: CONFIG.NUMBER_CENTER_Y });
         
         const scaledCoords = coordinates.map((coord, index) => {
             const scaledX = offsetX + (coord.x * scaleX);
@@ -161,22 +182,22 @@ class TraceNumberRenderer {
                     }
                 });
                 
-                // Layer 1: Thick black outline (increased to 23px from 15px - 50% thicker)
+                // Layer 1: Thick black outline (increased to 30px for full screen)
                 const thickOutlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 thickOutlinePath.setAttribute('d', pathData);
                 thickOutlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR);
-                thickOutlinePath.setAttribute('stroke-width', '23');
+                thickOutlinePath.setAttribute('stroke-width', '30');
                 thickOutlinePath.setAttribute('fill', 'none');
                 thickOutlinePath.setAttribute('stroke-linecap', 'round');
                 thickOutlinePath.setAttribute('stroke-linejoin', 'round');
                 thickOutlinePath.setAttribute('class', `thick-outline-stroke-${strokeIndex}`);
                 this.svg.appendChild(thickOutlinePath);
                 
-                // Layer 2: White interior (increased to 15px from 10px - 50% thicker) - creates the "channel" to fill
+                // Layer 2: White interior (increased to 20px for full screen) - creates the "channel" to fill
                 const whiteInteriorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 whiteInteriorPath.setAttribute('d', pathData);
                 whiteInteriorPath.setAttribute('stroke', 'white');
-                whiteInteriorPath.setAttribute('stroke-width', '15');
+                whiteInteriorPath.setAttribute('stroke-width', '20');
                 whiteInteriorPath.setAttribute('fill', 'none');
                 whiteInteriorPath.setAttribute('stroke-linecap', 'round');
                 whiteInteriorPath.setAttribute('stroke-linejoin', 'round');
@@ -222,7 +243,7 @@ class TraceNumberRenderer {
             const thickOutlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             thickOutlinePath.setAttribute('d', pathData);
             thickOutlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR);
-            thickOutlinePath.setAttribute('stroke-width', '23');
+            thickOutlinePath.setAttribute('stroke-width', '30');
             thickOutlinePath.setAttribute('fill', 'none');
             thickOutlinePath.setAttribute('stroke-linecap', 'round');
             thickOutlinePath.setAttribute('stroke-linejoin', 'round');
@@ -235,7 +256,7 @@ class TraceNumberRenderer {
             const whiteInteriorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             whiteInteriorPath.setAttribute('d', pathData);
             whiteInteriorPath.setAttribute('stroke', 'white');
-            whiteInteriorPath.setAttribute('stroke-width', '15');
+            whiteInteriorPath.setAttribute('stroke-width', '20');
             whiteInteriorPath.setAttribute('fill', 'none');
             whiteInteriorPath.setAttribute('stroke-linecap', 'round');
             whiteInteriorPath.setAttribute('stroke-linejoin', 'round');
@@ -309,11 +330,11 @@ class TraceNumberRenderer {
             existingPath.remove();
         }
         
-        // Create new traced path (increased to 18px from 12px - 50% thicker to fill the channel nicely)
+        // Create new traced path (increased to 24px for full screen to fill the channel nicely)
         const tracedPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         tracedPath.setAttribute('d', pathData);
         tracedPath.setAttribute('stroke', CONFIG.FILL_COLOR);
-        tracedPath.setAttribute('stroke-width', '18'); // 18px to fill the 15px white channel with slight overlap
+        tracedPath.setAttribute('stroke-width', '24'); // 24px to fill the 20px white channel with slight overlap
         tracedPath.setAttribute('fill', 'none');
         tracedPath.setAttribute('stroke-linecap', 'round');
         tracedPath.setAttribute('stroke-linejoin', 'round');
@@ -368,7 +389,7 @@ class TraceNumberRenderer {
     completeNumber() {
         console.log(`Number ${this.currentNumber} fully completed!`);
         
-        // Add completion effect
+        // Add completion effect with dynamic positioning
         this.addCompletionEffect();
     }
 
@@ -377,11 +398,14 @@ class TraceNumberRenderer {
         const effectGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         effectGroup.setAttribute('class', 'completion-effect');
         
-        // Add stars around the number
+        // Add stars around the number using dynamic center positioning
         const starPositions = [
-            { x: 100, y: 100 }, { x: 300, y: 100 },
-            { x: 350, y: 200 }, { x: 300, y: 300 },
-            { x: 100, y: 300 }, { x: 50, y: 200 }
+            { x: CONFIG.NUMBER_CENTER_X - 100, y: CONFIG.NUMBER_CENTER_Y - 100 },
+            { x: CONFIG.NUMBER_CENTER_X + 100, y: CONFIG.NUMBER_CENTER_Y - 100 },
+            { x: CONFIG.NUMBER_CENTER_X + 120, y: CONFIG.NUMBER_CENTER_Y },
+            { x: CONFIG.NUMBER_CENTER_X + 100, y: CONFIG.NUMBER_CENTER_Y + 100 },
+            { x: CONFIG.NUMBER_CENTER_X - 100, y: CONFIG.NUMBER_CENTER_Y + 100 },
+            { x: CONFIG.NUMBER_CENTER_X - 120, y: CONFIG.NUMBER_CENTER_Y }
         ];
         
         starPositions.forEach((pos, index) => {
@@ -406,7 +430,7 @@ class TraceNumberRenderer {
         star.setAttribute('y', y);
         star.setAttribute('text-anchor', 'middle');
         star.setAttribute('dominant-baseline', 'middle');
-        star.setAttribute('font-size', '24');
+        star.setAttribute('font-size', '30'); // Larger for full screen
         star.setAttribute('fill', '#FFD700');
         star.setAttribute('class', 'completion-star');
         star.textContent = '✨';
@@ -436,5 +460,14 @@ class TraceNumberRenderer {
         if (this.svg) {
             this.clearSVG();
         }
+    }
+
+    // Clean up method for proper resource management
+    destroy() {
+        if (this.handleResize) {
+            window.removeEventListener('resize', this.handleResize);
+            this.handleResize = null;
+        }
+        this.reset();
     }
 }
