@@ -30,6 +30,7 @@
     <!-- Rainbow container -->
     <div class="rainbow-container" id="rainbow-container">
         <!-- Rainbow SVG will be inserted here -->
+        <div id="rainbow-arcs"></div>
     </div>
 
     <!-- Grass band -->
@@ -96,6 +97,9 @@
         try {
             const gameController = new TraceGameController();
             console.log('TraceGameController created successfully');
+            
+            // Temporarily disable rainbow for paint testing
+            gameController.rainbow = null;
             
             gameController.initializeGame().then(() => {
                 console.log('Game initialization completed');
