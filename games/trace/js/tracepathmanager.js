@@ -288,9 +288,10 @@ class TracePathManager {
         this.lastMovementTime = Date.now();
         this.resetStoppedMovementTimeout();
         
-        // Check if the drag point is still near the slider - if not, stop tracing
+        // Check if the finger is still within acceptable distance of the slider
+        // This is more forgiving than before - finger can be further from slider
         if (!this.isPointNearSlider(point, true)) { // true = during drag
-            console.log('Drag moved outside slider area, stopping trace');
+            console.log('Drag moved too far from slider, stopping trace');
             this.stopTracing();
             return;
         }
@@ -425,7 +426,6 @@ class TracePathManager {
                     bestCoordIndex = i;
                     bestProgress = projectionProgress;
                 }
-                // Note: Removed backward movement to prevent skipping coordinates
             }
         }
         
