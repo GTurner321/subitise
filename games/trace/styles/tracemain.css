@@ -128,87 +128,113 @@ body {
 }
 
 /* ================================
-   RED SLIDER STYLES
+   PAINT-FILL SYSTEM STYLES
    ================================ */
 
-/* Red slider group with smooth transitions */
-.trace-slider-group {
-    transition: opacity 0.1s ease;
+/* Paint start slider with brush icon */
+.paint-start-slider {
     cursor: grab;
+    transition: opacity 0.3s ease;
 }
 
-.trace-slider-group:active {
+.paint-start-slider:active {
     cursor: grabbing;
 }
 
-.trace-slider-group:focus-visible {
+.paint-start-slider:hover .brush-icon {
+    transform: scale(1.1);
+}
+
+.paint-start-slider:focus-visible {
     outline: 3px solid rgba(255, 107, 107, 0.8);
     outline-offset: 5px;
     border-radius: 50%;
 }
 
-/* Individual slider circle styling */
-.slider-circle {
-    transition: all 0.2s ease;
+/* Paint start slider circle styling */
+.paint-start-slider circle {
+    animation: paintSliderPulse 2s ease-in-out infinite;
     filter: drop-shadow(3px 3px 6px rgba(0,0,0,0.3));
 }
 
-.slider-circle:hover {
-    filter: drop-shadow(4px 4px 8px rgba(255,107,107,0.4));
-}
-
-/* Embedded directional arrows in slider */
-.direction-arrow-embedded {
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-
-/* Completion indicator (checkmark) */
-.completion-indicator {
-    pointer-events: none;
-    animation: checkmarkPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes checkmarkPulse {
+@keyframes paintSliderPulse {
     0%, 100% {
-        opacity: 1;
-        transform: scale(1);
+        filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
     }
     50% {
-        opacity: 0.8;
-        transform: scale(1.1);
+        filter: drop-shadow(4px 4px 12px rgba(255,107,107,0.6));
     }
+}
+
+/* Brush icon in slider */
+.brush-icon {
+    pointer-events: none;
+    transition: transform 0.2s ease;
+}
+
+.brush-icon path {
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
+}
+
+/* Paint dots/circles */
+.paint-dot {
+    pointer-events: none;
+    animation: paintDrop 0.3s ease-out;
+    transition: opacity 0.1s ease;
+}
+
+@keyframes paintDrop {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+}
+
+/* Paint group containers */
+.paint-group-0,
+.paint-group-1,
+.paint-group-2,
+.paint-group-3,
+.paint-group-4 {
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.2s ease;
 }
 
 /* ================================
-   GREEN TRACED PATH STYLES
+   PAINTED PATH STYLES
    ================================ */
 
-/* Enhanced traced path styling */
-.traced-path-0,
-.traced-path-1,
-.traced-path-2,
-.traced-path-3,
-.traced-path-4 {
-    transition: stroke-dasharray 0.1s ease-out;
+/* Enhanced painted area styling - replaces traced path styles */
+.painted-area-0,
+.painted-area-1,
+.painted-area-2,
+.painted-area-3,
+.painted-area-4 {
+    transition: opacity 0.2s ease-out;
     filter: drop-shadow(0 0 3px rgba(76, 175, 80, 0.4));
 }
 
-/* Smooth transitions for path progression */
-.trace-svg path[class*="traced-path"] {
-    animation: pathGlow 0.3s ease-out;
+/* Paint mode visual feedback */
+.paint-mode-active .trace-svg {
+    filter: brightness(1.1);
 }
 
-@keyframes pathGlow {
-    0% {
-        filter: drop-shadow(0 0 3px rgba(76, 175, 80, 0.4));
-    }
-    50% {
-        filter: drop-shadow(0 0 8px rgba(76, 175, 80, 0.8));
-    }
-    100% {
-        filter: drop-shadow(0 0 3px rgba(76, 175, 80, 0.4));
-    }
+/* Enhanced cursor feedback during painting */
+.trace-svg.painting {
+    cursor: crosshair;
+}
+
+.trace-svg.painting-invalid {
+    cursor: not-allowed;
 }
 
 /* ================================
@@ -327,29 +353,14 @@ body {
    COMPLETION EFFECTS
    ================================ */
 
-/* Completion effects */
-.completion-effect {
+/* Stroke completion sparkles */
+.stroke-completion-sparkle {
     pointer-events: none;
+    z-index: 20;
 }
 
-.completion-star {
-    animation: starSparkle 1.5s ease-out forwards;
-    transform-origin: center;
-}
-
-@keyframes starSparkle {
-    0% {
-        opacity: 0;
-        transform: scale(0) rotate(0deg);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.2) rotate(180deg);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(0.8) rotate(360deg);
-    }
+.stroke-completion-sparkle path {
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.8));
 }
 
 /* ================================
@@ -521,16 +532,23 @@ body {
         padding: 12px 24px;
     }
     
-    .trace-slider-group {
+    .paint-start-slider {
         transform-origin: center;
     }
     
-    .slider-circle {
-        filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+    .brush-icon {
+        transform: scale(0.9);
     }
     
-    .direction-arrow-embedded path {
-        stroke-width: 1.5;
+    .paint-dot {
+        animation-duration: 0.2s;
+    }
+    
+    .paint-progress-indicator {
+        top: 10px;
+        right: 10px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
     }
     
     .back-button {
@@ -574,8 +592,12 @@ body {
         padding: 10px 20px;
     }
     
-    .trace-slider-group {
+    .paint-start-slider {
         transition: opacity 0.2s ease;
+    }
+    
+    .brush-icon {
+        transform: scale(0.8);
     }
     
     .pop-effect {
@@ -585,6 +607,13 @@ body {
     .falling-number {
         animation-duration: 0.6s;
         animation-iteration-count: 2;
+    }
+    
+    .paint-progress-indicator {
+        top: 5px;
+        right: 5px;
+        padding: 4px 8px;
+        font-size: 0.7rem;
     }
     
     .back-button {
@@ -610,23 +639,28 @@ body {
         border: 2px solid #000;
     }
     
-    .slider-circle {
+    .paint-start-slider circle {
         stroke-width: 4;
         filter: none;
     }
     
-    .traced-path-0,
-    .traced-path-1,
-    .traced-path-2,
-    .traced-path-3,
-    .traced-path-4 {
-        stroke-width: 28;
+    .painted-area-0,
+    .painted-area-1,
+    .painted-area-2,
+    .painted-area-3,
+    .painted-area-4 {
         filter: none;
     }
     
-    .direction-arrow-embedded path {
+    .brush-icon path {
         stroke: black;
         stroke-width: 2;
+        filter: none;
+    }
+    
+    .paint-dot {
+        stroke: black;
+        stroke-width: 1;
     }
 }
 
@@ -641,32 +675,30 @@ body {
         transform: none;
     }
     
-    .completion-star,
     .modal-content,
     .modal h2,
     .balloon-string,
     .falling-number,
-    .completion-indicator,
-    .pop-effect {
+    .pop-effect,
+    .paint-start-slider circle {
         animation: none;
     }
     
-    .trace-slider-group,
-    .slider-circle,
-    .traced-path-0,
-    .traced-path-1,
-    .traced-path-2,
-    .traced-path-3,
-    .traced-path-4 {
+    .paint-start-slider,
+    .paint-dot,
+    .painted-area-0,
+    .painted-area-1,
+    .painted-area-2,
+    .painted-area-3,
+    .painted-area-4 {
         transition: none;
     }
     
-    .pathGlow,
+    .paintSliderPulse,
+    .paintDrop,
     .numberFallFlash,
     .stringFloat,
-    .checkmarkPulse,
     .popBurst,
-    .starSparkle,
     .titleBounce,
     .modalAppear {
         animation: none;
@@ -675,15 +707,15 @@ body {
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
-    .slider-circle {
+    .paint-start-slider circle {
         filter: drop-shadow(3px 3px 6px rgba(255,255,255,0.2));
     }
     
-    .traced-path-0,
-    .traced-path-1,
-    .traced-path-2,
-    .traced-path-3,
-    .traced-path-4 {
+    .painted-area-0,
+    .painted-area-1,
+    .painted-area-2,
+    .painted-area-3,
+    .painted-area-4 {
         filter: drop-shadow(0 0 3px rgba(76, 175, 80, 0.6));
     }
 }
@@ -697,9 +729,10 @@ body {
     .modal,
     .rainbow-container,
     .grass-band,
-    .trace-slider-group,
+    .paint-start-slider,
     .pop-effect,
-    .falling-number {
+    .falling-number,
+    .paint-progress-indicator {
         display: none;
     }
     
@@ -708,12 +741,15 @@ body {
         border: 2px solid #000;
     }
     
-    .traced-path-0,
-    .traced-path-1,
-    .traced-path-2,
-    .traced-path-3,
-    .traced-path-4 {
-        stroke: #000;
+    .painted-area-0,
+    .painted-area-1,
+    .painted-area-2,
+    .painted-area-3,
+    .painted-area-4 {
         filter: none;
+    }
+    
+    .paint-dot {
+        fill: #000;
     }
 }
