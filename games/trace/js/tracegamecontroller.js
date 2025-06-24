@@ -36,6 +36,7 @@ class TraceGameController {
         this.initializeGame();
     }
 
+    // ENHANCED INITIALIZATION WITH PROPER DEPENDENCY MANAGEMENT
     async initializeGame() {
         console.log('Initializing Enhanced Trace Game Controller...');
         
@@ -58,25 +59,11 @@ class TraceGameController {
         // Create path manager
         this.pathManager = new TracePathManager(this.renderer.svg, this.renderer);
         
-        // Wait a moment for all classes to be available, then create balloon game
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // IMPORTANT: Wait for DOM to be fully ready and ensure all classes are loaded
+        await this.waitForDependencies();
         
-        // Create balloon game with full screen support
-        try {
-            if (typeof BalloonGame !== 'undefined') {
-                this.balloonGame = new BalloonGame(this.renderer.svg, this.renderer);
-                console.log('BalloonGame successfully created');
-            } else if (typeof window.BalloonGame !== 'undefined') {
-                this.balloonGame = new window.BalloonGame(this.renderer.svg, this.renderer);
-                console.log('BalloonGame successfully created from window object');
-            } else {
-                console.warn('BalloonGame class not found, balloon mini-game will be disabled');
-                this.balloonGame = null;
-            }
-        } catch (error) {
-            console.error('Error creating BalloonGame:', error);
-            this.balloonGame = null;
-        }
+        // Create balloon game with proper error handling
+        this.initializeBalloonGame();
         
         // Set up event listeners
         this.setupEventListeners();
@@ -85,6 +72,102 @@ class TraceGameController {
         this.startNewNumber();
         
         console.log('Enhanced game initialized successfully');
+    }
+
+    // New method to wait for all dependencies
+    async waitForDependencies() {
+        return new Promise((resolve) => {
+            // Wait for a few animation frames to ensure DOM is stable
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            const checkDependencies = () => {
+                attempts++;
+                
+                // Check if CONFIG is available
+                if (typeof CONFIG === 'undefined') {
+                    console.warn('CONFIG not yet available, waiting...');
+                    if (attempts < maxAttempts) {
+                        requestAnimationFrame(checkDependencies);
+                        return;
+                    }
+                }
+                
+                // Check if SVG is ready
+                if (!this.renderer || !this.renderer.svg) {
+                    console.warn('Renderer SVG not yet ready, waiting...');
+                    if (attempts < maxAttempts) {
+                        requestAnimationFrame(checkDependencies);
+                        return;
+                    }
+                }
+                
+                console.log('All dependencies ready, proceeding with balloon game initialization');
+                resolve();
+            };
+            
+            // Start checking after a small delay
+            setTimeout(checkDependencies, 100);
+        });
+    }
+
+    // New method to properly initialize balloon game
+    initializeBalloonGame() {
+        try {
+            // Multiple attempts to find the BalloonGame class
+            let BalloonGameClass = null;
+            
+            // Try global scope first
+            if (typeof BalloonGame !== 'undefined') {
+                BalloonGameClass = BalloonGame;
+                console.log('Found BalloonGame in global scope');
+            } 
+            // Try window object
+            else if (typeof window.BalloonGame !== 'undefined') {
+                BalloonGameClass = window.BalloonGame;
+                console.log('Found BalloonGame in window object');
+            }
+            // Try direct reference if loaded differently
+            else if (window['BalloonGame']) {
+                BalloonGameClass = window['BalloonGame'];
+                console.log('Found BalloonGame via bracket notation');
+            }
+            
+            if (BalloonGameClass) {
+                // Verify SVG and renderer are ready
+                if (!this.renderer || !this.renderer.svg) {
+                    throw new Error('Renderer or SVG not ready for balloon game initialization');
+                }
+                
+                this.balloonGame = new BalloonGameClass(this.renderer.svg, this.renderer);
+                console.log('BalloonGame successfully created and initialized');
+                
+                // Test the balloon game to make sure it's working
+                if (typeof this.balloonGame.startGame !== 'function') {
+                    throw new Error('BalloonGame instance missing required methods');
+                }
+                
+                console.log('BalloonGame verification passed - all methods available');
+            } else {
+                throw new Error('BalloonGame class not found in any scope');
+            }
+            
+        } catch (error) {
+            console.error('Error creating BalloonGame:', error);
+            console.warn('Balloon mini-game will be disabled due to initialization failure');
+            this.balloonGame = null;
+            
+            // Create a fallback dummy balloon game to prevent crashes
+            this.balloonGame = {
+                startGame: (number, callback) => {
+                    console.log('Dummy balloon game - skipping to callback');
+                    setTimeout(callback, 1000);
+                },
+                cleanup: () => {},
+                reset: () => {},
+                isActive: false
+            };
+        }
     }
 
     findDOMElements() {
@@ -219,7 +302,7 @@ class TraceGameController {
         this.pathManager.reset();
         
         // Reset balloon game if it exists
-        if (this.balloonGame) {
+        if (this.balloonGame && typeof this.balloonGame.reset === 'function') {
             this.balloonGame.reset();
         }
         
@@ -305,16 +388,28 @@ class TraceGameController {
         this.startBalloonMiniGame();
     }
 
+    // Enhanced startBalloonMiniGame method with better error handling
     startBalloonMiniGame() {
         console.log('Starting enhanced balloon mini-game for number:', this.currentNumber);
         
-        // Check if balloon game is available
+        // Check if balloon game is available and properly initialized
         if (!this.balloonGame) {
-            console.warn('Balloon game not available, skipping mini-game');
-            // Skip directly to completion
-            setTimeout(() => {
-                this.onBalloonGameComplete();
-            }, 1000);
+            console.warn('Balloon game not available, using fallback completion');
+            this.onBalloonGameComplete();
+            return;
+        }
+        
+        // Verify the balloon game has required methods
+        if (typeof this.balloonGame.startGame !== 'function') {
+            console.error('Balloon game missing startGame method, using fallback');
+            this.onBalloonGameComplete();
+            return;
+        }
+        
+        // Double-check that we have valid SVG and renderer
+        if (!this.renderer || !this.renderer.svg) {
+            console.error('Renderer/SVG not available for balloon game, using fallback');
+            this.onBalloonGameComplete();
             return;
         }
         
@@ -323,16 +418,36 @@ class TraceGameController {
         // Clear number word display during balloon game
         this.updateNumberWordDisplay('');
         
-        // Start balloon game with completion callback
-        this.balloonGame.startGame(this.currentNumber, () => {
-            this.onBalloonGameComplete();
-        });
+        try {
+            // Start balloon game with completion callback
+            this.balloonGame.startGame(this.currentNumber, () => {
+                this.onBalloonGameComplete();
+            });
+            console.log('Balloon game started successfully');
+        } catch (error) {
+            console.error('Error starting balloon game:', error);
+            // Fallback to immediate completion
+            this.playingBalloonGame = false;
+            setTimeout(() => {
+                this.onBalloonGameComplete();
+            }, 500);
+        }
     }
 
+    // Enhanced error handling for game completion
     onBalloonGameComplete() {
         console.log('Enhanced balloon mini-game completed for number:', this.currentNumber);
         
         this.playingBalloonGame = false;
+        
+        // Clean up balloon game safely
+        if (this.balloonGame && typeof this.balloonGame.cleanup === 'function') {
+            try {
+                this.balloonGame.cleanup();
+            } catch (error) {
+                console.warn('Error during balloon game cleanup:', error);
+            }
+        }
         
         // Update game progress
         this.numbersCompleted++;
@@ -342,17 +457,17 @@ class TraceGameController {
             console.log('Rainbow completed! Starting end game sequence...');
             setTimeout(() => {
                 this.completeGame();
-            }, 1000); // Shorter delay since balloon game provided the interaction
+            }, 1000);
             return;
         }
         
-        // Switch voice gender for NEXT number (after current number is fully complete)
+        // Switch voice gender for NEXT number
         this.switchVoiceGender();
         
         // Move to next number after delay
         setTimeout(() => {
             this.moveToNextNumber();
-        }, 1000); // Shorter delay since balloon game was the main interaction
+        }, 1000);
     }
 
     switchVoiceGender() {
@@ -577,14 +692,13 @@ class TraceGameController {
         // Remove event listeners
         window.removeEventListener('resize', this.handleResize);
         document.removeEventListener('visibilitychange', this.handleVisibilityChange);
-        document.removeEventListener('keydown', this.handleKeyDown);
         
         // Clean up components
         if (this.pathManager) {
             this.pathManager.cleanup();
         }
         
-        if (this.balloonGame) {
+        if (this.balloonGame && typeof this.balloonGame.cleanup === 'function') {
             this.balloonGame.cleanup();
         }
         
