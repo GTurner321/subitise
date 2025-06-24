@@ -8,16 +8,12 @@ class TraceNumberRenderer {
         
         // Paint system state
         this.paintProgress = {};
+        this.paintLayers = {}; // Background paint layers for each stroke
         
-        // Number paths data
-        this.numberPaths = {};
+        // Number elements from existing config rendering
         this.strokeElements = {};
         
-        // SVG dimensions
-        this.svgWidth = CONFIG.SVG_WIDTH;
-        this.svgHeight = CONFIG.SVG_HEIGHT;
-        
-        console.log('TraceNumberRenderer initialized');
+        console.log('TraceNumberRenderer initialized for paint-fill system');
     }
 
     initialize(containerId) {
@@ -30,32 +26,14 @@ class TraceNumberRenderer {
         // Create SVG element
         this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         this.svg.setAttribute('class', 'trace-svg');
-        this.svg.setAttribute('viewBox', `0 0 ${this.svgWidth} ${this.svgHeight}`);
+        this.svg.setAttribute('viewBox', `0 0 ${CONFIG.SVG_WIDTH} ${CONFIG.SVG_HEIGHT}`);
         this.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        
-        // Set initial dimensions
-        this.updateSVGDimensions();
-        
-        // Create defs section for masks and patterns
-        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        this.svg.appendChild(defs);
         
         // Add to container
         container.appendChild(this.svg);
         
         console.log('SVG renderer initialized successfully');
         return true;
-    }
-
-    updateSVGDimensions() {
-        if (!this.svg) return;
-        
-        const container = this.svg.parentElement;
-        if (container) {
-            const rect = container.getBoundingClientRect();
-            this.svg.style.width = '100%';
-            this.svg.style.height = '100%';
-        }
     }
 
     renderNumber(number) {
@@ -73,177 +51,290 @@ class TraceNumberRenderer {
         this.completedStrokes.clear();
         this.paintProgress = {};
         this.strokeElements = {};
+        this.paintLayers = {};
 
-        // Get number path data
-        const numberData = this.getNumberData(number);
-        if (!numberData) {
-            console.error('No path data found for number:', number);
+        // Get number data from CONFIG (your existing system)
+        const numberData = CONFIG.NUMBER_PATHS[number];
+        if (!numberData || !numberData.strokes) {
+            console.error('No path data found for number in CONFIG:', number);
             return false;
         }
 
-        // Render the number outline
-        this.renderNumberOutline(numberData);
+        // Create paint background layers FIRST (behind number)
+        this.createPaintBackgroundLayers(numberData);
         
-        console.log(`Number ${number} rendered successfully`);
+        // Render the number using YOUR existing config structure
+        this.renderNumberFromConfig(numberData, number);
+        
+        console.log(`Number ${number} rendered successfully with paint system`);
         return true;
     }
 
-    getNumberData(number) {
-        // This would typically come from your CONFIG.NUMBER_PATHS
-        // For now, I'll provide a basic structure
-        const numberPaths = {
-            0: [
-                "M 200 150 Q 150 100 100 150 Q 100 200 100 300 Q 100 400 150 450 Q 200 500 250 450 Q 300 400 300 300 Q 300 200 300 150 Q 250 100 200 150"
-            ],
-            1: [
-                "M 200 100 L 200 500"
-            ],
-            2: [
-                "M 100 200 Q 100 150 150 150 Q 200 150 250 150 Q 300 150 300 200 Q 300 250 200 350 L 100 450 L 300 450"
-            ],
-            3: [
-                "M 100 200 Q 100 150 150 150 Q 200 150 250 150 Q 300 150 300 200 Q 300 250 250 275",
-                "M 250 275 Q 300 300 300 350 Q 300 400 250 425 Q 200 450 150 425 Q 100 400 100 375"
-            ],
-            4: [
-                "M 150 100 L 150 350 L 300 350",
-                "M 250 100 L 250 450"
-            ],
-            5: [
-                "M 300 100 L 100 100 L 100 275 Q 150 250 200 275 Q 300 300 300 375 Q 300 450 200 450 Q 100 450 100 375"
-            ],
-            6: [
-                "M 300 150 Q 250 100 200 100 Q 150 100 100 150 Q 100 200 100 300 Q 100 400 150 450 Q 200 500 250 450 Q 300 400 300 350 Q 300 300 250 275 Q 200 250 150 275 Q 100 300 100 350"
-            ],
-            7: [
-                "M 100 100 L 300 100 L 150 500"
-            ],
-            8: [
-                "M 200 100 Q 150 100 125 125 Q 100 150 125 175 Q 150 200 200 200 Q 250 200 275 175 Q 300 150 275 125 Q 250 100 200 100",
-                "M 200 200 Q 150 200 125 225 Q 100 250 100 300 Q 100 350 125 375 Q 150 400 200 400 Q 250 400 275 375 Q 300 350 300 300 Q 300 250 275 225 Q 250 200 200 200"
-            ],
-            9: [
-                "M 100 350 Q 150 400 200 400 Q 250 400 300 350 Q 300 300 300 200 Q 300 100 250 50 Q 200 0 150 50 Q 100 100 100 150 Q 100 200 150 225 Q 200 250 250 225 Q 300 200 300 150"
-            ]
-        };
-
-        const paths = numberPaths[number];
-        if (!paths) return null;
-
-        return {
-            strokes: paths.map((path, index) => ({
-                path: path,
-                index: index
-            }))
-        };
-    }
-
-    renderNumberOutline(numberData) {
-        const numberGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        numberGroup.setAttribute('class', `number-${this.currentNumber}`);
+    createPaintBackgroundLayers(numberData) {
+        // Create background group for paint (behind the number outline)
+        const paintBackgroundGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        paintBackgroundGroup.setAttribute('class', 'paint-background-layers');
+        paintBackgroundGroup.setAttribute('id', `paint-bg-${this.currentNumber}`);
         
-        // Render each stroke
-        numberData.strokes.forEach((strokeData, index) => {
-            this.renderStroke(strokeData, index, numberGroup);
+        // Create a paint layer for each stroke
+        numberData.strokes.forEach((stroke, strokeIndex) => {
+            const paintLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            paintLayer.setAttribute('class', `paint-layer-${strokeIndex}`);
+            paintLayer.setAttribute('id', `paint-layer-${this.currentNumber}-${strokeIndex}`);
+            
+            this.paintLayers[strokeIndex] = paintLayer;
+            paintBackgroundGroup.appendChild(paintLayer);
         });
         
-        this.svg.appendChild(numberGroup);
+        this.svg.appendChild(paintBackgroundGroup);
+        console.log('Paint background layers created');
     }
 
-    renderStroke(strokeData, strokeIndex, parentGroup) {
+    renderNumberFromConfig(numberData, number) {
+        // Create the main number group (this will go ON TOP of paint layers)
+        const numberGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        numberGroup.setAttribute('class', `number-outline-group number-${number}`);
+        numberGroup.setAttribute('id', `number-${number}`);
+
+        // Render each stroke using your existing CONFIG structure
+        numberData.strokes.forEach((stroke, strokeIndex) => {
+            this.renderStrokeFromConfig(stroke, strokeIndex, numberGroup);
+        });
+
+        this.svg.appendChild(numberGroup);
+        console.log('Number rendered from CONFIG with', numberData.strokes.length, 'strokes');
+    }
+
+    renderStrokeFromConfig(strokeData, strokeIndex, parentGroup) {
         // Create stroke group
         const strokeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         strokeGroup.setAttribute('class', `stroke-${strokeIndex}`);
         
-        // Create the main outline path (black)
-        const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        outlinePath.setAttribute('d', strokeData.path);
-        outlinePath.setAttribute('fill', 'none');
-        outlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR || '#000000');
-        outlinePath.setAttribute('stroke-width', CONFIG.OUTLINE_WIDTH || 30);
-        outlinePath.setAttribute('stroke-linecap', 'round');
-        outlinePath.setAttribute('stroke-linejoin', 'round');
-        outlinePath.setAttribute('class', 'number-outline');
+        // Create the BLACK outline path (from your config)
+        const blackPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        blackPath.setAttribute('d', strokeData.path);
+        blackPath.setAttribute('fill', 'none');
+        blackPath.setAttribute('stroke', strokeData.color || CONFIG.OUTLINE_COLOR || '#000000');
+        blackPath.setAttribute('stroke-width', strokeData.width || CONFIG.OUTLINE_WIDTH || 30);
+        blackPath.setAttribute('stroke-linecap', 'round');
+        blackPath.setAttribute('stroke-linejoin', 'round');
+        blackPath.setAttribute('class', 'stroke-outline-black');
         
-        // Create the white interior path (creates the "hollow" effect)
-        const interiorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        interiorPath.setAttribute('d', strokeData.path);
-        interiorPath.setAttribute('fill', 'none');
-        interiorPath.setAttribute('stroke', 'white');
-        interiorPath.setAttribute('stroke-width', CONFIG.FILL_WIDTH || 20);
-        interiorPath.setAttribute('stroke-linecap', 'round');
-        interiorPath.setAttribute('stroke-linejoin', 'round');
-        interiorPath.setAttribute('class', 'number-interior');
+        // Create the WHITE overlay path (creates the "hole" effect)
+        const whitePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        whitePath.setAttribute('d', strokeData.path);
+        whitePath.setAttribute('fill', 'none');
+        whitePath.setAttribute('stroke', 'white');
+        whitePath.setAttribute('stroke-width', (strokeData.width || CONFIG.OUTLINE_WIDTH || 30) - 10); // Slightly thinner
+        whitePath.setAttribute('stroke-linecap', 'round');
+        whitePath.setAttribute('stroke-linejoin', 'round');
+        whitePath.setAttribute('class', 'stroke-outline-white');
         
         // Add paths to stroke group
-        strokeGroup.appendChild(outlinePath);
-        strokeGroup.appendChild(interiorPath);
+        strokeGroup.appendChild(blackPath);
+        strokeGroup.appendChild(whitePath);
         
-        // Store reference for paint system
+        // Store references for the paint system
         this.strokeElements[strokeIndex] = {
             group: strokeGroup,
-            outline: outlinePath,
-            interior: interiorPath
+            blackPath: blackPath,
+            whitePath: whitePath,
+            pathString: strokeData.path,
+            coordinates: strokeData.coordinates || this.generateCoordinatesFromPath(strokeData.path)
         };
         
         parentGroup.appendChild(strokeGroup);
     }
 
+    generateCoordinatesFromPath(pathString) {
+        // Basic path coordinate extraction - you may want to enhance this
+        // This extracts coordinate points from the path for the slider system
+        const coordinates = [];
+        const pathCommands = pathString.match(/[MLCQZmlcqz][^MLCQZmlcqz]*/g);
+        
+        if (pathCommands) {
+            pathCommands.forEach(command => {
+                const coords = command.slice(1).trim().split(/[\s,]+/).map(parseFloat);
+                for (let i = 0; i < coords.length; i += 2) {
+                    if (!isNaN(coords[i]) && !isNaN(coords[i + 1])) {
+                        coordinates.push({ x: coords[i], y: coords[i + 1] });
+                    }
+                }
+            });
+        }
+        
+        return coordinates;
+    }
+
     // ================================
-    // PAINT-FILL SYSTEM METHODS
+    // PAINT SYSTEM METHODS
     // ================================
 
-    // Get the stroke path element for paint-fill system
-    getStrokePathElement(strokeIndex) {
+    // Get stroke data for paint system
+    getStrokeForPainting(strokeIndex) {
         const strokeElement = this.strokeElements[strokeIndex];
         if (!strokeElement) {
-            console.error(`Stroke element ${strokeIndex} not found`);
+            console.error(`Stroke ${strokeIndex} not found`);
             return null;
         }
         
-        // Return the white interior path (the area we want to "paint over")
-        return strokeElement.interior;
+        return {
+            pathElement: strokeElement.whitePath, // The white path defines the paintable area
+            paintLayer: this.paintLayers[strokeIndex], // Where paint goes
+            coordinates: strokeElement.coordinates, // For slider positioning
+            pathString: strokeElement.pathString
+        };
     }
 
-    // Update paint progress (replaces updateTracingProgress)
-    updatePaintProgress(strokeIndex, completionRatio) {
-        console.log(`Paint progress for stroke ${strokeIndex}: ${(completionRatio * 100).toFixed(1)}%`);
+    // Add finger paint at a position (40px width as requested)
+    addFingerPaint(strokeIndex, position) {
+        const paintLayer = this.paintLayers[strokeIndex];
+        if (!paintLayer) {
+            console.error(`Paint layer ${strokeIndex} not found`);
+            return;
+        }
+
+        // Create paint circle (40px diameter = finger width)
+        const paintCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        paintCircle.setAttribute('cx', position.x);
+        paintCircle.setAttribute('cy', position.y);
+        paintCircle.setAttribute('r', 20); // 40px diameter
+        paintCircle.setAttribute('fill', CONFIG.TRACE_COLOR || '#4CAF50');
+        paintCircle.setAttribute('opacity', 0.8);
+        paintCircle.setAttribute('class', 'finger-paint');
         
-        // Store progress for completion checking
-        this.paintProgress[strokeIndex] = completionRatio;
+        // Add smooth animation
+        paintCircle.setAttribute('opacity', 0);
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animate.setAttribute('attributeName', 'opacity');
+        animate.setAttribute('values', '0;0.8');
+        animate.setAttribute('dur', '0.2s');
+        animate.setAttribute('fill', 'freeze');
+        paintCircle.appendChild(animate);
         
-        // Visual feedback could be added here if desired
-        // For example, changing the outline color as progress increases
-        if (completionRatio > 0.5) {
-            const strokeElement = this.strokeElements[strokeIndex];
-            if (strokeElement && strokeElement.outline) {
-                strokeElement.outline.setAttribute('stroke', CONFIG.PROGRESS_COLOR || '#4CAF50');
+        paintLayer.appendChild(paintCircle);
+        
+        // Update progress
+        this.updatePaintProgress(strokeIndex);
+        
+        console.log(`Added finger paint at (${position.x}, ${position.y}) for stroke ${strokeIndex}`);
+    }
+
+    // Check if position is valid for painting (inside the white path area)
+    isValidPaintPosition(strokeIndex, position) {
+        const strokeData = this.getStrokeForPainting(strokeIndex);
+        if (!strokeData) return false;
+        
+        // Use SVG hit testing to check if point is inside the white stroke path
+        const point = this.svg.createSVGPoint();
+        point.x = position.x;
+        point.y = position.y;
+        
+        // Check if point is near the white path (within finger width)
+        const pathElement = strokeData.pathElement;
+        const pathLength = pathElement.getTotalLength();
+        
+        // Sample points along the path and check distance
+        for (let i = 0; i <= pathLength; i += 5) {
+            const pathPoint = pathElement.getPointAtLength(i);
+            const distance = Math.sqrt(
+                Math.pow(position.x - pathPoint.x, 2) + 
+                Math.pow(position.y - pathPoint.y, 2)
+            );
+            
+            if (distance <= 25) { // Within finger radius + small buffer
+                return true;
             }
         }
         
-        // Check if stroke is complete (80% painted = complete)
-        if (completionRatio >= 0.8) {
-            setTimeout(() => {
-                this.completeStroke(strokeIndex);
-            }, 100);
-        }
+        return false;
     }
 
-    // Enhanced stroke completion for paint system
+    // Check if paint position is connected to existing paint
+    isPaintConnected(strokeIndex, position) {
+        const paintLayer = this.paintLayers[strokeIndex];
+        if (!paintLayer) return false;
+        
+        const existingPaint = paintLayer.querySelectorAll('.finger-paint');
+        if (existingPaint.length === 0) {
+            // First paint - check if near start point
+            return this.isNearStartPoint(strokeIndex, position);
+        }
+        
+        // Check if position is within finger width of existing paint
+        for (const paintCircle of existingPaint) {
+            const paintX = parseFloat(paintCircle.getAttribute('cx'));
+            const paintY = parseFloat(paintCircle.getAttribute('cy'));
+            const distance = Math.sqrt(
+                Math.pow(position.x - paintX, 2) + 
+                Math.pow(position.y - paintY, 2)
+            );
+            
+            if (distance <= 45) { // Overlap distance for continuous paint
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    isNearStartPoint(strokeIndex, position) {
+        const strokeData = this.getStrokeForPainting(strokeIndex);
+        if (!strokeData || !strokeData.coordinates || strokeData.coordinates.length === 0) {
+            return false;
+        }
+        
+        const startPoint = strokeData.coordinates[0];
+        const distance = Math.sqrt(
+            Math.pow(position.x - startPoint.x, 2) + 
+            Math.pow(position.y - startPoint.y, 2)
+        );
+        
+        return distance <= 30; // Within slider radius
+    }
+
+    // Update paint progress for a stroke
+    updatePaintProgress(strokeIndex) {
+        const paintLayer = this.paintLayers[strokeIndex];
+        if (!paintLayer) return 0;
+        
+        const paintCircles = paintLayer.querySelectorAll('.finger-paint');
+        const strokeData = this.getStrokeForPainting(strokeIndex);
+        
+        if (!strokeData || !strokeData.pathElement) return 0;
+        
+        // Estimate coverage based on paint circles vs path length
+        const pathLength = strokeData.pathElement.getTotalLength();
+        const paintCoverage = paintCircles.length * 40; // Each circle covers ~40px
+        const completion = Math.min(paintCoverage / pathLength, 1.0);
+        
+        this.paintProgress[strokeIndex] = completion;
+        
+        console.log(`Stroke ${strokeIndex} paint progress: ${(completion * 100).toFixed(1)}%`);
+        
+        // Check for completion
+        if (completion >= 0.7) { // 70% coverage = complete
+            this.completeStroke(strokeIndex);
+        }
+        
+        return completion;
+    }
+
+    // Complete a stroke
     completeStroke(strokeIndex) {
+        if (this.completedStrokes.has(strokeIndex)) return;
+        
         console.log(`Stroke ${strokeIndex} completed via painting!`);
         
-        // Mark stroke as complete
         this.completedStrokes.add(strokeIndex);
         
         // Visual completion effect
         this.addStrokeCompletionEffect(strokeIndex);
         
-        // Update stroke appearance
+        // Change outline color to indicate completion
         const strokeElement = this.strokeElements[strokeIndex];
-        if (strokeElement && strokeElement.outline) {
-            strokeElement.outline.setAttribute('stroke', CONFIG.COMPLETE_COLOR || '#4CAF50');
-            strokeElement.outline.setAttribute('stroke-width', (CONFIG.OUTLINE_WIDTH || 30) + 2);
+        if (strokeElement && strokeElement.blackPath) {
+            strokeElement.blackPath.setAttribute('stroke', CONFIG.COMPLETE_COLOR || '#4CAF50');
         }
         
         // Check if entire number is complete
@@ -251,100 +342,58 @@ class TraceNumberRenderer {
             setTimeout(() => {
                 this.completeNumber();
             }, 500);
-        } else {
-            // Move to next stroke
-            this.currentStroke = strokeIndex + 1;
         }
     }
 
-    // Add completion effect for painted stroke
     addStrokeCompletionEffect(strokeIndex) {
-        const strokePath = this.getStrokePathElement(strokeIndex);
-        if (!strokePath) return;
+        const strokeElement = this.strokeElements[strokeIndex];
+        if (!strokeElement) return;
         
-        // Add a sparkle effect at the stroke location
-        const bbox = strokePath.getBBox();
+        const bbox = strokeElement.group.getBBox();
         const centerX = bbox.x + bbox.width / 2;
         const centerY = bbox.y + bbox.height / 2;
         
-        // Create sparkle group
+        // Create sparkle effect
         const sparkleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         sparkleGroup.setAttribute('class', 'stroke-completion-sparkle');
         sparkleGroup.setAttribute('transform', `translate(${centerX}, ${centerY})`);
         
-        // Create multiple sparkle stars
-        for (let i = 0; i < 6; i++) {
-            const sparkle = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const angle = (i / 6) * Math.PI * 2;
-            const distance = 20 + Math.random() * 15;
+        // Add sparkle stars
+        for (let i = 0; i < 5; i++) {
+            const sparkle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            const angle = (i / 5) * Math.PI * 2;
+            const distance = 30 + Math.random() * 20;
             const x = Math.cos(angle) * distance;
             const y = Math.sin(angle) * distance;
             
-            sparkle.setAttribute('d', 'M-3,0 L0,-8 L3,0 L0,8 Z M0,-3 L8,0 L0,3 L-8,0 Z');
+            sparkle.setAttribute('cx', x);
+            sparkle.setAttribute('cy', y);
+            sparkle.setAttribute('r', 5);
             sparkle.setAttribute('fill', '#FFD700');
-            sparkle.setAttribute('transform', `translate(${x}, ${y}) scale(0.5)`);
-            sparkle.setAttribute('opacity', '0');
+            sparkle.setAttribute('opacity', 0);
             
-            // Animate sparkle
-            const animateOpacity = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-            animateOpacity.setAttribute('attributeName', 'opacity');
-            animateOpacity.setAttribute('values', '0;1;0');
-            animateOpacity.setAttribute('dur', '1s');
-            animateOpacity.setAttribute('begin', `${i * 0.1}s`);
+            const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+            animate.setAttribute('attributeName', 'opacity');
+            animate.setAttribute('values', '0;1;0');
+            animate.setAttribute('dur', '1s');
+            animate.setAttribute('begin', `${i * 0.2}s`);
             
-            const animateScale = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
-            animateScale.setAttribute('attributeName', 'transform');
-            animateScale.setAttribute('type', 'scale');
-            animateScale.setAttribute('values', '0.5;1.2;0.3');
-            animateScale.setAttribute('dur', '1s');
-            animateScale.setAttribute('begin', `${i * 0.1}s`);
-            
-            sparkle.appendChild(animateOpacity);
-            sparkle.appendChild(animateScale);
+            sparkle.appendChild(animate);
             sparkleGroup.appendChild(sparkle);
         }
         
         this.svg.appendChild(sparkleGroup);
         
-        // Remove sparkles after animation
-        setTimeout(() => {
-            sparkleGroup.remove();
-        }, 2000);
-        
-        console.log(`Added completion sparkle for stroke ${strokeIndex}`);
+        setTimeout(() => sparkleGroup.remove(), 2000);
     }
 
-    // Complete entire number
     completeNumber() {
         console.log(`Number ${this.currentNumber} completed!`);
         
-        // Add completion effect for entire number
-        this.addNumberCompletionEffect();
-        
-        // Trigger game controller completion
-        // This will be called by the controller that listens for this
+        // Trigger completion callback if set
         if (typeof this.onNumberComplete === 'function') {
             this.onNumberComplete();
         }
-    }
-
-    addNumberCompletionEffect() {
-        // Add a celebration effect for the entire number
-        const numberGroup = this.svg.querySelector(`.number-${this.currentNumber}`);
-        if (!numberGroup) return;
-        
-        // Flash effect
-        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-        animate.setAttribute('attributeName', 'opacity');
-        animate.setAttribute('values', '1;0.5;1;0.5;1');
-        animate.setAttribute('dur', '1s');
-        
-        numberGroup.appendChild(animate);
-        
-        // Remove animation after completion
-        setTimeout(() => {
-            animate.remove();
-        }, 1000);
     }
 
     // ================================
@@ -363,109 +412,28 @@ class TraceNumberRenderer {
         return this.completedStrokes.has(strokeIndex);
     }
 
-    getCurrentNumber() {
-        return this.currentNumber;
-    }
-
-    // Get current paint completion for a stroke
     getPaintCompletion(strokeIndex) {
         return this.paintProgress[strokeIndex] || 0;
     }
 
-    // Check if stroke is ready for painting
-    isStrokeReadyForPainting(strokeIndex) {
-        if (strokeIndex === 0) return true;
-        return this.completedStrokes.has(strokeIndex - 1);
-    }
-
-    // ================================
-    // CLEANUP AND RESET
-    // ================================
-
     clearSVG() {
         if (!this.svg) return;
         
-        // Remove all children except defs
-        const children = Array.from(this.svg.children);
-        children.forEach(child => {
-            if (child.tagName !== 'defs') {
-                child.remove();
-            }
-        });
-        
-        // Clear defs of paint masks
-        const defs = this.svg.querySelector('defs');
-        if (defs) {
-            const paintMasks = defs.querySelectorAll('[id^="paint-mask-"]');
-            paintMasks.forEach(mask => mask.remove());
+        while (this.svg.firstChild) {
+            this.svg.removeChild(this.svg.firstChild);
         }
     }
 
     reset() {
-        console.log('Resetting renderer');
-        
-        // Clear SVG
         this.clearSVG();
-        
-        // Reset state
         this.currentNumber = null;
         this.currentStroke = 0;
         this.completedStrokes.clear();
         this.paintProgress = {};
         this.strokeElements = {};
-        
-        // Remove any paint groups
-        const paintGroups = this.svg.querySelectorAll('[class^="paint-group-"]');
-        paintGroups.forEach(group => group.remove());
+        this.paintLayers = {};
         
         console.log('Renderer reset complete');
-    }
-
-    destroy() {
-        if (this.svg) {
-            this.svg.remove();
-            this.svg = null;
-        }
-        this.reset();
-    }
-
-    // ================================
-    // DEBUG METHODS
-    // ================================
-
-    showPaintableAreas() {
-        if (!CONFIG.DEBUG_MODE) return;
-        
-        for (let i = 0; i < this.getStrokeCount(); i++) {
-            const strokePath = this.getStrokePathElement(i);
-            if (strokePath) {
-                const bbox = strokePath.getBBox();
-                
-                const debugRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                debugRect.setAttribute('x', bbox.x - 10);
-                debugRect.setAttribute('y', bbox.y - 10);
-                debugRect.setAttribute('width', bbox.width + 20);
-                debugRect.setAttribute('height', bbox.height + 20);
-                debugRect.setAttribute('fill', 'rgba(0, 255, 0, 0.2)');
-                debugRect.setAttribute('stroke', 'green');
-                debugRect.setAttribute('stroke-width', 2);
-                debugRect.setAttribute('class', 'debug-paintable-area');
-                
-                this.svg.appendChild(debugRect);
-            }
-        }
-        
-        console.log('Debug paintable areas shown');
-    }
-
-    logState() {
-        console.log('Renderer State:', {
-            currentNumber: this.currentNumber,
-            currentStroke: this.currentStroke,
-            completedStrokes: Array.from(this.completedStrokes),
-            paintProgress: this.paintProgress,
-            strokeCount: this.getStrokeCount()
-        });
     }
 }
 
