@@ -8,9 +8,9 @@ const CONFIG = {
     OUTLINE_COLOR: '#2C2C2C',
     SLIDER_COLOR: '#FF6B6B',
     ARROW_COLOR: '#4ECDC4',
-    PATH_WIDTH: 21,
-    OUTLINE_WIDTH: 25,
-    WHITE_WIDTH: 18,
+    PATH_WIDTH: 32, // Increased by 50% from 21
+    OUTLINE_WIDTH: 38, // Increased by 50% from 25
+    WHITE_WIDTH: 27, // Increased by 50% from 18
     ARROW_OFFSET: 50,
     ARROW_SIZE: 20,
     
@@ -23,6 +23,7 @@ const CONFIG = {
     
     COMPLETION_DELAY: 2000,
     SLIDER_TRANSITION_SPEED: '0.1s',
+    ARROW_TIMEOUT: 4000, // Show arrow after 4 seconds of inactivity
     
     AUDIO_ENABLED: true,
     
@@ -86,9 +87,14 @@ const CONFIG = {
                     { x: 80, y: 190 }, { x: 85, y: 186 }, { x: 90, y: 180 }, { x: 92, y: 177 }, 
                     { x: 94, y: 174 }, { x: 96, y: 170 }, { x: 98, y: 164 }, { x: 99, y: 160 }, 
                     { x: 100, y: 150 }, { x: 99, y: 140 }, { x: 98, y: 136 }, { x: 96, y: 130 }, 
-                    { x: 94, y: 126 }, { x: 92, y: 123 }, { x: 90, y: 120 }, { x: 0, y: 0 }, { x: 100, y: 0 }
+                    { x: 94, y: 126 }, { x: 92, y: 123 }, { x: 90, y: 120 }, { x: 81, y: 108 }, 
+                    { x: 72, y: 96 }, { x: 63, y: 84 }, { x: 54, y: 72 }, { x: 45, y: 60 }, 
+                    { x: 36, y: 48 }, { x: 27, y: 36 }, { x: 18, y: 24 }, { x: 9, y: 12 }, 
+                    { x: 0, y: 0 }, { x: 10, y: 0 }, { x: 20, y: 0 }, { x: 30, y: 0 }, 
+                    { x: 40, y: 0 }, { x: 50, y: 0 }, { x: 60, y: 0 }, { x: 70, y: 0 }, 
+                    { x: 80, y: 0 }, { x: 90, y: 0 }, { x: 100, y: 0 }
                 ],
-                description: 'Draw 2 using precise coordinates',
+                description: 'Draw 2 using precise coordinates with full path',
                 type: 'coordinates'
             }]
         },
@@ -131,18 +137,25 @@ const CONFIG = {
                     id: 'angle_line',
                     startPoint: { x: 170, y: 300 },
                     coordinates: [
-                        { x: 30, y: 200 }, { x: 0, y: 75 }, { x: 100, y: 75 }
+                        { x: 30, y: 200 }, { x: 27, y: 188 }, { x: 24, y: 176 }, { x: 21, y: 164 }, 
+                        { x: 18, y: 152 }, { x: 15, y: 140 }, { x: 12, y: 128 }, { x: 9, y: 116 }, 
+                        { x: 6, y: 104 }, { x: 3, y: 92 }, { x: 0, y: 80 }, { x: 10, y: 80 }, 
+                        { x: 20, y: 80 }, { x: 30, y: 80 }, { x: 40, y: 80 }, { x: 50, y: 80 }, 
+                        { x: 60, y: 80 }, { x: 70, y: 80 }, { x: 80, y: 80 }, { x: 90, y: 80 }, 
+                        { x: 100, y: 80 }
                     ],
-                    description: 'Draw the angled line and horizontal line',
+                    description: 'Draw the angled line and horizontal line with full coordinates',
                     type: 'coordinates'
                 },
                 {
                     id: 'vertical_line',
                     startPoint: { x: 260, y: 240 },
                     coordinates: [
-                        { x: 60, y: 140 }, { x: 60, y: 0 }
+                        { x: 60, y: 140 }, { x: 54, y: 140 }, { x: 48, y: 140 }, { x: 42, y: 140 }, 
+                        { x: 36, y: 140 }, { x: 30, y: 140 }, { x: 24, y: 140 }, { x: 18, y: 140 }, 
+                        { x: 12, y: 140 }, { x: 6, y: 140 }, { x: 0, y: 140 }
                     ],
-                    description: 'Draw the vertical line',
+                    description: 'Draw the vertical line with full coordinates',
                     type: 'coordinates'
                 }
             ]
@@ -220,9 +233,14 @@ const CONFIG = {
                 id: 'seven_coords',
                 startPoint: { x: 140, y: 300 },
                 coordinates: [
-                    { x: 0, y: 200 }, { x: 100, y: 200 }, { x: 33, y: 0 }
+                    { x: 0, y: 200 }, { x: 10, y: 200 }, { x: 20, y: 200 }, { x: 30, y: 200 }, 
+                    { x: 40, y: 200 }, { x: 50, y: 200 }, { x: 60, y: 200 }, { x: 70, y: 200 }, 
+                    { x: 80, y: 200 }, { x: 90, y: 200 }, { x: 100, y: 200 }, { x: 95, y: 183 }, 
+                    { x: 90, y: 167 }, { x: 85, y: 150 }, { x: 80, y: 133 }, { x: 75, y: 117 }, 
+                    { x: 70, y: 100 }, { x: 65, y: 83 }, { x: 60, y: 67 }, { x: 55, y: 50 }, 
+                    { x: 50, y: 33 }, { x: 45, y: 17 }, { x: 40, y: 0 }
                 ],
-                description: 'Draw 7 with exact coordinates',
+                description: 'Draw 7 with full coordinates including corner transition',
                 type: 'coordinates'
             }]
         },
