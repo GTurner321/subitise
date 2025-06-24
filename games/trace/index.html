@@ -27,8 +27,8 @@
     </div>
 
     <!-- Rainbow container -->
-    <div class="rainbow-container" id="rainbow-container">
-        <!-- Rainbow SVG will be inserted here -->
+    <div class="rainbow-container" id="rainbowContainer">
+        <!-- Rainbow will insert arcs here -->
     </div>
 
     <!-- Grass band -->
@@ -71,9 +71,19 @@
 
     <!-- Initialize game -->
     <script>
-        // Start the game
-        const gameController = new TraceGameController();
-        gameController.initializeGame();
+        // Start the game with error handling for rainbow
+        try {
+            const gameController = new TraceGameController();
+            
+            // Try to initialize, but handle rainbow errors gracefully
+            gameController.initializeGame().catch(error => {
+                console.warn('Rainbow initialization failed, continuing without rainbow:', error);
+                // Continue game initialization without rainbow
+                console.log('Game running in paint-only mode');
+            });
+        } catch (error) {
+            console.error('Game controller creation failed:', error);
+        }
     </script>
 </body>
 </html>
