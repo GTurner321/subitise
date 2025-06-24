@@ -58,8 +58,13 @@ class TraceGameController {
         // Create path manager
         this.pathManager = new TracePathManager(this.renderer.svg, this.renderer);
         
-        // Create balloon game with full screen support
-        this.balloonGame = new BalloonGame(this.renderer.svg, this.renderer);
+        // Create balloon game with full screen support - check if BalloonGame is available
+        if (typeof BalloonGame !== 'undefined') {
+            this.balloonGame = new BalloonGame(this.renderer.svg, this.renderer);
+        } else {
+            console.warn('BalloonGame class not found, balloon mini-game will be disabled');
+            this.balloonGame = null;
+        }
         
         // Set up event listeners
         this.setupEventListeners();
@@ -200,7 +205,11 @@ class TraceGameController {
         this.bear.reset();
         this.renderer.reset();
         this.pathManager.reset();
-        this.balloonGame.reset();
+        
+        // Reset balloon game if it exists
+        if (this.balloonGame) {
+            this.balloonGame.reset();
+        }
         
         // Hide modal
         if (this.modal) {
@@ -286,6 +295,16 @@ class TraceGameController {
 
     startBalloonMiniGame() {
         console.log('Starting enhanced balloon mini-game for number:', this.currentNumber);
+        
+        // Check if balloon game is available
+        if (!this.balloonGame) {
+            console.warn('Balloon game not available, skipping mini-game');
+            // Skip directly to completion
+            setTimeout(() => {
+                this.onBalloonGameComplete();
+            }, 1000);
+            return;
+        }
         
         this.playingBalloonGame = true;
         
