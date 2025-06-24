@@ -112,34 +112,57 @@ class TracePathManager {
             return;
         }
         
-        // Get current position and next few positions to determine direction
-        const currentIndex = Math.min(this.currentCoordinateIndex, this.currentStrokeCoords.length - 2);
-        const nextIndex = Math.min(currentIndex + 1, this.currentStrokeCoords.length - 1);
+        // Get current slider position
+        const sliderX = parseFloat(this.slider.getAttribute('cx'));
+        const sliderY = parseFloat(this.slider.getAttribute('cy'));
         
-        // Look ahead a bit more for smoother direction
-        const lookAheadIndex = Math.min(currentIndex + 3, this.currentStrokeCoords.length - 1);
+        // Find the next coordinate point ahead from current position
+        let nextCoordIndex = this.currentCoordinateIndex + 1;
+        let targetCoordIndex = this.currentCoordinateIndex + 2;
         
-        const currentPos = this.currentStrokeCoords[currentIndex];
-        const targetPos = this.currentStrokeCoords[lookAheadIndex];
+        // Ensure we have valid coordinates
+        if (nextCoordIndex >= this.currentStrokeCoords.length) {
+            nextCoordIndex = this.currentStrokeCoords.length - 1;
+        }
+        if (targetCoordIndex >= this.currentStrokeCoords.length) {
+            targetCoordIndex = this.currentStrokeCoords.length - 1;
+        }
         
-        // Calculate direction vector
-        const dx = targetPos.x - currentPos.x;
-        const dy = targetPos.y - currentPos.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const nextCoord = this.currentStrokeCoords[nextCoordIndex];
+        const targetCoord = this.currentStrokeCoords[targetCoordIndex];
         
-        if (distance === 0) return; // No direction to show
+        // Calculate direction from next coordinate to target coordinate
+        const directionX = targetCoord.x - nextCoord.x;
+        const directionY = targetCoord.y - nextCoord.y;
+        const directionLength = Math.sqrt(directionX * directionX + directionY * directionY);
         
-        // Normalize direction and calculate arrow position
-        const normalizedDx = dx / distance;
-        const normalizedDy = dy / distance;
+        if (directionLength === 0) return; // No direction to show
         
-        // Position arrow ahead of slider in the direction of movement
-        const arrowDistance = CONFIG.ARROW_OFFSET;
-        const arrowX = currentPos.x + normalizedDx * arrowDistance;
-        const arrowY = currentPos.y + normalizedDy * arrowDistance;
+        // Position arrow at 80% of slider width from center (slider radius is 50%)
+        const sliderRadius = CONFIG.SLIDER_SIZE / 2;
+        const arrowDistance = CONFIG.SLIDER_SIZE * 0.8; // 80% of slider width from center
         
-        // Calculate rotation angle for the direction of movement (add 180 degrees to flip)
-        const angle = (Math.atan2(dy, dx) * 180 / Math.PI) + 180;
+        // Calculate direction from slider center to next coordinate
+        const toNextX = nextCoord.x - sliderX;
+        const toNextY = nextCoord.y - sliderY;
+        const toNextLength = Math.sqrt(toNextX * toNextX + toNextY * toNextY);
+        
+        let arrowX, arrowY;
+        
+        if (toNextLength > arrowDistance) {
+            // Next coordinate is far enough - position arrow partway to it
+            const normalizedX = toNextX / toNextLength;
+            const normalizedY = toNextY / toNextLength;
+            arrowX = sliderX + normalizedX * arrowDistance;
+            arrowY = sliderY + normalizedY * arrowDistance;
+        } else {
+            // Next coordinate is close - position arrow at the next coordinate
+            arrowX = nextCoord.x;
+            arrowY = nextCoord.y;
+        }
+        
+        // Calculate rotation angle pointing toward target coordinate (add 180 to flip)
+        const angle = (Math.atan2(directionY, directionX) * 180 / Math.PI) + 180;
         
         // Create arrow group
         this.directionArrow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -174,7 +197,7 @@ class TracePathManager {
             this.svg.appendChild(this.directionArrow);
         }
         
-        console.log(`Created direction arrow at (${arrowX}, ${arrowY}) with angle ${angle}° pointing away from slider`);
+        console.log(`Created direction arrow at (${arrowX.toFixed(1)}, ${arrowY.toFixed(1)}) pointing toward coordinate ${targetCoordIndex}`);
     }
 
     removeDirectionArrow() {
