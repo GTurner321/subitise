@@ -3,30 +3,39 @@ const CONFIG = {
     RAINBOW_PIECES: 10,
     
     SLIDER_SIZE: 40,
-    PATH_TOLERANCE: 40, // Reverted back to original
-    SLIDER_DRAG_TOLERANCE: 80, // This is for finger distance from slider during drag
-    MAX_SLIDER_SPEED: 100, // Maximum pixels per second slider can move
+    PATH_TOLERANCE: 40,
+    SLIDER_DRAG_TOLERANCE: 80,
+    MAX_SLIDER_SPEED: 100,
     FILL_COLOR: '#4CAF50',
     OUTLINE_COLOR: '#2C2C2C',
     SLIDER_COLOR: '#FF6B6B',
     ARROW_COLOR: '#4ECDC4',
-    PATH_WIDTH: 32, // Increased by 50% from 21
-    OUTLINE_WIDTH: 38, // Increased by 50% from 25
-    WHITE_WIDTH: 27, // Increased by 50% from 18
-    ARROW_OFFSET: 30, // Reduced from 50 to bring arrow closer to slider
+    PATH_WIDTH: 32,
+    OUTLINE_WIDTH: 38,
+    WHITE_WIDTH: 27,
+    ARROW_OFFSET: 30,
     ARROW_SIZE: 20,
     
-    SVG_WIDTH: 400,
-    SVG_HEIGHT: 400,
+    // Updated dimensions for full screen support
+    get SVG_WIDTH() {
+        return window.innerWidth;
+    },
+    get SVG_HEIGHT() {
+        return window.innerHeight - 80; // Minus grass band height
+    },
     NUMBER_RECT_HEIGHT: 200,
     NUMBER_RECT_WIDTH: 120,
-    NUMBER_CENTER_X: 200,
-    NUMBER_CENTER_Y: 200,
+    get NUMBER_CENTER_X() {
+        return window.innerWidth / 2;
+    },
+    get NUMBER_CENTER_Y() {
+        return (window.innerHeight - 80) / 2; // Centered in available space above grass
+    },
     
     COMPLETION_DELAY: 2000,
     SLIDER_TRANSITION_SPEED: '0.1s',
-    ARROW_TIMEOUT: 4000, // Show arrow after 4 seconds of inactivity
-    STOPPED_MOVEMENT_TIMEOUT: 1000, // Complete near-end if stopped for 1 second
+    ARROW_TIMEOUT: 4000,
+    STOPPED_MOVEMENT_TIMEOUT: 1000,
     
     AUDIO_ENABLED: true,
     
