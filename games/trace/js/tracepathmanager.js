@@ -76,7 +76,7 @@ class TracePathManager {
         // Remove existing slider
         this.removeSlider();
         
-        // Create new slider circle (larger for full screen)
+        // Create new slider circle (no speed limitations)
         this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         this.slider.setAttribute('cx', position.x);
         this.slider.setAttribute('cy', position.y);
@@ -486,47 +486,73 @@ class TracePathManager {
         const currentCoord = this.currentStrokeCoords[coordIndex];
         const nextCoord = this.currentStrokeCoords[coordIndex + 1];
         
-        // Calculate slider position along the segment
+        // Calculate exact slider position along the segment (linear interpolation)
         const sliderX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
         const sliderY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
         
-        // Update slider visual position
+        // CRITICAL FIX: Calculate coordinate index based on path distance, not segments
+        // This ensures slider and green trace are perfectly synchronized
+        
+        // Calculate total distance along path from start to current slider position
+        let totalDistanceToSlider = 0;
+        
+        // Add distances for all completed segments
+        for (let i = 0; i < coordIndex; i++) {
+            const segStart = this.currentStrokeCoords[i];
+            const segEnd = this.currentStrokeCoords[i + 1];
+            if (segEnd) {
+                const segmentDist = Math.sqrt(
+                    Math.pow(segEnd.x - segStart.x, 2) + 
+                    Math.pow(segEnd.y - segStart.y, 2)
+                );
+                totalDistanceToSlider += segmentDist;
+            }
+        }
+        
+        // Add partial distance for current segment
+        const currentSegmentDist = Math.sqrt(
+            Math.pow(nextCoord.x - currentCoord.x, 2) + 
+            Math.pow(nextCoord.y - currentCoord.y, 2)
+        );
+        totalDistanceToSlider += currentSegmentDist * progress;
+        
+        // Calculate which coordinate index corresponds to this distance
+        let newCoordinateIndex = 0;
+        let accumulatedDistance = 0;
+        
+        for (let i = 0; i < this.currentStrokeCoords.length - 1; i++) {
+            const segStart = this.currentStrokeCoords[i];
+            const segEnd = this.currentStrokeCoords[i + 1];
+            const segmentDist = Math.sqrt(
+                Math.pow(segEnd.x - segStart.x, 2) + 
+                Math.pow(segEnd.y - segStart.y, 2)
+            );
+            
+            if (accumulatedDistance + segmentDist >= totalDistanceToSlider) {
+                // We're in this segment
+                newCoordinateIndex = i;
+                break;
+            }
+            
+            accumulatedDistance += segmentDist;
+            newCoordinateIndex = i + 1; // Completed this coordinate
+        }
+        
+        // Ensure we don't go backwards
+        newCoordinateIndex = Math.max(newCoordinateIndex, this.currentCoordinateIndex);
+        
+        // Update slider visual position EXACTLY to calculated position
         this.slider.setAttribute('cx', sliderX);
         this.slider.setAttribute('cy', sliderY);
         
-        // SEQUENTIAL COORDINATE TRACKING: Only advance coordinate index when slider passes coordinate points
-        let newCoordinateIndex = this.currentCoordinateIndex;
-        
-        // If we're in the current segment
-        if (coordIndex === this.currentCoordinateIndex) {
-            // We can advance to next coordinate only if we're far enough along this segment
-            if (progress >= 0.8) { // 80% through segment = coordinate completed
-                newCoordinateIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
-            }
-        } else if (coordIndex === this.currentCoordinateIndex + 1) {
-            // We're in the next segment, so we've definitely completed the previous coordinate
-            newCoordinateIndex = coordIndex;
-            // If we're well into this segment, advance further
-            if (progress >= 0.8) {
-                newCoordinateIndex = Math.min(coordIndex + 1, this.currentStrokeCoords.length - 1);
-            }
-        }
-        
-        // Special handling for near the end of the path
-        const isNearPathEnd = (coordIndex >= this.currentStrokeCoords.length - 2);
-        if (isNearPathEnd && progress >= 0.9) {
-            // At the very end, complete the stroke
-            newCoordinateIndex = this.currentStrokeCoords.length - 1;
-        }
-        
-        // Update coordinate index only if it increased (no going backwards)
-        if (newCoordinateIndex > this.currentCoordinateIndex) {
+        // Update coordinate index only if it changed
+        if (newCoordinateIndex !== this.currentCoordinateIndex) {
             this.currentCoordinateIndex = newCoordinateIndex;
             
-            // Update traced path to show progress
+            // Update traced path - this should now be perfectly in sync with slider
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
             
-            console.log(`Advanced to coordinate ${this.currentCoordinateIndex} (slider at segment ${coordIndex} + ${(progress * 100).toFixed(1)}%)`);
+            console.log(`Slider-trace synchronized: coordinate ${this.currentCoordinateIndex}, slider at (${sliderX.toFixed(1)}, ${sliderY.toFixed(1)})`);
         }
         
         // Check if stroke is complete
