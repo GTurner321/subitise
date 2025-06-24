@@ -5,22 +5,19 @@ class TracePathManager {
         
         // Slider element - only one at a time
         this.slider = null;
-        this.directionArrow = null;
         
         // Tracking state
         this.isTracing = false;
         this.currentStroke = 0;
-        this.currentCoordinateIndex = 0; // Which coordinate point we're at
+        this.currentCoordinateIndex = 0; // Which coordinate point we're at in the GREEN trace
         this.isDragging = false;
         
         // Current stroke data
         this.strokeCoordinates = [];
         this.currentStrokeCoords = [];
         
-        // Arrow timing
-        this.arrowTimeout = null;
+        // Simplified - no more complex arrow management
         this.lastMovementTime = Date.now();
-        this.stoppedMovementTimeout = null;
         
         this.initializeEventListeners();
     }
@@ -43,7 +40,7 @@ class TracePathManager {
 
     startNewStroke(strokeIndex) {
         this.currentStroke = strokeIndex;
-        this.currentCoordinateIndex = 0;
+        this.currentCoordinateIndex = 0; // Start at beginning of GREEN trace
         this.isTracing = false;
         this.isDragging = false;
         this.lastMovementTime = Date.now();
@@ -58,36 +55,48 @@ class TracePathManager {
         
         console.log(`Starting stroke ${strokeIndex} with ${this.currentStrokeCoords.length} coordinates`);
         
-        // Remove any existing slider and arrow
-        this.removeSlider();
-        this.removeDirectionArrow();
-        
-        // Create slider at first coordinate
-        const startPoint = this.currentStrokeCoords[0];
-        this.createSlider(startPoint);
-        
-        // IMPORTANT: Start arrow timeout immediately for initial direction guidance
-        this.startArrowTimeout();
-        
-        console.log('Direction arrow will appear in 4 seconds to show initial direction');
+        // Show red slider at the start of the new stroke section
+        this.showSliderAtCurrentPosition();
         
         return true;
     }
 
-    createSlider(position) {
+    showSliderAtCurrentPosition() {
+        // Remove any existing slider
+        this.removeSlider();
+        
+        // Get position where GREEN trace currently ends (or start if no trace yet)
+        const position = this.currentStrokeCoords[this.currentCoordinateIndex];
+        if (!position) {
+            console.error('No position available for slider at index:', this.currentCoordinateIndex);
+            return;
+        }
+        
+        // Create slider at the last traced position
+        this.createSliderWithArrow(position);
+        
+        console.log(`Red slider shown at coordinate ${this.currentCoordinateIndex}:`, position);
+    }
+
+    createSliderWithArrow(position) {
         // Remove existing slider
         this.removeSlider();
         
-        // Create new slider circle (no speed limitations)
-        this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        this.slider.setAttribute('cx', position.x);
-        this.slider.setAttribute('cy', position.y);
-        this.slider.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
-        this.slider.setAttribute('fill', CONFIG.SLIDER_COLOR);
-        this.slider.setAttribute('stroke', 'white');
-        this.slider.setAttribute('stroke-width', 3);
-        this.slider.setAttribute('class', 'trace-slider');
-        this.slider.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+        // Create slider group to hold both circle and arrow
+        this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        this.slider.setAttribute('class', 'trace-slider-group');
+        this.slider.setAttribute('transform', `translate(${position.x}, ${position.y})`);
+        
+        // Create main red circle
+        const sliderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        sliderCircle.setAttribute('cx', 0);
+        sliderCircle.setAttribute('cy', 0);
+        sliderCircle.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
+        sliderCircle.setAttribute('fill', CONFIG.SLIDER_COLOR);
+        sliderCircle.setAttribute('stroke', 'white');
+        sliderCircle.setAttribute('stroke-width', 3);
+        sliderCircle.setAttribute('class', 'slider-circle');
+        sliderCircle.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
         
         // Add pulsing animation to indicate it's interactive
         const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
@@ -95,11 +104,76 @@ class TracePathManager {
         animate.setAttribute('values', `${CONFIG.SLIDER_SIZE / 2};${CONFIG.SLIDER_SIZE / 2 + 3};${CONFIG.SLIDER_SIZE / 2}`);
         animate.setAttribute('dur', '2s');
         animate.setAttribute('repeatCount', 'indefinite');
+        animate.setAttribute('class', 'pulse-animation');
         
-        this.slider.appendChild(animate);
+        sliderCircle.appendChild(animate);
+        this.slider.appendChild(sliderCircle);
+        
+        // Create directional arrow pointing to next coordinate
+        this.createDirectionalArrow();
+        
         this.svg.appendChild(this.slider);
         
-        console.log(`Created slider at coordinate ${this.currentCoordinateIndex}:`, position);
+        console.log(`Created slider with directional arrow at:`, position);
+    }
+
+    createDirectionalArrow() {
+        // Calculate direction to next coordinate point
+        const currentPos = this.currentStrokeCoords[this.currentCoordinateIndex];
+        const nextIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
+        const nextPos = this.currentStrokeCoords[nextIndex];
+        
+        if (!currentPos || !nextPos || nextIndex === this.currentCoordinateIndex) {
+            // No direction to show (at end) - create a checkmark instead
+            this.createCompletionIndicator();
+            return;
+        }
+        
+        // Calculate direction vector
+        const directionX = nextPos.x - currentPos.x;
+        const directionY = nextPos.y - currentPos.y;
+        const directionLength = Math.sqrt(directionX * directionX + directionY * directionY);
+        
+        if (directionLength === 0) return; // No direction
+        
+        // Calculate rotation angle
+        const angle = Math.atan2(directionY, directionX) * 180 / Math.PI;
+        
+        // Create arrow group
+        const arrowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        arrowGroup.setAttribute('class', 'direction-arrow-embedded');
+        arrowGroup.setAttribute('transform', `rotate(${angle})`);
+        
+        // Create arrow path (pointing right by default, rotation handles direction)
+        const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const arrowSize = 12; // Smaller to fit inside circle
+        arrowPath.setAttribute('d', `M -${arrowSize/2} -${arrowSize/3} L ${arrowSize/2} 0 L -${arrowSize/2} ${arrowSize/3} Z`);
+        arrowPath.setAttribute('fill', 'white');
+        arrowPath.setAttribute('stroke', 'none');
+        
+        arrowGroup.appendChild(arrowPath);
+        this.slider.appendChild(arrowGroup);
+        
+        console.log(`Created directional arrow pointing ${angle.toFixed(1)}° toward coordinate ${nextIndex}`);
+    }
+
+    createCompletionIndicator() {
+        // Create checkmark when at end of stroke
+        const checkGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        checkGroup.setAttribute('class', 'completion-indicator');
+        
+        const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        checkPath.setAttribute('d', 'M -6 -1 L -2 3 L 6 -5');
+        checkPath.setAttribute('stroke', 'white');
+        checkPath.setAttribute('stroke-width', 3);
+        checkPath.setAttribute('fill', 'none');
+        checkPath.setAttribute('stroke-linecap', 'round');
+        checkPath.setAttribute('stroke-linejoin', 'round');
+        
+        checkGroup.appendChild(checkPath);
+        this.slider.appendChild(checkGroup);
+        
+        console.log('Created completion checkmark indicator');
     }
 
     removeSlider() {
@@ -109,215 +183,24 @@ class TracePathManager {
         }
     }
 
-    createDirectionArrow() {
-        if (this.directionArrow || !this.currentStrokeCoords || this.currentStrokeCoords.length < 2 || !this.slider) {
-            return;
-        }
-        
-        // Get current slider position
-        const sliderX = parseFloat(this.slider.getAttribute('cx'));
-        const sliderY = parseFloat(this.slider.getAttribute('cy'));
-        
-        // Validate slider position
-        if (isNaN(sliderX) || isNaN(sliderY)) {
-            console.warn('Invalid slider position, cannot create direction arrow');
-            return;
-        }
-        
-        // Find the next coordinate point ahead from current position
-        let nextCoordIndex = this.currentCoordinateIndex + 1;
-        let targetCoordIndex = this.currentCoordinateIndex + 2;
-        
-        // Ensure we have valid coordinates
-        if (nextCoordIndex >= this.currentStrokeCoords.length) {
-            nextCoordIndex = this.currentStrokeCoords.length - 1;
-        }
-        if (targetCoordIndex >= this.currentStrokeCoords.length) {
-            targetCoordIndex = this.currentStrokeCoords.length - 1;
-        }
-        
-        // Don't create arrow if we're at the end
-        if (nextCoordIndex === targetCoordIndex) {
-            return;
-        }
-        
-        const nextCoord = this.currentStrokeCoords[nextCoordIndex];
-        const targetCoord = this.currentStrokeCoords[targetCoordIndex];
-        
-        if (!nextCoord || !targetCoord) {
-            console.warn('Invalid coordinates for arrow creation');
-            return;
-        }
-        
-        // Calculate direction from next coordinate to target coordinate
-        const directionX = targetCoord.x - nextCoord.x;
-        const directionY = targetCoord.y - nextCoord.y;
-        const directionLength = Math.sqrt(directionX * directionX + directionY * directionY);
-        
-        if (directionLength === 0) return; // No direction to show
-        
-        // Position arrow at 80% of slider width from center (slider radius is 50%)
-        const sliderRadius = CONFIG.SLIDER_SIZE / 2;
-        const arrowDistance = CONFIG.SLIDER_SIZE * 0.8; // 80% of slider width from center
-        
-        // Calculate direction from slider center to next coordinate
-        const toNextX = nextCoord.x - sliderX;
-        const toNextY = nextCoord.y - sliderY;
-        const toNextLength = Math.sqrt(toNextX * toNextX + toNextY * toNextY);
-        
-        let arrowX, arrowY;
-        
-        if (toNextLength > arrowDistance) {
-            // Next coordinate is far enough - position arrow partway to it
-            const normalizedX = toNextX / toNextLength;
-            const normalizedY = toNextY / toNextLength;
-            arrowX = sliderX + normalizedX * arrowDistance;
-            arrowY = sliderY + normalizedY * arrowDistance;
-        } else {
-            // Next coordinate is close - position arrow at the next coordinate
-            arrowX = nextCoord.x;
-            arrowY = nextCoord.y;
-        }
-        
-        // Calculate rotation angle pointing toward target coordinate (add 180 to flip)
-        const angle = (Math.atan2(directionY, directionX) * 180 / Math.PI) + 180;
-        
-        try {
-            // Create arrow group
-            this.directionArrow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.directionArrow.setAttribute('class', 'direction-arrow');
-            this.directionArrow.setAttribute('transform', `translate(${arrowX}, ${arrowY}) rotate(${angle})`);
-            
-            // Create arrow path (pointing right by default, rotation handles direction)
-            const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const arrowSize = CONFIG.ARROW_SIZE;
-            // Arrow points forward in direction of movement
-            arrowPath.setAttribute('d', `M 0 0 L ${arrowSize} ${arrowSize/2} L ${arrowSize} ${-arrowSize/2} Z`);
-            arrowPath.setAttribute('fill', CONFIG.ARROW_COLOR);
-            arrowPath.setAttribute('stroke', 'white');
-            arrowPath.setAttribute('stroke-width', 2);
-            arrowPath.setAttribute('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))');
-            
-            this.directionArrow.appendChild(arrowPath);
-            
-            // Add flashing animation
-            const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-            animate.setAttribute('attributeName', 'opacity');
-            animate.setAttribute('values', '1;0.3;1');
-            animate.setAttribute('dur', '1.5s');
-            animate.setAttribute('repeatCount', 'indefinite');
-            
-            this.directionArrow.appendChild(animate);
-            
-            // Insert before slider to keep slider on top
-            if (this.slider && this.slider.parentNode) {
-                this.svg.insertBefore(this.directionArrow, this.slider);
-            } else {
-                this.svg.appendChild(this.directionArrow);
-            }
-            
-            console.log(`Created direction arrow at (${arrowX.toFixed(1)}, ${arrowY.toFixed(1)}) pointing toward coordinate ${targetCoordIndex}`);
-        } catch (error) {
-            console.error('Error creating direction arrow:', error);
-            this.directionArrow = null;
-        }
-    }
-
-    removeDirectionArrow() {
-        if (this.directionArrow) {
-            this.directionArrow.remove();
-            this.directionArrow = null;
-        }
-    }
-
-    startArrowTimeout() {
-        // Clear existing timeout
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-        }
-        
-        // Set new timeout to show arrow after inactivity
-        this.arrowTimeout = setTimeout(() => {
-            if (!this.isTracing && !this.isDragging) {
-                this.createDirectionArrow();
-            }
-        }, CONFIG.ARROW_TIMEOUT);
-    }
-
-    resetArrowTimeout() {
-        this.removeDirectionArrow();
-        this.startArrowTimeout();
-        this.lastMovementTime = Date.now();
-        
-        // Also reset stopped movement timeout
-        this.resetStoppedMovementTimeout();
-    }
-
-    startStoppedMovementTimeout() {
-        // Only start if we're near the end and not already tracing
-        if (this.isNearCompletion() && !this.isTracing) {
-            this.stoppedMovementTimeout = setTimeout(() => {
-                if (!this.isTracing && !this.isDragging && this.isNearCompletion()) {
-                    console.log('Auto-completing due to stopped movement near end');
-                    this.autoCompleteFromNearEnd();
-                }
-            }, CONFIG.STOPPED_MOVEMENT_TIMEOUT);
-        }
-    }
-
-    resetStoppedMovementTimeout() {
-        if (this.stoppedMovementTimeout) {
-            clearTimeout(this.stoppedMovementTimeout);
-            this.stoppedMovementTimeout = null;
-        }
-    }
-
-    isNearCompletion() {
-        const totalCoords = this.currentStrokeCoords.length;
-        const remainingCoords = totalCoords - 1 - this.currentCoordinateIndex;
-        // Near completion if within 2 coordinates of the end
-        return remainingCoords <= 2 && remainingCoords > 0;
-    }
-
-    autoCompleteFromNearEnd() {
-        // Complete the current stroke if we're near the end
-        if (this.isNearCompletion()) {
-            console.log('Auto-completing stroke from near end position');
-            this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
-            this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
-            this.completeCurrentStroke();
-        }
-    }
-
     handleStart(event) {
         event.preventDefault();
         
         const point = this.getEventPoint(event);
         if (!point) return;
         
-        // CRITICAL: Must touch WITHIN the red slider circle to start/restart tracing
-        if (this.isPointNearSlider(point, false)) { // false = initial touch, strict requirement
-            
-            console.log('Valid touch within slider circle - starting/restarting drag');
+        // Check if touch is within the red slider circle
+        if (this.isPointNearSlider(point)) {
+            console.log('Valid touch within slider circle - starting drag');
             this.isDragging = true;
             this.isTracing = true;
             
-            // Remove the pulsing animation when user starts tracing
-            const animate = this.slider.querySelector('animate');
-            if (animate) {
-                animate.remove();
-            }
+            // IMMEDIATELY hide the red slider when dragging starts
+            this.removeSlider();
             
-            // Hide direction arrow when starting to trace
-            this.removeDirectionArrow();
-            if (this.arrowTimeout) {
-                clearTimeout(this.arrowTimeout);
-                this.arrowTimeout = null;
-            }
-            
-            console.log('Drag started at coordinate index:', this.currentCoordinateIndex);
+            console.log('Red slider hidden - now in free-form tracing mode');
         } else {
-            console.log('Touch OUTSIDE slider circle - drag not started (must touch red circle to begin/restart)');
+            console.log('Touch outside slider circle - drag not started');
         }
     }
 
@@ -328,24 +211,12 @@ class TracePathManager {
         const point = this.getEventPoint(event);
         if (!point) return;
         
-        // Update movement time and reset timeouts
+        // Update movement time
         this.lastMovementTime = Date.now();
-        this.resetStoppedMovementTimeout();
         
-        // NEW LOGIC: Continue tracing as long as we can find progress along the path
-        // No distance restrictions once tracing has started
-        const bestPosition = this.findBestSliderPosition(point);
-        
-        if (bestPosition !== null) {
-            // We found a valid position along the path - continue tracing
-            this.updateSliderPosition(bestPosition);
-        } else {
-            // Only stop if we can't find ANY valid path position
-            // This is very forgiving - allows finger to be anywhere as long as 
-            // there's some component of movement in the path direction
-            console.log('No valid path position found, but continuing to allow tracing');
-            // Don't stop tracing - just don't update position
-        }
+        // Free-form tracing - just check if we're making progress along the path
+        // This will update the GREEN trace independently of red slider position
+        this.updateGreenTraceProgress(point);
     }
 
     handleEnd(event) {
@@ -353,19 +224,55 @@ class TracePathManager {
         
         console.log('Drag ended - finger lifted');
         this.isDragging = false;
+        this.isTracing = false;
         
-        // Re-enable pulsing animation to show slider is ready for new touch
-        if (this.slider) {
-            this.addSliderPulseAnimation();
+        // Show red slider again at current GREEN trace position
+        // This allows user to continue from where they left off
+        setTimeout(() => {
+            this.showSliderAtCurrentPosition();
+        }, 300); // Small delay for better UX
+        
+        console.log('Red slider will reappear at current trace position');
+    }
+
+    updateGreenTraceProgress(dragPoint) {
+        // Find the furthest point along the path that we can reasonably reach from drag point
+        let bestCoordIndex = this.currentCoordinateIndex;
+        let maxProgress = this.currentCoordinateIndex;
+        
+        // Look ahead along the path to see how far we can extend the GREEN trace
+        const lookAheadDistance = 8; // Look up to 8 coordinates ahead
+        const maxReachDistance = 80; // Maximum distance finger can be from path point
+        
+        for (let i = this.currentCoordinateIndex; i < Math.min(this.currentStrokeCoords.length, this.currentCoordinateIndex + lookAheadDistance); i++) {
+            const pathPoint = this.currentStrokeCoords[i];
+            const distanceToPath = Math.sqrt(
+                Math.pow(dragPoint.x - pathPoint.x, 2) + 
+                Math.pow(dragPoint.y - pathPoint.y, 2)
+            );
+            
+            // If finger is reasonably close to this path point, we can extend trace to here
+            if (distanceToPath <= maxReachDistance) {
+                maxProgress = i;
+            } else {
+                // Stop looking further if we're too far from path
+                break;
+            }
         }
         
-        // IMPORTANT: Start arrow timeout to show direction after 4 seconds of inactivity
-        this.startArrowTimeout();
-        
-        // Start stopped movement timeout if near completion
-        this.startStoppedMovementTimeout();
-        
-        console.log('Direction arrow will appear in 4 seconds if no movement. To restart dragging, touch red slider circle.');
+        // Update GREEN trace if we made progress
+        if (maxProgress > this.currentCoordinateIndex) {
+            this.currentCoordinateIndex = maxProgress;
+            this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+            
+            console.log(`✅ GREEN trace extended to coordinate ${this.currentCoordinateIndex}`);
+            
+            // Check if stroke is complete
+            if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
+                console.log('Stroke completed!');
+                this.completeCurrentStroke();
+            }
+        }
     }
 
     getEventPoint(event) {
@@ -391,329 +298,26 @@ class TracePathManager {
         };
     }
 
-    isPointNearSlider(point, isDuringDrag = false) {
+    isPointNearSlider(point) {
         if (!this.slider) return false;
         
-        const sliderX = parseFloat(this.slider.getAttribute('cx'));
-        const sliderY = parseFloat(this.slider.getAttribute('cy'));
+        // Get slider position from transform
+        const transform = this.slider.getAttribute('transform');
+        const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+        
+        if (!match) return false;
+        
+        const sliderX = parseFloat(match[1]);
+        const sliderY = parseFloat(match[2]);
         
         const distance = Math.sqrt(
             Math.pow(point.x - sliderX, 2) +
             Math.pow(point.y - sliderY, 2)
         );
         
-        if (isDuringDrag) {
-            // During drag, we no longer use this for validation
-            // This is kept for compatibility but not used in new logic
-            return true;
-        } else {
-            // For INITIAL touch, must be within the slider circle itself
-            const sliderRadius = CONFIG.SLIDER_SIZE / 2;
-            return distance <= sliderRadius + 5; // Small buffer of 5px for easier touching
-        }
-    }
-
-    addSliderPulseAnimation() {
-        if (!this.slider) return;
-        
-        // Remove any existing animation first
-        const existingAnimate = this.slider.querySelector('animate');
-        if (existingAnimate) {
-            existingAnimate.remove();
-        }
-        
-        // Add pulsing animation to indicate it's ready for interaction
-        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-        animate.setAttribute('attributeName', 'r');
-        animate.setAttribute('values', `${CONFIG.SLIDER_SIZE / 2};${CONFIG.SLIDER_SIZE / 2 + 3};${CONFIG.SLIDER_SIZE / 2}`);
-        animate.setAttribute('dur', '2s');
-        animate.setAttribute('repeatCount', 'indefinite');
-        
-        this.slider.appendChild(animate);
-        console.log('Added pulse animation - slider ready for touch');
-    }
-
-    // Debug method to verify slider is on path
-    verifySliderOnPath() {
-        if (!CONFIG.DEBUG_MODE || !this.slider) return;
-        
-        const sliderX = parseFloat(this.slider.getAttribute('cx'));
-        const sliderY = parseFloat(this.slider.getAttribute('cy'));
-        
-        // Find closest point on path to current slider position
-        let minDistance = Infinity;
-        let closestSegment = -1;
-        
-        for (let i = 0; i < this.currentStrokeCoords.length - 1; i++) {
-            const start = this.currentStrokeCoords[i];
-            const end = this.currentStrokeCoords[i + 1];
-            
-            // Calculate distance from slider to this line segment
-            const segmentLength = Math.sqrt(
-                Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)
-            );
-            
-            if (segmentLength === 0) continue;
-            
-            // Project slider position onto line segment
-            const dotProduct = ((sliderX - start.x) * (end.x - start.x) + 
-                              (sliderY - start.y) * (end.y - start.y)) / segmentLength;
-            const projection = Math.max(0, Math.min(segmentLength, dotProduct)) / segmentLength;
-            
-            const pointOnSegment = {
-                x: start.x + (end.x - start.x) * projection,
-                y: start.y + (end.y - start.y) * projection
-            };
-            
-            const distance = Math.sqrt(
-                Math.pow(sliderX - pointOnSegment.x, 2) + 
-                Math.pow(sliderY - pointOnSegment.y, 2)
-            );
-            
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestSegment = i;
-            }
-        }
-        
-        if (minDistance > 2) { // Allow 2px tolerance for floating point precision
-            console.warn(`⚠️ Slider is ${minDistance.toFixed(2)}px off path at segment ${closestSegment}`);
-        } else {
-            console.log(`✅ Slider is on path (${minDistance.toFixed(2)}px from nearest segment)`);
-        }
-    }
-
-    findBestSliderPosition(dragPoint) {
-        // VERY FORGIVING PATH FOLLOWING: Focus on forward progress along path
-        // Allow finger to be anywhere as long as there's forward movement component
-        
-        let bestCoordIndex = this.currentCoordinateIndex;
-        let bestProgress = 0;
-        let bestDistance = Infinity;
-        
-        // Look at current segment and several segments ahead (allow jumping forward)
-        const startIndex = this.currentCoordinateIndex;
-        const endIndex = Math.min(this.currentStrokeCoords.length - 2, this.currentCoordinateIndex + 5); // Look further ahead
-        
-        for (let i = startIndex; i <= endIndex; i++) {
-            const currentCoord = this.currentStrokeCoords[i];
-            const nextCoord = this.currentStrokeCoords[i + 1];
-            
-            if (!nextCoord) continue;
-            
-            // Calculate segment direction and length
-            const segmentX = nextCoord.x - currentCoord.x;
-            const segmentY = nextCoord.y - currentCoord.y;
-            const segmentLength = Math.sqrt(segmentX * segmentX + segmentY * segmentY);
-            
-            if (segmentLength === 0) continue;
-            
-            // Find closest point on this segment to drag point
-            const dragX = dragPoint.x - currentCoord.x;
-            const dragY = dragPoint.y - currentCoord.y;
-            
-            // Project drag vector onto segment
-            const dotProduct = (dragX * segmentX + dragY * segmentY) / segmentLength;
-            const projectionProgress = Math.max(0, Math.min(segmentLength, dotProduct)) / segmentLength;
-            
-            // Calculate point on segment
-            const pointX = currentCoord.x + segmentX * projectionProgress;
-            const pointY = currentCoord.y + segmentY * projectionProgress;
-            
-            // Calculate distance from drag point to this segment point
-            const distanceToSegment = Math.sqrt(
-                Math.pow(dragPoint.x - pointX, 2) + 
-                Math.pow(dragPoint.y - pointY, 2)
-            );
-            
-            // MUCH MORE FORGIVING RULES: Allow forward progress regardless of distance
-            let isValidPosition = false;
-            
-            if (i === this.currentCoordinateIndex) {
-                // Current segment - always allow, any distance
-                isValidPosition = true;
-            } else if (i > this.currentCoordinateIndex) {
-                // Forward segments - allow if there's ANY forward component
-                // AND we're making reasonable progress (even if finger is far away)
-                if (dotProduct >= 0) { // Any forward movement component
-                    isValidPosition = true;
-                }
-            }
-            
-            // Accept this position if it's valid and either:
-            // 1. Closer than previous best, OR
-            // 2. Further along the path (even if not closer)
-            if (isValidPosition) {
-                const isCloser = distanceToSegment < bestDistance;
-                const isFurtherAlong = i > bestCoordIndex || (i === bestCoordIndex && projectionProgress > bestProgress);
-                
-                if (isCloser || isFurtherAlong) {
-                    bestDistance = distanceToSegment;
-                    bestCoordIndex = i;
-                    bestProgress = projectionProgress;
-                }
-            }
-        }
-        
-        // VERY GENEROUS: Return position even if it's far from path
-        // As long as we found some forward progress
-        if (bestCoordIndex >= this.currentCoordinateIndex) {
-            return {
-                coordIndex: bestCoordIndex,
-                progress: bestProgress,
-                distance: bestDistance
-            };
-        }
-        
-        return null;
-    }
-
-    updateSliderPosition(position) {
-        const { coordIndex, progress } = position;
-        const currentCoord = this.currentStrokeCoords[coordIndex];
-        const nextCoord = this.currentStrokeCoords[coordIndex + 1];
-        
-        // CRITICAL: Calculate exact slider position along the path using linear interpolation
-        // This ensures slider ALWAYS stays precisely on the number path
-        const sliderX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
-        const sliderY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
-        
-        console.log(`Slider positioned at (${sliderX.toFixed(1)}, ${sliderY.toFixed(1)}) on path segment ${coordIndex} + ${(progress * 100).toFixed(1)}%`);
-        
-        // Calculate coordinate index based on path distance for perfect trace synchronization
-        let totalDistanceToSlider = 0;
-        
-        // Add distances for all completed segments
-        for (let i = 0; i < coordIndex; i++) {
-            const segStart = this.currentStrokeCoords[i];
-            const segEnd = this.currentStrokeCoords[i + 1];
-            if (segEnd) {
-                const segmentDist = Math.sqrt(
-                    Math.pow(segEnd.x - segStart.x, 2) + 
-                    Math.pow(segEnd.y - segStart.y, 2)
-                );
-                totalDistanceToSlider += segmentDist;
-            }
-        }
-        
-        // Add partial distance for current segment
-        const currentSegmentDist = Math.sqrt(
-            Math.pow(nextCoord.x - currentCoord.x, 2) + 
-            Math.pow(nextCoord.y - currentCoord.y, 2)
-        );
-        totalDistanceToSlider += currentSegmentDist * progress;
-        
-        // Calculate which coordinate index corresponds to this distance
-        let newCoordinateIndex = 0;
-        let accumulatedDistance = 0;
-        
-        for (let i = 0; i < this.currentStrokeCoords.length - 1; i++) {
-            const segStart = this.currentStrokeCoords[i];
-            const segEnd = this.currentStrokeCoords[i + 1];
-            const segmentDist = Math.sqrt(
-                Math.pow(segEnd.x - segStart.x, 2) + 
-                Math.pow(segEnd.y - segStart.y, 2)
-            );
-            
-            if (accumulatedDistance + segmentDist >= totalDistanceToSlider) {
-                // We're in this segment
-                newCoordinateIndex = i;
-                break;
-            }
-            
-            accumulatedDistance += segmentDist;
-            newCoordinateIndex = i + 1; // Completed this coordinate
-        }
-        
-        // ALLOW BACKWARDS MOVEMENT: Enable undoing trace path
-        // Remove the Math.max() restriction to allow going backwards
-        
-        const isNearEnd = newCoordinateIndex >= this.currentStrokeCoords.length - 2;
-        
-        if (isNearEnd && progress >= 0.95) {
-            // Special case: Near end, allow completion even if not exactly at final coordinate
-            newCoordinateIndex = this.currentStrokeCoords.length - 1;
-            console.log('Near end completion: allowing final coordinate completion at 95%');
-        }
-        // Note: Removed Math.max() - now allows backwards movement for undoing
-        
-        // Update slider visual position EXACTLY on the calculated path point
-        this.slider.setAttribute('cx', sliderX);
-        this.slider.setAttribute('cy', sliderY);
-        
-        // Debug: Verify slider is on path (only in debug mode)
-        this.verifySliderOnPath();
-        
-        // Update coordinate index for both forward AND backward movement
-        if (newCoordinateIndex !== this.currentCoordinateIndex) {
-            const oldIndex = this.currentCoordinateIndex;
-            this.currentCoordinateIndex = newCoordinateIndex;
-            
-            // Update traced path - supports both forward and backward movement
-            this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
-            
-            if (newCoordinateIndex > oldIndex) {
-                console.log(`✅ Advanced trace from coordinate ${oldIndex} to ${this.currentCoordinateIndex}`);
-            } else {
-                console.log(`↩️ Reversed trace from coordinate ${oldIndex} to ${this.currentCoordinateIndex} (undoing)`);
-            }
-            
-            // Update direction arrow when position changes
-            this.updateDirectionArrow();
-        }
-        
-        // Check if stroke is complete
-        if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
-            console.log('Stroke completed - slider reached end of path');
-            this.completeCurrentStroke();
-        }
-    }
-
-    updateDirectionArrow() {
-        // Remove current arrow and create new one with updated direction
-        if (this.directionArrow) {
-            this.removeDirectionArrow();
-        }
-        
-        // Only recreate if we're not actively dragging and have valid coordinates
-        if (!this.isDragging && this.currentStrokeCoords && this.currentStrokeCoords.length > 1) {
-            setTimeout(() => {
-                if (!this.isDragging) { // Double-check we're still not dragging
-                    this.createDirectionArrow();
-                }
-            }, 100);
-        }
-    }
-
-    stopTracing() {
-        this.isTracing = false;
-        this.isDragging = false;
-        
-        console.log('Tracing stopped - finger/cursor moved outside slider area');
-        
-        // Re-enable the pulsing animation to indicate the slider is ready for interaction again
-        if (this.slider) {
-            // Remove any existing animation first
-            const existingAnimate = this.slider.querySelector('animate');
-            if (existingAnimate) {
-                existingAnimate.remove();
-            }
-            
-            // Add pulsing animation back
-            const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-            animate.setAttribute('attributeName', 'r');
-            animate.setAttribute('values', `${CONFIG.SLIDER_SIZE / 2};${CONFIG.SLIDER_SIZE / 2 + 3};${CONFIG.SLIDER_SIZE / 2}`);
-            animate.setAttribute('dur', '2s');
-            animate.setAttribute('repeatCount', 'indefinite');
-            
-            this.slider.appendChild(animate);
-        }
-        
-        // Start arrow timeout again
-        this.startArrowTimeout();
-        
-        // Start stopped movement timeout if near completion
-        this.startStoppedMovementTimeout();
+        // Allow touching within slider radius plus small buffer
+        const sliderRadius = CONFIG.SLIDER_SIZE / 2;
+        return distance <= sliderRadius + 10; // 10px buffer for easier touching
     }
 
     completeCurrentStroke() {
@@ -722,22 +326,8 @@ class TracePathManager {
         this.isTracing = false;
         this.isDragging = false;
         
-        // Hide slider and arrow for current stroke
-        if (this.slider) {
-            this.slider.style.opacity = '0';
-        }
-        this.removeDirectionArrow();
-        
-        // Clear arrow timeout
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-            this.arrowTimeout = null;
-        }
-        
-        // Remove slider after fade
-        setTimeout(() => {
-            this.removeSlider();
-        }, 300);
+        // Hide slider
+        this.removeSlider();
         
         // Notify renderer of completion
         this.renderer.completeStroke(this.currentStroke);
@@ -767,20 +357,8 @@ class TracePathManager {
     }
 
     cleanup() {
-        // Remove slider and arrow
+        // Remove slider
         this.removeSlider();
-        this.removeDirectionArrow();
-        
-        // Clear timeouts
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-            this.arrowTimeout = null;
-        }
-        
-        if (this.stoppedMovementTimeout) {
-            clearTimeout(this.stoppedMovementTimeout);
-            this.stoppedMovementTimeout = null;
-        }
         
         this.isTracing = false;
         this.isDragging = false;
@@ -793,7 +371,7 @@ class TracePathManager {
         this.currentStroke = 0;
     }
 
-    // Debug methods
+    // Debug methods (simplified)
     showCoordinatePoints() {
         if (!CONFIG.DEBUG_MODE || !this.currentStrokeCoords) return;
         
