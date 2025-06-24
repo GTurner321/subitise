@@ -5,6 +5,7 @@ class TraceGameController {
         this.pathManager = null;
         this.rainbow = new Rainbow();
         this.bear = new Bear();
+        this.balloonGame = null; // Will be initialized after renderer
         
         // Game state
         this.currentNumberIndex = 0;
@@ -12,6 +13,7 @@ class TraceGameController {
         this.numbersCompleted = 0;
         this.gameComplete = false;
         this.isProcessingCompletion = false;
+        this.playingBalloonGame = false; // New state for balloon mini-game
         
         // Audio
         this.audioContext = null;
@@ -48,6 +50,9 @@ class TraceGameController {
         
         // Create path manager
         this.pathManager = new TracePathManager(this.renderer.svg, this.renderer);
+        
+        // Create balloon game
+        this.balloonGame = new BalloonGame(this.renderer.svg, this.renderer);
         
         // Set up event listeners
         this.setupEventListeners();
@@ -145,6 +150,7 @@ class TraceGameController {
         this.numbersCompleted = 0;
         this.gameComplete = false;
         this.isProcessingCompletion = false;
+        this.playingBalloonGame = false;
         this.currentVoiceGender = 'male'; // Reset to male voice
         
         // Reset components
@@ -152,6 +158,7 @@ class TraceGameController {
         this.bear.reset();
         this.renderer.reset();
         this.pathManager.reset();
+        this.balloonGame.reset();
         
         // Hide modal
         if (this.modal) {
@@ -230,8 +237,29 @@ class TraceGameController {
         const pieces = this.rainbow.addPiece();
         console.log(`Rainbow pieces: ${pieces}/${CONFIG.RAINBOW_PIECES}`);
         
-        // Show number word and speak it (using SAME voice gender as the initial instruction)
-        this.showNumberWord();
+        // Instead of immediately showing number word and moving to next number,
+        // start the balloon mini-game
+        this.startBalloonMiniGame();
+    }
+
+    startBalloonMiniGame() {
+        console.log('Starting balloon mini-game for number:', this.currentNumber);
+        
+        this.playingBalloonGame = true;
+        
+        // Clear number word display during balloon game
+        this.updateNumberWordDisplay('');
+        
+        // Start balloon game with completion callback
+        this.balloonGame.startGame(this.currentNumber, () => {
+            this.onBalloonGameComplete();
+        });
+    }
+
+    onBalloonGameComplete() {
+        console.log('Balloon mini-game completed for number:', this.currentNumber);
+        
+        this.playingBalloonGame = false;
         
         // Update game progress
         this.numbersCompleted++;
@@ -241,7 +269,7 @@ class TraceGameController {
             console.log('Rainbow completed! Starting end game sequence...');
             setTimeout(() => {
                 this.completeGame();
-            }, 3000); // Wait for rainbow completion animation
+            }, 1000); // Shorter delay since balloon game provided the interaction
             return;
         }
         
@@ -251,7 +279,7 @@ class TraceGameController {
         // Move to next number after delay
         setTimeout(() => {
             this.moveToNextNumber();
-        }, CONFIG.COMPLETION_DELAY);
+        }, 1000); // Shorter delay since balloon game was the main interaction
     }
 
     switchVoiceGender() {
@@ -468,6 +496,10 @@ class TraceGameController {
         // Clean up components
         if (this.pathManager) {
             this.pathManager.cleanup();
+        }
+        
+        if (this.balloonGame) {
+            this.balloonGame.cleanup();
         }
         
         if (this.renderer) {
