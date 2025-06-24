@@ -108,13 +108,19 @@ class TracePathManager {
     }
 
     createDirectionArrow() {
-        if (this.directionArrow || !this.currentStrokeCoords || this.currentStrokeCoords.length < 2) {
+        if (this.directionArrow || !this.currentStrokeCoords || this.currentStrokeCoords.length < 2 || !this.slider) {
             return;
         }
         
         // Get current slider position
         const sliderX = parseFloat(this.slider.getAttribute('cx'));
         const sliderY = parseFloat(this.slider.getAttribute('cy'));
+        
+        // Validate slider position
+        if (isNaN(sliderX) || isNaN(sliderY)) {
+            console.warn('Invalid slider position, cannot create direction arrow');
+            return;
+        }
         
         // Find the next coordinate point ahead from current position
         let nextCoordIndex = this.currentCoordinateIndex + 1;
@@ -128,8 +134,18 @@ class TracePathManager {
             targetCoordIndex = this.currentStrokeCoords.length - 1;
         }
         
+        // Don't create arrow if we're at the end
+        if (nextCoordIndex === targetCoordIndex) {
+            return;
+        }
+        
         const nextCoord = this.currentStrokeCoords[nextCoordIndex];
         const targetCoord = this.currentStrokeCoords[targetCoordIndex];
+        
+        if (!nextCoord || !targetCoord) {
+            console.warn('Invalid coordinates for arrow creation');
+            return;
+        }
         
         // Calculate direction from next coordinate to target coordinate
         const directionX = targetCoord.x - nextCoord.x;
@@ -164,40 +180,45 @@ class TracePathManager {
         // Calculate rotation angle pointing toward target coordinate (add 180 to flip)
         const angle = (Math.atan2(directionY, directionX) * 180 / Math.PI) + 180;
         
-        // Create arrow group
-        this.directionArrow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        this.directionArrow.setAttribute('class', 'direction-arrow');
-        this.directionArrow.setAttribute('transform', `translate(${arrowX}, ${arrowY}) rotate(${angle})`);
-        
-        // Create arrow path (pointing right by default, rotation handles direction)
-        const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const arrowSize = CONFIG.ARROW_SIZE;
-        // Arrow points forward in direction of movement
-        arrowPath.setAttribute('d', `M 0 0 L ${arrowSize} ${arrowSize/2} L ${arrowSize} ${-arrowSize/2} Z`);
-        arrowPath.setAttribute('fill', CONFIG.ARROW_COLOR);
-        arrowPath.setAttribute('stroke', 'white');
-        arrowPath.setAttribute('stroke-width', 2);
-        arrowPath.setAttribute('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))');
-        
-        this.directionArrow.appendChild(arrowPath);
-        
-        // Add flashing animation
-        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-        animate.setAttribute('attributeName', 'opacity');
-        animate.setAttribute('values', '1;0.3;1');
-        animate.setAttribute('dur', '1.5s');
-        animate.setAttribute('repeatCount', 'indefinite');
-        
-        this.directionArrow.appendChild(animate);
-        
-        // Insert before slider to keep slider on top
-        if (this.slider) {
-            this.svg.insertBefore(this.directionArrow, this.slider);
-        } else {
-            this.svg.appendChild(this.directionArrow);
+        try {
+            // Create arrow group
+            this.directionArrow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            this.directionArrow.setAttribute('class', 'direction-arrow');
+            this.directionArrow.setAttribute('transform', `translate(${arrowX}, ${arrowY}) rotate(${angle})`);
+            
+            // Create arrow path (pointing right by default, rotation handles direction)
+            const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const arrowSize = CONFIG.ARROW_SIZE;
+            // Arrow points forward in direction of movement
+            arrowPath.setAttribute('d', `M 0 0 L ${arrowSize} ${arrowSize/2} L ${arrowSize} ${-arrowSize/2} Z`);
+            arrowPath.setAttribute('fill', CONFIG.ARROW_COLOR);
+            arrowPath.setAttribute('stroke', 'white');
+            arrowPath.setAttribute('stroke-width', 2);
+            arrowPath.setAttribute('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))');
+            
+            this.directionArrow.appendChild(arrowPath);
+            
+            // Add flashing animation
+            const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+            animate.setAttribute('attributeName', 'opacity');
+            animate.setAttribute('values', '1;0.3;1');
+            animate.setAttribute('dur', '1.5s');
+            animate.setAttribute('repeatCount', 'indefinite');
+            
+            this.directionArrow.appendChild(animate);
+            
+            // Insert before slider to keep slider on top
+            if (this.slider && this.slider.parentNode) {
+                this.svg.insertBefore(this.directionArrow, this.slider);
+            } else {
+                this.svg.appendChild(this.directionArrow);
+            }
+            
+            console.log(`Created direction arrow at (${arrowX.toFixed(1)}, ${arrowY.toFixed(1)}) pointing toward coordinate ${targetCoordIndex}`);
+        } catch (error) {
+            console.error('Error creating direction arrow:', error);
+            this.directionArrow = null;
         }
-        
-        console.log(`Created direction arrow at (${arrowX.toFixed(1)}, ${arrowY.toFixed(1)}) pointing toward coordinate ${targetCoordIndex}`);
     }
 
     removeDirectionArrow() {
@@ -529,8 +550,8 @@ class TracePathManager {
         // Remove current arrow and create new one with updated direction
         if (this.directionArrow) {
             this.removeDirectionArrow();
-            // Only recreate if we're not actively dragging
-            if (!this.isDragging) {
+            // Only recreate if we're not actively dragging and have valid coordinates
+            if (!this.isDragging && this.currentStrokeCoords && this.currentStrokeCoords.length > 1) {
                 setTimeout(() => {
                     this.createDirectionArrow();
                 }, 100);
