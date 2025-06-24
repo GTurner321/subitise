@@ -12,8 +12,6 @@ class TracePathManager {
         this.currentStroke = 0;
         this.currentCoordinateIndex = 0; // Which coordinate point we're at
         this.isDragging = false;
-        this.lastSliderPosition = { x: 0, y: 0 };
-        this.lastUpdateTime = Date.now();
         
         // Current stroke data
         this.strokeCoordinates = [];
@@ -49,7 +47,6 @@ class TracePathManager {
         this.isTracing = false;
         this.isDragging = false;
         this.lastMovementTime = Date.now();
-        this.lastUpdateTime = Date.now();
         
         // Get coordinates for this stroke
         this.currentStrokeCoords = this.renderer.getStrokeCoordinates(strokeIndex);
@@ -68,9 +65,6 @@ class TracePathManager {
         // Create slider at first coordinate
         const startPoint = this.currentStrokeCoords[0];
         this.createSlider(startPoint);
-        
-        // Initialize slider position tracking
-        this.lastSliderPosition = { x: startPoint.x, y: startPoint.y };
         
         // Start arrow timeout
         this.startArrowTimeout();
@@ -352,8 +346,8 @@ class TracePathManager {
         
         // Different tolerances for initial touch vs during drag
         if (isDuringDrag) {
-            // During drag, use the configurable drag tolerance (increased)
-            return distance <= CONFIG.SLIDER_DRAG_TOLERANCE;
+            // During drag, use a slightly larger area but not too large
+            return distance <= CONFIG.SLIDER_SIZE * 1.2;
         } else {
             // For initial touch, use larger area for easier grabbing
             return distance <= CONFIG.SLIDER_SIZE * 1.5;
@@ -374,60 +368,50 @@ class TracePathManager {
         let bestProgress = 0;
         let bestDistance = Infinity;
         
-        // Check current segment and next segment only (no skipping ahead)
-        const maxLookAhead = 1; // Only current and next segment
-        const startIndex = this.currentCoordinateIndex;
+        // Look ahead a few coordinates to find the best position
+        const maxLookAhead = 3;
+        const startIndex = Math.max(0, this.currentCoordinateIndex - 1);
         const endIndex = Math.min(this.currentStrokeCoords.length - 2, this.currentCoordinateIndex + maxLookAhead);
         
         for (let i = startIndex; i <= endIndex; i++) {
             const currentCoord = this.currentStrokeCoords[i];
             const nextCoord = this.currentStrokeCoords[i + 1];
             
-            if (!nextCoord) continue; // Skip if no next coordinate
+            if (!nextCoord) continue;
             
             // Calculate segment direction
             const segmentX = nextCoord.x - currentCoord.x;
             const segmentY = nextCoord.y - currentCoord.y;
             const segmentLength = Math.sqrt(segmentX * segmentX + segmentY * segmentY);
             
-            if (segmentLength === 0) continue; // Skip zero-length segments
+            if (segmentLength === 0) continue;
             
-            // Find closest point on this line segment to drag point
+            // Find closest point on this segment to drag point
             const dragX = dragPoint.x - currentCoord.x;
             const dragY = dragPoint.y - currentCoord.y;
             
             // Project drag vector onto segment
-            const dotProduct = (dragX * segmentX + dragY * segmentY);
-            const projectionLength = dotProduct / segmentLength;
-            const projectionProgress = Math.max(0, Math.min(segmentLength, projectionLength)) / segmentLength;
+            const dotProduct = (dragX * segmentX + dragY * segmentY) / segmentLength;
+            const projectionProgress = Math.max(0, Math.min(segmentLength, dotProduct)) / segmentLength;
             
-            // Calculate the actual point on the line segment
+            // Calculate point on segment
             const pointX = currentCoord.x + segmentX * projectionProgress;
             const pointY = currentCoord.y + segmentY * projectionProgress;
             
-            // Calculate distance from drag point to this point on the segment
+            // Calculate distance from drag point to this segment point
             const distanceToSegment = Math.sqrt(
                 Math.pow(dragPoint.x - pointX, 2) + 
                 Math.pow(dragPoint.y - pointY, 2)
             );
             
-            // Check if this is within tolerance and represents valid movement
-            if (distanceToSegment <= CONFIG.PATH_TOLERANCE) {
-                // For forward movement: ensure we're moving in the right direction
-                if (i > this.currentCoordinateIndex) {
-                    // Moving to next segment - require forward component
-                    if (projectionLength >= 0 && distanceToSegment < bestDistance) {
-                        bestDistance = distanceToSegment;
-                        bestCoordIndex = i;
-                        bestProgress = projectionProgress;
-                    }
-                } else if (i === this.currentCoordinateIndex) {
-                    // Current segment - allow movement but prefer forward
-                    if (distanceToSegment < bestDistance) {
-                        bestDistance = distanceToSegment;
-                        bestCoordIndex = i;
-                        bestProgress = projectionProgress;
-                    }
+            // Check if this is the best position so far
+            if (distanceToSegment < bestDistance && distanceToSegment <= CONFIG.PATH_TOLERANCE) {
+                // Allow backward movement within current segment, but prefer forward movement
+                if (i >= this.currentCoordinateIndex || 
+                    (i === this.currentCoordinateIndex - 1 && projectionProgress > 0.5)) {
+                    bestDistance = distanceToSegment;
+                    bestCoordIndex = i;
+                    bestProgress = projectionProgress;
                 }
             }
         }
@@ -449,65 +433,32 @@ class TracePathManager {
         const currentCoord = this.currentStrokeCoords[coordIndex];
         const nextCoord = this.currentStrokeCoords[coordIndex + 1];
         
-        if (!currentCoord || !nextCoord) {
-            console.error('Invalid coordinates for segment:', coordIndex);
-            return;
-        }
-        
-        // Calculate slider position along the linear segment between coordinates
-        // This keeps the slider ON THE PATH but allows smooth movement between points
+        // Calculate slider position along the segment
         const sliderX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
         const sliderY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
         
-        // Apply speed limiting if needed
-        const currentTime = Date.now();
-        const deltaTime = (currentTime - this.lastUpdateTime) / 1000;
-        this.lastUpdateTime = currentTime;
+        // Update slider visual position
+        this.slider.setAttribute('cx', sliderX);
+        this.slider.setAttribute('cy', sliderY);
         
-        // Get current slider position
-        const currentX = parseFloat(this.slider.getAttribute('cx')) || this.lastSliderPosition.x;
-        const currentY = parseFloat(this.slider.getAttribute('cy')) || this.lastSliderPosition.y;
-        
-        // Calculate distance to desired position
-        const deltaX = sliderX - currentX;
-        const deltaY = sliderY - currentY;
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        
-        // Apply speed limit
-        const maxDistance = CONFIG.MAX_SLIDER_SPEED * deltaTime;
-        let finalX = sliderX;
-        let finalY = sliderY;
-        
-        if (distance > maxDistance && maxDistance > 0) {
-            // Limit movement to max speed
-            const ratio = maxDistance / distance;
-            finalX = currentX + deltaX * ratio;
-            finalY = currentY + deltaY * ratio;
-        }
-        
-        // Update slider visual position (on the path, between coordinates)
-        this.slider.setAttribute('cx', finalX);
-        this.slider.setAttribute('cy', finalY);
-        this.lastSliderPosition = { x: finalX, y: finalY };
-        
-        // Determine coordinate completion based on progress through segment
+        // Determine how many complete coordinates we've passed
         let completedCoords = coordIndex;
-        if (progress >= 0.85) { // 85% through segment = coordinate completed
+        if (progress >= 0.95) {
             completedCoords = coordIndex + 1;
         }
         
         // Update current coordinate index if we've advanced
         if (completedCoords > this.currentCoordinateIndex) {
-            // Ensure we don't skip coordinates - only advance by 1 at a time
-            const newCoordinateIndex = this.currentCoordinateIndex + 1;
+            // Allow jumping ahead but track the highest reached coordinate
+            const newCoordinateIndex = Math.min(completedCoords, this.currentStrokeCoords.length - 1);
             
-            if (newCoordinateIndex === completedCoords && newCoordinateIndex < this.currentStrokeCoords.length) {
+            if (newCoordinateIndex > this.currentCoordinateIndex) {
                 this.currentCoordinateIndex = newCoordinateIndex;
                 
                 // Update traced path to show progress
                 this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
                 
-                console.log(`Advanced to coordinate ${this.currentCoordinateIndex} of ${this.currentStrokeCoords.length - 1} at progress ${(progress * 100).toFixed(1)}%`);
+                console.log(`Advanced to coordinate ${this.currentCoordinateIndex} of ${this.currentStrokeCoords.length - 1}`);
                 
                 // Check if stroke is complete
                 if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
