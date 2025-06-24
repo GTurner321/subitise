@@ -338,6 +338,11 @@ class BalloonGame {
         this.correctAnswerRevealed = false;
         this.allBalloonsPopped = false;
     }
+}
+
+// Make sure BalloonGame is available globally
+if (typeof window !== 'undefined') {
+    window.BalloonGame = BalloonGame;
 }numberText.setAttribute('pointer-events', 'none'); // Prevent text from blocking clicks
         numberText.textContent = CONFIG.NUMBER_WORDS[number];
         
