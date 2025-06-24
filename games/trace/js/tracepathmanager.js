@@ -293,8 +293,8 @@ class TracePathManager {
         const point = this.getEventPoint(event);
         if (!point) return;
         
-        // Check if touch/click started near the slider
-        if (this.isPointNearSlider(point, false)) { // false = not during drag, initial touch
+        // CRITICAL: Must touch WITHIN the red slider circle to start tracing
+        if (this.isPointNearSlider(point, false)) { // false = initial touch, strict requirement
             this.isDragging = true;
             this.isTracing = true;
             
@@ -311,7 +311,9 @@ class TracePathManager {
                 this.arrowTimeout = null;
             }
             
-            console.log('Started tracing at coordinate index:', this.currentCoordinateIndex);
+            console.log('Started tracing - touched within slider circle at coordinate index:', this.currentCoordinateIndex);
+        } else {
+            console.log('Touch outside slider circle - movement not started');
         }
     }
 
@@ -326,10 +328,10 @@ class TracePathManager {
         this.lastMovementTime = Date.now();
         this.resetStoppedMovementTimeout();
         
-        // Check if the finger is still within acceptable distance of the slider
-        // This is more forgiving than before - finger can be further from slider
+        // During drag: Check if finger is still within PATH_TOLERANCE of the path
+        // (much more forgiving than initial touch requirement)
         if (!this.isPointNearSlider(point, true)) { // true = during drag
-            console.log('Drag moved too far from slider, stopping trace');
+            console.log('Drag moved too far from path, stopping trace');
             this.stopTracing();
             return;
         }
@@ -388,13 +390,13 @@ class TracePathManager {
             Math.pow(point.y - sliderY, 2)
         );
         
-        // Different tolerances for initial touch vs during drag
         if (isDuringDrag) {
-            // During drag, use a slightly larger area but not too large
-            return distance <= CONFIG.SLIDER_SIZE * 1.2;
+            // During drag, use PATH_TOLERANCE so finger can move along path
+            return distance <= CONFIG.PATH_TOLERANCE;
         } else {
-            // For initial touch, use larger area for easier grabbing
-            return distance <= CONFIG.SLIDER_SIZE * 1.5;
+            // For INITIAL touch, must be within the slider circle itself
+            const sliderRadius = CONFIG.SLIDER_SIZE / 2;
+            return distance <= sliderRadius + 5; // Small buffer of 5px for easier touching
         }
     }
 
