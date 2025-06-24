@@ -12,6 +12,8 @@ class TracePathManager {
         this.currentStroke = 0;
         this.currentCoordinateIndex = 0; // Which coordinate point we're at
         this.isDragging = false;
+        this.lastSliderPosition = { x: 0, y: 0 };
+        this.lastUpdateTime = Date.now();
         
         // Current stroke data
         this.strokeCoordinates = [];
@@ -47,6 +49,7 @@ class TracePathManager {
         this.isTracing = false;
         this.isDragging = false;
         this.lastMovementTime = Date.now();
+        this.lastUpdateTime = Date.now();
         
         // Get coordinates for this stroke
         this.currentStrokeCoords = this.renderer.getStrokeCoordinates(strokeIndex);
@@ -65,6 +68,9 @@ class TracePathManager {
         // Create slider at first coordinate
         const startPoint = this.currentStrokeCoords[0];
         this.createSlider(startPoint);
+        
+        // Initialize slider position tracking
+        this.lastSliderPosition = { x: startPoint.x, y: startPoint.y };
         
         // Start arrow timeout
         this.startArrowTimeout();
@@ -133,13 +139,13 @@ class TracePathManager {
         const normalizedDx = dx / distance;
         const normalizedDy = dy / distance;
         
-        // Position arrow ahead of slider in the direction of movement (not towards slider)
+        // Position arrow ahead of slider in the direction of movement
         const arrowDistance = CONFIG.ARROW_OFFSET;
         const arrowX = currentPos.x + normalizedDx * arrowDistance;
         const arrowY = currentPos.y + normalizedDy * arrowDistance;
         
-        // Calculate rotation angle for the direction of movement
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        // Calculate rotation angle for the direction of movement (add 180 degrees to flip)
+        const angle = (Math.atan2(dy, dx) * 180 / Math.PI) + 180;
         
         // Create arrow group
         this.directionArrow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -345,8 +351,8 @@ class TracePathManager {
         
         // Different tolerances for initial touch vs during drag
         if (isDuringDrag) {
-            // During drag, use a slightly larger area but not too large
-            return distance <= CONFIG.SLIDER_SIZE * 1.2;
+            // During drag, use the configurable drag tolerance (increased)
+            return distance <= CONFIG.SLIDER_DRAG_TOLERANCE;
         } else {
             // For initial touch, use larger area for easier grabbing
             return distance <= CONFIG.SLIDER_SIZE * 1.5;
@@ -440,15 +446,45 @@ class TracePathManager {
         const currentCoord = this.currentStrokeCoords[coordIndex];
         const nextCoord = this.currentStrokeCoords[coordIndex + 1];
         
-        // Calculate slider position along the segment
-        const sliderX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
-        const sliderY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
+        // Calculate desired slider position along the segment
+        const desiredX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
+        const desiredY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
+        
+        // Apply speed limiting
+        const currentTime = Date.now();
+        const deltaTime = (currentTime - this.lastUpdateTime) / 1000; // Convert to seconds
+        this.lastUpdateTime = currentTime;
+        
+        // Get current slider position
+        const currentX = parseFloat(this.slider.getAttribute('cx')) || this.lastSliderPosition.x;
+        const currentY = parseFloat(this.slider.getAttribute('cy')) || this.lastSliderPosition.y;
+        
+        // Calculate distance to desired position
+        const deltaX = desiredX - currentX;
+        const deltaY = desiredY - currentY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        // Apply speed limit
+        const maxDistance = CONFIG.MAX_SLIDER_SPEED * deltaTime;
+        let finalX = desiredX;
+        let finalY = desiredY;
+        
+        if (distance > maxDistance && maxDistance > 0) {
+            // Limit movement to max speed
+            const ratio = maxDistance / distance;
+            finalX = currentX + deltaX * ratio;
+            finalY = currentY + deltaY * ratio;
+        }
         
         // Update slider visual position
-        this.slider.setAttribute('cx', sliderX);
-        this.slider.setAttribute('cy', sliderY);
+        this.slider.setAttribute('cx', finalX);
+        this.slider.setAttribute('cy', finalY);
         
-        // Determine how many complete coordinates we've passed
+        // Store last position
+        this.lastSliderPosition = { x: finalX, y: finalY };
+        
+        // Determine how many complete coordinates we've passed based on actual slider position
+        // Use the original desired position for progress calculation
         let completedCoords = coordIndex;
         
         // Use a stricter threshold to ensure each coordinate is properly visited
