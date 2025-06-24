@@ -441,8 +441,8 @@ class TracePathManager {
         this.slider.setAttribute('cx', sliderX);
         this.slider.setAttribute('cy', sliderY);
         
-        // The key fix: Only update traced path based on the slider's ACTUAL position
-        // Green trace should NEVER be ahead of the red slider
+        // Allow both forward AND backward movement for coordinate tracking
+        // This enables smooth backwards tracing when user drags back
         
         // Calculate how far along the path the slider currently is
         let currentPathProgress = coordIndex;
@@ -450,36 +450,36 @@ class TracePathManager {
             currentPathProgress += progress;
         }
         
-        // Only advance the traced path if slider has moved forward
-        if (currentPathProgress > this.currentCoordinateIndex) {
-            // Determine the highest complete coordinate the slider has reached
-            let newCoordinateIndex = Math.floor(currentPathProgress);
+        // Update traced path based on slider position (allow backwards)
+        let newCoordinateIndex = Math.floor(currentPathProgress);
+        
+        // If we're 95% through a segment, count that coordinate as completed
+        if (progress >= 0.95) {
+            newCoordinateIndex = coordIndex + 1;
+        } else {
+            // If we're mid-segment, only show trace up to the previous coordinate
+            newCoordinateIndex = coordIndex;
+        }
+        
+        // Allow backwards movement - don't restrict to only forward progression
+        newCoordinateIndex = Math.max(0, Math.min(newCoordinateIndex, this.currentStrokeCoords.length - 1));
+        
+        // Update if position has changed (forward or backward)
+        if (newCoordinateIndex !== this.currentCoordinateIndex) {
+            this.currentCoordinateIndex = newCoordinateIndex;
             
-            // Only show trace up to where slider has been
-            if (progress >= 0.95) {
-                // If we're 95% through a segment, count that coordinate as completed
-                newCoordinateIndex = coordIndex + 1;
-            } else {
-                // If we're mid-segment, only show trace up to the previous coordinate
-                newCoordinateIndex = coordIndex;
-            }
+            // Update traced path to show progress
+            this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
             
-            // Ensure we don't go backwards or skip ahead inappropriately
-            newCoordinateIndex = Math.max(this.currentCoordinateIndex, Math.min(newCoordinateIndex, this.currentStrokeCoords.length - 1));
+            // Update arrow direction when slider moves
+            this.updateDirectionArrow();
             
-            if (newCoordinateIndex > this.currentCoordinateIndex) {
-                this.currentCoordinateIndex = newCoordinateIndex;
-                
-                // Update traced path to show progress - but only up to where slider has been
-                this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
-                
-                console.log(`Traced path updated to coordinate ${this.currentCoordinateIndex} (slider at ${coordIndex} + ${(progress * 100).toFixed(1)}%)`);
-                
-                // Check if stroke is complete
-                if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
-                    this.completeCurrentStroke();
-                }
-            }
+            console.log(`Traced path updated to coordinate ${this.currentCoordinateIndex} (slider at ${coordIndex} + ${(progress * 100).toFixed(1)}%)`);
+        }
+        
+        // Check if stroke is complete (only for forward completion)
+        if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
+            this.completeCurrentStroke();
         }
     }
 
