@@ -368,9 +368,10 @@ class TracePathManager {
         let bestProgress = 0;
         let bestDistance = Infinity;
         
-        // Look ahead a few coordinates to find the best position
-        const maxLookAhead = 3;
-        const startIndex = Math.max(0, this.currentCoordinateIndex - 1);
+        // Look both forward and backward from current position for smooth bidirectional movement
+        const lookBack = 2;  // Look back 2 coordinates
+        const maxLookAhead = 3;  // Look ahead 3 coordinates
+        const startIndex = Math.max(0, this.currentCoordinateIndex - lookBack);
         const endIndex = Math.min(this.currentStrokeCoords.length - 2, this.currentCoordinateIndex + maxLookAhead);
         
         for (let i = startIndex; i <= endIndex; i++) {
@@ -406,9 +407,23 @@ class TracePathManager {
             
             // Check if this is the best position so far
             if (distanceToSegment < bestDistance && distanceToSegment <= CONFIG.PATH_TOLERANCE) {
-                // Allow backward movement within current segment, but prefer forward movement
-                if (i >= this.currentCoordinateIndex || 
-                    (i === this.currentCoordinateIndex - 1 && projectionProgress > 0.5)) {
+                // More flexible movement rules for smoother backwards movement
+                let isValidPosition = false;
+                
+                if (i <= this.currentCoordinateIndex) {
+                    // Moving backward or staying - always allow
+                    isValidPosition = true;
+                } else if (i === this.currentCoordinateIndex + 1) {
+                    // Moving forward to next segment - allow if there's forward component
+                    if (dotProduct >= 0) {
+                        isValidPosition = true;
+                    }
+                } else if (i === this.currentCoordinateIndex + 2 && projectionProgress > 0.3) {
+                    // Allow jumping ahead by 1 if we're well into the segment
+                    isValidPosition = true;
+                }
+                
+                if (isValidPosition) {
                     bestDistance = distanceToSegment;
                     bestCoordIndex = i;
                     bestProgress = projectionProgress;
@@ -441,27 +456,34 @@ class TracePathManager {
         this.slider.setAttribute('cx', sliderX);
         this.slider.setAttribute('cy', sliderY);
         
-        // SMART COMPLETION RULE: Only apply the 95% rule when we're near the end of the path
-        let newCoordinateIndex = coordIndex;
+        // FUNDAMENTAL FIX: Green trace should ONLY show coordinates the slider has fully passed
+        // Never show partial progress - only show complete coordinate visits
         
-        // Check if we're near the end of the path (final segment or second-to-last segment)
-        const isNearPathEnd = (coordIndex >= this.currentStrokeCoords.length - 3);
+        // The trace should show coordinates 0 through the HIGHEST coordinate the slider has completely visited
+        // This means the slider must be PAST a coordinate for it to show in the trace
         
-        if (isNearPathEnd && progress >= 0.95) {
-            // Only when near the end: allow 95% completion to count as reaching next coordinate
-            newCoordinateIndex = Math.min(coordIndex + 1, this.currentStrokeCoords.length - 1);
+        let newCoordinateIndex;
+        
+        // Calculate which coordinate has been completely passed
+        if (progress < 0.1) {
+            // If we're at the very start of a segment, we haven't completed the previous coordinate yet
+            newCoordinateIndex = Math.max(0, coordIndex - 1);
         } else {
-            // For most of the path: trace only shows where slider has actually been
-            // No advancement until slider is nearly at the next coordinate
-            if (progress >= 0.98) {
-                newCoordinateIndex = Math.min(coordIndex + 1, this.currentStrokeCoords.length - 1);
-            }
+            // If we're making progress through a segment, we've completed the coordinate at the start of this segment
+            newCoordinateIndex = coordIndex;
         }
         
-        // Allow backwards movement - trace can retract
+        // Special handling for near the end of the path to allow completion
+        const isNearPathEnd = (coordIndex >= this.currentStrokeCoords.length - 2);
+        if (isNearPathEnd && progress >= 0.95) {
+            // Only when near the very end: allow 95% completion to count
+            newCoordinateIndex = Math.min(coordIndex + 1, this.currentStrokeCoords.length - 1);
+        }
+        
+        // Allow smooth backwards movement by always updating to the new position
         newCoordinateIndex = Math.max(0, Math.min(newCoordinateIndex, this.currentStrokeCoords.length - 1));
         
-        // Update if position has changed (forward or backward)
+        // Always update the coordinate index to allow smooth bidirectional movement
         if (newCoordinateIndex !== this.currentCoordinateIndex) {
             this.currentCoordinateIndex = newCoordinateIndex;
             
@@ -471,11 +493,10 @@ class TracePathManager {
             // Update arrow direction when slider moves
             this.updateDirectionArrow();
             
-            const endRule = isNearPathEnd ? "95% (near end)" : "98% (mid-path)";
-            console.log(`Traced path updated to coordinate ${this.currentCoordinateIndex} (slider at segment ${coordIndex} + ${(progress * 100).toFixed(1)}%, rule: ${endRule})`);
+            console.log(`Traced path updated to coordinate ${this.currentCoordinateIndex} (slider at segment ${coordIndex} + ${(progress * 100).toFixed(1)}%)`);
         }
         
-        // Check if stroke is complete (only for forward completion)
+        // Check if stroke is complete
         if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
             this.completeCurrentStroke();
         }
