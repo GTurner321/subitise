@@ -9,14 +9,13 @@ class TracePathManager {
         // Tracking state
         this.isTracing = false;
         this.currentStroke = 0;
-        this.currentCoordinateIndex = 0; // Which coordinate point we're at in the GREEN trace
+        this.currentCoordinateIndex = 0; // Where GREEN trace has reached
         this.isDragging = false;
         
         // Current stroke data
         this.strokeCoordinates = [];
         this.currentStrokeCoords = [];
         
-        // Simplified - no more complex arrow management
         this.lastMovementTime = Date.now();
         
         this.initializeEventListeners();
@@ -40,7 +39,7 @@ class TracePathManager {
 
     startNewStroke(strokeIndex) {
         this.currentStroke = strokeIndex;
-        this.currentCoordinateIndex = 0; // Start at beginning of GREEN trace
+        this.currentCoordinateIndex = 0; // Start GREEN trace at beginning
         this.isTracing = false;
         this.isDragging = false;
         this.lastMovementTime = Date.now();
@@ -55,7 +54,7 @@ class TracePathManager {
         
         console.log(`Starting stroke ${strokeIndex} with ${this.currentStrokeCoords.length} coordinates`);
         
-        // Show red slider at the start of the new stroke section
+        // Show red slider at the start position
         this.showSliderAtCurrentPosition();
         
         return true;
@@ -65,14 +64,14 @@ class TracePathManager {
         // Remove any existing slider
         this.removeSlider();
         
-        // Get position where GREEN trace currently ends (or start if no trace yet)
+        // Get position where GREEN trace currently ends
         const position = this.currentStrokeCoords[this.currentCoordinateIndex];
         if (!position) {
             console.error('No position available for slider at index:', this.currentCoordinateIndex);
             return;
         }
         
-        // Create slider at the last traced position
+        // Create slider at the current GREEN trace position
         this.createSliderWithArrow(position);
         
         console.log(`Red slider shown at coordinate ${this.currentCoordinateIndex}:`, position);
@@ -82,7 +81,7 @@ class TracePathManager {
         // Remove existing slider
         this.removeSlider();
         
-        // Create slider group to hold both circle and arrow
+        // Create slider group
         this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         this.slider.setAttribute('class', 'trace-slider-group');
         this.slider.setAttribute('transform', `translate(${position.x}, ${position.y})`);
@@ -98,7 +97,7 @@ class TracePathManager {
         sliderCircle.setAttribute('class', 'slider-circle');
         sliderCircle.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
         
-        // Add pulsing animation to indicate it's interactive
+        // Add pulsing animation
         const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
         animate.setAttribute('attributeName', 'r');
         animate.setAttribute('values', `${CONFIG.SLIDER_SIZE / 2};${CONFIG.SLIDER_SIZE / 2 + 3};${CONFIG.SLIDER_SIZE / 2}`);
@@ -144,7 +143,7 @@ class TracePathManager {
         arrowGroup.setAttribute('class', 'direction-arrow-embedded');
         arrowGroup.setAttribute('transform', `rotate(${angle})`);
         
-        // Create arrow path (pointing right by default, rotation handles direction)
+        // Create arrow path (pointing right by default)
         const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const arrowSize = 12; // Smaller to fit inside circle
         arrowPath.setAttribute('d', `M -${arrowSize/2} -${arrowSize/3} L ${arrowSize/2} 0 L -${arrowSize/2} ${arrowSize/3} Z`);
@@ -214,8 +213,7 @@ class TracePathManager {
         // Update movement time
         this.lastMovementTime = Date.now();
         
-        // Free-form tracing - just check if we're making progress along the path
-        // This will update the GREEN trace independently of red slider position
+        // CRITICAL FIX: Update GREEN trace progress independently
         this.updateGreenTraceProgress(point);
     }
 
@@ -226,24 +224,22 @@ class TracePathManager {
         this.isDragging = false;
         this.isTracing = false;
         
-        // Show red slider again at current GREEN trace position
-        // This allows user to continue from where they left off
-        setTimeout(() => {
-            this.showSliderAtCurrentPosition();
-        }, 300); // Small delay for better UX
+        // Show red slider IMMEDIATELY at current GREEN trace position
+        this.showSliderAtCurrentPosition();
         
-        console.log('Red slider will reappear at current trace position');
+        console.log('Red slider reappeared immediately at current trace position');
     }
 
     updateGreenTraceProgress(dragPoint) {
-        // Find the furthest point along the path that we can reasonably reach from drag point
+        // Find the furthest point along the path that we can reach from drag point
         let bestCoordIndex = this.currentCoordinateIndex;
-        let maxProgress = this.currentCoordinateIndex;
+        let foundValidProgress = false;
         
         // Look ahead along the path to see how far we can extend the GREEN trace
         const lookAheadDistance = 8; // Look up to 8 coordinates ahead
         const maxReachDistance = 80; // Maximum distance finger can be from path point
         
+        // Start from current position and look forward
         for (let i = this.currentCoordinateIndex; i < Math.min(this.currentStrokeCoords.length, this.currentCoordinateIndex + lookAheadDistance); i++) {
             const pathPoint = this.currentStrokeCoords[i];
             const distanceToPath = Math.sqrt(
@@ -253,26 +249,74 @@ class TracePathManager {
             
             // If finger is reasonably close to this path point, we can extend trace to here
             if (distanceToPath <= maxReachDistance) {
-                maxProgress = i;
+                bestCoordIndex = i;
+                foundValidProgress = true;
             } else {
                 // Stop looking further if we're too far from path
                 break;
             }
         }
         
-        // Update GREEN trace if we made progress
-        if (maxProgress > this.currentCoordinateIndex) {
-            this.currentCoordinateIndex = maxProgress;
+        // Also check backwards movement
+        if (!foundValidProgress || bestCoordIndex <= this.currentCoordinateIndex) {
+            const backtrackDistance = 5;
+            for (let i = this.currentCoordinateIndex; i >= Math.max(0, this.currentCoordinateIndex - backtrackDistance); i--) {
+                const pathPoint = this.currentStrokeCoords[i];
+                const distanceToPath = Math.sqrt(
+                    Math.pow(dragPoint.x - pathPoint.x, 2) + 
+                    Math.pow(dragPoint.y - pathPoint.y, 2)
+                );
+                
+                if (distanceToPath <= maxReachDistance) {
+                    bestCoordIndex = i;
+                    foundValidProgress = true;
+                    break;
+                }
+            }
+        }
+        
+        // Check if drag has strayed too far from path (break connection)
+        if (!foundValidProgress) {
+            console.log('Drag strayed too far from path - breaking connection');
+            this.breakDragConnection();
+            return;
+        }
+        
+        // Update GREEN trace if we made progress (forward or backward)
+        if (bestCoordIndex !== this.currentCoordinateIndex) {
+            const oldIndex = this.currentCoordinateIndex;
+            this.currentCoordinateIndex = bestCoordIndex;
+            
+            // Update the GREEN traced path in the renderer
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
             
-            console.log(`✅ GREEN trace extended to coordinate ${this.currentCoordinateIndex}`);
+            if (bestCoordIndex > oldIndex) {
+                console.log(`✅ GREEN trace extended from coordinate ${oldIndex} to ${this.currentCoordinateIndex}`);
+            } else {
+                console.log(`↩️ GREEN trace reduced from coordinate ${oldIndex} to ${this.currentCoordinateIndex}`);
+            }
             
             // Check if stroke is complete
             if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
-                console.log('Stroke completed!');
+                console.log('Stroke completed - GREEN trace reached end!');
                 this.completeCurrentStroke();
+                return; // Don't continue processing after completion
             }
         }
+    }
+
+    // New method: Break drag connection and restore red slider immediately
+    breakDragConnection() {
+        if (!this.isDragging) return;
+        
+        console.log('Breaking drag connection - finger strayed too far from path');
+        this.isDragging = false;
+        this.isTracing = false;
+        
+        // Show red slider IMMEDIATELY at current GREEN trace position
+        this.showSliderAtCurrentPosition();
+        
+        console.log('Red slider restored immediately due to broken connection');
     }
 
     getEventPoint(event) {
@@ -288,7 +332,7 @@ class TracePathManager {
             clientY = event.clientY;
         }
         
-        // Convert to SVG coordinates using dynamic CONFIG dimensions
+        // Convert to SVG coordinates
         const scaleX = CONFIG.SVG_WIDTH / rect.width;
         const scaleY = CONFIG.SVG_HEIGHT / rect.height;
         
@@ -315,9 +359,9 @@ class TracePathManager {
             Math.pow(point.y - sliderY, 2)
         );
         
-        // Allow touching within slider radius plus small buffer
+        // Allow touching within slider radius plus buffer
         const sliderRadius = CONFIG.SLIDER_SIZE / 2;
-        return distance <= sliderRadius + 10; // 10px buffer for easier touching
+        return distance <= sliderRadius + 10; // 10px buffer
     }
 
     completeCurrentStroke() {
@@ -326,7 +370,7 @@ class TracePathManager {
         this.isTracing = false;
         this.isDragging = false;
         
-        // Hide slider
+        // Remove slider immediately when stroke completes
         this.removeSlider();
         
         // Notify renderer of completion
@@ -371,7 +415,7 @@ class TracePathManager {
         this.currentStroke = 0;
     }
 
-    // Debug methods (simplified)
+    // Debug methods
     showCoordinatePoints() {
         if (!CONFIG.DEBUG_MODE || !this.currentStrokeCoords) return;
         
