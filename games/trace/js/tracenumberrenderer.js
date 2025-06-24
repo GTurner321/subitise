@@ -10,10 +10,11 @@ class TraceNumberRenderer {
         this.paintProgress = {};
         this.paintLayers = {}; // Background paint layers for each stroke
         
-        // Number elements from existing config rendering
+        // Number elements with mask system
         this.strokeElements = {};
+        this.strokeMasks = {}; // SVG masks for each stroke
         
-        console.log('TraceNumberRenderer initialized for paint-fill system');
+        console.log('TraceNumberRenderer initialized with SVG mask system');
     }
 
     initialize(containerId) {
@@ -29,10 +30,14 @@ class TraceNumberRenderer {
         this.svg.setAttribute('viewBox', `0 0 ${CONFIG.SVG_WIDTH} ${CONFIG.SVG_HEIGHT}`);
         this.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         
+        // Create defs section for masks
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        this.svg.appendChild(defs);
+        
         // Add to container
         container.appendChild(this.svg);
         
-        console.log('SVG renderer initialized successfully');
+        console.log('SVG renderer initialized with mask system');
         return true;
     }
 
@@ -51,6 +56,7 @@ class TraceNumberRenderer {
         this.completedStrokes.clear();
         this.paintProgress = {};
         this.strokeElements = {};
+        this.strokeMasks = {};
         this.paintLayers = {};
 
         // Get number data from CONFIG (your existing system)
@@ -60,95 +66,122 @@ class TraceNumberRenderer {
             return false;
         }
 
-        // Create paint background layers FIRST (behind number)
-        this.createPaintBackgroundLayers(numberData);
+        // Create the layered structure with masks
+        this.createNumberWithMasks(numberData, number);
         
-        // Render the number using YOUR existing config structure
-        this.renderNumberFromConfig(numberData, number);
-        
-        console.log(`Number ${number} rendered successfully with paint system`);
+        console.log(`Number ${number} rendered with mask system - ${numberData.strokes.length} strokes`);
         return true;
     }
 
-    createPaintBackgroundLayers(numberData) {
-        // Create background group for paint (behind the number outline)
+    createNumberWithMasks(numberData, number) {
+        // Create paint background group (bottom layer)
         const paintBackgroundGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         paintBackgroundGroup.setAttribute('class', 'paint-background-layers');
-        paintBackgroundGroup.setAttribute('id', `paint-bg-${this.currentNumber}`);
+        paintBackgroundGroup.setAttribute('id', `paint-bg-${number}`);
         
-        // Create a paint layer for each stroke
+        // Create number outline group (top layer with masks)
+        const numberOutlineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        numberOutlineGroup.setAttribute('class', `number-outline-group number-${number}`);
+        numberOutlineGroup.setAttribute('id', `number-${number}`);
+
+        // Process each stroke
         numberData.strokes.forEach((stroke, strokeIndex) => {
-            const paintLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            paintLayer.setAttribute('class', `paint-layer-${strokeIndex}`);
-            paintLayer.setAttribute('id', `paint-layer-${this.currentNumber}-${strokeIndex}`);
+            // Create mask for this stroke
+            this.createStrokeMask(stroke, strokeIndex, number);
             
-            this.paintLayers[strokeIndex] = paintLayer;
-            paintBackgroundGroup.appendChild(paintLayer);
+            // Create paint layer for this stroke (background)
+            this.createPaintLayer(strokeIndex, paintBackgroundGroup);
+            
+            // Create masked outline for this stroke (foreground)
+            this.createMaskedStroke(stroke, strokeIndex, numberOutlineGroup);
         });
+
+        // Add layers to SVG in correct order
+        this.svg.appendChild(paintBackgroundGroup); // Paint behind
+        this.svg.appendChild(numberOutlineGroup);   // Masked outline on top
+
+        console.log('Number created with mask system - paint will show through holes');
+    }
+
+    createStrokeMask(strokeData, strokeIndex, number) {
+        const defs = this.svg.querySelector('defs');
         
-        this.svg.appendChild(paintBackgroundGroup);
-        console.log('Paint background layers created');
+        // Create mask element
+        const mask = document.createElementNS('http://www.w3.org/2000/svg', 'mask');
+        mask.setAttribute('id', `stroke-mask-${number}-${strokeIndex}`);
+        
+        // Black background - everything hidden by default
+        const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        background.setAttribute('width', '100%');
+        background.setAttribute('height', '100%');
+        background.setAttribute('fill', 'black');
+        
+        // White stroke path - creates the "holes" where content shows through
+        const holePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        holePath.setAttribute('d', strokeData.path);
+        holePath.setAttribute('fill', 'none');
+        holePath.setAttribute('stroke', 'white');
+        holePath.setAttribute('stroke-width', (strokeData.width || CONFIG.OUTLINE_WIDTH || 30) - 10); // Slightly thinner than outline
+        holePath.setAttribute('stroke-linecap', 'round');
+        holePath.setAttribute('stroke-linejoin', 'round');
+        
+        mask.appendChild(background);
+        mask.appendChild(holePath);
+        defs.appendChild(mask);
+        
+        // Store mask reference
+        this.strokeMasks[strokeIndex] = mask;
+        
+        console.log(`Created mask for stroke ${strokeIndex}`);
     }
 
-    renderNumberFromConfig(numberData, number) {
-        // Create the main number group (this will go ON TOP of paint layers)
-        const numberGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        numberGroup.setAttribute('class', `number-outline-group number-${number}`);
-        numberGroup.setAttribute('id', `number-${number}`);
-
-        // Render each stroke using your existing CONFIG structure
-        numberData.strokes.forEach((stroke, strokeIndex) => {
-            this.renderStrokeFromConfig(stroke, strokeIndex, numberGroup);
-        });
-
-        this.svg.appendChild(numberGroup);
-        console.log('Number rendered from CONFIG with', numberData.strokes.length, 'strokes');
+    createPaintLayer(strokeIndex, parentGroup) {
+        // Create paint layer that will show through the mask holes
+        const paintLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        paintLayer.setAttribute('class', `paint-layer-${strokeIndex}`);
+        paintLayer.setAttribute('id', `paint-layer-${this.currentNumber}-${strokeIndex}`);
+        
+        this.paintLayers[strokeIndex] = paintLayer;
+        parentGroup.appendChild(paintLayer);
+        
+        console.log(`Created paint layer for stroke ${strokeIndex}`);
     }
 
-    renderStrokeFromConfig(strokeData, strokeIndex, parentGroup) {
+    createMaskedStroke(strokeData, strokeIndex, parentGroup) {
         // Create stroke group
         const strokeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         strokeGroup.setAttribute('class', `stroke-${strokeIndex}`);
         
-        // Create the BLACK outline path (from your config)
-        const blackPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        blackPath.setAttribute('d', strokeData.path);
-        blackPath.setAttribute('fill', 'none');
-        blackPath.setAttribute('stroke', strokeData.color || CONFIG.OUTLINE_COLOR || '#000000');
-        blackPath.setAttribute('stroke-width', strokeData.width || CONFIG.OUTLINE_WIDTH || 30);
-        blackPath.setAttribute('stroke-linecap', 'round');
-        blackPath.setAttribute('stroke-linejoin', 'round');
-        blackPath.setAttribute('class', 'stroke-outline-black');
+        // Create the black outline path with mask applied
+        const blackOutline = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        blackOutline.setAttribute('d', strokeData.path);
+        blackOutline.setAttribute('fill', 'none');
+        blackOutline.setAttribute('stroke', strokeData.color || CONFIG.OUTLINE_COLOR || '#000000');
+        blackOutline.setAttribute('stroke-width', strokeData.width || CONFIG.OUTLINE_WIDTH || 30);
+        blackOutline.setAttribute('stroke-linecap', 'round');
+        blackOutline.setAttribute('stroke-linejoin', 'round');
+        blackOutline.setAttribute('class', 'stroke-outline-masked');
         
-        // Create the WHITE overlay path (creates the "hole" effect)
-        const whitePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        whitePath.setAttribute('d', strokeData.path);
-        whitePath.setAttribute('fill', 'none');
-        whitePath.setAttribute('stroke', 'white');
-        whitePath.setAttribute('stroke-width', (strokeData.width || CONFIG.OUTLINE_WIDTH || 30) - 10); // Slightly thinner
-        whitePath.setAttribute('stroke-linecap', 'round');
-        whitePath.setAttribute('stroke-linejoin', 'round');
-        whitePath.setAttribute('class', 'stroke-outline-white');
+        // Apply the mask to create holes
+        blackOutline.setAttribute('mask', `url(#stroke-mask-${this.currentNumber}-${strokeIndex})`);
         
-        // Add paths to stroke group
-        strokeGroup.appendChild(blackPath);
-        strokeGroup.appendChild(whitePath);
+        strokeGroup.appendChild(blackOutline);
         
         // Store references for the paint system
         this.strokeElements[strokeIndex] = {
             group: strokeGroup,
-            blackPath: blackPath,
-            whitePath: whitePath,
+            maskedOutline: blackOutline,
             pathString: strokeData.path,
             coordinates: strokeData.coordinates || this.generateCoordinatesFromPath(strokeData.path)
         };
         
         parentGroup.appendChild(strokeGroup);
+        
+        console.log(`Created masked stroke ${strokeIndex}`);
     }
 
     generateCoordinatesFromPath(pathString) {
-        // Basic path coordinate extraction - you may want to enhance this
-        // This extracts coordinate points from the path for the slider system
+        // Extract coordinate points from the path for the slider system
         const coordinates = [];
         const pathCommands = pathString.match(/[MLCQZmlcqz][^MLCQZmlcqz]*/g);
         
@@ -179,10 +212,10 @@ class TraceNumberRenderer {
         }
         
         return {
-            pathElement: strokeElement.whitePath, // The white path defines the paintable area
-            paintLayer: this.paintLayers[strokeIndex], // Where paint goes
+            paintLayer: this.paintLayers[strokeIndex], // Where paint goes (shows through mask holes)
             coordinates: strokeElement.coordinates, // For slider positioning
-            pathString: strokeElement.pathString
+            pathString: strokeElement.pathString,
+            maskedOutline: strokeElement.maskedOutline // The masked outline path
         };
     }
 
@@ -200,14 +233,14 @@ class TraceNumberRenderer {
         paintCircle.setAttribute('cy', position.y);
         paintCircle.setAttribute('r', 20); // 40px diameter
         paintCircle.setAttribute('fill', CONFIG.TRACE_COLOR || '#4CAF50');
-        paintCircle.setAttribute('opacity', 0.8);
+        paintCircle.setAttribute('opacity', 0.9);
         paintCircle.setAttribute('class', 'finger-paint');
         
-        // Add smooth animation
+        // Add smooth drop animation
         paintCircle.setAttribute('opacity', 0);
         const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
         animate.setAttribute('attributeName', 'opacity');
-        animate.setAttribute('values', '0;0.8');
+        animate.setAttribute('values', '0;0.9');
         animate.setAttribute('dur', '0.2s');
         animate.setAttribute('fill', 'freeze');
         paintCircle.appendChild(animate);
@@ -217,37 +250,40 @@ class TraceNumberRenderer {
         // Update progress
         this.updatePaintProgress(strokeIndex);
         
-        console.log(`Added finger paint at (${position.x}, ${position.y}) for stroke ${strokeIndex}`);
+        console.log(`Added finger paint at (${position.x}, ${position.y}) - will show through mask holes`);
     }
 
-    // Check if position is valid for painting (inside the white path area)
+    // Check if position is valid for painting (near the stroke path)
     isValidPaintPosition(strokeIndex, position) {
         const strokeData = this.getStrokeForPainting(strokeIndex);
         if (!strokeData) return false;
         
-        // Use SVG hit testing to check if point is inside the white stroke path
-        const point = this.svg.createSVGPoint();
-        point.x = position.x;
-        point.y = position.y;
+        // Create a temporary path element to test against
+        const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        tempPath.setAttribute('d', strokeData.pathString);
+        this.svg.appendChild(tempPath);
         
-        // Check if point is near the white path (within finger width)
-        const pathElement = strokeData.pathElement;
-        const pathLength = pathElement.getTotalLength();
+        const pathLength = tempPath.getTotalLength();
+        let isValid = false;
         
-        // Sample points along the path and check distance
+        // Check if position is within finger width of the path
         for (let i = 0; i <= pathLength; i += 5) {
-            const pathPoint = pathElement.getPointAtLength(i);
+            const pathPoint = tempPath.getPointAtLength(i);
             const distance = Math.sqrt(
                 Math.pow(position.x - pathPoint.x, 2) + 
                 Math.pow(position.y - pathPoint.y, 2)
             );
             
-            if (distance <= 25) { // Within finger radius + small buffer
-                return true;
+            if (distance <= 25) { // Within finger radius + buffer
+                isValid = true;
+                break;
             }
         }
         
-        return false;
+        // Clean up temp path
+        tempPath.remove();
+        
+        return isValid;
     }
 
     // Check if paint position is connected to existing paint
@@ -261,7 +297,7 @@ class TraceNumberRenderer {
             return this.isNearStartPoint(strokeIndex, position);
         }
         
-        // Check if position is within finger width of existing paint
+        // Check if position is within connection distance of existing paint
         for (const paintCircle of existingPaint) {
             const paintX = parseFloat(paintCircle.getAttribute('cx'));
             const paintY = parseFloat(paintCircle.getAttribute('cy'));
@@ -301,10 +337,17 @@ class TraceNumberRenderer {
         const paintCircles = paintLayer.querySelectorAll('.finger-paint');
         const strokeData = this.getStrokeForPainting(strokeIndex);
         
-        if (!strokeData || !strokeData.pathElement) return 0;
+        if (!strokeData) return 0;
+        
+        // Create temp path to measure length
+        const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        tempPath.setAttribute('d', strokeData.pathString);
+        this.svg.appendChild(tempPath);
+        
+        const pathLength = tempPath.getTotalLength();
+        tempPath.remove();
         
         // Estimate coverage based on paint circles vs path length
-        const pathLength = strokeData.pathElement.getTotalLength();
         const paintCoverage = paintCircles.length * 40; // Each circle covers ~40px
         const completion = Math.min(paintCoverage / pathLength, 1.0);
         
@@ -333,8 +376,8 @@ class TraceNumberRenderer {
         
         // Change outline color to indicate completion
         const strokeElement = this.strokeElements[strokeIndex];
-        if (strokeElement && strokeElement.blackPath) {
-            strokeElement.blackPath.setAttribute('stroke', CONFIG.COMPLETE_COLOR || '#4CAF50');
+        if (strokeElement && strokeElement.maskedOutline) {
+            strokeElement.maskedOutline.setAttribute('stroke', CONFIG.COMPLETE_COLOR || '#4CAF50');
         }
         
         // Check if entire number is complete
@@ -419,8 +462,19 @@ class TraceNumberRenderer {
     clearSVG() {
         if (!this.svg) return;
         
-        while (this.svg.firstChild) {
-            this.svg.removeChild(this.svg.firstChild);
+        // Keep defs but remove everything else
+        const children = Array.from(this.svg.children);
+        children.forEach(child => {
+            if (child.tagName !== 'defs') {
+                child.remove();
+            }
+        });
+        
+        // Clear masks from defs
+        const defs = this.svg.querySelector('defs');
+        if (defs) {
+            const masks = defs.querySelectorAll('[id^="stroke-mask-"]');
+            masks.forEach(mask => mask.remove());
         }
     }
 
@@ -431,9 +485,43 @@ class TraceNumberRenderer {
         this.completedStrokes.clear();
         this.paintProgress = {};
         this.strokeElements = {};
+        this.strokeMasks = {};
         this.paintLayers = {};
         
-        console.log('Renderer reset complete');
+        console.log('Mask-based renderer reset complete');
+    }
+
+    destroy() {
+        if (this.svg) {
+            this.svg.remove();
+            this.svg = null;
+        }
+        this.reset();
+    }
+
+    // ================================
+    // DEBUG METHODS
+    // ================================
+
+    showMaskInfo() {
+        if (!CONFIG.DEBUG_MODE) return;
+        
+        console.log('Mask System Debug Info:');
+        console.log('- Stroke Masks:', Object.keys(this.strokeMasks));
+        console.log('- Paint Layers:', Object.keys(this.paintLayers));
+        console.log('- Layer Order: Paint Background (bottom) → Masked Outlines (top)');
+        console.log('- Paint shows through white mask holes in black outline');
+    }
+
+    logState() {
+        console.log('Mask-Based Renderer State:', {
+            currentNumber: this.currentNumber,
+            currentStroke: this.currentStroke,
+            completedStrokes: Array.from(this.completedStrokes),
+            paintProgress: this.paintProgress,
+            strokeCount: this.getStrokeCount(),
+            maskCount: Object.keys(this.strokeMasks).length
+        });
     }
 }
 
