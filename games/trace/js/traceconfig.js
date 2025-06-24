@@ -3,7 +3,9 @@ const CONFIG = {
     RAINBOW_PIECES: 10,
     
     SLIDER_SIZE: 40,
-    PATH_TOLERANCE: 40,
+    PATH_TOLERANCE: 60, // Increased from 40 to allow more tolerance for dragging
+    SLIDER_DRAG_TOLERANCE: 80, // New setting for how far finger can be from slider during drag
+    MAX_SLIDER_SPEED: 100, // Maximum pixels per second slider can move
     FILL_COLOR: '#4CAF50',
     OUTLINE_COLOR: '#2C2C2C',
     SLIDER_COLOR: '#FF6B6B',
@@ -37,15 +39,8 @@ const CONFIG = {
         0: {
             strokes: [{
                 id: 'oval_coords',
-                startPoint: { x: 140, y: 200 },
+                startPoint: { x: 240, y: 200 },
                 coordinates: [
-                    { x: 0, y: 100 }, { x: 1, y: 120 }, { x: 2, y: 128 }, { x: 4, y: 139 }, 
-                    { x: 6, y: 147 }, { x: 8, y: 154 }, { x: 10, y: 160 }, { x: 15, y: 171 }, 
-                    { x: 20, y: 180 }, { x: 25, y: 187 }, { x: 30, y: 192 }, { x: 35, y: 195 }, 
-                    { x: 40, y: 198 }, { x: 45, y: 199 }, { x: 50, y: 200 }, { x: 55, y: 199 }, 
-                    { x: 60, y: 198 }, { x: 65, y: 195 }, { x: 70, y: 192 }, { x: 75, y: 187 }, 
-                    { x: 80, y: 180 }, { x: 85, y: 171 }, { x: 90, y: 160 }, { x: 92, y: 154 }, 
-                    { x: 94, y: 147 }, { x: 96, y: 139 }, { x: 98, y: 128 }, { x: 99, y: 120 }, 
                     { x: 100, y: 100 }, { x: 99, y: 80 }, { x: 98, y: 72 }, { x: 96, y: 61 }, 
                     { x: 94, y: 53 }, { x: 92, y: 46 }, { x: 90, y: 40 }, { x: 85, y: 29 }, 
                     { x: 80, y: 20 }, { x: 75, y: 13 }, { x: 70, y: 8 }, { x: 65, y: 5 }, 
@@ -53,9 +48,16 @@ const CONFIG = {
                     { x: 40, y: 2 }, { x: 35, y: 5 }, { x: 30, y: 8 }, { x: 25, y: 13 }, 
                     { x: 20, y: 20 }, { x: 15, y: 29 }, { x: 10, y: 40 }, { x: 8, y: 46 }, 
                     { x: 6, y: 53 }, { x: 4, y: 61 }, { x: 2, y: 72 }, { x: 1, y: 80 }, 
-                    { x: 0, y: 100 }
+                    { x: 0, y: 100 }, { x: 1, y: 120 }, { x: 2, y: 128 }, { x: 4, y: 139 }, 
+                    { x: 6, y: 147 }, { x: 8, y: 154 }, { x: 10, y: 160 }, { x: 15, y: 171 }, 
+                    { x: 20, y: 180 }, { x: 25, y: 187 }, { x: 30, y: 192 }, { x: 35, y: 195 }, 
+                    { x: 40, y: 198 }, { x: 45, y: 199 }, { x: 50, y: 200 }, { x: 55, y: 199 }, 
+                    { x: 60, y: 198 }, { x: 65, y: 195 }, { x: 70, y: 192 }, { x: 75, y: 187 }, 
+                    { x: 80, y: 180 }, { x: 85, y: 171 }, { x: 90, y: 160 }, { x: 92, y: 154 }, 
+                    { x: 94, y: 147 }, { x: 96, y: 139 }, { x: 98, y: 128 }, { x: 99, y: 120 }, 
+                    { x: 100, y: 100 }
                 ],
-                description: 'Draw 0 using precise coordinates',
+                description: 'Draw 0 using precise coordinates starting from top',
                 type: 'coordinates'
             }]
         },
