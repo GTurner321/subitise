@@ -11,7 +11,7 @@ const CONFIG = {
     PATH_WIDTH: 32, // Increased by 50% from 21
     OUTLINE_WIDTH: 38, // Increased by 50% from 25
     WHITE_WIDTH: 27, // Increased by 50% from 18
-    ARROW_OFFSET: 50,
+    ARROW_OFFSET: 30, // Reduced from 50 to bring arrow closer to slider
     ARROW_SIZE: 20,
     
     SVG_WIDTH: 400,
@@ -24,6 +24,7 @@ const CONFIG = {
     COMPLETION_DELAY: 2000,
     SLIDER_TRANSITION_SPEED: '0.1s',
     ARROW_TIMEOUT: 4000, // Show arrow after 4 seconds of inactivity
+    STOPPED_MOVEMENT_TIMEOUT: 1000, // Complete near-end if stopped for 1 second
     
     AUDIO_ENABLED: true,
     
@@ -151,9 +152,10 @@ const CONFIG = {
                     id: 'vertical_line',
                     startPoint: { x: 260, y: 240 },
                     coordinates: [
-                        { x: 60, y: 140 }, { x: 54, y: 140 }, { x: 48, y: 140 }, { x: 42, y: 140 }, 
-                        { x: 36, y: 140 }, { x: 30, y: 140 }, { x: 24, y: 140 }, { x: 18, y: 140 }, 
-                        { x: 12, y: 140 }, { x: 6, y: 140 }, { x: 0, y: 140 }
+                        { x: 60, y: 140 }, { x: 60, y: 130 }, { x: 60, y: 120 }, { x: 60, y: 110 }, 
+                        { x: 60, y: 100 }, { x: 60, y: 90 }, { x: 60, y: 80 }, { x: 60, y: 70 }, 
+                        { x: 60, y: 60 }, { x: 60, y: 50 }, { x: 60, y: 40 }, { x: 60, y: 30 }, 
+                        { x: 60, y: 20 }, { x: 60, y: 10 }, { x: 60, y: 0 }
                     ],
                     description: 'Draw the vertical line with full coordinates',
                     type: 'coordinates'
