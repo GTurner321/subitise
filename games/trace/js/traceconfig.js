@@ -3,7 +3,7 @@ const CONFIG = {
     RAINBOW_PIECES: 10,
     
     SLIDER_SIZE: 40,
-    PATH_TOLERANCE: 40,
+    PATH_TOLERANCE: 30, // Reduced from 40 for stricter path following
     SLIDER_DRAG_TOLERANCE: 80,
     MAX_SLIDER_SPEED: 100,
     FILL_COLOR: '#4CAF50',
