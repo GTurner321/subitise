@@ -20,6 +20,7 @@ class TracePathManager {
         // Arrow timing
         this.arrowTimeout = null;
         this.lastMovementTime = Date.now();
+        this.stoppedMovementTimeout = null;
         
         this.initializeEventListeners();
     }
@@ -132,12 +133,12 @@ class TracePathManager {
         const normalizedDx = dx / distance;
         const normalizedDy = dy / distance;
         
-        // Position arrow slightly ahead of slider
+        // Position arrow ahead of slider in the direction of movement (not towards slider)
         const arrowDistance = CONFIG.ARROW_OFFSET;
         const arrowX = currentPos.x + normalizedDx * arrowDistance;
         const arrowY = currentPos.y + normalizedDy * arrowDistance;
         
-        // Calculate rotation angle
+        // Calculate rotation angle for the direction of movement
         const angle = Math.atan2(dy, dx) * 180 / Math.PI;
         
         // Create arrow group
@@ -148,6 +149,7 @@ class TracePathManager {
         // Create arrow path (pointing right by default, rotation handles direction)
         const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const arrowSize = CONFIG.ARROW_SIZE;
+        // Arrow points forward in direction of movement
         arrowPath.setAttribute('d', `M 0 0 L ${arrowSize} ${arrowSize/2} L ${arrowSize} ${-arrowSize/2} Z`);
         arrowPath.setAttribute('fill', CONFIG.ARROW_COLOR);
         arrowPath.setAttribute('stroke', 'white');
@@ -172,7 +174,7 @@ class TracePathManager {
             this.svg.appendChild(this.directionArrow);
         }
         
-        console.log(`Created direction arrow at (${arrowX}, ${arrowY}) with angle ${angle}°`);
+        console.log(`Created direction arrow at (${arrowX}, ${arrowY}) with angle ${angle}° pointing away from slider`);
     }
 
     removeDirectionArrow() {
@@ -200,6 +202,45 @@ class TracePathManager {
         this.removeDirectionArrow();
         this.startArrowTimeout();
         this.lastMovementTime = Date.now();
+        
+        // Also reset stopped movement timeout
+        this.resetStoppedMovementTimeout();
+    }
+
+    startStoppedMovementTimeout() {
+        // Only start if we're near the end and not already tracing
+        if (this.isNearCompletion() && !this.isTracing) {
+            this.stoppedMovementTimeout = setTimeout(() => {
+                if (!this.isTracing && !this.isDragging && this.isNearCompletion()) {
+                    console.log('Auto-completing due to stopped movement near end');
+                    this.autoCompleteFromNearEnd();
+                }
+            }, CONFIG.STOPPED_MOVEMENT_TIMEOUT);
+        }
+    }
+
+    resetStoppedMovementTimeout() {
+        if (this.stoppedMovementTimeout) {
+            clearTimeout(this.stoppedMovementTimeout);
+            this.stoppedMovementTimeout = null;
+        }
+    }
+
+    isNearCompletion() {
+        const totalCoords = this.currentStrokeCoords.length;
+        const remainingCoords = totalCoords - 1 - this.currentCoordinateIndex;
+        // Near completion if within 2 coordinates of the end
+        return remainingCoords <= 2 && remainingCoords > 0;
+    }
+
+    autoCompleteFromNearEnd() {
+        // Complete the current stroke if we're near the end
+        if (this.isNearCompletion()) {
+            console.log('Auto-completing stroke from near end position');
+            this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
+            this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+            this.completeCurrentStroke();
+        }
     }
 
     handleStart(event) {
@@ -237,8 +278,9 @@ class TracePathManager {
         const point = this.getEventPoint(event);
         if (!point) return;
         
-        // Update movement time
+        // Update movement time and reset timeouts
         this.lastMovementTime = Date.now();
+        this.resetStoppedMovementTimeout();
         
         // Check if the drag point is still near the slider - if not, stop tracing
         if (!this.isPointNearSlider(point, true)) { // true = during drag
@@ -260,6 +302,9 @@ class TracePathManager {
         if (!this.isTracing) {
             this.startArrowTimeout();
         }
+        
+        // Start stopped movement timeout if near completion
+        this.startStoppedMovementTimeout();
         
         console.log('Ended tracing at coordinate index:', this.currentCoordinateIndex);
     }
@@ -458,6 +503,9 @@ class TracePathManager {
         
         // Start arrow timeout again
         this.startArrowTimeout();
+        
+        // Start stopped movement timeout if near completion
+        this.startStoppedMovementTimeout();
     }
 
     completeCurrentStroke() {
@@ -515,10 +563,15 @@ class TracePathManager {
         this.removeSlider();
         this.removeDirectionArrow();
         
-        // Clear timeout
+        // Clear timeouts
         if (this.arrowTimeout) {
             clearTimeout(this.arrowTimeout);
             this.arrowTimeout = null;
+        }
+        
+        if (this.stoppedMovementTimeout) {
+            clearTimeout(this.stoppedMovementTimeout);
+            this.stoppedMovementTimeout = null;
         }
         
         this.isTracing = false;
