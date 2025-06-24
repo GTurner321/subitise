@@ -3,55 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Number Tracing Game</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="../../styles/main.css">
-    <link rel="stylesheet" href="styles/tracemain.css">
+    <title>Number Tracing Game - Paint Fill</title>
+    <link rel="stylesheet" href="css/trace.css">
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
 </head>
 <body>
-    <!-- Back to games navigation -->
-    <a href="../../index.html" class="back-button">
+    <!-- Back button -->
+    <a href="../index.html" class="back-button">
         <i class="fas fa-arrow-left"></i>
         Back to Games
     </a>
-    
+
     <!-- Main game area -->
     <div class="game-area">
-        <!-- Rainbow background -->
-        <div class="rainbow-container" id="rainbowContainer">
-            <!-- Rainbow arcs will be added here by JavaScript -->
-        </div>
-        
-        <!-- Number tracing container -->
-        <div class="trace-container" id="traceContainer">
-            <!-- SVG will be created here by JavaScript -->
+        <!-- Tracing container -->
+        <div class="trace-container" id="trace-container">
+            <!-- SVG will be inserted here by the renderer -->
         </div>
         
         <!-- Number word display -->
         <div class="number-word-container">
-            <div class="number-word" id="numberWord"></div>
+            <div class="number-word" id="number-word"></div>
         </div>
     </div>
-    
+
+    <!-- Rainbow container -->
+    <div class="rainbow-container" id="rainbow-container">
+        <!-- Rainbow SVG will be inserted here -->
+    </div>
+
+    <!-- Grass band -->
+    <div class="grass-band"></div>
+
     <!-- Game completion modal -->
-    <div class="modal hidden" id="gameModal">
+    <div class="modal hidden" id="completion-modal">
         <div class="modal-content">
-            <h2>🌈 Amazing Work! 🌈</h2>
-            <p>You traced all the numbers!</p>
-            <button class="play-again-btn" id="playAgainBtn">
+            <h2>🎉 Fantastic!</h2>
+            <p>You've completed all the numbers!</p>
+            <button class="play-again-btn" id="play-again-btn">
                 <i class="fas fa-redo"></i>
-                TRACE AGAIN
+                Play Again
             </button>
         </div>
     </div>
+
+    <!-- Font Awesome for icons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     
-    <!-- JavaScript files -->
+    <!-- Load configuration first -->
     <script src="js/traceconfig.js"></script>
+
+    <!-- DEBUG SCRIPT - Check CONFIG loading -->
+    <script>
+        console.log('=== CONFIG DEBUG INFO ===');
+        console.log('CONFIG available:', typeof CONFIG);
+        console.log('NUMBER_PATHS available:', typeof CONFIG?.NUMBER_PATHS);
+        console.log('Sample number data (0):', CONFIG?.NUMBER_PATHS?.[0]);
+        console.log('Sample number data (1):', CONFIG?.NUMBER_PATHS?.[1]);
+        console.log('All available numbers:', CONFIG?.NUMBER_PATHS ? Object.keys(CONFIG.NUMBER_PATHS) : 'none');
+        console.log('CONFIG.SVG_WIDTH:', CONFIG?.SVG_WIDTH);
+        console.log('CONFIG.SVG_HEIGHT:', CONFIG?.SVG_HEIGHT);
+        console.log('CONFIG.SLIDER_SIZE:', CONFIG?.SLIDER_SIZE);
+        console.log('CONFIG.SLIDER_COLOR:', CONFIG?.SLIDER_COLOR);
+        console.log('=========================');
+    </script>
+
+    <!-- Load shared dependencies -->
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
-    <script src="js/tracenumberrenderer.js"></script>
-    <script src="js/tracepathmanager.js"></script>
-    <script src="js/balloongame.js"></script>
+
+    <!-- Load core classes in dependency order -->
+    <script src="js/tracenumberrenderer.js"></script>  <!-- Must be before pathmanager -->
+    <script src="js/tracepathmanager.js"></script>     <!-- Must be before controller -->
+    <script src="js/balloongame.js"></script>          <!-- Must be before controller -->
+
+    <!-- Load controller last -->
     <script src="js/tracegamecontroller.js"></script>
+
+    <!-- Verify classes loaded -->
+    <script>
+        console.log('=== CLASS LOADING DEBUG ===');
+        console.log('TraceNumberRenderer available:', typeof TraceNumberRenderer);
+        console.log('TracePathManager available:', typeof TracePathManager);
+        console.log('BalloonGame available:', typeof BalloonGame);
+        console.log('Bear available:', typeof Bear);
+        console.log('============================');
+    </script>
+
+    <!-- Initialize game -->
+    <script>
+        console.log('=== GAME INITIALIZATION ===');
+        try {
+            const gameController = new TraceGameController();
+            console.log('TraceGameController created successfully');
+            
+            gameController.initializeGame().then(() => {
+                console.log('Game initialization completed');
+            }).catch(error => {
+                console.error('Game initialization failed:', error);
+            });
+        } catch (error) {
+            console.error('Failed to create TraceGameController:', error);
+        }
+        console.log('==============================');
+    </script>
 </body>
 </html>
