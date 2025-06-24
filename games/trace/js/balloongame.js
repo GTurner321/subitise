@@ -452,10 +452,13 @@ class BalloonGame {
     }
 
     completeGame() {
-        if (!this.isActive) return;
+        if (!this.isActive) {
+            console.log('Game already completed or not active');
+            return;
+        }
         
         console.log('Balloon game completed!');
-        this.isActive = false;
+        this.isActive = false; // NOW we set it to false
         
         // Stop animation
         if (this.animationId) {
@@ -505,9 +508,11 @@ class BalloonGame {
     }
 
     reset() {
+        console.log('Resetting balloon game');
         this.cleanup();
         this.correctNumber = null;
         this.correctAnswerRevealed = false;
         this.allBalloonsPopped = false;
+        // Don't set isActive to false here either - let the game controller manage this
     }
 }
