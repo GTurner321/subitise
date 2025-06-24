@@ -3,9 +3,9 @@ const CONFIG = {
     RAINBOW_PIECES: 10,
     
     SLIDER_SIZE: 40,
-    PATH_TOLERANCE: 30, // Reduced from 40 for stricter path following
-    SLIDER_DRAG_TOLERANCE: 80,
-    MAX_SLIDER_SPEED: 100,
+    PATH_TOLERANCE: 50, // Increased for easier dragging
+    SLIDER_DRAG_TOLERANCE: 100, // Increased for easier finger tracking
+    MAX_SLIDER_SPEED: 1000, // Removed speed limit - much faster
     FILL_COLOR: '#4CAF50',
     OUTLINE_COLOR: '#2C2C2C',
     SLIDER_COLOR: '#FF6B6B',
