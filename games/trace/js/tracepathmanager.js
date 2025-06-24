@@ -441,27 +441,24 @@ class TracePathManager {
         this.slider.setAttribute('cx', sliderX);
         this.slider.setAttribute('cy', sliderY);
         
-        // Allow both forward AND backward movement for coordinate tracking
-        // This enables smooth backwards tracing when user drags back
+        // SMART COMPLETION RULE: Only apply the 95% rule when we're near the end of the path
+        let newCoordinateIndex = coordIndex;
         
-        // Calculate how far along the path the slider currently is
-        let currentPathProgress = coordIndex;
-        if (progress > 0) {
-            currentPathProgress += progress;
-        }
+        // Check if we're near the end of the path (final segment or second-to-last segment)
+        const isNearPathEnd = (coordIndex >= this.currentStrokeCoords.length - 3);
         
-        // Update traced path based on slider position (allow backwards)
-        let newCoordinateIndex = Math.floor(currentPathProgress);
-        
-        // If we're 95% through a segment, count that coordinate as completed
-        if (progress >= 0.95) {
-            newCoordinateIndex = coordIndex + 1;
+        if (isNearPathEnd && progress >= 0.95) {
+            // Only when near the end: allow 95% completion to count as reaching next coordinate
+            newCoordinateIndex = Math.min(coordIndex + 1, this.currentStrokeCoords.length - 1);
         } else {
-            // If we're mid-segment, only show trace up to the previous coordinate
-            newCoordinateIndex = coordIndex;
+            // For most of the path: trace only shows where slider has actually been
+            // No advancement until slider is nearly at the next coordinate
+            if (progress >= 0.98) {
+                newCoordinateIndex = Math.min(coordIndex + 1, this.currentStrokeCoords.length - 1);
+            }
         }
         
-        // Allow backwards movement - don't restrict to only forward progression
+        // Allow backwards movement - trace can retract
         newCoordinateIndex = Math.max(0, Math.min(newCoordinateIndex, this.currentStrokeCoords.length - 1));
         
         // Update if position has changed (forward or backward)
@@ -474,7 +471,8 @@ class TracePathManager {
             // Update arrow direction when slider moves
             this.updateDirectionArrow();
             
-            console.log(`Traced path updated to coordinate ${this.currentCoordinateIndex} (slider at ${coordIndex} + ${(progress * 100).toFixed(1)}%)`);
+            const endRule = isNearPathEnd ? "95% (near end)" : "98% (mid-path)";
+            console.log(`Traced path updated to coordinate ${this.currentCoordinateIndex} (slider at segment ${coordIndex} + ${(progress * 100).toFixed(1)}%, rule: ${endRule})`);
         }
         
         // Check if stroke is complete (only for forward completion)
