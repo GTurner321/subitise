@@ -48,9 +48,11 @@ class BalloonGame {
         // Create balloons
         this.createBalloons();
         
-        // Start animation
+        // Start animation immediately
         this.startTime = Date.now();
         this.animate();
+        
+        console.log('Balloon game started with animation');
     }
 
     createBalloons() {
@@ -128,29 +130,43 @@ class BalloonGame {
         numberText.setAttribute('y', this.balloonHeight / 2 + 8);
         numberText.setAttribute('text-anchor', 'middle');
         numberText.setAttribute('dominant-baseline', 'middle');
-        numberText.setAttribute('font-size', '24');
+        numberText.setAttribute('font-size', '20');
         numberText.setAttribute('font-weight', 'bold');
         numberText.setAttribute('fill', 'white');
+        numberText.setAttribute('pointer-events', 'none'); // Prevent text from blocking clicks
         numberText.textContent = CONFIG.NUMBER_WORDS[number];
         
         balloonGroup.appendChild(balloonBody);
         balloonGroup.appendChild(string);
         balloonGroup.appendChild(numberText);
         
-        // Add click handler
-        balloonGroup.addEventListener('click', () => this.handleBalloonClick(index, isCorrect));
+        // Add click handler with proper binding
+        const clickHandler = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            console.log(`Balloon ${index} clicked, isCorrect: ${isCorrect}`);
+            this.handleBalloonClick(index, isCorrect);
+        };
         
+        balloonGroup.addEventListener('click', clickHandler);
+        balloonGroup.addEventListener('touchstart', clickHandler);
+        
+        // Insert balloon before any existing elements to ensure proper layering
         this.svg.appendChild(balloonGroup);
+        
+        console.log(`Created balloon ${index} at (${x}, ${y}) with number word: ${CONFIG.NUMBER_WORDS[number]}`);
         
         return {
             element: balloonGroup,
             x: x,
             y: y,
+            originalY: y, // Store original Y for animation reference
             number: number,
             isCorrect: isCorrect,
             isPopped: false,
-            startTime: Date.now() + (index * 200), // Stagger start times slightly
-            floatOffset: Math.random() * Math.PI * 2 // Random phase for floating
+            startTime: Date.now(), // Start immediately, no stagger for now
+            floatOffset: Math.random() * Math.PI * 2, // Random phase for floating
+            clickHandler: clickHandler
         };
     }
 
@@ -160,9 +176,12 @@ class BalloonGame {
     }
 
     handleBalloonClick(index, isCorrect) {
-        if (!this.isActive || this.balloons[index].isPopped) return;
+        if (!this.isActive || this.balloons[index].isPopped) {
+            console.log(`Click ignored - game active: ${this.isActive}, balloon popped: ${this.balloons[index].isPopped}`);
+            return;
+        }
         
-        console.log(`Balloon ${index} clicked, correct: ${isCorrect}`);
+        console.log(`Balloon ${index} clicked! Correct: ${isCorrect}, Number: ${this.balloons[index].number}`);
         
         if (isCorrect) {
             this.handleCorrectBalloon(index);
@@ -264,7 +283,8 @@ class BalloonGame {
             x: x,
             y: y,
             element: null,
-            fallSpeed: 100 // pixels per second
+            fallSpeed: 100, // pixels per second
+            hasReachedBottom: false
         };
         
         // Create number figure element
@@ -298,10 +318,15 @@ class BalloonGame {
         
         this.svg.appendChild(numberGroup);
         this.fallingNumber.element = numberGroup;
+        
+        console.log(`Created falling number ${this.correctNumber} at (${x}, ${y})`);
     }
 
     animate() {
-        if (!this.isActive) return;
+        if (!this.isActive) {
+            console.log('Animation stopped - game not active');
+            return;
+        }
         
         const currentTime = Date.now();
         const deltaTime = currentTime - this.startTime;
@@ -327,21 +352,26 @@ class BalloonGame {
             
             allPopped = false;
             
-            const balloonTime = totalTime - (balloon.startTime - this.startTime);
-            if (balloonTime < 0) return; // Not started yet
+            // Calculate time since this balloon started (no stagger for now)
+            const balloonTime = totalTime;
             
-            // Calculate vertical position
-            const newY = balloon.y - (this.balloonSpeed * balloonTime / 1000);
+            // Calculate vertical position (moving upward)
+            const verticalProgress = this.balloonSpeed * balloonTime / 1000; // pixels moved upward
+            const newY = balloon.originalY - verticalProgress;
             
-            // Calculate horizontal drift
-            const driftX = Math.sin((balloonTime * this.floatFrequency) + balloon.floatOffset) * this.floatAmplitude;
+            // Calculate horizontal drift (gentle side-to-side movement)
+            const timeInSeconds = balloonTime / 1000;
+            const driftX = Math.sin((timeInSeconds * this.floatFrequency) + balloon.floatOffset) * this.floatAmplitude;
             const newX = balloon.x + driftX;
             
             // Update position
-            balloon.element.setAttribute('transform', `translate(${newX}, ${newY})`);
+            if (balloon.element && balloon.element.parentNode) {
+                balloon.element.setAttribute('transform', `translate(${newX}, ${newY})`);
+            }
             
             // Check if balloon reached top
-            if (newY < this.gameTop) {
+            if (newY + this.balloonHeight < this.gameTop) {
+                console.log(`Balloon ${index} reached top, popping...`);
                 if (balloon.isCorrect && !this.correctAnswerRevealed) {
                     // Correct balloon reached top without being clicked
                     this.handleCorrectBalloon(index);
