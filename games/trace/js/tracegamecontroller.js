@@ -16,6 +16,7 @@ class TraceGameController {
         // Audio
         this.audioContext = null;
         this.audioEnabled = CONFIG.AUDIO_ENABLED;
+        this.currentVoiceGender = 'male'; // Start with male voice
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
@@ -144,6 +145,7 @@ class TraceGameController {
         this.numbersCompleted = 0;
         this.gameComplete = false;
         this.isProcessingCompletion = false;
+        this.currentVoiceGender = 'male'; // Reset to male voice
         
         // Reset components
         this.rainbow.reset();
@@ -171,6 +173,7 @@ class TraceGameController {
         
         this.currentNumber = this.numbersSequence[this.currentNumberIndex];
         console.log(`Starting number: ${this.currentNumber} (${this.currentNumberIndex + 1}/${this.numbersSequence.length})`);
+        console.log(`Using ${this.currentVoiceGender} voice for this number`);
         
         // Clear any existing number word
         this.updateNumberWordDisplay('');
@@ -184,9 +187,9 @@ class TraceGameController {
         // Start path manager for first stroke
         this.pathManager.startNewStroke(0);
         
-        // Announce the number (optional)
+        // Announce the number using current voice gender
         if (this.audioEnabled) {
-            this.speakText(`Trace the number ${this.currentNumber}`);
+            this.speakText(`Trace the number ${this.currentNumber}`, this.currentVoiceGender);
         }
     }
 
@@ -242,10 +245,18 @@ class TraceGameController {
             return;
         }
         
+        // Switch voice gender for next number
+        this.switchVoiceGender();
+        
         // Move to next number after delay
         setTimeout(() => {
             this.moveToNextNumber();
         }, CONFIG.COMPLETION_DELAY);
+    }
+
+    switchVoiceGender() {
+        this.currentVoiceGender = this.currentVoiceGender === 'male' ? 'female' : 'male';
+        console.log(`Switched to ${this.currentVoiceGender} voice for next number`);
     }
 
     moveToNextNumber() {
@@ -259,10 +270,10 @@ class TraceGameController {
         if (numberWord) {
             this.updateNumberWordDisplay(numberWord);
             
-            // Speak the number word
+            // Speak the number word using current voice gender
             if (this.audioEnabled) {
                 setTimeout(() => {
-                    this.speakText(numberWord);
+                    this.speakText(numberWord, this.currentVoiceGender);
                 }, 500);
             }
         }
@@ -298,16 +309,16 @@ class TraceGameController {
         // Start bear celebration when modal opens - this matches your addition game pattern
         this.bear.startCelebration();
         
-        // Speak completion message
+        // Speak completion message using current voice gender
         if (this.audioEnabled) {
             setTimeout(() => {
-                this.speakText('Excellent work! You traced all the numbers!');
+                this.speakText('Excellent work! You traced all the numbers!', this.currentVoiceGender);
             }, 1000);
         }
     }
 
-    // Audio methods
-    speakText(text) {
+    // Enhanced audio methods with voice gender support
+    speakText(text, preferredGender = null) {
         if (!this.audioEnabled) return;
         
         try {
@@ -321,20 +332,45 @@ class TraceGameController {
                 utterance.pitch = 1.1; // Slightly higher pitch
                 utterance.volume = 0.8;
                 
-                // Try to use a child-friendly voice if available
+                // Get available voices
                 const voices = speechSynthesis.getVoices();
-                const childVoice = voices.find(voice => 
-                    voice.name.toLowerCase().includes('child') ||
-                    voice.name.toLowerCase().includes('female') ||
-                    voice.gender === 'female'
-                );
+                let selectedVoice = null;
                 
-                if (childVoice) {
-                    utterance.voice = childVoice;
+                // Try to find a voice matching the preferred gender
+                if (preferredGender === 'male') {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('male') ||
+                        voice.name.toLowerCase().includes('david') ||
+                        voice.name.toLowerCase().includes('daniel') ||
+                        voice.name.toLowerCase().includes('alex') ||
+                        (voice.gender && voice.gender.toLowerCase() === 'male')
+                    );
+                } else if (preferredGender === 'female') {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('female') ||
+                        voice.name.toLowerCase().includes('samantha') ||
+                        voice.name.toLowerCase().includes('victoria') ||
+                        voice.name.toLowerCase().includes('karen') ||
+                        (voice.gender && voice.gender.toLowerCase() === 'female')
+                    );
+                }
+                
+                // Fallback to any child-friendly voice if gender-specific not found
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('female') ||
+                        voice.gender === 'female'
+                    );
+                }
+                
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                    console.log(`Using voice: ${selectedVoice.name} for ${preferredGender || 'default'} speech`);
                 }
                 
                 speechSynthesis.speak(utterance);
-                console.log('Speaking:', text);
+                console.log(`Speaking (${preferredGender || 'default'}):`, text);
             }
         } catch (error) {
             console.warn('Speech synthesis failed:', error);
