@@ -6,7 +6,8 @@ class TracePathManager {
         // Paint system state
         this.isPainting = false;
         this.currentStroke = 0;
-        this.startPosition = { x: 0, y: 0 }; // Where red slider appears
+        this.startPosition = { x: 0, y: 0 }; // Current coordinate position
+        this.currentCoordinateIndex = 0; // Which coordinate we're at
         
         // Red slider
         this.slider = null;
@@ -46,22 +47,20 @@ class TracePathManager {
             return false;
         }
         
-        // Find start position (first coordinate)
-        if (strokeData.coordinates && strokeData.coordinates.length > 0) {
-            this.startPosition = strokeData.coordinates[0];
-        } else {
-            // Fallback: get start from path
-            const pathElement = strokeData.pathElement;
-            if (pathElement) {
-                const startPoint = pathElement.getPointAtLength(0);
-                this.startPosition = { x: startPoint.x, y: startPoint.y };
-            }
+        // Find first unpainted coordinate (this is where slider should appear)
+        const firstUnpainted = this.renderer.getFirstUnpaintedCoordinate(strokeIndex);
+        if (!firstUnpainted) {
+            console.log('All coordinates already painted for stroke', strokeIndex);
+            return false;
         }
         
-        // Show red slider at start position
+        this.startPosition = firstUnpainted.coordinate;
+        this.currentCoordinateIndex = firstUnpainted.index;
+        
+        // Show red slider at first unpainted coordinate
         this.showStartSlider();
         
-        console.log(`Stroke ${strokeIndex} ready for painting. Start position:`, this.startPosition);
+        console.log(`Stroke ${strokeIndex} ready. Slider at coordinate ${firstUnpainted.index}:`, this.startPosition);
         return true;
     }
 
@@ -206,42 +205,21 @@ class TracePathManager {
     }
 
     showContinuationSlider() {
-        // Find the furthest painted point and show slider there
-        const paintLayer = this.renderer.paintLayers[this.currentStroke];
-        if (!paintLayer) {
-            this.showStartSlider();
+        // Find the first unpainted coordinate (not the furthest painted!)
+        const firstUnpainted = this.renderer.getFirstUnpaintedCoordinate(this.currentStroke);
+        
+        if (!firstUnpainted) {
+            // All coordinates painted - stroke should be complete
+            console.log('All coordinates painted - stroke complete');
             return;
         }
         
-        const paintCircles = paintLayer.querySelectorAll('.finger-paint');
-        if (paintCircles.length === 0) {
-            this.showStartSlider();
-            return;
-        }
-        
-        // Find furthest point from start
-        let furthestPoint = this.startPosition;
-        let maxDistance = 0;
-        
-        paintCircles.forEach(circle => {
-            const x = parseFloat(circle.getAttribute('cx'));
-            const y = parseFloat(circle.getAttribute('cy'));
-            const distance = Math.sqrt(
-                Math.pow(x - this.startPosition.x, 2) + 
-                Math.pow(y - this.startPosition.y, 2)
-            );
-            
-            if (distance > maxDistance) {
-                maxDistance = distance;
-                furthestPoint = { x, y };
-            }
-        });
-        
-        // Update start position and show slider
-        this.startPosition = furthestPoint;
+        // Update start position to first unpainted coordinate
+        this.startPosition = firstUnpainted.coordinate;
+        this.currentCoordinateIndex = firstUnpainted.index;
         this.showStartSlider();
         
-        console.log('Continuation slider shown at furthest paint point:', furthestPoint);
+        console.log(`Continuation slider at first unpainted coordinate ${firstUnpainted.index}:`, this.startPosition);
     }
 
     moveToNextStroke() {
