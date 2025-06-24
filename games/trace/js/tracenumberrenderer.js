@@ -86,6 +86,9 @@ class TraceNumberRenderer {
 
         // Process each stroke
         numberData.strokes.forEach((stroke, strokeIndex) => {
+            // Initialize paint tracking for this stroke
+            this.initializePaintTracking(strokeIndex);
+            
             // Create mask for this stroke
             this.createStrokeMask(stroke, strokeIndex, number);
             
@@ -100,7 +103,7 @@ class TraceNumberRenderer {
         this.svg.appendChild(paintBackgroundGroup); // Paint behind
         this.svg.appendChild(numberOutlineGroup);   // Masked outline on top
 
-        console.log('Number created with mask system - paint will show through holes');
+        console.log('Number created with coordinate-based paint tracking');
     }
 
     createStrokeMask(strokeData, strokeIndex, number) {
@@ -200,8 +203,88 @@ class TraceNumberRenderer {
     }
 
     // ================================
-    // PAINT SYSTEM METHODS
+    // COORDINATE-BASED PAINT SYSTEM
     // ================================
+
+    // Track which coordinate points have been painted
+    initializePaintTracking(strokeIndex) {
+        if (!this.paintedCoordinates) {
+            this.paintedCoordinates = {};
+        }
+        this.paintedCoordinates[strokeIndex] = new Set();
+    }
+
+    // Check if a coordinate point has been painted
+    isCoordinatePainted(strokeIndex, coordinateIndex) {
+        if (!this.paintedCoordinates || !this.paintedCoordinates[strokeIndex]) {
+            return false;
+        }
+        return this.paintedCoordinates[strokeIndex].has(coordinateIndex);
+    }
+
+    // Mark coordinate points as painted based on paint position
+    markCoordinatesAsPainted(strokeIndex, paintPosition) {
+        const strokeData = this.getStrokeForPainting(strokeIndex);
+        if (!strokeData || !strokeData.coordinates) return;
+
+        // Check which coordinate points are within paint radius
+        strokeData.coordinates.forEach((coord, index) => {
+            const distance = Math.sqrt(
+                Math.pow(paintPosition.x - coord.x, 2) + 
+                Math.pow(paintPosition.y - coord.y, 2)
+            );
+            
+            // If coordinate is within paint circle radius (20px), mark as painted
+            if (distance <= 20) {
+                this.paintedCoordinates[strokeIndex].add(index);
+                console.log(`Coordinate ${index} marked as painted for stroke ${strokeIndex}`);
+            }
+        });
+    }
+
+    // Find the first unpainted coordinate in the sequence
+    getFirstUnpaintedCoordinate(strokeIndex) {
+        const strokeData = this.getStrokeForPainting(strokeIndex);
+        if (!strokeData || !strokeData.coordinates) return null;
+
+        // Find first coordinate that hasn't been painted
+        for (let i = 0; i < strokeData.coordinates.length; i++) {
+            if (!this.isCoordinatePainted(strokeIndex, i)) {
+                return {
+                    coordinate: strokeData.coordinates[i],
+                    index: i
+                };
+            }
+        }
+        
+        // All coordinates painted
+        return null;
+    }
+
+    // Check if position is inside a mask hole (visible area)
+    isInsideMaskHole(strokeIndex, position) {
+        // Create a test circle at the position
+        const testCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        testCircle.setAttribute('cx', position.x);
+        testCircle.setAttribute('cy', position.y);
+        testCircle.setAttribute('r', 20);
+        testCircle.setAttribute('fill', 'red');
+        testCircle.setAttribute('opacity', 0); // Invisible test
+        
+        // Apply the same mask to see if it would be visible
+        testCircle.setAttribute('mask', `url(#stroke-mask-${this.currentNumber}-${strokeIndex})`);
+        
+        this.svg.appendChild(testCircle);
+        
+        // Check if the circle has any visible area
+        const bbox = testCircle.getBBox();
+        const isVisible = bbox.width > 0 && bbox.height > 0;
+        
+        // Clean up test circle
+        testCircle.remove();
+        
+        return isVisible;
+    }
 
     // Get stroke data for paint system
     getStrokeForPainting(strokeIndex) {
@@ -227,6 +310,12 @@ class TraceNumberRenderer {
             return;
         }
 
+        // Only paint if position is visible through mask holes
+        if (!this.isInsideMaskHole(strokeIndex, position)) {
+            console.log('Paint position not visible through mask - skipping');
+            return;
+        }
+
         // Create paint circle (40px diameter = finger width)
         const paintCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         paintCircle.setAttribute('cx', position.x);
@@ -247,14 +336,24 @@ class TraceNumberRenderer {
         
         paintLayer.appendChild(paintCircle);
         
+        // Mark coordinates as painted
+        this.markCoordinatesAsPainted(strokeIndex, position);
+        
         // Update progress
         this.updatePaintProgress(strokeIndex);
         
-        console.log(`Added finger paint at (${position.x}, ${position.y}) - will show through mask holes`);
+        console.log(`Added visible finger paint at (${position.x}, ${position.y})`);
     }
 
-    // Check if position is valid for painting (near the stroke path)
+    // Check if position is valid for painting (near stroke path AND visible)
     isValidPaintPosition(strokeIndex, position) {
+        // Must be both near the stroke path AND visible through mask holes
+        return this.isNearStrokePath(strokeIndex, position) && 
+               this.isInsideMaskHole(strokeIndex, position);
+    }
+
+    // Check if position is near the stroke path
+    isNearStrokePath(strokeIndex, position) {
         const strokeData = this.getStrokeForPainting(strokeIndex);
         if (!strokeData) return false;
         
@@ -329,34 +428,21 @@ class TraceNumberRenderer {
         return distance <= 30; // Within slider radius
     }
 
-    // Update paint progress for a stroke
+    // Update paint progress based on coordinate completion
     updatePaintProgress(strokeIndex) {
-        const paintLayer = this.paintLayers[strokeIndex];
-        if (!paintLayer) return 0;
-        
-        const paintCircles = paintLayer.querySelectorAll('.finger-paint');
         const strokeData = this.getStrokeForPainting(strokeIndex);
+        if (!strokeData || !strokeData.coordinates) return 0;
         
-        if (!strokeData) return 0;
-        
-        // Create temp path to measure length
-        const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        tempPath.setAttribute('d', strokeData.pathString);
-        this.svg.appendChild(tempPath);
-        
-        const pathLength = tempPath.getTotalLength();
-        tempPath.remove();
-        
-        // Estimate coverage based on paint circles vs path length
-        const paintCoverage = paintCircles.length * 40; // Each circle covers ~40px
-        const completion = Math.min(paintCoverage / pathLength, 1.0);
+        const totalCoordinates = strokeData.coordinates.length;
+        const paintedCoordinates = this.paintedCoordinates[strokeIndex]?.size || 0;
+        const completion = totalCoordinates > 0 ? paintedCoordinates / totalCoordinates : 0;
         
         this.paintProgress[strokeIndex] = completion;
         
-        console.log(`Stroke ${strokeIndex} paint progress: ${(completion * 100).toFixed(1)}%`);
+        console.log(`Stroke ${strokeIndex} progress: ${paintedCoordinates}/${totalCoordinates} coordinates (${(completion * 100).toFixed(1)}%)`);
         
-        // Check for completion
-        if (completion >= 0.7) { // 70% coverage = complete
+        // Check for completion (80% of coordinates painted)
+        if (completion >= 0.8) {
             this.completeStroke(strokeIndex);
         }
         
@@ -487,8 +573,9 @@ class TraceNumberRenderer {
         this.strokeElements = {};
         this.strokeMasks = {};
         this.paintLayers = {};
+        this.paintedCoordinates = {}; // Reset coordinate tracking
         
-        console.log('Mask-based renderer reset complete');
+        console.log('Coordinate-based renderer reset complete');
     }
 
     destroy() {
