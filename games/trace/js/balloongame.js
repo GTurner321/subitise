@@ -157,6 +157,11 @@ class BalloonGame {
     }
 
     createBalloon(x, number) {
+        if (!this.svg) {
+            console.error('Cannot create balloon - SVG not initialized');
+            return null;
+        }
+        
         const isCorrectNumber = number === this.currentNumber;
         
         // Random rise speed for each balloon
@@ -272,6 +277,11 @@ class BalloonGame {
     }
 
     createPopEffect(x, y) {
+        if (!this.svg) {
+            console.error('Cannot create pop effect - SVG not initialized');
+            return;
+        }
+        
         // Create simple star burst effect
         const popGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         popGroup.setAttribute('class', 'pop-effect');
@@ -312,6 +322,11 @@ class BalloonGame {
     }
 
     createFallingNumber(x, y, number) {
+        if (!this.svg) {
+            console.error('Cannot create falling number - SVG not initialized');
+            return null;
+        }
+        
         const fallingNumber = {
             x: x,
             y: y,
@@ -341,6 +356,8 @@ class BalloonGame {
         this.svg.appendChild(numberElement);
         
         console.log(`Created falling number ${number} at (${x}, ${y})`);
+        
+        return fallingNumber;
     }
 
     animate(currentTime = performance.now()) {
@@ -442,8 +459,10 @@ class BalloonGame {
 
     clearSVG() {
         // Clear all balloon game elements
-        const elementsToRemove = this.svg.querySelectorAll('.balloon-group, .falling-number, .pop-effect');
-        elementsToRemove.forEach(element => element.remove());
+        if (this.svg) {
+            const elementsToRemove = this.svg.querySelectorAll('.balloon-group, .falling-number, .pop-effect');
+            elementsToRemove.forEach(element => element.remove());
+        }
     }
 
     cleanup() {
