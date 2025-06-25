@@ -1,105 +1,4 @@
-createDirectionArrow() {
-        // Don't create arrow if we don't have enough coordinates or if slider doesn't exist
-        if (!this.slider || !this.currentStrokeCoords || this.currentStrokeCoords.length < 2) {
-            return;
-        }
-        
-        // Don't create if we're at the end of the stroke
-        if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
-            return;
-        }
-        
-        // Get current slider position (last completed coordinate)
-        const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-        const nextCoord = this.currentStrokeCoords[this.currentCoordinateIndex + 1];
-        
-        if (!currentCoord || !nextCoord) {
-            return;
-        }
-        
-        // Calculate direction from current to next coordinate
-        const directionX = nextCoord.x - currentCoord.x;
-        const directionY = nextCoord.y - currentCoord.y;
-        const directionLength = Math.sqrt(directionX * directionX + directionY * directionY);
-        
-        if (directionLength === 0) return; // No direction to show
-        
-        // Position arrow slightly offset from slider center (so it's visible on top)
-        const arrowOffset = (CONFIG.SLIDER_SIZE || 30) * 0.6; // 60% of slider radius
-        const normalizedX = directionX / directionLength;
-        const normalizedY = directionY / directionLength;
-        
-        const arrowX = currentCoord.x + normalizedX * arrowOffset;
-        const arrowY = currentCoord.y + normalizedY * arrowOffset;
-        
-        // Calculate rotation angle pointing toward next coordinate
-        const angle = Math.atan2(directionY, directionX) * 180 / Math.PI;
-        
-        try {
-            // Remove existing arrow first
-            this.removeDirectionArrow();
-            
-            // Create arrow group
-            this.directionArrow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.directionArrow.setAttribute('class', 'direction-arrow');
-            this.directionArrow.setAttribute('transform', `translate(${arrowX}, ${arrowY}) rotate(${angle})`);
-            
-            // Create arrow path (pointing right, will be rotated)
-            const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const arrowSize = (CONFIG.ARROW_SIZE || 12);
-            arrowPath.setAttribute('d', `M 0 0 L ${arrowSize} ${arrowSize/3} L ${arrowSize} ${-arrowSize/3} Z`);
-            arrowPath.setAttribute('fill', CONFIG.ARROW_COLOR || '#4CAF50');
-            arrowPath.setAttribute('stroke', 'white');
-            arrowPath.setAttribute('stroke-width', 1.5);
-            arrowPath.setAttribute('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))');
-            
-            this.directionArrow.appendChild(arrowPath);
-            
-            // Add pulsing animation in sync with slider (2 second duration)
-            const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-            animate.setAttribute('attributeName', 'opacity');
-            animate.setAttribute('values', '1;0.4;1');
-            animate.setAttribute('dur', '2s');
-            animate.setAttribute('repeatCount', 'indefinite');
-            
-            this.directionArrow.appendChild(animate);
-            
-            // Add to SVG (below slider to ensure slider stays on top)
-            this.svg.appendChild(this.directionArrow);
-            
-            console.log(`Created direction arrow pointing from coord ${this.currentCoordinateIndex} to ${this.currentCoordinateIndex + 1}`);
-        } catch (error) {
-            console.error('Error creating direction arrow:', error);
-            this.directionArrow = null;
-        }
-    }
-
-    removeDirectionArrow() {
-        if (this.directionArrow) {
-            this.directionArrow.remove();
-            this.directionArrow = null;
-        }
-    }
-
-    startArrowTimeout() {
-        // Clear existing timeout
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-        }
-        
-        // Set new timeout to show arrow after 2 seconds of inactivity
-        this.arrowTimeout = setTimeout(() => {
-            if (!this.isTracing && !this.isDragging) {
-                this.createDirectionArrow();
-            }
-        }, 2000); // 2 second delay
-    }
-
-    resetArrowTimeout() {
-        this.removeDirectionArrow();
-        this.startArrowTimeout();
-        this.lastMovementTime = Date.now();
-    }class TracePathManager {
+class TracePathManager {
     constructor(svg, renderer) {
         this.svg = svg;
         this.renderer = renderer;
@@ -107,7 +6,6 @@ createDirectionArrow() {
         // Slider elements - TWO separate systems
         this.slider = null;              // Real interactive slider (becomes invisible during drag)
         this.frontMarker = null;         // Fake red marker at front of green trace (visible during drag)
-        this.directionArrow = null;      // Separate direction arrow (appears after inactivity)
         
         // Tracking state
         this.isTracing = false;
@@ -121,9 +19,6 @@ createDirectionArrow() {
         
         // Movement tracking
         this.lastMovementTime = Date.now();
-        
-        // Arrow timing
-        this.arrowTimeout = null;
         
         this.initializeEventListeners();
     }
@@ -161,19 +56,15 @@ createDirectionArrow() {
         
         console.log(`Starting stroke ${strokeIndex} with ${this.currentStrokeCoords.length} coordinates`);
         
-        // Remove any existing slider, front marker, and direction arrow
+        // Remove any existing slider and front marker
         this.removeSlider();
         this.removeFrontMarker();
-        this.removeDirectionArrow();
         
         // Create simple slider at first coordinate
         const startPoint = this.currentStrokeCoords[0];
         this.createSlider(startPoint);
         
-        // Start arrow timeout for direction guidance
-        this.startArrowTimeout();
-        
-        console.log('Simple slider created at start position, direction arrow will appear after 2 seconds');
+        console.log('Simple slider created at start position');
         
         return true;
     }
@@ -267,20 +158,13 @@ createDirectionArrow() {
                 }
             }
             
-            // HIDE and remove direction arrow when starting to trace
-            this.removeDirectionArrow();
-            if (this.arrowTimeout) {
-                clearTimeout(this.arrowTimeout);
-                this.arrowTimeout = null;
-            }
-            
             // CREATE front marker at current trace position
             const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
             if (currentCoord) {
                 this.createFrontMarker(currentCoord);
             }
             
-            console.log('🔴 Real slider hidden, direction arrow removed, 🔴 front marker created at trace position');
+            console.log('🔴 Real slider hidden, 🔴 front marker created at trace position');
         } else {
             console.log('Touch OUTSIDE slider circle - drag not started (must touch red circle to begin/restart)');
         }
@@ -349,14 +233,7 @@ createDirectionArrow() {
             }
         }, 500); // Remove at same time as slider appears
         
-        // Start arrow timeout after slider reappears
-        setTimeout(() => {
-            if (!this.isDragging) {
-                this.startArrowTimeout();
-            }
-        }, 500);
-        
-        console.log('🔴 Real slider will fade in after 500ms delay, 🔴 front marker will be removed then, arrow timeout will start');
+        console.log('🔴 Real slider will fade in after 500ms delay, 🔴 front marker will be removed then');
     }
 
     getEventPoint(event) {
@@ -550,9 +427,6 @@ createDirectionArrow() {
             this.addSliderPulseAnimation();
         }
         this.removeFrontMarker();
-        
-        // Start arrow timeout for direction guidance
-        this.startArrowTimeout();
     }
 
     completeCurrentStroke() {
@@ -561,18 +435,11 @@ createDirectionArrow() {
         this.isTracing = false;
         this.isDragging = false;
         
-        // Hide slider, front marker, and direction arrow
+        // Hide slider and front marker
         if (this.slider) {
             this.slider.style.opacity = '0';
         }
         this.removeFrontMarker();
-        this.removeDirectionArrow();
-        
-        // Clear arrow timeout
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-            this.arrowTimeout = null;
-        }
         
         // Remove slider after fade
         setTimeout(() => {
@@ -607,16 +474,9 @@ createDirectionArrow() {
     }
 
     cleanup() {
-        // Remove slider, front marker and direction arrow
+        // Remove slider and front marker
         this.removeSlider();
         this.removeFrontMarker();
-        this.removeDirectionArrow();
-        
-        // Clear arrow timeout
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-            this.arrowTimeout = null;
-        }
         
         this.isTracing = false;
         this.isDragging = false;
