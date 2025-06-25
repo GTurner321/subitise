@@ -973,11 +973,11 @@ class TraceGameController {
                 
                 // Adjust pitch and rate for more child-like sound
                 if (preferredGender === 'boy') {
-                    utterance.pitch = 1.6; // Much higher pitch for boy voice
-                    utterance.rate = 1.0; // Normal rate
+                    utterance.pitch = 1.3; // Slightly higher than adult male but not silly
+                    utterance.rate = 0.9;
                 } else if (preferredGender === 'girl') {
-                    utterance.pitch = 1.8; // Even higher pitch for girl voice
-                    utterance.rate = 1.0; // Normal rate
+                    utterance.pitch = 1.4; // Keep original girl voice pitch
+                    utterance.rate = 0.9;
                 }
                 
                 speechSynthesis.speak(utterance);
