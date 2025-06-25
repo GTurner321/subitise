@@ -24,7 +24,7 @@ class TraceGameController {
         
         // MAIN GAME PROGRESSION LOGIC
         this.numbersSequence = [...CONFIG.NUMBERS_SEQUENCE];
-        this.currentVoiceGender = 'male'; // Start with male voice
+        this.currentVoiceGender = 'boy'; // Start with boy voice
         
         // Audio management
         this.audioContext = null;
@@ -210,7 +210,7 @@ class TraceGameController {
         this.gameComplete = false;
         this.isProcessingCompletion = false;
         this.playingBalloonGame = false;
-        this.currentVoiceGender = 'male';
+        this.currentVoiceGender = 'boy';
         
         // Reset balloon game state
         this.balloons = [];
@@ -838,7 +838,7 @@ class TraceGameController {
     // =============================================================================
 
     switchVoiceGender() {
-        this.currentVoiceGender = this.currentVoiceGender === 'male' ? 'female' : 'male';
+        this.currentVoiceGender = this.currentVoiceGender === 'boy' ? 'girl' : 'boy';
         console.log(`Switched to ${this.currentVoiceGender} voice for next number`);
     }
 
@@ -910,37 +910,63 @@ class TraceGameController {
                 speechSynthesis.cancel();
                 
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.8; // Slightly slower for children
-                utterance.pitch = 1.1; // Slightly higher pitch
+                utterance.rate = 0.9; // Slightly slower for children
+                utterance.pitch = 1.3; // Higher pitch for child-like voices
                 utterance.volume = 0.8;
                 
                 // Get available voices
                 const voices = speechSynthesis.getVoices();
                 let selectedVoice = null;
                 
-                // Try to find a voice matching the preferred gender
-                if (preferredGender === 'male') {
+                // Try to find child-like voices based on preferred gender
+                if (preferredGender === 'boy') {
+                    // Look for boy/male child voices first
                     selectedVoice = voices.find(voice => 
-                        voice.name.toLowerCase().includes('male') ||
-                        voice.name.toLowerCase().includes('david') ||
+                        voice.name.toLowerCase().includes('boy') ||
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('junior') ||
+                        (voice.name.toLowerCase().includes('male') && voice.name.toLowerCase().includes('child')) ||
                         voice.name.toLowerCase().includes('daniel') ||
                         voice.name.toLowerCase().includes('alex') ||
-                        (voice.gender && voice.gender.toLowerCase() === 'male')
+                        voice.name.toLowerCase().includes('david')
                     );
-                } else if (preferredGender === 'female') {
+                    
+                    // Fallback to higher-pitched male voices
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice => 
+                            voice.name.toLowerCase().includes('male') ||
+                            (voice.gender && voice.gender.toLowerCase() === 'male')
+                        );
+                    }
+                } else if (preferredGender === 'girl') {
+                    // Look for girl/female child voices first
                     selectedVoice = voices.find(voice => 
-                        voice.name.toLowerCase().includes('female') ||
+                        voice.name.toLowerCase().includes('girl') ||
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('junior') ||
+                        (voice.name.toLowerCase().includes('female') && voice.name.toLowerCase().includes('child')) ||
                         voice.name.toLowerCase().includes('samantha') ||
                         voice.name.toLowerCase().includes('victoria') ||
                         voice.name.toLowerCase().includes('karen') ||
-                        (voice.gender && voice.gender.toLowerCase() === 'female')
+                        voice.name.toLowerCase().includes('emma')
                     );
+                    
+                    // Fallback to higher-pitched female voices
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice => 
+                            voice.name.toLowerCase().includes('female') ||
+                            (voice.gender && voice.gender.toLowerCase() === 'female')
+                        );
+                    }
                 }
                 
-                // Fallback to any child-friendly voice if gender-specific not found
+                // Final fallback to any child-friendly voice
                 if (!selectedVoice) {
                     selectedVoice = voices.find(voice => 
                         voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
                         voice.name.toLowerCase().includes('female') ||
                         voice.gender === 'female'
                     );
@@ -949,6 +975,15 @@ class TraceGameController {
                 if (selectedVoice) {
                     utterance.voice = selectedVoice;
                     console.log(`Using voice: ${selectedVoice.name} for ${preferredGender || 'default'} speech`);
+                }
+                
+                // Adjust pitch and rate for more child-like sound
+                if (preferredGender === 'boy') {
+                    utterance.pitch = 1.2; // Higher than adult male but not as high as girl
+                    utterance.rate = 0.9;
+                } else if (preferredGender === 'girl') {
+                    utterance.pitch = 1.4; // Higher pitch for girl voice
+                    utterance.rate = 0.9;
                 }
                 
                 speechSynthesis.speak(utterance);
