@@ -284,22 +284,29 @@ class TracePathManager {
         console.log('Drag ended - finger lifted');
         this.isDragging = false;
         
-        // SHOW the real slider again at the current coordinate position
-        if (this.slider) {
-            const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-            if (currentCoord) {
-                // Update slider position
-                this.slider.setAttribute('cx', currentCoord.x);
-                this.slider.setAttribute('cy', currentCoord.y);
-                this.slider.style.opacity = '1';
-                this.addSliderPulseAnimation();
+        // Delay showing the real slider by 500ms to avoid jarring movement
+        setTimeout(() => {
+            // SHOW the real slider again at the current coordinate position
+            if (this.slider && !this.isDragging) { // Check we haven't started dragging again
+                const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
+                if (currentCoord) {
+                    // Update slider position
+                    this.slider.setAttribute('cx', currentCoord.x);
+                    this.slider.setAttribute('cy', currentCoord.y);
+                    this.slider.style.opacity = '1';
+                    this.addSliderPulseAnimation();
+                }
             }
-        }
+        }, 500); // Half second delay
         
-        // REMOVE the front marker
-        this.removeFrontMarker();
+        // REMOVE the front marker after the delay too
+        setTimeout(() => {
+            if (!this.isDragging) { // Only remove if we haven't started dragging again
+                this.removeFrontMarker();
+            }
+        }, 500);
         
-        console.log('🔴 Real slider restored at coordinate position, 🔴 front marker removed');
+        console.log('🔴 Real slider will reappear in 500ms, 🔴 front marker will be removed then');
     }
 
     getEventPoint(event) {
