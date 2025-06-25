@@ -55,6 +55,9 @@ class TraceGameController {
         // Initialize audio system
         await this.initializeAudio();
         
+        // Initialize rainbow with smaller size for full screen
+        this.initializeRainbowSize();
+        
         // Create main renderer
         this.renderer = new TraceNumberRenderer();
         if (!this.renderer.initialize('traceContainer')) {
@@ -75,6 +78,55 @@ class TraceGameController {
         this.startNewNumber();
         
         console.log('Main game controller initialized successfully');
+    }
+
+    initializeRainbowSize() {
+        // Override the rainbow size calculation to make it smaller for full screen
+        // Calculate a more appropriate rainbow width (50% of screen width instead of 80% of 80%)
+        const screenWidth = window.innerWidth;
+        const appropriateRainbowWidth = screenWidth * 0.5; // 50% of screen width
+        
+        // Temporarily override the rainbow's width calculation
+        const originalInitialize = this.rainbow.initializeArcs.bind(this.rainbow);
+        this.rainbow.initializeArcs = function() {
+            // Clear existing arcs
+            this.container.innerHTML = '';
+            
+            // Use the controller's specified width instead of calculating from game area
+            const rainbowWidth = appropriateRainbowWidth;
+            
+            // Create all 10 rainbow arcs (initially hidden)
+            for (let i = 0; i < this.maxPieces; i++) {
+                const arc = document.createElement('div');
+                arc.className = 'rainbow-arc';
+                arc.id = `arc-${i}`;
+                
+                // Calculate radius for this arc (outermost first)
+                const baseRadius = rainbowWidth / 2;
+                const radius = baseRadius - (i * this.arcWidth);
+                
+                // Set arc properties for semi-circle
+                arc.style.width = radius * 2 + 'px';
+                arc.style.height = radius + 'px';
+                arc.style.borderTopWidth = this.arcWidth + 'px';
+                arc.style.borderTopColor = this.colors[i];
+                arc.style.borderRadius = radius + 'px ' + radius + 'px 0 0';
+                arc.style.position = 'absolute';
+                arc.style.bottom = '0';
+                arc.style.left = '50%';
+                arc.style.transform = 'translateX(-50%)';
+                arc.style.opacity = '0'; // Start completely hidden
+                arc.style.transition = 'opacity 0.5s ease-in-out';
+                arc.style.pointerEvents = 'none';
+                
+                this.container.appendChild(arc);
+            }
+        };
+        
+        // Reinitialize the rainbow with the new size
+        this.rainbow.initializeArcs();
+        
+        console.log(`Rainbow initialized with width: ${appropriateRainbowWidth}px (50% of screen width)`);
     }
 
     async waitForDependencies() {
@@ -190,6 +242,9 @@ class TraceGameController {
         if (this.renderer && this.renderer.svg) {
             this.renderer.updateSVGDimensions();
         }
+        
+        // Update rainbow size on resize
+        this.initializeRainbowSize();
         
         if (this.renderer && this.currentNumber !== null) {
             this.renderer.renderNumber(this.currentNumber);
