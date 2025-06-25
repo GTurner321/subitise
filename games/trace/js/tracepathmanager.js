@@ -3,7 +3,7 @@ class TracePathManager {
         this.svg = svg;
         this.renderer = renderer;
         
-        // Slider elements - TWO separate systems now
+        // Slider elements - TWO separate systems
         this.slider = null;              // Real interactive slider (becomes invisible during drag)
         this.frontMarker = null;         // Fake red marker at front of green trace (visible during drag)
         
@@ -19,10 +19,6 @@ class TracePathManager {
         
         // Movement tracking
         this.lastMovementTime = Date.now();
-        
-        // Directional preference for tricky turnaround points (like number 9)
-        this.lastMovementDirection = null; // 'forward' or 'backward'
-        this.previousCoordinateIndex = 0;
         
         this.initializeEventListeners();
     }
@@ -64,11 +60,11 @@ class TracePathManager {
         this.removeSlider();
         this.removeFrontMarker();
         
-        // Create slider with permanent arrow at first coordinate
+        // Create simple slider at first coordinate
         const startPoint = this.currentStrokeCoords[0];
         this.createSlider(startPoint);
         
-        console.log('Slider created with permanent directional arrow');
+        console.log('Simple slider created at start position');
         
         return true;
     }
@@ -77,7 +73,7 @@ class TracePathManager {
         // Remove existing slider
         this.removeSlider();
         
-        // Create simple slider circle (BACK TO ORIGINAL)
+        // Create simple slider circle
         this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         this.slider.setAttribute('cx', position.x);
         this.slider.setAttribute('cy', position.y);
@@ -103,57 +99,6 @@ class TracePathManager {
             this.slider.remove();
             this.slider = null;
         }
-    }
-
-    createCenteredSliderArrow(position) {
-        if (!this.currentStrokeCoords || this.currentStrokeCoords.length < 2) {
-            return null;
-        }
-        
-        // Find next coordinate to point toward
-        let nextCoordIndex = this.currentCoordinateIndex + 1;
-        if (nextCoordIndex >= this.currentStrokeCoords.length) {
-            nextCoordIndex = this.currentStrokeCoords.length - 1;
-        }
-        
-        // Don't create arrow if we're at the end
-        if (nextCoordIndex === this.currentCoordinateIndex) {
-            return null;
-        }
-        
-        const nextCoord = this.currentStrokeCoords[nextCoordIndex];
-        if (!nextCoord) {
-            return null;
-        }
-        
-        // Calculate direction from current position to next coordinate
-        const directionX = nextCoord.x - position.x;
-        const directionY = nextCoord.y - position.y;
-        const directionLength = Math.sqrt(directionX * directionX + directionY * directionY);
-        
-        if (directionLength === 0) return null;
-        
-        // Calculate rotation angle and ADD 180 degrees to flip direction
-        const angle = Math.atan2(directionY, directionX) * 180 / Math.PI + 180;
-        
-        // Create arrow group positioned at CENTER of slider
-        const arrowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        arrowGroup.setAttribute('class', 'slider-centered-arrow');
-        arrowGroup.setAttribute('transform', `translate(${position.x}, ${position.y}) rotate(${angle})`);
-        
-        // Create smaller arrow path that fits inside the circle
-        const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const arrowSize = 12; // Smaller to fit inside slider circle
-        arrowPath.setAttribute('d', `M -${arrowSize/2} 0 L ${arrowSize/2} ${arrowSize/3} L ${arrowSize/2} ${-arrowSize/3} Z`);
-        arrowPath.setAttribute('fill', '#000080'); // Navy blue instead of white
-        arrowPath.setAttribute('stroke', 'white');
-        arrowPath.setAttribute('stroke-width', 1);
-        arrowPath.setAttribute('opacity', '1'); // Full opacity for better visibility
-        
-        arrowGroup.appendChild(arrowPath);
-        
-        console.log(`Created centered arrow pointing toward coordinate ${nextCoordIndex}`);
-        return arrowGroup;
     }
 
     createFrontMarker(position) {
@@ -188,44 +133,6 @@ class TracePathManager {
         if (this.frontMarker) {
             this.frontMarker.setAttribute('cx', position.x);
             this.frontMarker.setAttribute('cy', position.y);
-        }
-    }
-
-    scheduleArrowUpdate(position) {
-        // Clear any existing timeout
-        if (this.arrowUpdateTimeout) {
-            clearTimeout(this.arrowUpdateTimeout);
-        }
-        
-        // Schedule arrow update after 1 second of no movement
-        this.arrowUpdateTimeout = setTimeout(() => {
-            if (!this.isDragging && this.slider) {
-                this.updateSliderArrow(position);
-                console.log('Arrow updated after movement pause');
-            }
-        }, 1000);
-    }
-
-    updateSliderArrow(position) {
-        if (!this.slider) return;
-        
-        // Only update if we've moved to a significantly different coordinate index
-        if (this.lastArrowUpdateIndex === this.currentCoordinateIndex) {
-            return; // Skip update - arrow is already correct
-        }
-        
-        // Remove existing centered arrow
-        const existingArrow = this.slider.querySelector('.slider-centered-arrow');
-        if (existingArrow) {
-            existingArrow.remove();
-        }
-        
-        // Create new centered arrow pointing toward next coordinate
-        const newArrow = this.createCenteredSliderArrow(position);
-        if (newArrow) {
-            this.slider.appendChild(newArrow);
-            this.lastArrowUpdateIndex = this.currentCoordinateIndex;
-            console.log(`Arrow updated for coordinate ${this.currentCoordinateIndex}`);
         }
     }
 
@@ -288,29 +195,22 @@ class TracePathManager {
         console.log('Drag ended - finger lifted');
         this.isDragging = false;
         
-        // Delay showing the real slider by 500ms to avoid jarring movement
-        setTimeout(() => {
-            // SHOW the real slider again at the current coordinate position
-            if (this.slider && !this.isDragging) { // Check we haven't started dragging again
-                const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-                if (currentCoord) {
-                    // Update slider position
-                    this.slider.setAttribute('cx', currentCoord.x);
-                    this.slider.setAttribute('cy', currentCoord.y);
-                    this.slider.style.opacity = '1';
-                    this.addSliderPulseAnimation();
-                }
+        // SHOW the real slider again at the current coordinate position
+        if (this.slider) {
+            const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
+            if (currentCoord) {
+                // Update slider position
+                this.slider.setAttribute('cx', currentCoord.x);
+                this.slider.setAttribute('cy', currentCoord.y);
+                this.slider.style.opacity = '1';
+                this.addSliderPulseAnimation();
             }
-        }, 500); // Half second delay
+        }
         
-        // REMOVE the front marker after the delay too
-        setTimeout(() => {
-            if (!this.isDragging) { // Only remove if we haven't started dragging again
-                this.removeFrontMarker();
-            }
-        }, 500);
+        // REMOVE the front marker
+        this.removeFrontMarker();
         
-        console.log('🔴 Real slider will reappear in 500ms, 🔴 front marker will be removed then');
+        console.log('🔴 Real slider restored at coordinate position, 🔴 front marker removed');
     }
 
     getEventPoint(event) {
@@ -377,18 +277,15 @@ class TracePathManager {
     }
 
     findBestSliderPosition(dragPoint) {
-        // ENHANCED APPROACH: Handle tricky turnaround points with directional preference
+        // SIMPLE APPROACH: Basic position finding without complex direction logic
         
         let bestCoordIndex = this.currentCoordinateIndex;
         let bestProgress = 0;
         let bestDistance = Infinity;
         
-        // Allow slider to look ahead by 1-2 segments for initial positioning and smooth dragging
-        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 3 : 1;
+        // Allow slider to look ahead by 1-2 segments for smooth dragging
+        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 3 : 2;
         const maxSearchIndex = Math.min(this.currentCoordinateIndex + lookAheadDistance, this.currentStrokeCoords.length - 2);
-        
-        // Detect if we're near a tricky turnaround point (like 100,190 in number 9)
-        const isTrickyTurnaround = this.detectTrickyTurnaround();
         
         for (let i = this.currentCoordinateIndex; i <= maxSearchIndex; i++) {
             const currentCoord = this.currentStrokeCoords[i];
@@ -416,8 +313,7 @@ class TracePathManager {
                 Math.pow(dragPoint.y - pointY, 2)
             );
             
-            // Use higher tolerance for tricky turnaround points
-            const maxDistance = isTrickyTurnaround ? (CONFIG.PATH_TOLERANCE * 1.5 || 75) : (CONFIG.PATH_TOLERANCE || 50);
+            const maxDistance = CONFIG.PATH_TOLERANCE || 50;
             
             if (distanceToSegment <= maxDistance && distanceToSegment < bestDistance) {
                 bestDistance = distanceToSegment;
@@ -427,7 +323,7 @@ class TracePathManager {
         }
         
         // Return best position found within tolerance
-        if (bestDistance <= (isTrickyTurnaround ? (CONFIG.PATH_TOLERANCE * 1.5 || 75) : (CONFIG.PATH_TOLERANCE || 50))) {
+        if (bestDistance <= (CONFIG.PATH_TOLERANCE || 50)) {
             return {
                 coordIndex: bestCoordIndex,
                 progress: bestProgress,
@@ -436,29 +332,6 @@ class TracePathManager {
         }
         
         return null;
-    }
-
-    detectTrickyTurnaround() {
-        // Detect if we're approaching a turnaround point (like 100,190 in number 9)
-        if (!this.currentStrokeCoords || this.currentCoordinateIndex < 2) return false;
-        
-        const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-        if (!currentCoord) return false;
-        
-        // Check for number 9's tricky turnaround at (100,190)
-        if (this.currentStroke === 0 && // First stroke of number 9
-            Math.abs(currentCoord.x - 100) < 5 && 
-            Math.abs(currentCoord.y - 190) < 10) {
-            return true;
-        }
-        
-        // Check for number 3's similar pattern
-        if (this.currentStroke === 0 && // First stroke of number 3
-            currentCoord.y > 180 && currentCoord.y < 200) {
-            return true;
-        }
-        
-        return false;
     }
 
     updateTracingProgress(position) {
@@ -507,16 +380,10 @@ class TracePathManager {
         
         // Update green trace only when coordinate index actually changes
         if (newCoordinateIndex !== this.currentCoordinateIndex) {
-            const oldIndex = this.currentCoordinateIndex;
             this.currentCoordinateIndex = newCoordinateIndex;
             
             // Update green trace to match
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
-            
-            // Schedule arrow update only when we reach a new section
-            if (this.currentCoordinateIndex > oldIndex) {
-                this.scheduleArrowUpdate({ x: frontMarkerX, y: frontMarkerY });
-            }
         }
         
         // Complete stroke when we reach the final coordinate
@@ -584,21 +451,14 @@ class TracePathManager {
     }
 
     cleanup() {
-        // Remove slider, front marker and clear timeouts
+        // Remove slider and front marker
         this.removeSlider();
         this.removeFrontMarker();
-        
-        // Clear arrow update timeout
-        if (this.arrowUpdateTimeout) {
-            clearTimeout(this.arrowUpdateTimeout);
-            this.arrowUpdateTimeout = null;
-        }
         
         this.isTracing = false;
         this.isDragging = false;
         this.currentCoordinateIndex = 0;
         this.currentStrokeCoords = [];
-        this.lastArrowUpdateIndex = -1;
     }
 
     reset() {
