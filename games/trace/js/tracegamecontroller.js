@@ -388,47 +388,7 @@ class TraceGameController {
         console.log(`Created ${balloonCount} balloons with ${this.totalCorrectBalloons} correct numbers`);
     }
 
-    createBalloonString(balloon) {
-        const balloonRadius = 35;
-        const stringLength = 60;
-        
-        // Create curved string path
-        const string = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        
-        // String starts at bottom of balloon
-        const startX = balloon.x + balloonRadius;
-        const startY = balloon.y + balloonRadius * 2; // Bottom of balloon
-        
-        // String ends below balloon with slight curve
-        const endX = startX + (Math.random() - 0.5) * 20; // Slight horizontal offset
-        const endY = startY + stringLength;
-        
-        // Control points for curved string
-        const controlX1 = startX + (Math.random() - 0.5) * 15;
-        const controlY1 = startY + stringLength * 0.3;
-        const controlX2 = endX + (Math.random() - 0.5) * 15;
-        const controlY2 = startY + stringLength * 0.7;
-        
-        // Create curved path
-        const pathData = `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
-        
-        string.setAttribute('d', pathData);
-        string.setAttribute('stroke', '#8B4513'); // Brown string
-        string.setAttribute('stroke-width', 2);
-        string.setAttribute('fill', 'none');
-        string.setAttribute('class', 'balloon-string');
-        
-        // Store string properties for animation
-        balloon.stringEndX = endX;
-        balloon.stringEndY = endY;
-        balloon.stringControlX1 = controlX1;
-        balloon.stringControlY1 = controlY1;
-        balloon.stringControlX2 = controlX2;
-        balloon.stringControlY2 = controlY2;
-        balloon.initialY = balloon.y; // Store initial position for relative calculations
-        
-        return string;
-    }
+    generateNonOverlappingPositions(count, width) {
         const positions = [];
         const margin = 20;
         const totalWidth = width + margin;
@@ -572,6 +532,48 @@ class TraceGameController {
         return balloon;
     }
 
+    createBalloonString(balloon) {
+        const balloonRadius = 35;
+        const stringLength = 60;
+        
+        // Create curved string path
+        const string = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        
+        // String starts at bottom of balloon
+        const startX = balloon.x + balloonRadius;
+        const startY = balloon.y + balloonRadius * 2; // Bottom of balloon
+        
+        // String ends below balloon with slight curve
+        const endX = startX + (Math.random() - 0.5) * 20; // Slight horizontal offset
+        const endY = startY + stringLength;
+        
+        // Control points for curved string
+        const controlX1 = startX + (Math.random() - 0.5) * 15;
+        const controlY1 = startY + stringLength * 0.3;
+        const controlX2 = endX + (Math.random() - 0.5) * 15;
+        const controlY2 = startY + stringLength * 0.7;
+        
+        // Create curved path
+        const pathData = `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
+        
+        string.setAttribute('d', pathData);
+        string.setAttribute('stroke', '#8B4513'); // Brown string
+        string.setAttribute('stroke-width', 2);
+        string.setAttribute('fill', 'none');
+        string.setAttribute('class', 'balloon-string');
+        
+        // Store string properties for animation
+        balloon.stringEndX = endX;
+        balloon.stringEndY = endY;
+        balloon.stringControlX1 = controlX1;
+        balloon.stringControlY1 = controlY1;
+        balloon.stringControlX2 = controlX2;
+        balloon.stringControlY2 = controlY2;
+        balloon.initialY = balloon.y; // Store initial position for relative calculations
+        
+        return string;
+    }
+
     popBalloon(balloon) {
         if (balloon.popped || !this.playingBalloonGame) return;
         
@@ -589,7 +591,7 @@ class TraceGameController {
             this.correctBalloonsFound++;
             
             // Create falling number at balloon position
-            this.createFallingNumber(balloon.x + 25, balloon.y + 25, balloon.number);
+            this.createFallingNumber(balloon.x + balloon.radius, balloon.y + balloon.radius, balloon.number);
             
             // Speak encouragement
             if (this.audioEnabled) {
@@ -603,7 +605,7 @@ class TraceGameController {
         
         // Remove balloon with pop animation
         if (balloon.group) {
-            this.createPopEffect(balloon.x + 25, balloon.y + 25);
+            this.createPopEffect(balloon.x + balloon.radius, balloon.y + balloon.radius);
             balloon.group.remove();
         }
         
