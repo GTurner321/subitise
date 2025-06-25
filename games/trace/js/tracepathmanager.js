@@ -6,7 +6,6 @@ class TracePathManager {
         // Slider elements - TWO separate systems now
         this.slider = null;              // Real interactive slider (becomes invisible during drag)
         this.frontMarker = null;         // Fake red marker at front of green trace (visible during drag)
-        this.directionArrow = null;
         
         // Tracking state
         this.isTracing = false;
@@ -18,10 +17,8 @@ class TracePathManager {
         this.strokeCoordinates = [];
         this.currentStrokeCoords = [];
         
-        // Arrow timing
-        this.arrowTimeout = null;
+        // Movement tracking
         this.lastMovementTime = Date.now();
-        this.stoppedMovementTimeout = null;
         
         this.initializeEventListeners();
     }
@@ -59,19 +56,15 @@ class TracePathManager {
         
         console.log(`Starting stroke ${strokeIndex} with ${this.currentStrokeCoords.length} coordinates`);
         
-        // Remove any existing elements
+        // Remove any existing slider and front marker
         this.removeSlider();
         this.removeFrontMarker();
-        this.removeDirectionArrow();
         
-        // Create interactive slider at first coordinate
+        // Create slider with permanent arrow at first coordinate
         const startPoint = this.currentStrokeCoords[0];
         this.createSlider(startPoint);
         
-        // Start arrow timeout for initial direction guidance
-        this.startArrowTimeout();
-        
-        console.log('Direction arrow will appear in 4 seconds to show initial direction');
+        console.log('Slider created with permanent directional arrow');
         
         return true;
     }
@@ -116,41 +109,6 @@ class TracePathManager {
         if (this.slider) {
             this.slider.remove();
             this.slider = null;
-        }
-    }
-
-    createFrontMarker(position) {
-        // Remove existing front marker
-        this.removeFrontMarker();
-        
-        // Create new front marker circle (looks identical to slider but separate)
-        this.frontMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        this.frontMarker.setAttribute('cx', position.x);
-        this.frontMarker.setAttribute('cy', position.y);
-        this.frontMarker.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
-        this.frontMarker.setAttribute('fill', CONFIG.SLIDER_COLOR);
-        this.frontMarker.setAttribute('stroke', 'white');
-        this.frontMarker.setAttribute('stroke-width', 3);
-        this.frontMarker.setAttribute('class', 'front-marker');
-        this.frontMarker.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
-        
-        // No pulsing animation - this is just a visual marker
-        this.svg.appendChild(this.frontMarker);
-        
-        console.log(`Created front marker at:`, position);
-    }
-
-    removeFrontMarker() {
-        if (this.frontMarker) {
-            this.frontMarker.remove();
-            this.frontMarker = null;
-        }
-    }
-
-    updateFrontMarkerPosition(position) {
-        if (this.frontMarker) {
-            this.frontMarker.setAttribute('cx', position.x);
-            this.frontMarker.setAttribute('cy', position.y);
         }
     }
 
@@ -205,7 +163,56 @@ class TracePathManager {
         return arrowGroup;
     }
 
-    // Remove unused arrow timeout methods - now using permanent arrow on slider
+    createFrontMarker(position) {
+        // Remove existing front marker
+        this.removeFrontMarker();
+        
+        // Create new front marker circle (looks identical to slider but separate)
+        this.frontMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        this.frontMarker.setAttribute('cx', position.x);
+        this.frontMarker.setAttribute('cy', position.y);
+        this.frontMarker.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
+        this.frontMarker.setAttribute('fill', CONFIG.SLIDER_COLOR);
+        this.frontMarker.setAttribute('stroke', 'white');
+        this.frontMarker.setAttribute('stroke-width', 3);
+        this.frontMarker.setAttribute('class', 'front-marker');
+        this.frontMarker.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+        
+        // No pulsing animation - this is just a visual marker
+        this.svg.appendChild(this.frontMarker);
+        
+        console.log(`Created front marker at:`, position);
+    }
+
+    removeFrontMarker() {
+        if (this.frontMarker) {
+            this.frontMarker.remove();
+            this.frontMarker = null;
+        }
+    }
+
+    updateFrontMarkerPosition(position) {
+        if (this.frontMarker) {
+            this.frontMarker.setAttribute('cx', position.x);
+            this.frontMarker.setAttribute('cy', position.y);
+        }
+    }
+
+    updateSliderArrow(position) {
+        if (!this.slider) return;
+        
+        // Remove existing centered arrow
+        const existingArrow = this.slider.querySelector('.slider-centered-arrow');
+        if (existingArrow) {
+            existingArrow.remove();
+        }
+        
+        // Create new centered arrow pointing toward next coordinate
+        const newArrow = this.createCenteredSliderArrow(position);
+        if (newArrow) {
+            this.slider.appendChild(newArrow);
+        }
+    }
 
     handleStart(event) {
         event.preventDefault();
@@ -213,7 +220,7 @@ class TracePathManager {
         const point = this.getEventPoint(event);
         if (!point) return;
         
-        // Must touch WITHIN the real slider circle to start/restart tracing
+        // Must touch WITHIN the red slider circle to start/restart tracing
         if (this.isPointNearSlider(point, false)) {
             console.log('Valid touch within slider circle - starting/restarting drag');
             this.isDragging = true;
@@ -223,9 +230,12 @@ class TracePathManager {
             if (this.slider) {
                 this.slider.style.opacity = '0';
                 // Remove pulsing animation
-                const animate = this.slider.querySelector('animate');
-                if (animate) {
-                    animate.remove();
+                const sliderCircle = this.slider.querySelector('.trace-slider-circle');
+                if (sliderCircle) {
+                    const animate = sliderCircle.querySelector('animate');
+                    if (animate) {
+                        animate.remove();
+                    }
                 }
             }
             
@@ -233,13 +243,6 @@ class TracePathManager {
             const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
             if (currentCoord) {
                 this.createFrontMarker(currentCoord);
-            }
-            
-            // Hide direction arrow when starting to trace
-            this.removeDirectionArrow();
-            if (this.arrowTimeout) {
-                clearTimeout(this.arrowTimeout);
-                this.arrowTimeout = null;
             }
             
             console.log('🔴 Real slider hidden, 🔴 front marker created at trace position');
@@ -259,13 +262,6 @@ class TracePathManager {
         this.lastMovementTime = Date.now();
         
         // Find best position along the path for the drag point
-        const bestPosition = this.findBestSliderPosition(point);
-        
-        if (bestPosition !== null) {
-            // Update the tracing progress based on drag position
-            this.updateTracingProgress(bestPosition);
-        }
-    }d best position along the path for the drag point
         const bestPosition = this.findBestSliderPosition(point);
         
         if (bestPosition !== null) {
@@ -377,13 +373,16 @@ class TracePathManager {
     }
 
     findBestSliderPosition(dragPoint) {
-        // Find the best segment and progress for the drag point
+        // BALANCED APPROACH: Allow slider to move ahead slightly but not jump wildly
+        // This enables initial positioning while maintaining the front-edge concept
+        
         let bestCoordIndex = this.currentCoordinateIndex;
         let bestProgress = 0;
         let bestDistance = Infinity;
         
-        // Allow looking ahead by a few segments for smooth dragging
-        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 3 : 2;
+        // Allow slider to look ahead by 1-2 segments for initial positioning and smooth dragging
+        // But once we're actively tracing, keep it more constrained
+        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 3 : 1; // More flexible at start
         const maxSearchIndex = Math.min(this.currentCoordinateIndex + lookAheadDistance, this.currentStrokeCoords.length - 2);
         
         for (let i = this.currentCoordinateIndex; i <= maxSearchIndex; i++) {
@@ -510,12 +509,6 @@ class TracePathManager {
             this.addSliderPulseAnimation();
         }
         this.removeFrontMarker();
-        
-        // Start arrow timeout again
-        this.startArrowTimeout();
-        
-        // Start stopped movement timeout if near completion
-        this.startStoppedMovementTimeout();
     }
 
     completeCurrentStroke() {
@@ -529,13 +522,6 @@ class TracePathManager {
             this.slider.style.opacity = '0';
         }
         this.removeFrontMarker();
-        this.removeDirectionArrow();
-        
-        // Clear arrow timeout
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-            this.arrowTimeout = null;
-        }
         
         // Remove slider after fade
         setTimeout(() => {
