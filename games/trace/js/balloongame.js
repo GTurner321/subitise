@@ -6,6 +6,25 @@ class BalloonGame {
             return;
         }
         
+        // Wait for CONFIG to be available before initializing
+        if (typeof CONFIG === 'undefined') {
+            console.error('CONFIG object not available - waiting...');
+            // Try again after a short delay
+            setTimeout(() => {
+                if (typeof CONFIG !== 'undefined') {
+                    this.initializeWithConfig();
+                } else {
+                    console.error('CONFIG still not available - using fallback dimensions');
+                    this.initializeWithFallback();
+                }
+            }, 100);
+            return;
+        }
+        
+        this.initializeWithConfig();
+    }
+
+    initializeWithConfig() {
         this.svg = null;
         this.balloons = [];
         this.fallingNumbers = [];
@@ -27,6 +46,30 @@ class BalloonGame {
         this.initialize();
     }
 
+    initializeWithFallback() {
+        this.svg = null;
+        this.balloons = [];
+        this.fallingNumbers = [];
+        this.currentNumber = null;
+        this.correctBalloonsFound = 0;
+        this.totalCorrectBalloons = 3;
+        this.isActive = false;
+        this.onComplete = null;
+        this.animationId = null;
+        this.lastTime = 0;
+        
+        // Game settings with fallback dimensions
+        this.balloonCount = 12;
+        this.minRiseSpeed = 40;
+        this.maxRiseSpeed = 60;
+        this.numberFallSpeed = 100;
+        this.groundLevel = 520; // Fallback ground level (600 - 80)
+        this.svgWidth = 800; // Fallback width
+        this.svgHeight = 600; // Fallback height
+        
+        this.initialize();
+    }
+
     initialize() {
         this.createSVG();
         console.log('Balloon game initialized');
@@ -36,30 +79,52 @@ class BalloonGame {
         // Clear existing content
         this.container.innerHTML = '';
         
+        // Get dimensions (with fallback support)
+        const width = (typeof CONFIG !== 'undefined') ? CONFIG.SVG_WIDTH : this.svgWidth || 800;
+        const height = (typeof CONFIG !== 'undefined') ? CONFIG.SVG_HEIGHT : this.svgHeight || 600;
+        
         // Create SVG element
         this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        this.svg.setAttribute('viewBox', `0 0 ${CONFIG.SVG_WIDTH} ${CONFIG.SVG_HEIGHT}`);
+        this.svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
         this.svg.setAttribute('width', '100%');
         this.svg.setAttribute('height', '100%');
         this.svg.setAttribute('class', 'balloon-game-svg');
         this.svg.style.backgroundColor = '#87CEEB'; // Sky blue background
         
+        // Update ground level if using fallback
+        if (typeof CONFIG === 'undefined') {
+            this.groundLevel = height - 80;
+        }
+        
         // Add ground
         this.createGround();
         
         this.container.appendChild(this.svg);
+        
+        console.log(`Balloon game SVG created: ${width} x ${height}`);
     }
 
     createGround() {
+        if (!this.svg) {
+            console.error('Cannot create ground - SVG not initialized');
+            return;
+        }
+        
+        // Get dimensions (with fallback support)
+        const width = (typeof CONFIG !== 'undefined') ? CONFIG.SVG_WIDTH : this.svgWidth || 800;
+        const height = (typeof CONFIG !== 'undefined') ? CONFIG.SVG_HEIGHT : this.svgHeight || 600;
+        
         const ground = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         ground.setAttribute('x', 0);
         ground.setAttribute('y', this.groundLevel);
-        ground.setAttribute('width', CONFIG.SVG_WIDTH);
-        ground.setAttribute('height', CONFIG.SVG_HEIGHT - this.groundLevel);
+        ground.setAttribute('width', width);
+        ground.setAttribute('height', height - this.groundLevel);
         ground.setAttribute('fill', '#90EE90'); // Light green ground
         ground.setAttribute('class', 'balloon-ground');
         
         this.svg.appendChild(ground);
+        
+        console.log(`Ground created at y=${this.groundLevel}`);
     }
 
     startGame(number, onCompleteCallback) {
@@ -127,7 +192,10 @@ class BalloonGame {
         const positions = [];
         const margin = 20; // Extra margin between balloons
         const totalWidth = width + margin;
-        const availableWidth = CONFIG.SVG_WIDTH - width;
+        
+        // Get available width (with fallback support)
+        const svgWidth = (typeof CONFIG !== 'undefined') ? CONFIG.SVG_WIDTH : this.svgWidth || 800;
+        const availableWidth = svgWidth - width;
         
         // Try to place balloons without overlap
         for (let i = 0; i < count; i++) {
@@ -162,6 +230,9 @@ class BalloonGame {
             return null;
         }
         
+        // Get height (with fallback support)
+        const svgHeight = (typeof CONFIG !== 'undefined') ? CONFIG.SVG_HEIGHT : this.svgHeight || 600;
+        
         const isCorrectNumber = number === this.currentNumber;
         
         // Random rise speed for each balloon
@@ -169,7 +240,7 @@ class BalloonGame {
         
         const balloon = {
             x: x,
-            y: CONFIG.SVG_HEIGHT + 50, // Start below screen
+            y: svgHeight + 50, // Start below screen
             number: number,
             isCorrect: isCorrectNumber,
             riseSpeed: riseSpeed,
@@ -345,7 +416,10 @@ class BalloonGame {
         numberElement.setAttribute('dominant-baseline', 'middle');
         numberElement.setAttribute('font-size', '60');
         numberElement.setAttribute('font-weight', 'bold');
-        numberElement.setAttribute('fill', CONFIG.FILL_COLOR);
+        
+        // Use fallback color if CONFIG not available
+        const fillColor = (typeof CONFIG !== 'undefined') ? CONFIG.FILL_COLOR : '#4CAF50';
+        numberElement.setAttribute('fill', fillColor);
         numberElement.setAttribute('stroke', 'white');
         numberElement.setAttribute('stroke-width', 2);
         numberElement.setAttribute('class', 'falling-number');
