@@ -80,23 +80,36 @@ class TracePathManager {
         // Remove existing slider
         this.removeSlider();
         
-        // Create new interactive slider circle
-        this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        this.slider.setAttribute('cx', position.x);
-        this.slider.setAttribute('cy', position.y);
-        this.slider.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
-        this.slider.setAttribute('fill', CONFIG.SLIDER_COLOR);
-        this.slider.setAttribute('stroke', 'white');
-        this.slider.setAttribute('stroke-width', 3);
-        this.slider.setAttribute('class', 'trace-slider');
-        this.slider.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+        // Create slider group to hold circle and centered arrow
+        this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        this.slider.setAttribute('class', 'trace-slider-group');
         
-        // Add pulsing animation to indicate it's interactive
+        // Create slider circle (SAME as before)
+        const sliderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        sliderCircle.setAttribute('cx', position.x);
+        sliderCircle.setAttribute('cy', position.y);
+        sliderCircle.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
+        sliderCircle.setAttribute('fill', CONFIG.SLIDER_COLOR);
+        sliderCircle.setAttribute('stroke', 'white');
+        sliderCircle.setAttribute('stroke-width', 3);
+        sliderCircle.setAttribute('class', 'trace-slider-circle');
+        sliderCircle.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+        
+        // Create arrow INSIDE the center of the slider circle
+        const arrow = this.createCenteredSliderArrow(position);
+        
+        // Add both circle and centered arrow to slider group
+        this.slider.appendChild(sliderCircle);
+        if (arrow) {
+            this.slider.appendChild(arrow);
+        }
+        
+        // Add pulsing animation to circle only
         this.addSliderPulseAnimation();
         
         this.svg.appendChild(this.slider);
         
-        console.log(`Created interactive slider at coordinate ${this.currentCoordinateIndex}:`, position);
+        console.log(`Created slider with centered arrow at coordinate ${this.currentCoordinateIndex}:`, position);
     }
 
     removeSlider() {
@@ -141,190 +154,58 @@ class TracePathManager {
         }
     }
 
-    createDirectionArrow() {
-        if (this.directionArrow || !this.currentStrokeCoords || this.currentStrokeCoords.length < 2 || !this.slider) {
-            return;
+    createCenteredSliderArrow(position) {
+        if (!this.currentStrokeCoords || this.currentStrokeCoords.length < 2) {
+            return null;
         }
         
-        // Get current slider position
-        const sliderX = parseFloat(this.slider.getAttribute('cx'));
-        const sliderY = parseFloat(this.slider.getAttribute('cy'));
-        
-        // Validate slider position
-        if (isNaN(sliderX) || isNaN(sliderY)) {
-            console.warn('Invalid slider position, cannot create direction arrow');
-            return;
-        }
-        
-        // Find the next coordinate point ahead from current position
+        // Find next coordinate to point toward
         let nextCoordIndex = this.currentCoordinateIndex + 1;
-        let targetCoordIndex = this.currentCoordinateIndex + 2;
-        
-        // Ensure we have valid coordinates
         if (nextCoordIndex >= this.currentStrokeCoords.length) {
             nextCoordIndex = this.currentStrokeCoords.length - 1;
         }
-        if (targetCoordIndex >= this.currentStrokeCoords.length) {
-            targetCoordIndex = this.currentStrokeCoords.length - 1;
-        }
         
         // Don't create arrow if we're at the end
-        if (nextCoordIndex === targetCoordIndex) {
-            return;
+        if (nextCoordIndex === this.currentCoordinateIndex) {
+            return null;
         }
         
         const nextCoord = this.currentStrokeCoords[nextCoordIndex];
-        const targetCoord = this.currentStrokeCoords[targetCoordIndex];
-        
-        if (!nextCoord || !targetCoord) {
-            console.warn('Invalid coordinates for arrow creation');
-            return;
+        if (!nextCoord) {
+            return null;
         }
         
-        // Calculate direction from next coordinate to target coordinate
-        const directionX = targetCoord.x - nextCoord.x;
-        const directionY = targetCoord.y - nextCoord.y;
+        // Calculate direction from current position to next coordinate
+        const directionX = nextCoord.x - position.x;
+        const directionY = nextCoord.y - position.y;
         const directionLength = Math.sqrt(directionX * directionX + directionY * directionY);
         
-        if (directionLength === 0) return; // No direction to show
+        if (directionLength === 0) return null;
         
-        // Position arrow at 80% of slider width from center
-        const arrowDistance = CONFIG.SLIDER_SIZE * 0.8;
+        // Calculate rotation angle
+        const angle = Math.atan2(directionY, directionX) * 180 / Math.PI;
         
-        // Calculate direction from slider center to next coordinate
-        const toNextX = nextCoord.x - sliderX;
-        const toNextY = nextCoord.y - sliderY;
-        const toNextLength = Math.sqrt(toNextX * toNextX + toNextY * toNextY);
+        // Create arrow group positioned at CENTER of slider
+        const arrowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        arrowGroup.setAttribute('class', 'slider-centered-arrow');
+        arrowGroup.setAttribute('transform', `translate(${position.x}, ${position.y}) rotate(${angle})`);
         
-        let arrowX, arrowY;
+        // Create smaller arrow path that fits inside the circle
+        const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const arrowSize = 12; // Smaller to fit inside slider circle
+        arrowPath.setAttribute('d', `M -${arrowSize/2} 0 L ${arrowSize/2} ${arrowSize/3} L ${arrowSize/2} ${-arrowSize/3} Z`);
+        arrowPath.setAttribute('fill', 'white');
+        arrowPath.setAttribute('stroke', '#333');
+        arrowPath.setAttribute('stroke-width', 1);
+        arrowPath.setAttribute('opacity', '0.9');
         
-        if (toNextLength > arrowDistance) {
-            // Next coordinate is far enough - position arrow partway to it
-            const normalizedX = toNextX / toNextLength;
-            const normalizedY = toNextY / toNextLength;
-            arrowX = sliderX + normalizedX * arrowDistance;
-            arrowY = sliderY + normalizedY * arrowDistance;
-        } else {
-            // Next coordinate is close - position arrow at the next coordinate
-            arrowX = nextCoord.x;
-            arrowY = nextCoord.y;
-        }
+        arrowGroup.appendChild(arrowPath);
         
-        // Calculate rotation angle pointing toward target coordinate
-        const angle = (Math.atan2(directionY, directionX) * 180 / Math.PI) + 180;
-        
-        try {
-            // Create arrow group
-            this.directionArrow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            this.directionArrow.setAttribute('class', 'direction-arrow');
-            this.directionArrow.setAttribute('transform', `translate(${arrowX}, ${arrowY}) rotate(${angle})`);
-            
-            // Create arrow path
-            const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const arrowSize = CONFIG.ARROW_SIZE;
-            arrowPath.setAttribute('d', `M 0 0 L ${arrowSize} ${arrowSize/2} L ${arrowSize} ${-arrowSize/2} Z`);
-            arrowPath.setAttribute('fill', CONFIG.ARROW_COLOR);
-            arrowPath.setAttribute('stroke', 'white');
-            arrowPath.setAttribute('stroke-width', 2);
-            arrowPath.setAttribute('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))');
-            
-            this.directionArrow.appendChild(arrowPath);
-            
-            // Add flashing animation
-            const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-            animate.setAttribute('attributeName', 'opacity');
-            animate.setAttribute('values', '1;0.3;1');
-            animate.setAttribute('dur', '1.5s');
-            animate.setAttribute('repeatCount', 'infinite');
-            
-            this.directionArrow.appendChild(animate);
-            
-            // Insert before slider to keep slider on top
-            if (this.slider && this.slider.parentNode) {
-                this.svg.insertBefore(this.directionArrow, this.slider);
-            } else {
-                this.svg.appendChild(this.directionArrow);
-            }
-            
-            console.log(`Created direction arrow at (${arrowX.toFixed(1)}, ${arrowY.toFixed(1)}) pointing toward coordinate ${targetCoordIndex}`);
-        } catch (error) {
-            console.error('Error creating direction arrow:', error);
-            this.directionArrow = null;
-        }
+        console.log(`Created centered arrow pointing toward coordinate ${nextCoordIndex}`);
+        return arrowGroup;
     }
 
-    removeDirectionArrow() {
-        if (this.directionArrow) {
-            this.directionArrow.remove();
-            this.directionArrow = null;
-        }
-    }
-
-    startArrowTimeout() {
-        // Clear existing timeout
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-        }
-        
-        // Set new timeout to show arrow after inactivity
-        this.arrowTimeout = setTimeout(() => {
-            if (!this.isTracing && !this.isDragging) {
-                this.createDirectionArrow();
-            }
-        }, CONFIG.ARROW_TIMEOUT);
-    }
-
-    resetArrowTimeout() {
-        this.removeDirectionArrow();
-        this.startArrowTimeout();
-        this.lastMovementTime = Date.now();
-        
-        // Also reset stopped movement timeout
-        this.resetStoppedMovementTimeout();
-    }
-
-    startStoppedMovementTimeout() {
-        // Only start if we're near the end and not already tracing
-        if (this.isNearCompletion() && !this.isTracing) {
-            this.stoppedMovementTimeout = setTimeout(() => {
-                if (!this.isTracing && !this.isDragging && this.isNearCompletion()) {
-                    console.log('Auto-completing due to stopped movement near end');
-                    this.autoCompleteFromNearEnd();
-                }
-            }, CONFIG.STOPPED_MOVEMENT_TIMEOUT);
-        }
-    }
-
-    resetStoppedMovementTimeout() {
-        if (this.stoppedMovementTimeout) {
-            clearTimeout(this.stoppedMovementTimeout);
-            this.stoppedMovementTimeout = null;
-        }
-    }
-
-    isNearCompletion() {
-        const totalCoords = this.currentStrokeCoords.length;
-        const remainingCoords = totalCoords - 1 - this.currentCoordinateIndex;
-        // Near completion if within 2 coordinates of the end
-        return remainingCoords <= 2 && remainingCoords > 0;
-    }
-
-    autoCompleteFromNearEnd() {
-        // Complete the current stroke if we're near the end
-        if (this.isNearCompletion()) {
-            console.log('Auto-completing stroke from near end position');
-            this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
-            this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
-            
-            // Update front marker to final position
-            const finalCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-            if (finalCoord) {
-                this.updateFrontMarkerPosition(finalCoord);
-            }
-            
-            this.completeCurrentStroke();
-        }
-    }
+    // Remove unused arrow timeout methods - now using permanent arrow on slider
 
     handleStart(event) {
         event.preventDefault();
@@ -374,11 +255,17 @@ class TracePathManager {
         const point = this.getEventPoint(event);
         if (!point) return;
         
-        // Update movement time and reset timeouts
+        // Update movement time
         this.lastMovementTime = Date.now();
-        this.resetStoppedMovementTimeout();
         
         // Find best position along the path for the drag point
+        const bestPosition = this.findBestSliderPosition(point);
+        
+        if (bestPosition !== null) {
+            // Update the tracing progress based on drag position
+            this.updateTracingProgress(bestPosition);
+        }
+    }d best position along the path for the drag point
         const bestPosition = this.findBestSliderPosition(point);
         
         if (bestPosition !== null) {
@@ -397,8 +284,16 @@ class TracePathManager {
         if (this.slider) {
             const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
             if (currentCoord) {
-                this.slider.setAttribute('cx', currentCoord.x);
-                this.slider.setAttribute('cy', currentCoord.y);
+                // Update slider position
+                const sliderCircle = this.slider.querySelector('.trace-slider-circle');
+                if (sliderCircle) {
+                    sliderCircle.setAttribute('cx', currentCoord.x);
+                    sliderCircle.setAttribute('cy', currentCoord.y);
+                }
+                
+                // Update arrow position and direction
+                this.updateSliderArrow(currentCoord);
+                
                 this.slider.style.opacity = '1';
                 this.addSliderPulseAnimation();
             }
@@ -406,12 +301,6 @@ class TracePathManager {
         
         // REMOVE the front marker
         this.removeFrontMarker();
-        
-        // Start arrow timeout to show direction after inactivity
-        this.startArrowTimeout();
-        
-        // Start stopped movement timeout if near completion
-        this.startStoppedMovementTimeout();
         
         console.log('🔴 Real slider restored at coordinate position, 🔴 front marker removed');
     }
@@ -442,8 +331,12 @@ class TracePathManager {
     isPointNearSlider(point, isDuringDrag = false) {
         if (!this.slider) return false;
         
-        const sliderX = parseFloat(this.slider.getAttribute('cx'));
-        const sliderY = parseFloat(this.slider.getAttribute('cy'));
+        // Find the circle within the slider group
+        const sliderCircle = this.slider.querySelector('.trace-slider-circle');
+        if (!sliderCircle) return false;
+        
+        const sliderX = parseFloat(sliderCircle.getAttribute('cx'));
+        const sliderY = parseFloat(sliderCircle.getAttribute('cy'));
         
         const distance = Math.sqrt(
             Math.pow(point.x - sliderX, 2) +
@@ -462,8 +355,12 @@ class TracePathManager {
     addSliderPulseAnimation() {
         if (!this.slider) return;
         
+        // Find the circle within the slider group
+        const sliderCircle = this.slider.querySelector('.trace-slider-circle');
+        if (!sliderCircle) return;
+        
         // Remove any existing animation first
-        const existingAnimate = this.slider.querySelector('animate');
+        const existingAnimate = sliderCircle.querySelector('animate');
         if (existingAnimate) {
             existingAnimate.remove();
         }
@@ -475,7 +372,7 @@ class TracePathManager {
         animate.setAttribute('dur', '2s');
         animate.setAttribute('repeatCount', 'indefinite');
         
-        this.slider.appendChild(animate);
+        sliderCircle.appendChild(animate);
         console.log('Added pulse animation - slider ready for touch');
     }
 
@@ -673,21 +570,9 @@ class TracePathManager {
     }
 
     cleanup() {
-        // Remove slider, front marker and arrow
+        // Remove slider, front marker (no more separate direction arrow)
         this.removeSlider();
         this.removeFrontMarker();
-        this.removeDirectionArrow();
-        
-        // Clear timeouts
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-            this.arrowTimeout = null;
-        }
-        
-        if (this.stoppedMovementTimeout) {
-            clearTimeout(this.stoppedMovementTimeout);
-            this.stoppedMovementTimeout = null;
-        }
         
         this.isTracing = false;
         this.isDragging = false;
