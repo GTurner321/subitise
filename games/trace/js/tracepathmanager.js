@@ -422,15 +422,16 @@ class TracePathManager {
     }
 
     findBestSliderPosition(dragPoint) {
-        // RESPONSIVE BUT CONTROLLED: Allow fast dragging but prevent jumping
+        // STRICT CONSECUTIVE MOVEMENT: Red slider can only advance to next segment
+        // This prevents linear interpolation between non-consecutive points
         
         let bestCoordIndex = this.currentCoordinateIndex;
         let bestProgress = 0;
         let bestDistance = Infinity;
         
-        // Look at current segment + next 2 segments (allows fast dragging but prevents wild jumps)
+        // CRITICAL: Only look at current segment and the next segment (strict consecutive movement)
         const startIndex = this.currentCoordinateIndex;
-        const endIndex = Math.min(this.currentStrokeCoords.length - 2, this.currentCoordinateIndex + 2);
+        const endIndex = Math.min(this.currentStrokeCoords.length - 2, this.currentCoordinateIndex + 1);
         
         for (let i = startIndex; i <= endIndex; i++) {
             const currentCoord = this.currentStrokeCoords[i];
@@ -458,7 +459,7 @@ class TracePathManager {
                 Math.pow(dragPoint.y - pointY, 2)
             );
             
-            // GENEROUS TOLERANCE: Easy to drag but not wild
+            // Generous tolerance for dragging
             const maxDistance = CONFIG.PATH_TOLERANCE || 50;
             
             if (distanceToSegment <= maxDistance) {
@@ -467,9 +468,9 @@ class TracePathManager {
                 if (i === this.currentCoordinateIndex) {
                     // Current segment - always allow
                     isValidPosition = true;
-                } else if (i <= this.currentCoordinateIndex + 2) {
-                    // Next 1-2 segments - allow forward movement (fast dragging friendly)
-                    if (dotProduct >= 0) {
+                } else if (i === this.currentCoordinateIndex + 1) {
+                    // Next segment - only allow if there's reasonable forward movement
+                    if (projectionProgress >= 0.1) { // At least 10% into next segment
                         isValidPosition = true;
                     }
                 }
@@ -482,8 +483,8 @@ class TracePathManager {
             }
         }
         
-        // Return best position found
-        if (bestCoordIndex >= this.currentCoordinateIndex && bestDistance <= (CONFIG.PATH_TOLERANCE || 50)) {
+        // Only return position if it's consecutive movement
+        if (bestCoordIndex <= this.currentCoordinateIndex + 1 && bestDistance <= (CONFIG.PATH_TOLERANCE || 50)) {
             return {
                 coordIndex: bestCoordIndex,
                 progress: bestProgress,
@@ -509,33 +510,37 @@ class TracePathManager {
         
         console.log(`Red slider at segment ${coordIndex}, ${(progress * 100).toFixed(1)}% = (${sliderX.toFixed(1)}, ${sliderY.toFixed(1)})`);
         
-        // CRITICAL FIX: Green trace coordinate index should NEVER exceed red slider position
         // Calculate what coordinate index the green trace should fill up to
         let newCoordinateIndex = this.currentCoordinateIndex;
         
-        if (coordIndex > this.currentCoordinateIndex) {
+        // SPECIAL CASE: If we're at the final segment, allow completion
+        const isFinalSegment = coordIndex >= this.currentStrokeCoords.length - 2;
+        
+        if (isFinalSegment && progress >= 0.95) {
+            // At final segment with 95%+ progress - complete the stroke
+            newCoordinateIndex = this.currentStrokeCoords.length - 1;
+            console.log('🎯 Final segment reached - completing stroke');
+        } else if (coordIndex > this.currentCoordinateIndex) {
             // Red slider moved to a new segment ahead
-            if (progress >= 0.5) { // More conservative threshold
-                // Only advance green trace to the PREVIOUS completed segment
-                // Never let green trace go beyond where red slider currently is
-                newCoordinateIndex = coordIndex; // This is still the segment the slider is in
+            if (progress >= 0.5) {
+                newCoordinateIndex = coordIndex;
             }
         } else if (coordIndex === this.currentCoordinateIndex) {
             // Red slider still in current segment
-            if (progress >= 0.95) { // 95% rule for current segment
+            if (progress >= 0.95) {
                 // Advance to next coordinate when 95% through current segment
                 newCoordinateIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
             }
         }
         
-        // ADDITIONAL SAFETY CHECK: Green trace coordinate can never exceed red slider segment
-        newCoordinateIndex = Math.min(newCoordinateIndex, coordIndex);
-        
-        // If red slider is in the middle of a segment, green trace should only fill to previous complete segments
-        if (progress < 0.95 && coordIndex === newCoordinateIndex) {
-            // If slider is less than 95% through its current segment,
-            // green trace should only fill to the previous complete segment
-            newCoordinateIndex = Math.max(0, coordIndex - 1);
+        // SAFETY CHECK: Green trace coordinate can never exceed red slider segment (except at completion)
+        if (!isFinalSegment || progress < 0.95) {
+            newCoordinateIndex = Math.min(newCoordinateIndex, coordIndex);
+            
+            // If red slider is in the middle of a segment, green trace should only fill to previous complete segments
+            if (progress < 0.95 && coordIndex === newCoordinateIndex && coordIndex > 0) {
+                newCoordinateIndex = Math.max(0, coordIndex - 1);
+            }
         }
         
         // Update green trace only when coordinate index actually changes
@@ -551,9 +556,9 @@ class TracePathManager {
             this.updateDirectionArrow();
         }
         
-        // Complete stroke only when slider reaches final coordinate
+        // Complete stroke when we reach the final coordinate
         if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
-            console.log('Stroke completed - slider reached final coordinate');
+            console.log('🎉 Stroke completed - slider reached final coordinate');
             this.completeCurrentStroke();
         }
     }
