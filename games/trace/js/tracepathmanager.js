@@ -422,60 +422,55 @@ class TracePathManager {
     }
 
     findBestSliderPosition(dragPoint) {
-        // FUNDAMENTAL CHANGE: Red slider position is determined by green trace progress
-        // Red slider sits at the front edge of the green trace (currentCoordinateIndex)
+        // BALANCED APPROACH: Allow slider to move ahead slightly but not jump wildly
+        // This enables initial positioning while maintaining the front-edge concept
         
-        // The red slider can ONLY be positioned between:
-        // - Start of current coordinate segment (where green trace ends)
-        // - End of current coordinate segment (100% progress)
-        // - OR beginning of next segment if we're advancing
-        
-        const currentSegmentIndex = this.currentCoordinateIndex;
-        const maxSegmentIndex = Math.min(currentSegmentIndex, this.currentStrokeCoords.length - 2);
-        
-        let bestCoordIndex = currentSegmentIndex;
+        let bestCoordIndex = this.currentCoordinateIndex;
         let bestProgress = 0;
         let bestDistance = Infinity;
         
-        // Check current segment where green trace ends
-        if (currentSegmentIndex < this.currentStrokeCoords.length - 1) {
-            const currentCoord = this.currentStrokeCoords[currentSegmentIndex];
-            const nextCoord = this.currentStrokeCoords[currentSegmentIndex + 1];
+        // Allow slider to look ahead by 1-2 segments for initial positioning and smooth dragging
+        // But once we're actively tracing, keep it more constrained
+        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 3 : 1; // More flexible at start
+        const maxSearchIndex = Math.min(this.currentCoordinateIndex + lookAheadDistance, this.currentStrokeCoords.length - 2);
+        
+        for (let i = this.currentCoordinateIndex; i <= maxSearchIndex; i++) {
+            const currentCoord = this.currentStrokeCoords[i];
+            const nextCoord = this.currentStrokeCoords[i + 1];
             
-            if (nextCoord) {
-                const segmentX = nextCoord.x - currentCoord.x;
-                const segmentY = nextCoord.y - currentCoord.y;
-                const segmentLength = Math.sqrt(segmentX * segmentX + segmentY * segmentY);
-                
-                if (segmentLength > 0) {
-                    const dragX = dragPoint.x - currentCoord.x;
-                    const dragY = dragPoint.y - currentCoord.y;
-                    
-                    const dotProduct = (dragX * segmentX + dragY * segmentY) / segmentLength;
-                    const projectionProgress = Math.max(0, Math.min(segmentLength, dotProduct)) / segmentLength;
-                    
-                    const pointX = currentCoord.x + segmentX * projectionProgress;
-                    const pointY = currentCoord.y + segmentY * projectionProgress;
-                    
-                    const distanceToSegment = Math.sqrt(
-                        Math.pow(dragPoint.x - pointX, 2) + 
-                        Math.pow(dragPoint.y - pointY, 2)
-                    );
-                    
-                    const maxDistance = CONFIG.PATH_TOLERANCE || 50;
-                    
-                    if (distanceToSegment <= maxDistance) {
-                        bestDistance = distanceToSegment;
-                        bestCoordIndex = currentSegmentIndex;
-                        bestProgress = projectionProgress;
-                    }
-                }
+            if (!nextCoord) continue;
+            
+            const segmentX = nextCoord.x - currentCoord.x;
+            const segmentY = nextCoord.y - currentCoord.y;
+            const segmentLength = Math.sqrt(segmentX * segmentX + segmentY * segmentY);
+            
+            if (segmentLength === 0) continue;
+            
+            const dragX = dragPoint.x - currentCoord.x;
+            const dragY = dragPoint.y - currentCoord.y;
+            
+            const dotProduct = (dragX * segmentX + dragY * segmentY) / segmentLength;
+            const projectionProgress = Math.max(0, Math.min(segmentLength, dotProduct)) / segmentLength;
+            
+            const pointX = currentCoord.x + segmentX * projectionProgress;
+            const pointY = currentCoord.y + segmentY * projectionProgress;
+            
+            const distanceToSegment = Math.sqrt(
+                Math.pow(dragPoint.x - pointX, 2) + 
+                Math.pow(dragPoint.y - pointY, 2)
+            );
+            
+            const maxDistance = CONFIG.PATH_TOLERANCE || 50;
+            
+            if (distanceToSegment <= maxDistance && distanceToSegment < bestDistance) {
+                bestDistance = distanceToSegment;
+                bestCoordIndex = i;
+                bestProgress = projectionProgress;
             }
         }
         
-        // Return position only if valid
+        // Return best position found within tolerance
         if (bestDistance <= (CONFIG.PATH_TOLERANCE || 50)) {
-            console.log(`🔴 Red slider positioned at front of green trace: segment ${bestCoordIndex}, ${(bestProgress * 100).toFixed(1)}%`);
             return {
                 coordIndex: bestCoordIndex,
                 progress: bestProgress,
