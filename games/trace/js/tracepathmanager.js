@@ -17,10 +17,8 @@ class TracePathManager {
         this.strokeCoordinates = [];
         this.currentStrokeCoords = [];
         
-        // Movement tracking for arrow updates
+        // Movement tracking
         this.lastMovementTime = Date.now();
-        this.lastArrowUpdateIndex = -1; // Track when we last updated arrow
-        this.arrowUpdateTimeout = null; // For delayed arrow updates
         
         this.initializeEventListeners();
     }
@@ -75,38 +73,25 @@ class TracePathManager {
         // Remove existing slider
         this.removeSlider();
         
-        // Create slider group to hold circle and centered arrow
-        this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        this.slider.setAttribute('class', 'trace-slider-group');
-        this.slider.style.zIndex = '100'; // Ensure always on top
+        // Create simple slider circle (BACK TO ORIGINAL)
+        this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        this.slider.setAttribute('cx', position.x);
+        this.slider.setAttribute('cy', position.y);
+        this.slider.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
+        this.slider.setAttribute('fill', CONFIG.SLIDER_COLOR);
+        this.slider.setAttribute('stroke', 'white');
+        this.slider.setAttribute('stroke-width', 3);
+        this.slider.setAttribute('class', 'trace-slider');
+        this.slider.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+        this.slider.style.zIndex = '1000'; // Very high z-index to ensure always on top
         
-        // Create slider circle (SAME as before)
-        const sliderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        sliderCircle.setAttribute('cx', position.x);
-        sliderCircle.setAttribute('cy', position.y);
-        sliderCircle.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
-        sliderCircle.setAttribute('fill', CONFIG.SLIDER_COLOR);
-        sliderCircle.setAttribute('stroke', 'white');
-        sliderCircle.setAttribute('stroke-width', 3);
-        sliderCircle.setAttribute('class', 'trace-slider-circle');
-        sliderCircle.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
-        
-        // Create arrow INSIDE the center of the slider circle (only at start)
-        const arrow = this.createCenteredSliderArrow(position);
-        
-        // Add both circle and centered arrow to slider group
-        this.slider.appendChild(sliderCircle);
-        if (arrow) {
-            this.slider.appendChild(arrow);
-        }
-        
-        // Add pulsing animation to circle only
+        // Add pulsing animation
         this.addSliderPulseAnimation();
         
         // Ensure slider is added AFTER trace paths (higher z-index)
         this.svg.appendChild(this.slider);
         
-        console.log(`Created slider with centered arrow at coordinate ${this.currentCoordinateIndex}:`, position);
+        console.log(`Created simple slider at coordinate ${this.currentCoordinateIndex}:`, position);
     }
 
     removeSlider() {
@@ -181,9 +166,7 @@ class TracePathManager {
         this.frontMarker.setAttribute('stroke-width', 3);
         this.frontMarker.setAttribute('class', 'front-marker');
         this.frontMarker.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
-        this.frontMarker.style.zIndex = '101'; // Higher than slider to ensure visibility during drag
-        
-        // No arrow on front marker - keep it simple during drag
+        this.frontMarker.style.zIndex = '1001'; // Even higher than slider
         
         this.svg.appendChild(this.frontMarker);
         
@@ -258,12 +241,9 @@ class TracePathManager {
             if (this.slider) {
                 this.slider.style.opacity = '0';
                 // Remove pulsing animation
-                const sliderCircle = this.slider.querySelector('.trace-slider-circle');
-                if (sliderCircle) {
-                    const animate = sliderCircle.querySelector('animate');
-                    if (animate) {
-                        animate.remove();
-                    }
+                const animate = this.slider.querySelector('animate');
+                if (animate) {
+                    animate.remove();
                 }
             }
             
@@ -309,15 +289,8 @@ class TracePathManager {
             const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
             if (currentCoord) {
                 // Update slider position
-                const sliderCircle = this.slider.querySelector('.trace-slider-circle');
-                if (sliderCircle) {
-                    sliderCircle.setAttribute('cx', currentCoord.x);
-                    sliderCircle.setAttribute('cy', currentCoord.y);
-                }
-                
-                // Update arrow after a brief pause (not immediately)
-                this.scheduleArrowUpdate(currentCoord);
-                
+                this.slider.setAttribute('cx', currentCoord.x);
+                this.slider.setAttribute('cy', currentCoord.y);
                 this.slider.style.opacity = '1';
                 this.addSliderPulseAnimation();
             }
@@ -355,12 +328,8 @@ class TracePathManager {
     isPointNearSlider(point, isDuringDrag = false) {
         if (!this.slider) return false;
         
-        // Find the circle within the slider group
-        const sliderCircle = this.slider.querySelector('.trace-slider-circle');
-        if (!sliderCircle) return false;
-        
-        const sliderX = parseFloat(sliderCircle.getAttribute('cx'));
-        const sliderY = parseFloat(sliderCircle.getAttribute('cy'));
+        const sliderX = parseFloat(this.slider.getAttribute('cx'));
+        const sliderY = parseFloat(this.slider.getAttribute('cy'));
         
         const distance = Math.sqrt(
             Math.pow(point.x - sliderX, 2) +
@@ -379,12 +348,8 @@ class TracePathManager {
     addSliderPulseAnimation() {
         if (!this.slider) return;
         
-        // Find the circle within the slider group
-        const sliderCircle = this.slider.querySelector('.trace-slider-circle');
-        if (!sliderCircle) return;
-        
         // Remove any existing animation first
-        const existingAnimate = sliderCircle.querySelector('animate');
+        const existingAnimate = this.slider.querySelector('animate');
         if (existingAnimate) {
             existingAnimate.remove();
         }
@@ -396,7 +361,7 @@ class TracePathManager {
         animate.setAttribute('dur', '2s');
         animate.setAttribute('repeatCount', 'indefinite');
         
-        sliderCircle.appendChild(animate);
+        this.slider.appendChild(animate);
         console.log('Added pulse animation - slider ready for touch');
     }
 
