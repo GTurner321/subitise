@@ -9,12 +9,13 @@ class TraceNumberRenderer {
         // Paint system state
         this.paintProgress = {};
         this.paintLayers = {}; // Background paint layers for each stroke
+        this.paintedCoordinates = {}; // Track painted coordinate points
         
         // Number elements with mask system
         this.strokeElements = {};
         this.strokeMasks = {}; // SVG masks for each stroke
         
-        console.log('TraceNumberRenderer initialized with SVG mask system');
+        console.log('TraceNumberRenderer initialized with coordinate-based system');
     }
 
     initialize(containerId) {
@@ -37,7 +38,7 @@ class TraceNumberRenderer {
         // Add to container
         container.appendChild(this.svg);
         
-        console.log('SVG renderer initialized with mask system');
+        console.log('SVG renderer initialized with coordinate-based system');
         return true;
     }
 
@@ -58,18 +59,19 @@ class TraceNumberRenderer {
         this.strokeElements = {};
         this.strokeMasks = {};
         this.paintLayers = {};
+        this.paintedCoordinates = {};
 
-        // Get number data from CONFIG (your existing system)
+        // Get number data from CONFIG.NUMBER_PATHS (auto-generated from coordinates)
         const numberData = CONFIG.NUMBER_PATHS[number];
         if (!numberData || !numberData.strokes) {
-            console.error('No path data found for number in CONFIG:', number);
+            console.error('No path data found for number in CONFIG.NUMBER_PATHS:', number);
             return false;
         }
 
         // Create the layered structure with masks
         this.createNumberWithMasks(numberData, number);
         
-        console.log(`Number ${number} rendered with mask system - ${numberData.strokes.length} strokes`);
+        console.log(`Number ${number} rendered with coordinate-based system - ${numberData.strokes.length} strokes`);
         return true;
     }
 
@@ -124,7 +126,7 @@ class TraceNumberRenderer {
         holePath.setAttribute('d', strokeData.path);
         holePath.setAttribute('fill', 'none');
         holePath.setAttribute('stroke', 'white');
-        holePath.setAttribute('stroke-width', (strokeData.width || CONFIG.OUTLINE_WIDTH || 30) - 10); // Slightly thinner than outline
+        holePath.setAttribute('stroke-width', (strokeData.width || CONFIG.OUTLINE_WIDTH || 30) - 10);
         holePath.setAttribute('stroke-linecap', 'round');
         holePath.setAttribute('stroke-linejoin', 'round');
         
@@ -175,31 +177,12 @@ class TraceNumberRenderer {
             group: strokeGroup,
             maskedOutline: blackOutline,
             pathString: strokeData.path,
-            coordinates: strokeData.coordinates || this.generateCoordinatesFromPath(strokeData.path)
+            coordinates: strokeData.coordinates || []
         };
         
         parentGroup.appendChild(strokeGroup);
         
-        console.log(`Created masked stroke ${strokeIndex}`);
-    }
-
-    generateCoordinatesFromPath(pathString) {
-        // Extract coordinate points from the path for the slider system
-        const coordinates = [];
-        const pathCommands = pathString.match(/[MLCQZmlcqz][^MLCQZmlcqz]*/g);
-        
-        if (pathCommands) {
-            pathCommands.forEach(command => {
-                const coords = command.slice(1).trim().split(/[\s,]+/).map(parseFloat);
-                for (let i = 0; i < coords.length; i += 2) {
-                    if (!isNaN(coords[i]) && !isNaN(coords[i + 1])) {
-                        coordinates.push({ x: coords[i], y: coords[i + 1] });
-                    }
-                }
-            });
-        }
-        
-        return coordinates;
+        console.log(`Created masked stroke ${strokeIndex} with ${strokeData.coordinates?.length || 0} coordinates`);
     }
 
     // ================================
@@ -263,27 +246,8 @@ class TraceNumberRenderer {
 
     // Check if position is inside a mask hole (visible area)
     isInsideMaskHole(strokeIndex, position) {
-        // Create a test circle at the position
-        const testCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        testCircle.setAttribute('cx', position.x);
-        testCircle.setAttribute('cy', position.y);
-        testCircle.setAttribute('r', 20);
-        testCircle.setAttribute('fill', 'red');
-        testCircle.setAttribute('opacity', 0); // Invisible test
-        
-        // Apply the same mask to see if it would be visible
-        testCircle.setAttribute('mask', `url(#stroke-mask-${this.currentNumber}-${strokeIndex})`);
-        
-        this.svg.appendChild(testCircle);
-        
-        // Check if the circle has any visible area
-        const bbox = testCircle.getBBox();
-        const isVisible = bbox.width > 0 && bbox.height > 0;
-        
-        // Clean up test circle
-        testCircle.remove();
-        
-        return isVisible;
+        // Simple approximation - check if near the stroke path
+        return this.isNearStrokePath(strokeIndex, position);
     }
 
     // Get stroke data for paint system
@@ -295,7 +259,7 @@ class TraceNumberRenderer {
         }
         
         return {
-            paintLayer: this.paintLayers[strokeIndex], // Where paint goes (shows through mask holes)
+            paintLayer: this.paintLayers[strokeIndex], // Where paint goes
             coordinates: strokeElement.coordinates, // For slider positioning
             pathString: strokeElement.pathString,
             maskedOutline: strokeElement.maskedOutline // The masked outline path
@@ -310,9 +274,9 @@ class TraceNumberRenderer {
             return;
         }
 
-        // Only paint if position is visible through mask holes
-        if (!this.isInsideMaskHole(strokeIndex, position)) {
-            console.log('Paint position not visible through mask - skipping');
+        // Only paint if position is valid
+        if (!this.isValidPaintPosition(strokeIndex, position)) {
+            console.log('Paint position not valid - skipping');
             return;
         }
 
@@ -342,47 +306,32 @@ class TraceNumberRenderer {
         // Update progress
         this.updatePaintProgress(strokeIndex);
         
-        console.log(`Added visible finger paint at (${position.x}, ${position.y})`);
+        console.log(`Added finger paint at (${position.x}, ${position.y})`);
     }
 
-    // Check if position is valid for painting (near stroke path AND visible)
+    // Check if position is valid for painting
     isValidPaintPosition(strokeIndex, position) {
-        // Must be both near the stroke path AND visible through mask holes
-        return this.isNearStrokePath(strokeIndex, position) && 
-               this.isInsideMaskHole(strokeIndex, position);
+        return this.isNearStrokePath(strokeIndex, position);
     }
 
     // Check if position is near the stroke path
     isNearStrokePath(strokeIndex, position) {
         const strokeData = this.getStrokeForPainting(strokeIndex);
-        if (!strokeData) return false;
+        if (!strokeData || !strokeData.coordinates) return false;
         
-        // Create a temporary path element to test against
-        const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        tempPath.setAttribute('d', strokeData.pathString);
-        this.svg.appendChild(tempPath);
-        
-        const pathLength = tempPath.getTotalLength();
-        let isValid = false;
-        
-        // Check if position is within finger width of the path
-        for (let i = 0; i <= pathLength; i += 5) {
-            const pathPoint = tempPath.getPointAtLength(i);
+        // Check if position is within finger width of any coordinate
+        for (const coord of strokeData.coordinates) {
             const distance = Math.sqrt(
-                Math.pow(position.x - pathPoint.x, 2) + 
-                Math.pow(position.y - pathPoint.y, 2)
+                Math.pow(position.x - coord.x, 2) + 
+                Math.pow(position.y - coord.y, 2)
             );
             
             if (distance <= 25) { // Within finger radius + buffer
-                isValid = true;
-                break;
+                return true;
             }
         }
         
-        // Clean up temp path
-        tempPath.remove();
-        
-        return isValid;
+        return false;
     }
 
     // Check if paint position is connected to existing paint
@@ -525,6 +474,13 @@ class TraceNumberRenderer {
         }
     }
 
+    // Update SVG dimensions on resize
+    updateSVGDimensions() {
+        if (this.svg) {
+            this.svg.setAttribute('viewBox', `0 0 ${CONFIG.SVG_WIDTH} ${CONFIG.SVG_HEIGHT}`);
+        }
+    }
+
     // ================================
     // UTILITY METHODS
     // ================================
@@ -573,7 +529,7 @@ class TraceNumberRenderer {
         this.strokeElements = {};
         this.strokeMasks = {};
         this.paintLayers = {};
-        this.paintedCoordinates = {}; // Reset coordinate tracking
+        this.paintedCoordinates = {};
         
         console.log('Coordinate-based renderer reset complete');
     }
@@ -584,31 +540,6 @@ class TraceNumberRenderer {
             this.svg = null;
         }
         this.reset();
-    }
-
-    // ================================
-    // DEBUG METHODS
-    // ================================
-
-    showMaskInfo() {
-        if (!CONFIG.DEBUG_MODE) return;
-        
-        console.log('Mask System Debug Info:');
-        console.log('- Stroke Masks:', Object.keys(this.strokeMasks));
-        console.log('- Paint Layers:', Object.keys(this.paintLayers));
-        console.log('- Layer Order: Paint Background (bottom) → Masked Outlines (top)');
-        console.log('- Paint shows through white mask holes in black outline');
-    }
-
-    logState() {
-        console.log('Mask-Based Renderer State:', {
-            currentNumber: this.currentNumber,
-            currentStroke: this.currentStroke,
-            completedStrokes: Array.from(this.completedStrokes),
-            paintProgress: this.paintProgress,
-            strokeCount: this.getStrokeCount(),
-            maskCount: Object.keys(this.strokeMasks).length
-        });
     }
 }
 
