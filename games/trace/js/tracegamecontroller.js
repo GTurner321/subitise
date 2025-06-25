@@ -478,14 +478,19 @@ class TraceGameController {
         const positions = [];
         const margin = 20;
         const totalWidth = width + margin;
-        const availableWidth = CONFIG.SVG_WIDTH - width;
+        
+        // Keep balloons within 90% of game area width
+        const gameAreaWidth = CONFIG.SVG_WIDTH;
+        const constrainedWidth = gameAreaWidth * 0.9; // 90% of game area
+        const availableWidth = constrainedWidth - width;
+        const startOffset = (gameAreaWidth - constrainedWidth) / 2; // Center the 90% area
         
         for (let i = 0; i < count; i++) {
             let attempts = 0;
             let position;
             
             do {
-                position = Math.random() * availableWidth;
+                position = startOffset + (Math.random() * availableWidth);
                 attempts++;
             } while (this.hasOverlap(position, positions, totalWidth) && attempts < 50);
             
@@ -616,31 +621,49 @@ class TraceGameController {
         const balloonRadius = 45; // Updated for larger balloons
         const stringLength = 100; // Longer string for larger balloons
         
-        // Create SIMPLE straight line string - no curves to prevent swaying
-        const string = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        // Create CURLY string like a stretched S
+        const string = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         
         // String starts at bottom of balloon
         const startX = balloon.x + balloonRadius;
         const startY = balloon.y + balloonRadius * 2; // Bottom of balloon
         
-        // String ends directly below balloon - NO horizontal offset
-        const endX = startX; // Same X position - straight down
+        // String ends below balloon
+        const endX = startX; // Same X position - ends straight down
         const endY = startY + stringLength;
         
-        // Set line attributes
-        string.setAttribute('x1', startX);
-        string.setAttribute('y1', startY);
-        string.setAttribute('x2', endX);
-        string.setAttribute('y2', endY);
+        // Create S-curve with multiple control points for stretched S effect
+        const curve1X = startX + 15; // Curve right
+        const curve1Y = startY + stringLength * 0.25;
+        const curve2X = startX - 15; // Curve left
+        const curve2Y = startY + stringLength * 0.5;
+        const curve3X = startX + 10; // Curve right again
+        const curve3Y = startY + stringLength * 0.75;
+        
+        // Create stretched S path with cubic bezier curves
+        const pathData = `M ${startX} ${startY} 
+                         C ${startX + 5} ${startY + 10}, ${curve1X} ${curve1Y - 10}, ${curve1X} ${curve1Y}
+                         C ${curve1X} ${curve1Y + 10}, ${curve2X} ${curve2Y - 10}, ${curve2X} ${curve2Y}
+                         C ${curve2X} ${curve2Y + 10}, ${curve3X} ${curve3Y - 10}, ${curve3X} ${curve3Y}
+                         C ${curve3X} ${curve3Y + 10}, ${endX - 5} ${endY - 10}, ${endX} ${endY}`;
+        
+        string.setAttribute('d', pathData);
         string.setAttribute('stroke', '#8B4513'); // Brown string
         string.setAttribute('stroke-width', 3); // Slightly thicker for larger balloons
-        string.setAttribute('class', 'balloon-string-static'); // Different class to avoid CSS animations
+        string.setAttribute('fill', 'none');
+        string.setAttribute('class', 'balloon-string-curly'); // Different class
         
-        // Store SIMPLE positions - just start and end points
+        // Store control points for animation
         balloon.stringStartX = startX;
         balloon.stringStartY = startY;
         balloon.stringEndX = endX;
         balloon.stringEndY = endY;
+        balloon.stringCurve1X = curve1X;
+        balloon.stringCurve1Y = curve1Y;
+        balloon.stringCurve2X = curve2X;
+        balloon.stringCurve2Y = curve2Y;
+        balloon.stringCurve3X = curve3X;
+        balloon.stringCurve3Y = curve3Y;
         
         return string;
     }
@@ -807,21 +830,36 @@ class TraceGameController {
                     balloon.textWord.setAttribute('y', balloon.y + balloon.radius + 2);
                 }
                 
-                // Update string - SIMPLE line attachment
+                // Update string - CURLY S-shape attachment
                 if (balloon.string) {
                     // Calculate current balloon bottom position
                     const currentStartX = balloon.x + balloon.radius;
                     const currentStartY = balloon.y + balloon.radius * 2;
                     
-                    // String hangs straight down from bottom of balloon
-                    const currentEndX = currentStartX; // Same X - straight down
-                    const currentEndY = currentStartY + 100; // String length
+                    // Calculate movement delta
+                    const deltaX = currentStartX - balloon.stringStartX;
+                    const deltaY = currentStartY - balloon.stringStartY;
                     
-                    // Update line positions
-                    balloon.string.setAttribute('x1', currentStartX);
-                    balloon.string.setAttribute('y1', currentStartY);
-                    balloon.string.setAttribute('x2', currentEndX);
-                    balloon.string.setAttribute('y2', currentEndY);
+                    // Update all curve points by the same delta to maintain S-shape
+                    const newStartX = currentStartX;
+                    const newStartY = currentStartY;
+                    const newEndX = balloon.stringEndX + deltaX;
+                    const newEndY = balloon.stringEndY + deltaY;
+                    const newCurve1X = balloon.stringCurve1X + deltaX;
+                    const newCurve1Y = balloon.stringCurve1Y + deltaY;
+                    const newCurve2X = balloon.stringCurve2X + deltaX;
+                    const newCurve2Y = balloon.stringCurve2Y + deltaY;
+                    const newCurve3X = balloon.stringCurve3X + deltaX;
+                    const newCurve3Y = balloon.stringCurve3Y + deltaY;
+                    
+                    // Recreate S-curve path with updated positions
+                    const pathData = `M ${newStartX} ${newStartY} 
+                                     C ${newStartX + 5} ${newStartY + 10}, ${newCurve1X} ${newCurve1Y - 10}, ${newCurve1X} ${newCurve1Y}
+                                     C ${newCurve1X} ${newCurve1Y + 10}, ${newCurve2X} ${newCurve2Y - 10}, ${newCurve2X} ${newCurve2Y}
+                                     C ${newCurve2X} ${newCurve2Y + 10}, ${newCurve3X} ${newCurve3Y - 10}, ${newCurve3X} ${newCurve3Y}
+                                     C ${newCurve3X} ${newCurve3Y + 10}, ${newEndX - 5} ${newEndY - 10}, ${newEndX} ${newEndY}`;
+                    
+                    balloon.string.setAttribute('d', pathData);
                 }
                 
                 // Check if balloon reached top of screen
