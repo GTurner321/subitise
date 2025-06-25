@@ -20,6 +20,10 @@ class TracePathManager {
         // Movement tracking
         this.lastMovementTime = Date.now();
         
+        // Directional preference for tricky turnaround points (like number 9)
+        this.lastMovementDirection = null; // 'forward' or 'backward'
+        this.previousCoordinateIndex = 0;
+        
         this.initializeEventListeners();
     }
 
@@ -373,17 +377,18 @@ class TracePathManager {
     }
 
     findBestSliderPosition(dragPoint) {
-        // BALANCED APPROACH: Allow slider to move ahead slightly but not jump wildly
-        // This enables initial positioning while maintaining the front-edge concept
+        // ENHANCED APPROACH: Handle tricky turnaround points with directional preference
         
         let bestCoordIndex = this.currentCoordinateIndex;
         let bestProgress = 0;
         let bestDistance = Infinity;
         
         // Allow slider to look ahead by 1-2 segments for initial positioning and smooth dragging
-        // But once we're actively tracing, keep it more constrained
-        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 3 : 1; // More flexible at start
+        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 3 : 1;
         const maxSearchIndex = Math.min(this.currentCoordinateIndex + lookAheadDistance, this.currentStrokeCoords.length - 2);
+        
+        // Detect if we're near a tricky turnaround point (like 100,190 in number 9)
+        const isTrickyTurnaround = this.detectTrickyTurnaround();
         
         for (let i = this.currentCoordinateIndex; i <= maxSearchIndex; i++) {
             const currentCoord = this.currentStrokeCoords[i];
@@ -411,7 +416,8 @@ class TracePathManager {
                 Math.pow(dragPoint.y - pointY, 2)
             );
             
-            const maxDistance = CONFIG.PATH_TOLERANCE || 50;
+            // Use higher tolerance for tricky turnaround points
+            const maxDistance = isTrickyTurnaround ? (CONFIG.PATH_TOLERANCE * 1.5 || 75) : (CONFIG.PATH_TOLERANCE || 50);
             
             if (distanceToSegment <= maxDistance && distanceToSegment < bestDistance) {
                 bestDistance = distanceToSegment;
@@ -421,7 +427,7 @@ class TracePathManager {
         }
         
         // Return best position found within tolerance
-        if (bestDistance <= (CONFIG.PATH_TOLERANCE || 50)) {
+        if (bestDistance <= (isTrickyTurnaround ? (CONFIG.PATH_TOLERANCE * 1.5 || 75) : (CONFIG.PATH_TOLERANCE || 50))) {
             return {
                 coordIndex: bestCoordIndex,
                 progress: bestProgress,
@@ -430,6 +436,29 @@ class TracePathManager {
         }
         
         return null;
+    }
+
+    detectTrickyTurnaround() {
+        // Detect if we're approaching a turnaround point (like 100,190 in number 9)
+        if (!this.currentStrokeCoords || this.currentCoordinateIndex < 2) return false;
+        
+        const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
+        if (!currentCoord) return false;
+        
+        // Check for number 9's tricky turnaround at (100,190)
+        if (this.currentStroke === 0 && // First stroke of number 9
+            Math.abs(currentCoord.x - 100) < 5 && 
+            Math.abs(currentCoord.y - 190) < 10) {
+            return true;
+        }
+        
+        // Check for number 3's similar pattern
+        if (this.currentStroke === 0 && // First stroke of number 3
+            currentCoord.y > 180 && currentCoord.y < 200) {
+            return true;
+        }
+        
+        return false;
     }
 
     updateTracingProgress(position) {
