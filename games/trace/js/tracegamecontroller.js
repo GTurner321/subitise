@@ -49,9 +49,6 @@ class TraceGameController {
         // Find DOM elements
         this.findDOMElements();
         
-        // Create grass band if it doesn't exist
-        this.ensureGrassBand();
-        
         // Add window resize listener
         window.addEventListener('resize', this.handleResize);
         
@@ -83,52 +80,7 @@ class TraceGameController {
         console.log('Main game controller initialized successfully');
     }
 
-    ensureGrassBand() {
-        // Check if grass band already exists
-        if (document.querySelector('.grass-band')) {
-            console.log('Grass band already exists');
-            return;
-        }
-        
-        // Create grass band element
-        const grassBand = document.createElement('div');
-        grassBand.className = 'grass-band';
-        
-        // Apply all the grass band styles directly
-        grassBand.style.cssText = `
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 80px;
-            background: linear-gradient(to top, #228B22, #32CD32, #7CFC00);
-            z-index: 1;
-            border-top: 3px solid #006400;
-        `;
-        
-        // Create the grass texture pseudo-element effect
-        const grassTexture = document.createElement('div');
-        grassTexture.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 20px;
-            background: repeating-linear-gradient(
-                90deg,
-                transparent,
-                transparent 10px,
-                rgba(0, 100, 0, 0.3) 10px,
-                rgba(0, 100, 0, 0.3) 15px
-            );
-        `;
-        
-        grassBand.appendChild(grassTexture);
-        
-        // Add to body as first element to ensure it's behind everything
-        document.body.insertBefore(grassBand, document.body.firstChild);
-        console.log('Grass band created and added to body');
-    }
+    // Grass band is now permanent in HTML - no need for JavaScript creation
 
     initializeRainbowSize() {
         // Override the rainbow size calculation to fit 75% of game width
