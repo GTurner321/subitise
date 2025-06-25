@@ -317,8 +317,7 @@ class TraceGameController {
         // Clear number word display during balloon game
         this.updateNumberWordDisplay('');
         
-        // Create ground element
-        this.createBalloonGround();
+        // No need to create balloon ground - grass band from CSS is already visible
         
         // Create 12 balloons with random positions and speeds
         this.createBalloons();
@@ -335,24 +334,7 @@ class TraceGameController {
         }
     }
 
-    createBalloonGround() {
-        // Remove existing ground
-        const existingGround = this.renderer.svg.querySelector('.balloon-ground');
-        if (existingGround) {
-            existingGround.remove();
-        }
-        
-        const groundLevel = CONFIG.SVG_HEIGHT - 80;
-        const ground = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        ground.setAttribute('x', 0);
-        ground.setAttribute('y', groundLevel);
-        ground.setAttribute('width', CONFIG.SVG_WIDTH);
-        ground.setAttribute('height', 80);
-        ground.setAttribute('fill', '#90EE90'); // Light green ground
-        ground.setAttribute('class', 'balloon-ground');
-        
-        this.renderer.svg.appendChild(ground);
-    }
+    // Remove the createBalloonGround method since we're using CSS grass band
 
     createBalloons() {
         const balloonCount = 12;
@@ -430,6 +412,9 @@ class TraceGameController {
         const lowerHalfStart = gameAreaHeight * 0.5; // Start of lower half
         const randomStartHeight = lowerHalfStart + Math.random() * (gameAreaHeight * 0.3); // Random within lower portion
         
+        // Random sideways movement
+        const sidewaysSpeed = (Math.random() - 0.5) * 30; // Random speed between -15 and +15 pixels/second
+        
         // Rainbow colors for balloons
         const balloonColors = [
             '#FF0000', '#FF8000', '#FFFF00', '#80FF00', '#00FF00',
@@ -449,6 +434,8 @@ class TraceGameController {
             number: number,
             isCorrect: isCorrectNumber,
             riseSpeed: riseSpeed,
+            sidewaysSpeed: sidewaysSpeed, // Add sideways movement
+            sidewaysDirection: Math.sign(sidewaysSpeed) || 1, // Track direction (1 or -1)
             popped: false,
             color: balloonColor,
             group: null
@@ -532,14 +519,14 @@ class TraceGameController {
         const startX = balloon.x + balloonRadius;
         const startY = balloon.y + balloonRadius * 1.7; // Higher attachment point
         
-        // String ends below balloon with slight curve
-        const endX = startX + (Math.random() - 0.5) * 20; // Slight horizontal offset
+        // String ends below balloon with SMALLER curve variation for stability
+        const endX = startX + (Math.random() - 0.5) * 10; // Reduced horizontal offset (was 20)
         const endY = startY + stringLength;
         
-        // Control points for curved string
-        const controlX1 = startX + (Math.random() - 0.5) * 15;
+        // Control points with REDUCED variation to prevent detachment appearance
+        const controlX1 = startX + (Math.random() - 0.5) * 8; // Reduced from 15
         const controlY1 = startY + stringLength * 0.3;
-        const controlX2 = endX + (Math.random() - 0.5) * 15;
+        const controlX2 = endX + (Math.random() - 0.5) * 8; // Reduced from 15
         const controlY2 = startY + stringLength * 0.7;
         
         // Create curved path
@@ -551,15 +538,15 @@ class TraceGameController {
         string.setAttribute('fill', 'none');
         string.setAttribute('class', 'balloon-string');
         
-        // Store string properties for animation
-        balloon.stringStartY = startY; // Store the relative start position
-        balloon.stringEndX = endX;
-        balloon.stringEndY = endY;
-        balloon.stringControlX1 = controlX1;
-        balloon.stringControlY1 = controlY1;
-        balloon.stringControlX2 = controlX2;
-        balloon.stringControlY2 = controlY2;
-        balloon.initialY = balloon.y; // Store initial position for relative calculations
+        // Store string properties for animation - using RELATIVE positions
+        balloon.stringStartOffsetX = 0; // Always centered on balloon
+        balloon.stringStartOffsetY = balloonRadius * 1.7; // Relative to balloon center
+        balloon.stringEndOffsetX = endX - startX; // Relative horizontal offset
+        balloon.stringEndOffsetY = stringLength; // Relative vertical offset
+        balloon.stringControlOffset1X = controlX1 - startX; // Relative control point 1
+        balloon.stringControlOffset1Y = stringLength * 0.3;
+        balloon.stringControlOffset2X = controlX2 - startX; // Relative control point 2
+        balloon.stringControlOffset2Y = stringLength * 0.7;
         
         return string;
     }
@@ -688,38 +675,62 @@ class TraceGameController {
         const deltaTime = (currentTime - this.balloonLastTime) / 1000;
         this.balloonLastTime = currentTime;
         
-        // Update balloons (rise upward)
+        // Update balloons (rise upward with sideways drift)
         this.balloons.forEach(balloon => {
             if (!balloon.popped) {
                 // Move balloon up at its individual speed
                 balloon.y -= balloon.riseSpeed * deltaTime;
                 
+                // Move balloon sideways with drift
+                balloon.x += Math.abs(balloon.sidewaysSpeed) * balloon.sidewaysDirection * deltaTime;
+                
+                // Check boundaries and bounce off edges
+                const gameAreaWidth = CONFIG.SVG_WIDTH;
+                const balloonWidth = balloon.radius * 2;
+                
+                if (balloon.x <= 0) {
+                    // Hit left edge - bounce right
+                    balloon.x = 0;
+                    balloon.sidewaysDirection = 1;
+                } else if (balloon.x + balloonWidth >= gameAreaWidth) {
+                    // Hit right edge - bounce left
+                    balloon.x = gameAreaWidth - balloonWidth;
+                    balloon.sidewaysDirection = -1;
+                }
+                
                 // Update balloon position
                 if (balloon.circle) {
+                    balloon.circle.setAttribute('cx', balloon.x + balloon.radius);
                     balloon.circle.setAttribute('cy', balloon.y + balloon.radius);
                 }
                 if (balloon.highlight) {
+                    balloon.highlight.setAttribute('cx', balloon.x + balloon.radius - 10);
                     balloon.highlight.setAttribute('cy', balloon.y + balloon.radius - 10);
                 }
                 if (balloon.textWord) {
+                    balloon.textWord.setAttribute('x', balloon.x + balloon.radius);
                     balloon.textWord.setAttribute('y', balloon.y + balloon.radius + 2);
                 }
                 
-                // Update string - String stays connected and hidden by balloon
+                // Update string - String stays connected using RELATIVE positioning
                 if (balloon.string) {
-                    const startX = balloon.x + balloon.radius;
-                    const startY = balloon.y + balloon.radius * 1.7; // Higher attachment point
+                    // Calculate current balloon center
+                    const balloonCenterX = balloon.x + balloon.radius;
+                    const balloonCenterY = balloon.y + balloon.radius;
                     
-                    // Calculate how much the balloon has moved from initial position
-                    const deltaY = balloon.y - balloon.initialY;
+                    // String attachment point relative to balloon center
+                    const startX = balloonCenterX + balloon.stringStartOffsetX;
+                    const startY = balloonCenterY + balloon.stringStartOffsetY;
                     
-                    // String end and control points move with balloon
-                    const endX = balloon.stringEndX;
-                    const endY = balloon.stringEndY + deltaY;
-                    const controlX1 = balloon.stringControlX1;
-                    const controlY1 = balloon.stringControlY1 + deltaY;
-                    const controlX2 = balloon.stringControlX2;
-                    const controlY2 = balloon.stringControlY2 + deltaY;
+                    // String end point relative to attachment point
+                    const endX = startX + balloon.stringEndOffsetX;
+                    const endY = startY + balloon.stringEndOffsetY;
+                    
+                    // Control points relative to attachment point
+                    const controlX1 = startX + balloon.stringControlOffset1X;
+                    const controlY1 = startY + balloon.stringControlOffset1Y;
+                    const controlX2 = startX + balloon.stringControlOffset2X;
+                    const controlY2 = startY + balloon.stringControlOffset2Y;
                     
                     const pathData = `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
                     balloon.string.setAttribute('d', pathData);
@@ -815,9 +826,9 @@ class TraceGameController {
     }
 
     clearBalloonGameElements() {
-        // Clear all balloon game elements from SVG
+        // Clear all balloon game elements from SVG (but not the CSS grass band)
         const elementsToRemove = this.renderer.svg.querySelectorAll(
-            '.balloon-group, .falling-number, .pop-effect, .balloon-ground'
+            '.balloon-group, .falling-number, .pop-effect'
         );
         elementsToRemove.forEach(element => element.remove());
         
