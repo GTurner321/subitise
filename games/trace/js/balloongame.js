@@ -6,6 +6,9 @@ class BalloonGame {
             return;
         }
         
+        // Store original container content so we can restore it later
+        this.originalContent = null;
+        
         // Wait for CONFIG to be available before initializing
         if (typeof CONFIG === 'undefined') {
             console.error('CONFIG object not available - waiting...');
@@ -76,7 +79,12 @@ class BalloonGame {
     }
 
     createSVG() {
-        // Clear existing content
+        // Store original content before replacing it
+        if (!this.originalContent) {
+            this.originalContent = this.container.innerHTML;
+        }
+        
+        // Clear existing content and replace with balloon game
         this.container.innerHTML = '';
         
         // Get dimensions (with fallback support)
@@ -90,6 +98,10 @@ class BalloonGame {
         this.svg.setAttribute('height', '100%');
         this.svg.setAttribute('class', 'balloon-game-svg');
         this.svg.style.backgroundColor = '#87CEEB'; // Sky blue background
+        this.svg.style.position = 'absolute';
+        this.svg.style.top = '0';
+        this.svg.style.left = '0';
+        this.svg.style.zIndex = '1000';
         
         // Update ground level if using fallback
         if (typeof CONFIG === 'undefined') {
