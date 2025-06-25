@@ -21,6 +21,8 @@ class TraceGameController {
         this.totalCorrectBalloons = 3;
         this.balloonAnimationId = null;
         this.balloonLastTime = 0;
+        this.speechComplete = false;
+        this.numbersLanded = false;
         
         // MAIN GAME PROGRESSION LOGIC
         this.numbersSequence = [...CONFIG.NUMBERS_SEQUENCE];
@@ -44,7 +46,637 @@ class TraceGameController {
     }
 
     async initializeGame() {
-        console.log('Initializing main game controller...');
+        console.log(`Created falling number ${number} at FIXED position (${fallingNumber.startX}, ${y}) with DOUBLED speed ${fallingSpeed}, will land in grass at Y: ${targetY}`);
+        
+        return fallingNumber;
+    }
+
+    animateBalloons(currentTime = performance.now()) {
+        if (!this.playingBalloonGame) return;
+        
+        const deltaTime = (currentTime - this.balloonLastTime) / 1000;
+        this.balloonLastTime = currentTime;
+        
+        // Update balloons (rise upward with sideways drift)
+        this.balloons.forEach(balloon => {
+            if (!balloon.popped) {
+                // Move balloon up at its individual speed
+                balloon.y -= balloon.riseSpeed * deltaTime;
+                
+                // Check if balloon touched the ceiling (top of game area)
+                if (balloon.y <= 0) {
+                    console.log(`Balloon with number ${balloon.number} touched ceiling - auto-popping`);
+                    this.popBalloon(balloon);
+                    return; // Skip further processing for this balloon
+                }
+                
+                // Move balloon sideways with drift
+                balloon.x += Math.abs(balloon.sidewaysSpeed) * balloon.sidewaysDirection * deltaTime;
+                
+                // Check boundaries and bounce off edges
+                const gameAreaWidth = CONFIG.SVG_WIDTH;
+                const balloonWidth = balloon.radius * 2;
+                
+                if (balloon.x <= 0) {
+                    // Hit left edge - bounce right
+                    balloon.x = 0;
+                    balloon.sidewaysDirection = 1;
+                } else if (balloon.x + balloonWidth >= gameAreaWidth) {
+                    // Hit right edge - bounce left
+                    balloon.x = gameAreaWidth - balloonWidth;
+                    balloon.sidewaysDirection = -1;
+                }
+                
+                // Update balloon position
+                if (balloon.circle) {
+                    balloon.circle.setAttribute('cx', balloon.x + balloon.radius);
+                    balloon.circle.setAttribute('cy', balloon.y + balloon.radius);
+                }
+                if (balloon.highlight) {
+                    balloon.highlight.setAttribute('cx', balloon.x + balloon.radius - 17); // Adjusted for larger balloon
+                    balloon.highlight.setAttribute('cy', balloon.y + balloon.radius - 17);
+                }
+                if (balloon.textWord) {
+                    balloon.textWord.setAttribute('x', balloon.x + balloon.radius);
+                    balloon.textWord.setAttribute('y', balloon.y + balloon.radius + 2);
+                }
+                
+                // Update string - CURLY S-shape attachment
+                if (balloon.string) {
+                    // Calculate current balloon bottom position
+                    const currentStartX = balloon.x + balloon.radius;
+                    const currentStartY = balloon.y + balloon.radius * 2;
+                    
+                    // Calculate movement delta
+                    const deltaX = currentStartX - balloon.stringStartX;
+                    const deltaY = currentStartY - balloon.stringStartY;
+                    
+                    // Update all curve points by the same delta to maintain S-shape
+                    const newStartX = currentStartX;
+                    const newStartY = currentStartY;
+                    const newEndX = balloon.stringEndX + deltaX;
+                    const newEndY = balloon.stringEndY + deltaY;
+                    const newCurve1X = balloon.stringCurve1X + deltaX;
+                    const newCurve1Y = balloon.stringCurve1Y + deltaY;
+                    const newCurve2X = balloon.stringCurve2X + deltaX;
+                    const newCurve2Y = balloon.stringCurve2Y + deltaY;
+                    const newCurve3X = balloon.stringCurve3X + deltaX;
+                    const newCurve3Y = balloon.stringCurve3Y + deltaY;
+                    
+                    // Recreate S-curve path with updated positions
+                    const pathData = `M ${newStartX} ${newStartY} 
+                                     C ${newStartX + 6} ${newStartY + 12}, ${newCurve1X} ${newCurve1Y - 12}, ${newCurve1X} ${newCurve1Y}
+                                     C ${newCurve1X} ${newCurve1Y + 12}, ${newCurve2X} ${newCurve2Y - 12}, ${newCurve2X} ${newCurve2Y}
+                                     C ${newCurve2X} ${newCurve2Y + 12}, ${newCurve3X} ${newCurve3Y - 12}, ${newCurve3X} ${newCurve3Y}
+                                     C ${newCurve3X} ${newCurve3Y + 12}, ${newEndX - 6} ${newEndY - 12}, ${newEndX} ${newEndY}`;
+                    
+                    balloon.string.setAttribute('d', pathData);
+                }
+            }
+        });
+        
+        // Update falling numbers - ABSOLUTELY STRAIGHT vertical fall
+        this.fallingNumbers.forEach(fallingNumber => {
+            if (!fallingNumber.landed) {
+                // ONLY update Y position - X position is NEVER modified
+                fallingNumber.y += fallingNumber.speed * deltaTime;
+                
+                // Check if reached ground
+                if (fallingNumber.y >= fallingNumber.targetY) {
+                    fallingNumber.y = fallingNumber.targetY;
+                    fallingNumber.landed = true;
+                    console.log(`Falling number ${fallingNumber.number} landed`);
+                    
+                    // Check if all numbers have landed
+                    const allLanded = this.fallingNumbers.every(fn => fn.landed);
+                    if (allLanded && !this.numbersLanded) {
+                        this.numbersLanded = true;
+                        console.log('All falling numbers have landed');
+                        this.checkBalloonGameCompletion();
+                    }
+                }
+                
+                // Update ONLY Y position - X position remains at startX forever
+                if (fallingNumber.element) {
+                    fallingNumber.element.setAttribute('y', fallingNumber.y);
+                    // NEVER update X position - it stays at the original startX value
+                }
+            }
+        });
+        
+        // Check if all balloons are gone
+        const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
+        if (activeBalloonsCount === 0) {
+            this.checkBalloonGameCompletion();
+            return;
+        }
+        
+        // Continue animation
+        this.balloonAnimationId = requestAnimationFrame((time) => this.animateBalloons(time));
+    }
+
+    checkBalloonGameCompletion() {
+        const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
+        const hasFoundEnoughCorrect = this.correctBalloonsFound >= this.totalCorrectBalloons;
+        const allBalloonsGone = activeBalloonsCount === 0;
+        
+        // Game can complete if we found enough correct balloons OR all balloons are gone
+        // BUT we must wait for both speech completion AND numbers to land
+        if ((hasFoundEnoughCorrect || allBalloonsGone) && this.speechComplete && this.numbersLanded) {
+            console.log(`Balloon game completing: found ${this.correctBalloonsFound}/${this.totalCorrectBalloons} correct balloons, speech complete: ${this.speechComplete}, numbers landed: ${this.numbersLanded}`);
+            
+            // Complete immediately since all conditions are met
+            this.onBalloonGameComplete();
+        } else {
+            console.log(`Waiting for completion conditions - correct: ${hasFoundEnoughCorrect}, all gone: ${allBalloonsGone}, speech: ${this.speechComplete}, landed: ${this.numbersLanded}`);
+        }
+    }
+
+    onBalloonGameComplete() {
+        console.log('Balloon mini-game completed for number:', this.currentNumber);
+        
+        this.playingBalloonGame = false;
+        
+        // Cancel animation
+        if (this.balloonAnimationId) {
+            cancelAnimationFrame(this.balloonAnimationId);
+            this.balloonAnimationId = null;
+        }
+        
+        // Clear balloon game elements
+        this.clearBalloonGameElements();
+        
+        // Update game progress
+        this.numbersCompleted++;
+        
+        // Check if rainbow is complete (game finished)
+        if (this.rainbow.isComplete()) {
+            console.log('Rainbow completed! Starting end game sequence...');
+            setTimeout(() => {
+                this.completeGame();
+            }, 1000);
+            return;
+        }
+        
+        // Switch voice gender for NEXT number
+        this.switchVoiceGender();
+        
+        // Move to next number after delay
+        setTimeout(() => {
+            this.moveToNextNumber();
+        }, 1000);
+    }
+
+    clearBalloonGameElements() {
+        // Clear all balloon game elements from SVG (but not the CSS grass band)
+        const elementsToRemove = this.renderer.svg.querySelectorAll(
+            '.balloon-group, .falling-number-static, .pop-star'
+        );
+        elementsToRemove.forEach(element => element.remove());
+        
+        // Reset balloon game state
+        this.balloons = [];
+        this.fallingNumbers = [];
+        this.correctBalloonsFound = 0;
+        this.speechComplete = false;
+        this.numbersLanded = false;
+    }
+
+    // =============================================================================
+    // CONTINUED MAIN GAME LOGIC
+    // =============================================================================
+
+    switchVoiceGender() {
+        this.currentVoiceGender = this.currentVoiceGender === 'boy' ? 'girl' : 'boy';
+        console.log(`Switched to ${this.currentVoiceGender} voice for next number`);
+    }
+
+    moveToNextNumber() {
+        this.currentNumberIndex++;
+        this.isProcessingCompletion = false;
+        this.startNewNumber();
+    }
+
+    showNumberWord() {
+        const numberWord = CONFIG.NUMBER_WORDS[this.currentNumber];
+        if (numberWord) {
+            this.updateNumberWordDisplay(numberWord);
+            
+            // Speak the number word using SAME voice gender as the initial instruction
+            if (this.audioEnabled) {
+                setTimeout(() => {
+                    this.speakText(numberWord, this.currentVoiceGender);
+                }, 500);
+            }
+        }
+    }
+
+    updateNumberWordDisplay(text) {
+        if (this.numberWordDisplay) {
+            this.numberWordDisplay.textContent = text;
+            
+            if (text) {
+                this.numberWordDisplay.classList.add('visible');
+            } else {
+                this.numberWordDisplay.classList.remove('visible');
+            }
+        }
+    }
+
+    completeGame() {
+        if (this.gameComplete) return;
+        
+        this.gameComplete = true;
+        console.log('Game completed! All numbers traced and rainbow complete.');
+        
+        // Clean up current tracing
+        this.pathManager.cleanup();
+        
+        // Show the completion modal
+        if (this.modal) {
+            this.modal.classList.remove('hidden');
+        }
+        
+        // Start bear celebration when modal opens
+        this.bear.startCelebration();
+        
+        // Speak completion message using current voice gender
+        if (this.audioEnabled) {
+            setTimeout(() => {
+                this.speakText('Excellent work! You traced all the numbers!', this.currentVoiceGender);
+            }, 1000);
+        }
+    }
+
+    // Enhanced audio methods with voice gender support and callback functionality
+    speakText(text, preferredGender = null) {
+        if (!this.audioEnabled) return;
+        
+        try {
+            // Use Web Speech API for text-to-speech
+            if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9; // Slightly slower for children
+                utterance.pitch = 1.3; // Higher pitch for child-like voices
+                utterance.volume = 0.8;
+                
+                // Get available voices
+                const voices = speechSynthesis.getVoices();
+                let selectedVoice = null;
+                
+                // Try to find child-like voices based on preferred gender
+                if (preferredGender === 'boy') {
+                    // Look for boy/male child voices first
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('boy') ||
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('junior') ||
+                        (voice.name.toLowerCase().includes('male') && voice.name.toLowerCase().includes('child')) ||
+                        voice.name.toLowerCase().includes('daniel') ||
+                        voice.name.toLowerCase().includes('alex') ||
+                        voice.name.toLowerCase().includes('david')
+                    );
+                    
+                    // Fallback to higher-pitched male voices
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice => 
+                            voice.name.toLowerCase().includes('male') ||
+                            (voice.gender && voice.gender.toLowerCase() === 'male')
+                        );
+                    }
+                } else if (preferredGender === 'girl') {
+                    // Look for girl/female child voices first
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('girl') ||
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('junior') ||
+                        (voice.name.toLowerCase().includes('female') && voice.name.toLowerCase().includes('child')) ||
+                        voice.name.toLowerCase().includes('samantha') ||
+                        voice.name.toLowerCase().includes('victoria') ||
+                        voice.name.toLowerCase().includes('karen') ||
+                        voice.name.toLowerCase().includes('emma')
+                    );
+                    
+                    // Fallback to higher-pitched female voices
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice => 
+                            voice.name.toLowerCase().includes('female') ||
+                            (voice.gender && voice.gender.toLowerCase() === 'female')
+                        );
+                    }
+                }
+                
+                // Final fallback to any child-friendly voice
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('female') ||
+                        voice.gender === 'female'
+                    );
+                }
+                
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                    console.log(`Using voice: ${selectedVoice.name} for ${preferredGender || 'default'} speech`);
+                }
+                
+                // Adjust pitch and rate for more child-like sound
+                if (preferredGender === 'boy') {
+                    utterance.pitch = 1.3; // Slightly higher than adult male but not silly
+                    utterance.rate = 0.9;
+                } else if (preferredGender === 'girl') {
+                    utterance.pitch = 1.4; // Keep original girl voice pitch
+                    utterance.rate = 0.9;
+                }
+                
+                speechSynthesis.speak(utterance);
+                console.log(`Speaking (${preferredGender || 'default'}):`, text);
+            }
+        } catch (error) {
+            console.warn('Speech synthesis failed:', error);
+        }
+    }
+
+    speakTextWithCallback(text, preferredGender = null, callback = null) {
+        if (!this.audioEnabled) {
+            if (callback) callback();
+            return;
+        }
+        
+        try {
+            // Use Web Speech API for text-to-speech
+            if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9; // Slightly slower for children
+                utterance.pitch = 1.3; // Higher pitch for child-like voices
+                utterance.volume = 0.8;
+                
+                // Add end callback
+                if (callback) {
+                    utterance.onend = callback;
+                    utterance.onerror = callback; // Also call on error
+                }
+                
+                // Get available voices (same logic as speakText)
+                const voices = speechSynthesis.getVoices();
+                let selectedVoice = null;
+                
+                if (preferredGender === 'boy') {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('boy') ||
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('junior') ||
+                        voice.name.toLowerCase().includes('daniel') ||
+                        voice.name.toLowerCase().includes('alex') ||
+                        voice.name.toLowerCase().includes('david')
+                    );
+                    
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice => 
+                            voice.name.toLowerCase().includes('male') ||
+                            (voice.gender && voice.gender.toLowerCase() === 'male')
+                        );
+                    }
+                } else if (preferredGender === 'girl') {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('girl') ||
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('samantha') ||
+                        voice.name.toLowerCase().includes('victoria') ||
+                        voice.name.toLowerCase().includes('karen') ||
+                        voice.name.toLowerCase().includes('emma')
+                    );
+                    
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice => 
+                            voice.name.toLowerCase().includes('female') ||
+                            (voice.gender && voice.gender.toLowerCase() === 'female')
+                        );
+                    }
+                }
+                
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('female') ||
+                        voice.gender === 'female'
+                    );
+                }
+                
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+                
+                // Adjust pitch and rate for more child-like sound
+                if (preferredGender === 'boy') {
+                    utterance.pitch = 1.3;
+                    utterance.rate = 0.9;
+                } else if (preferredGender === 'girl') {
+                    utterance.pitch = 1.4;
+                    utterance.rate = 0.9;
+                }
+                
+                speechSynthesis.speak(utterance);
+                console.log(`Speaking with callback (${preferredGender || 'default'}):`, text);
+            }
+        } catch (error) {
+            console.warn('Speech synthesis failed:', error);
+            if (callback) callback();
+        }
+    }
+
+    playCompletionSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            // Create a simple success tone
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime); // C5
+            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1); // E5
+            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2); // G5
+            
+            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.5);
+        } catch (error) {
+            console.warn('Completion sound failed:', error);
+        }
+    }
+
+    playFailureSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            // Create a failure tone (lower pitched, dissonant)
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            // Lower frequency descending tone for failure
+            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime); // Lower starting frequency
+            oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3); // Descend to lower note
+            
+            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.3);
+        } catch (error) {
+            console.warn('Failure sound failed:', error);
+        }
+    }
+
+    // Handle page visibility changes
+    handleVisibilityChange() {
+        if (document.hidden) {
+            // Pause any ongoing speech when page becomes hidden
+            if ('speechSynthesis' in window) {
+                speechSynthesis.pause();
+            }
+            
+            // Pause balloon game animation if active
+            if (this.playingBalloonGame) {
+                console.log('Page hidden, pausing balloon game');
+            }
+        } else {
+            // Resume speech when page becomes visible
+            if ('speechSynthesis' in window) {
+                speechSynthesis.resume();
+            }
+            
+            // Resume balloon game if needed
+            if (this.playingBalloonGame) {
+                console.log('Page visible, resuming balloon game');
+            }
+        }
+    }
+
+    // Utility methods
+    getCurrentNumber() {
+        return this.currentNumber;
+    }
+
+    getCurrentProgress() {
+        return {
+            currentNumber: this.currentNumber,
+            currentIndex: this.currentNumberIndex,
+            totalNumbers: this.numbersSequence.length,
+            completed: this.numbersCompleted,
+            progress: this.numbersCompleted / CONFIG.NUMBERS_TO_COMPLETE
+        };
+    }
+
+    isGameComplete() {
+        return this.gameComplete;
+    }
+
+    // Debug methods
+    skipToNumber(number) {
+        if (!CONFIG.DEBUG_MODE) return;
+        
+        const index = this.numbersSequence.indexOf(number);
+        if (index !== -1) {
+            this.currentNumberIndex = index;
+            this.startNewNumber();
+        }
+    }
+
+    completeCurrentNumber() {
+        if (!CONFIG.DEBUG_MODE) return;
+        
+        // Force complete current number for testing
+        this.renderer.completeNumber();
+    }
+
+    toggleAudio() {
+        this.audioEnabled = !this.audioEnabled;
+        console.log('Audio', this.audioEnabled ? 'enabled' : 'disabled');
+    }
+
+    // Cleanup
+    destroy() {
+        console.log('Destroying game controller');
+        
+        // Remove event listeners
+        window.removeEventListener('resize', this.handleResize);
+        document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+        
+        // Clean up components
+        if (this.pathManager) {
+            this.pathManager.cleanup();
+        }
+        
+        // Clean up balloon game
+        if (this.balloonAnimationId) {
+            cancelAnimationFrame(this.balloonAnimationId);
+            this.balloonAnimationId = null;
+        }
+        this.clearBalloonGameElements();
+        
+        if (this.renderer) {
+            this.renderer.destroy();
+            this.renderer.reset();
+        }
+        
+        this.rainbow.reset();
+        this.bear.reset();
+        
+        // Cancel any ongoing speech
+        if ('speechSynthesis' in window) {
+            speechSynthesis.cancel();
+        }
+        
+        // Close audio context
+        if (this.audioContext) {
+            this.audioContext.close();
+        }
+        
+        console.log('Game controller destroyed');
+    }
+}
+
+// Initialize game when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Handle page visibility for audio management
+    document.addEventListener('visibilitychange', () => {
+        if (window.traceGame) {
+            window.traceGame.handleVisibilityChange();
+        }
+    });
+    
+    // Initialize the game
+    window.traceGame = new TraceGameController();
+    
+    console.log('Trace game loaded and ready!');
+});
+
+// Handle page unload
+window.addEventListener('beforeunload', () => {
+    if (window.traceGame) {
+        window.traceGame.destroy();
+    }
+});.log('Initializing main game controller...');
         
         // Find DOM elements
         this.findDOMElements();
@@ -272,6 +904,8 @@ class TraceGameController {
         this.balloons = [];
         this.fallingNumbers = [];
         this.correctBalloonsFound = 0;
+        this.speechComplete = false;
+        this.numbersLanded = false;
         if (this.balloonAnimationId) {
             cancelAnimationFrame(this.balloonAnimationId);
             this.balloonAnimationId = null;
@@ -359,7 +993,7 @@ class TraceGameController {
     }
 
     // =============================================================================
-    // INTEGRATED BALLOON GAME LOGIC
+    // ENHANCED BALLOON GAME LOGIC
     // =============================================================================
 
     startBalloonMiniGame() {
@@ -369,11 +1003,11 @@ class TraceGameController {
         this.correctBalloonsFound = 0;
         this.balloons = [];
         this.fallingNumbers = [];
+        this.speechComplete = false;
+        this.numbersLanded = false;
         
         // Clear number word display during balloon game
         this.updateNumberWordDisplay('');
-        
-        // No need to create balloon ground - grass band from CSS is already visible
         
         // Create 12 balloons with random positions and speeds
         this.createBalloons();
@@ -382,19 +1016,28 @@ class TraceGameController {
         this.balloonLastTime = performance.now();
         this.animateBalloons();
         
-        // Speak instruction
+        // Speak instruction and track completion
         if (this.audioEnabled) {
             setTimeout(() => {
-                this.speakText(`Pop the balloons with the number ${this.currentNumber}!`, this.currentVoiceGender);
+                this.speakTextWithCallback(
+                    `Pop the balloons with the number ${this.currentNumber}!`, 
+                    this.currentVoiceGender,
+                    () => {
+                        this.speechComplete = true;
+                        console.log('Speech completed');
+                        this.checkBalloonGameCompletion();
+                    }
+                );
             }, 500);
+        } else {
+            // If audio disabled, mark speech as complete immediately
+            this.speechComplete = true;
         }
     }
 
-    // Remove the createBalloonGround method since we're using CSS grass band
-
     createBalloons() {
         const balloonCount = 12;
-        const balloonWidth = 100; // Increased for larger balloons
+        const balloonWidth = 120; // Increased from 100 to 120 (20% larger)
         
         // Generate non-overlapping positions
         const positions = this.generateNonOverlappingPositions(balloonCount, balloonWidth);
@@ -511,8 +1154,8 @@ class TraceGameController {
         const string = this.createBalloonString(balloon);
         balloonGroup.appendChild(string);
         
-        // Create EVEN LARGER balloon circle
-        const balloonRadius = 45; // Increased from 40 to 45
+        // Create LARGER balloon circle (increased from 45 to 54)
+        const balloonRadius = 54; // Increased by 20% from 45
         const balloonCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         balloonCircle.setAttribute('cx', balloon.x + balloonRadius);
         balloonCircle.setAttribute('cy', balloon.y + balloonRadius);
@@ -524,27 +1167,27 @@ class TraceGameController {
         
         // Add balloon highlight for 3D effect
         const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        highlight.setAttribute('cx', balloon.x + balloonRadius - 14);
-        highlight.setAttribute('cy', balloon.y + balloonRadius - 14);
-        highlight.setAttribute('r', 12); // Larger highlight for bigger balloon
+        highlight.setAttribute('cx', balloon.x + balloonRadius - 17); // Adjusted for larger balloon
+        highlight.setAttribute('cy', balloon.y + balloonRadius - 17);
+        highlight.setAttribute('r', 14); // Larger highlight for bigger balloon
         highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.6)');
         highlight.setAttribute('class', 'balloon-highlight');
         
         balloonGroup.appendChild(balloonCircle);
         balloonGroup.appendChild(highlight);
         
-        // Create EVEN LARGER number text with ONLY word version (no digit)
+        // Create LARGER number text (increased from 22 to 26)
         const numberWord = numberWords[number];
         const numberText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         numberText.setAttribute('x', balloon.x + balloonRadius);
         numberText.setAttribute('y', balloon.y + balloonRadius + 2); // Centered in balloon
         numberText.setAttribute('text-anchor', 'middle');
         numberText.setAttribute('dominant-baseline', 'middle');
-        numberText.setAttribute('font-size', '22'); // Increased from 20 to 22
+        numberText.setAttribute('font-size', '26'); // Increased from 22 to 26 (about 18% larger)
         numberText.setAttribute('font-weight', 'bold');
         numberText.setAttribute('fill', 'white');
         numberText.setAttribute('stroke', '#333');
-        numberText.setAttribute('stroke-width', '1.2');
+        numberText.setAttribute('stroke-width', '1.4'); // Slightly thicker stroke
         numberText.setAttribute('class', 'balloon-number-word');
         numberText.textContent = numberWord;
         
@@ -570,8 +1213,8 @@ class TraceGameController {
     }
 
     createBalloonString(balloon) {
-        const balloonRadius = 45; // Updated for larger balloons
-        const stringLength = 100; // Longer string for larger balloons
+        const balloonRadius = 54; // Updated for larger balloons
+        const stringLength = 120; // Longer string for larger balloons
         
         // Create CURLY string like a stretched S
         const string = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -585,23 +1228,23 @@ class TraceGameController {
         const endY = startY + stringLength;
         
         // Create S-curve with multiple control points for stretched S effect
-        const curve1X = startX + 15; // Curve right
+        const curve1X = startX + 18; // Curve right (adjusted for larger balloon)
         const curve1Y = startY + stringLength * 0.25;
-        const curve2X = startX - 15; // Curve left
+        const curve2X = startX - 18; // Curve left
         const curve2Y = startY + stringLength * 0.5;
-        const curve3X = startX + 10; // Curve right again
+        const curve3X = startX + 12; // Curve right again
         const curve3Y = startY + stringLength * 0.75;
         
         // Create stretched S path with cubic bezier curves
         const pathData = `M ${startX} ${startY} 
-                         C ${startX + 5} ${startY + 10}, ${curve1X} ${curve1Y - 10}, ${curve1X} ${curve1Y}
-                         C ${curve1X} ${curve1Y + 10}, ${curve2X} ${curve2Y - 10}, ${curve2X} ${curve2Y}
-                         C ${curve2X} ${curve2Y + 10}, ${curve3X} ${curve3Y - 10}, ${curve3X} ${curve3Y}
-                         C ${curve3X} ${curve3Y + 10}, ${endX - 5} ${endY - 10}, ${endX} ${endY}`;
+                         C ${startX + 6} ${startY + 12}, ${curve1X} ${curve1Y - 12}, ${curve1X} ${curve1Y}
+                         C ${curve1X} ${curve1Y + 12}, ${curve2X} ${curve2Y - 12}, ${curve2X} ${curve2Y}
+                         C ${curve2X} ${curve2Y + 12}, ${curve3X} ${curve3Y - 12}, ${curve3X} ${curve3Y}
+                         C ${curve3X} ${curve3Y + 12}, ${endX - 6} ${endY - 12}, ${endX} ${endY}`;
         
         string.setAttribute('d', pathData);
         string.setAttribute('stroke', '#8B4513'); // Brown string
-        string.setAttribute('stroke-width', 3); // Slightly thicker for larger balloons
+        string.setAttribute('stroke-width', 3.5); // Slightly thicker for larger balloons
         string.setAttribute('fill', 'none');
         string.setAttribute('class', 'balloon-string-curly'); // Different class
         
@@ -627,14 +1270,17 @@ class TraceGameController {
         
         console.log(`Balloon popped with number: ${balloon.number}, correct: ${balloon.isCorrect}`);
         
-        // Play pop sound effect
-        if (this.audioEnabled) {
-            this.playCompletionSound();
-        }
+        // Create yellow star pop effect at balloon center
+        this.createPopEffect(balloon.x + balloon.radius, balloon.y + balloon.radius);
         
         if (balloon.isCorrect) {
             // Correct balloon popped!
             this.correctBalloonsFound++;
+            
+            // Play success sound
+            if (this.audioEnabled) {
+                this.playCompletionSound();
+            }
             
             // Create falling number at balloon position
             this.createFallingNumber(balloon.x + balloon.radius, balloon.y + balloon.radius, balloon.number);
@@ -647,11 +1293,15 @@ class TraceGameController {
                     this.speakText(randomEncouragement, this.currentVoiceGender);
                 }, 200);
             }
+        } else {
+            // Incorrect balloon popped - play failure sound
+            if (this.audioEnabled) {
+                this.playFailureSound();
+            }
         }
         
         // Remove balloon with pop animation
         if (balloon.group) {
-            this.createPopEffect(balloon.x + balloon.radius, balloon.y + balloon.radius);
             balloon.group.remove();
         }
         
@@ -660,61 +1310,73 @@ class TraceGameController {
     }
 
     createPopEffect(x, y) {
-        const popGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        popGroup.setAttribute('class', 'pop-effect');
+        // Create yellow star at balloon center
+        const star = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        star.setAttribute('x', x);
+        star.setAttribute('y', y);
+        star.setAttribute('text-anchor', 'middle');
+        star.setAttribute('dominant-baseline', 'middle');
+        star.setAttribute('font-size', '40');
+        star.setAttribute('fill', '#FFD700'); // Yellow color
+        star.setAttribute('class', 'pop-star');
+        star.textContent = '⭐';
         
-        // Create multiple small circles radiating outward
-        for (let i = 0; i < 8; i++) {
-            const angle = (i * Math.PI * 2) / 8;
-            const distance = 30;
-            const particleX = x + Math.cos(angle) * distance;
-            const particleY = y + Math.sin(angle) * distance;
-            
-            const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            particle.setAttribute('cx', particleX);
-            particle.setAttribute('cy', particleY);
-            particle.setAttribute('r', 3);
-            particle.setAttribute('fill', '#FFD700');
-            particle.setAttribute('opacity', 1);
-            
-            // Animate particle
-            const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-            animate.setAttribute('attributeName', 'opacity');
-            animate.setAttribute('values', '1;0');
-            animate.setAttribute('dur', '0.5s');
-            animate.setAttribute('fill', 'freeze');
-            
-            particle.appendChild(animate);
-            popGroup.appendChild(particle);
-        }
+        // Add pop animation
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+        animate.setAttribute('attributeName', 'transform');
+        animate.setAttribute('type', 'scale');
+        animate.setAttribute('values', '0;1.5;1');
+        animate.setAttribute('dur', '0.6s');
+        animate.setAttribute('fill', 'freeze');
         
-        this.renderer.svg.appendChild(popGroup);
+        const fadeOut = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        fadeOut.setAttribute('attributeName', 'opacity');
+        fadeOut.setAttribute('values', '1;1;0');
+        fadeOut.setAttribute('dur', '0.6s');
+        fadeOut.setAttribute('fill', 'freeze');
+        
+        star.appendChild(animate);
+        star.appendChild(fadeOut);
+        
+        this.renderer.svg.appendChild(star);
         
         // Remove effect after animation
         setTimeout(() => {
-            if (popGroup.parentNode) {
-                popGroup.parentNode.removeChild(popGroup);
+            if (star.parentNode) {
+                star.parentNode.removeChild(star);
             }
-        }, 500);
+        }, 600);
     }
 
     createFallingNumber(x, y, number) {
-        const groundLevel = CONFIG.SVG_HEIGHT - 80;
+        const grassBandHeight = 80;
+        const gameAreaHeight = CONFIG.SVG_HEIGHT;
+        const grassBandTop = gameAreaHeight - grassBandHeight;
         
-        // Calculate falling speed: 3x average balloon speed
-        // Average balloon speed is (20 + 40) / 2 = 30, so falling speed = 90
-        const fallingSpeed = 90; // pixels per second
+        // Calculate random landing position within 40% to 80% of grass band height from bottom
+        // 40% from bottom = 80% from top of grass band
+        // 80% from bottom = 20% from top of grass band
+        const minHeightFromTop = grassBandHeight * 0.2; // 20% from top (80% from bottom)
+        const maxHeightFromTop = grassBandHeight * 0.6; // 60% from top (40% from bottom)
+        const randomHeightFromTop = minHeightFromTop + Math.random() * (maxHeightFromTop - minHeightFromTop);
+        const targetY = grassBandTop + randomHeightFromTop;
+        
+        // Calculate falling speed: DOUBLED from previous version
+        // Previous speed was 90, now it's 180 pixels per second
+        const fallingSpeed = 180; // Doubled falling speed
         
         const fallingNumber = {
             x: x, // FIXED X position - this never changes
             startX: x, // Store the original X position
             y: y,
-            targetY: groundLevel - 40,
+            targetY: targetY, // Random position within grass band
             number: number,
             speed: fallingSpeed,
             element: null,
             landed: false
         };
+        
+        console.log(`Falling number ${number} will land at Y: ${targetY} (grass band: ${grassBandTop}-${gameAreaHeight}, random height from top: ${randomHeightFromTop}px)`);
         
         // Create large number element (digit version for falling)
         const numberElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -734,7 +1396,7 @@ class TraceGameController {
         this.fallingNumbers.push(fallingNumber);
         this.renderer.svg.appendChild(numberElement);
         
-        console.log(`Created falling number ${number} at FIXED position (${fallingNumber.startX}, ${y}) with speed ${fallingSpeed}`);
+        console.log(`Created falling number ${number} at FIXED position (${fallingNumber.startX}, ${y}) with DOUBLED speed ${fallingSpeed}, will land in grass at Y: ${targetY}`);
         
         return fallingNumber;
     }
@@ -750,6 +1412,13 @@ class TraceGameController {
             if (!balloon.popped) {
                 // Move balloon up at its individual speed
                 balloon.y -= balloon.riseSpeed * deltaTime;
+                
+                // Check if balloon touched the ceiling (top of game area)
+                if (balloon.y <= 0) {
+                    console.log(`Balloon with number ${balloon.number} touched ceiling - auto-popping`);
+                    this.popBalloon(balloon);
+                    return; // Skip further processing for this balloon
+                }
                 
                 // Move balloon sideways with drift
                 balloon.x += Math.abs(balloon.sidewaysSpeed) * balloon.sidewaysDirection * deltaTime;
@@ -774,8 +1443,8 @@ class TraceGameController {
                     balloon.circle.setAttribute('cy', balloon.y + balloon.radius);
                 }
                 if (balloon.highlight) {
-                    balloon.highlight.setAttribute('cx', balloon.x + balloon.radius - 10);
-                    balloon.highlight.setAttribute('cy', balloon.y + balloon.radius - 10);
+                    balloon.highlight.setAttribute('cx', balloon.x + balloon.radius - 17); // Adjusted for larger balloon
+                    balloon.highlight.setAttribute('cy', balloon.y + balloon.radius - 17);
                 }
                 if (balloon.textWord) {
                     balloon.textWord.setAttribute('x', balloon.x + balloon.radius);
@@ -806,20 +1475,12 @@ class TraceGameController {
                     
                     // Recreate S-curve path with updated positions
                     const pathData = `M ${newStartX} ${newStartY} 
-                                     C ${newStartX + 5} ${newStartY + 10}, ${newCurve1X} ${newCurve1Y - 10}, ${newCurve1X} ${newCurve1Y}
-                                     C ${newCurve1X} ${newCurve1Y + 10}, ${newCurve2X} ${newCurve2Y - 10}, ${newCurve2X} ${newCurve2Y}
-                                     C ${newCurve2X} ${newCurve2Y + 10}, ${newCurve3X} ${newCurve3Y - 10}, ${newCurve3X} ${newCurve3Y}
-                                     C ${newCurve3X} ${newCurve3Y + 10}, ${newEndX - 5} ${newEndY - 10}, ${newEndX} ${newEndY}`;
+                                     C ${newStartX + 6} ${newStartY + 12}, ${newCurve1X} ${newCurve1Y - 12}, ${newCurve1X} ${newCurve1Y}
+                                     C ${newCurve1X} ${newCurve1Y + 12}, ${newCurve2X} ${newCurve2Y - 12}, ${newCurve2X} ${newCurve2Y}
+                                     C ${newCurve2X} ${newCurve2Y + 12}, ${newCurve3X} ${newCurve3Y - 12}, ${newCurve3X} ${newCurve3Y}
+                                     C ${newCurve3X} ${newCurve3Y + 12}, ${newEndX - 6} ${newEndY - 12}, ${newEndX} ${newEndY}`;
                     
                     balloon.string.setAttribute('d', pathData);
-                }
-                
-                // Check if balloon reached top of screen
-                if (balloon.y < -100) {
-                    balloon.popped = true;
-                    if (balloon.group) {
-                        balloon.group.remove();
-                    }
                 }
             }
         });
@@ -834,6 +1495,15 @@ class TraceGameController {
                 if (fallingNumber.y >= fallingNumber.targetY) {
                     fallingNumber.y = fallingNumber.targetY;
                     fallingNumber.landed = true;
+                    console.log(`Falling number ${fallingNumber.number} landed`);
+                    
+                    // Check if all numbers have landed
+                    const allLanded = this.fallingNumbers.every(fn => fn.landed);
+                    if (allLanded && !this.numbersLanded) {
+                        this.numbersLanded = true;
+                        console.log('All falling numbers have landed');
+                        this.checkBalloonGameCompletion();
+                    }
                 }
                 
                 // Update ONLY Y position - X position remains at startX forever
@@ -857,14 +1527,18 @@ class TraceGameController {
 
     checkBalloonGameCompletion() {
         const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
+        const hasFoundEnoughCorrect = this.correctBalloonsFound >= this.totalCorrectBalloons;
+        const allBalloonsGone = activeBalloonsCount === 0;
         
-        if (this.correctBalloonsFound >= this.totalCorrectBalloons || activeBalloonsCount === 0) {
-            console.log(`Balloon game completing: found ${this.correctBalloonsFound}/${this.totalCorrectBalloons} correct balloons`);
+        // Game can complete if we found enough correct balloons OR all balloons are gone
+        // BUT we must wait for both speech completion AND numbers to land
+        if ((hasFoundEnoughCorrect || allBalloonsGone) && this.speechComplete && this.numbersLanded) {
+            console.log(`Balloon game completing: found ${this.correctBalloonsFound}/${this.totalCorrectBalloons} correct balloons, speech complete: ${this.speechComplete}, numbers landed: ${this.numbersLanded}`);
             
-            // Wait 1 second after last number lands, then complete
-            setTimeout(() => {
-                this.onBalloonGameComplete();
-            }, 1000);
+            // Complete immediately since all conditions are met
+            this.onBalloonGameComplete();
+        } else {
+            console.log(`Waiting for completion conditions - correct: ${hasFoundEnoughCorrect}, all gone: ${allBalloonsGone}, speech: ${this.speechComplete}, landed: ${this.numbersLanded}`);
         }
     }
 
@@ -906,7 +1580,7 @@ class TraceGameController {
     clearBalloonGameElements() {
         // Clear all balloon game elements from SVG (but not the CSS grass band)
         const elementsToRemove = this.renderer.svg.querySelectorAll(
-            '.balloon-group, .falling-number, .pop-effect'
+            '.balloon-group, .falling-number-static, .pop-star'
         );
         elementsToRemove.forEach(element => element.remove());
         
@@ -914,6 +1588,8 @@ class TraceGameController {
         this.balloons = [];
         this.fallingNumbers = [];
         this.correctBalloonsFound = 0;
+        this.speechComplete = false;
+        this.numbersLanded = false;
     }
 
     // =============================================================================
@@ -982,7 +1658,7 @@ class TraceGameController {
         }
     }
 
-    // Enhanced audio methods with voice gender support
+    // Enhanced audio methods with voice gender support and callback functionality
     speakText(text, preferredGender = null) {
         if (!this.audioEnabled) return;
         
@@ -1077,6 +1753,100 @@ class TraceGameController {
         }
     }
 
+    speakTextWithCallback(text, preferredGender = null, callback = null) {
+        if (!this.audioEnabled) {
+            if (callback) callback();
+            return;
+        }
+        
+        try {
+            // Use Web Speech API for text-to-speech
+            if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9; // Slightly slower for children
+                utterance.pitch = 1.3; // Higher pitch for child-like voices
+                utterance.volume = 0.8;
+                
+                // Add end callback
+                if (callback) {
+                    utterance.onend = callback;
+                    utterance.onerror = callback; // Also call on error
+                }
+                
+                // Get available voices (same logic as speakText)
+                const voices = speechSynthesis.getVoices();
+                let selectedVoice = null;
+                
+                if (preferredGender === 'boy') {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('boy') ||
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('junior') ||
+                        voice.name.toLowerCase().includes('daniel') ||
+                        voice.name.toLowerCase().includes('alex') ||
+                        voice.name.toLowerCase().includes('david')
+                    );
+                    
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice => 
+                            voice.name.toLowerCase().includes('male') ||
+                            (voice.gender && voice.gender.toLowerCase() === 'male')
+                        );
+                    }
+                } else if (preferredGender === 'girl') {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('girl') ||
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('samantha') ||
+                        voice.name.toLowerCase().includes('victoria') ||
+                        voice.name.toLowerCase().includes('karen') ||
+                        voice.name.toLowerCase().includes('emma')
+                    );
+                    
+                    if (!selectedVoice) {
+                        selectedVoice = voices.find(voice => 
+                            voice.name.toLowerCase().includes('female') ||
+                            (voice.gender && voice.gender.toLowerCase() === 'female')
+                        );
+                    }
+                }
+                
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.toLowerCase().includes('child') ||
+                        voice.name.toLowerCase().includes('young') ||
+                        voice.name.toLowerCase().includes('female') ||
+                        voice.gender === 'female'
+                    );
+                }
+                
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+                
+                // Adjust pitch and rate for more child-like sound
+                if (preferredGender === 'boy') {
+                    utterance.pitch = 1.3;
+                    utterance.rate = 0.9;
+                } else if (preferredGender === 'girl') {
+                    utterance.pitch = 1.4;
+                    utterance.rate = 0.9;
+                }
+                
+                speechSynthesis.speak(utterance);
+                console.log(`Speaking with callback (${preferredGender || 'default'}):`, text);
+            }
+        } catch (error) {
+            console.warn('Speech synthesis failed:', error);
+            if (callback) callback();
+        }
+    }
+
     playCompletionSound() {
         if (!this.audioEnabled || !this.audioContext) return;
         
@@ -1099,6 +1869,31 @@ class TraceGameController {
             oscillator.stop(this.audioContext.currentTime + 0.5);
         } catch (error) {
             console.warn('Completion sound failed:', error);
+        }
+    }
+
+    playFailureSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            // Create a failure tone (lower pitched, dissonant)
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            // Lower frequency descending tone for failure
+            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime); // Lower starting frequency
+            oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3); // Descend to lower note
+            
+            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.3);
+        } catch (error) {
+            console.warn('Failure sound failed:', error);
         }
     }
 
