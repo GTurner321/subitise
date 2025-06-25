@@ -144,8 +144,8 @@ class TracePathManager {
         
         if (directionLength === 0) return null;
         
-        // Calculate rotation angle
-        const angle = Math.atan2(directionY, directionX) * 180 / Math.PI;
+        // Calculate rotation angle and ADD 180 degrees to flip direction
+        const angle = Math.atan2(directionY, directionX) * 180 / Math.PI + 180;
         
         // Create arrow group positioned at CENTER of slider
         const arrowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -156,10 +156,10 @@ class TracePathManager {
         const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const arrowSize = 12; // Smaller to fit inside slider circle
         arrowPath.setAttribute('d', `M -${arrowSize/2} 0 L ${arrowSize/2} ${arrowSize/3} L ${arrowSize/2} ${-arrowSize/3} Z`);
-        arrowPath.setAttribute('fill', 'white');
-        arrowPath.setAttribute('stroke', '#333');
+        arrowPath.setAttribute('fill', '#000080'); // Navy blue instead of white
+        arrowPath.setAttribute('stroke', 'white');
         arrowPath.setAttribute('stroke-width', 1);
-        arrowPath.setAttribute('opacity', '0.9');
+        arrowPath.setAttribute('opacity', '1'); // Full opacity for better visibility
         
         arrowGroup.appendChild(arrowPath);
         
