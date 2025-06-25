@@ -17,8 +17,10 @@ class TracePathManager {
         this.strokeCoordinates = [];
         this.currentStrokeCoords = [];
         
-        // Movement tracking
+        // Movement tracking for arrow updates
         this.lastMovementTime = Date.now();
+        this.lastArrowUpdateIndex = -1; // Track when we last updated arrow
+        this.arrowUpdateTimeout = null; // For delayed arrow updates
         
         this.initializeEventListeners();
     }
@@ -76,6 +78,7 @@ class TracePathManager {
         // Create slider group to hold circle and centered arrow
         this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         this.slider.setAttribute('class', 'trace-slider-group');
+        this.slider.style.zIndex = '100'; // Ensure always on top
         
         // Create slider circle (SAME as before)
         const sliderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -88,7 +91,7 @@ class TracePathManager {
         sliderCircle.setAttribute('class', 'trace-slider-circle');
         sliderCircle.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
         
-        // Create arrow INSIDE the center of the slider circle
+        // Create arrow INSIDE the center of the slider circle (only at start)
         const arrow = this.createCenteredSliderArrow(position);
         
         // Add both circle and centered arrow to slider group
@@ -100,6 +103,7 @@ class TracePathManager {
         // Add pulsing animation to circle only
         this.addSliderPulseAnimation();
         
+        // Ensure slider is added AFTER trace paths (higher z-index)
         this.svg.appendChild(this.slider);
         
         console.log(`Created slider with centered arrow at coordinate ${this.currentCoordinateIndex}:`, position);
@@ -177,8 +181,10 @@ class TracePathManager {
         this.frontMarker.setAttribute('stroke-width', 3);
         this.frontMarker.setAttribute('class', 'front-marker');
         this.frontMarker.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+        this.frontMarker.style.zIndex = '101'; // Higher than slider to ensure visibility during drag
         
-        // No pulsing animation - this is just a visual marker
+        // No arrow on front marker - keep it simple during drag
+        
         this.svg.appendChild(this.frontMarker);
         
         console.log(`Created front marker at:`, position);
@@ -198,8 +204,28 @@ class TracePathManager {
         }
     }
 
+    scheduleArrowUpdate(position) {
+        // Clear any existing timeout
+        if (this.arrowUpdateTimeout) {
+            clearTimeout(this.arrowUpdateTimeout);
+        }
+        
+        // Schedule arrow update after 1 second of no movement
+        this.arrowUpdateTimeout = setTimeout(() => {
+            if (!this.isDragging && this.slider) {
+                this.updateSliderArrow(position);
+                console.log('Arrow updated after movement pause');
+            }
+        }, 1000);
+    }
+
     updateSliderArrow(position) {
         if (!this.slider) return;
+        
+        // Only update if we've moved to a significantly different coordinate index
+        if (this.lastArrowUpdateIndex === this.currentCoordinateIndex) {
+            return; // Skip update - arrow is already correct
+        }
         
         // Remove existing centered arrow
         const existingArrow = this.slider.querySelector('.slider-centered-arrow');
@@ -211,6 +237,8 @@ class TracePathManager {
         const newArrow = this.createCenteredSliderArrow(position);
         if (newArrow) {
             this.slider.appendChild(newArrow);
+            this.lastArrowUpdateIndex = this.currentCoordinateIndex;
+            console.log(`Arrow updated for coordinate ${this.currentCoordinateIndex}`);
         }
     }
 
@@ -287,8 +315,8 @@ class TracePathManager {
                     sliderCircle.setAttribute('cy', currentCoord.y);
                 }
                 
-                // Update arrow position and direction
-                this.updateSliderArrow(currentCoord);
+                // Update arrow after a brief pause (not immediately)
+                this.scheduleArrowUpdate(currentCoord);
                 
                 this.slider.style.opacity = '1';
                 this.addSliderPulseAnimation();
@@ -441,10 +469,8 @@ class TracePathManager {
         const frontMarkerX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
         const frontMarkerY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
         
-        // UPDATE FRONT MARKER POSITION immediately (this is what user sees)
+        // UPDATE FRONT MARKER POSITION immediately (this is what user sees during drag)
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
-        
-        console.log(`🔴 Front marker at segment ${coordIndex}, ${(progress * 100).toFixed(1)}% = (${frontMarkerX.toFixed(1)}, ${frontMarkerY.toFixed(1)})`);
         
         // Calculate what coordinate index the green trace should fill up to
         let newCoordinateIndex = this.currentCoordinateIndex;
@@ -455,7 +481,6 @@ class TracePathManager {
         if (isFinalSegment && progress >= 0.95) {
             // At final segment with 95%+ progress - complete the stroke
             newCoordinateIndex = this.currentStrokeCoords.length - 1;
-            console.log('🎯 Final segment reached - completing stroke');
         } else if (coordIndex > this.currentCoordinateIndex) {
             // Front marker moved to a new segment ahead
             if (progress >= 0.5) {
@@ -487,12 +512,14 @@ class TracePathManager {
             // Update green trace to match
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
             
-            console.log(`✅ Green trace: ${oldIndex} → ${this.currentCoordinateIndex} (front marker at segment ${coordIndex}, ${(progress * 100).toFixed(1)}%)`);
+            // Schedule arrow update only when we reach a new section
+            if (this.currentCoordinateIndex > oldIndex) {
+                this.scheduleArrowUpdate({ x: frontMarkerX, y: frontMarkerY });
+            }
         }
         
         // Complete stroke when we reach the final coordinate
         if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
-            console.log('🎉 Stroke completed - front marker reached final coordinate');
             this.completeCurrentStroke();
         }
     }
@@ -556,14 +583,21 @@ class TracePathManager {
     }
 
     cleanup() {
-        // Remove slider, front marker (no more separate direction arrow)
+        // Remove slider, front marker and clear timeouts
         this.removeSlider();
         this.removeFrontMarker();
+        
+        // Clear arrow update timeout
+        if (this.arrowUpdateTimeout) {
+            clearTimeout(this.arrowUpdateTimeout);
+            this.arrowUpdateTimeout = null;
+        }
         
         this.isTracing = false;
         this.isDragging = false;
         this.currentCoordinateIndex = 0;
         this.currentStrokeCoords = [];
+        this.lastArrowUpdateIndex = -1;
     }
 
     reset() {
