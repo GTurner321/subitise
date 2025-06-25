@@ -94,19 +94,40 @@ class TraceGameController {
         const grassBand = document.createElement('div');
         grassBand.className = 'grass-band';
         
-        // Add the grass texture pseudo-element effect via inline styles if needed
-        grassBand.style.position = 'fixed';
-        grassBand.style.bottom = '0';
-        grassBand.style.left = '0';
-        grassBand.style.width = '100%';
-        grassBand.style.height = '80px';
-        grassBand.style.background = 'linear-gradient(to top, #228B22, #32CD32, #7CFC00)';
-        grassBand.style.zIndex = '1';
-        grassBand.style.borderTop = '3px solid #006400';
+        // Apply all the grass band styles directly
+        grassBand.style.cssText = `
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(to top, #228B22, #32CD32, #7CFC00);
+            z-index: 1;
+            border-top: 3px solid #006400;
+        `;
         
-        // Add to body
-        document.body.appendChild(grassBand);
-        console.log('Grass band created');
+        // Create the grass texture pseudo-element effect
+        const grassTexture = document.createElement('div');
+        grassTexture.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 10px,
+                rgba(0, 100, 0, 0.3) 10px,
+                rgba(0, 100, 0, 0.3) 15px
+            );
+        `;
+        
+        grassBand.appendChild(grassTexture);
+        
+        // Add to body as first element to ensure it's behind everything
+        document.body.insertBefore(grassBand, document.body.firstChild);
+        console.log('Grass band created and added to body');
     }
 
     initializeRainbowSize() {
@@ -533,8 +554,8 @@ class TraceGameController {
         const string = this.createBalloonString(balloon);
         balloonGroup.appendChild(string);
         
-        // Create LARGER balloon circle
-        const balloonRadius = 40; // Increased from 35 to 40
+        // Create EVEN LARGER balloon circle
+        const balloonRadius = 45; // Increased from 40 to 45
         const balloonCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         balloonCircle.setAttribute('cx', balloon.x + balloonRadius);
         balloonCircle.setAttribute('cy', balloon.y + balloonRadius);
@@ -546,27 +567,27 @@ class TraceGameController {
         
         // Add balloon highlight for 3D effect
         const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        highlight.setAttribute('cx', balloon.x + balloonRadius - 12);
-        highlight.setAttribute('cy', balloon.y + balloonRadius - 12);
-        highlight.setAttribute('r', 10); // Slightly larger highlight
+        highlight.setAttribute('cx', balloon.x + balloonRadius - 14);
+        highlight.setAttribute('cy', balloon.y + balloonRadius - 14);
+        highlight.setAttribute('r', 12); // Larger highlight for bigger balloon
         highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.6)');
         highlight.setAttribute('class', 'balloon-highlight');
         
         balloonGroup.appendChild(balloonCircle);
         balloonGroup.appendChild(highlight);
         
-        // Create LARGER number text with ONLY word version (no digit)
+        // Create EVEN LARGER number text with ONLY word version (no digit)
         const numberWord = numberWords[number];
         const numberText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         numberText.setAttribute('x', balloon.x + balloonRadius);
         numberText.setAttribute('y', balloon.y + balloonRadius + 2); // Centered in balloon
         numberText.setAttribute('text-anchor', 'middle');
         numberText.setAttribute('dominant-baseline', 'middle');
-        numberText.setAttribute('font-size', '18'); // Increased from 16 to 18
+        numberText.setAttribute('font-size', '20'); // Increased from 18 to 20
         numberText.setAttribute('font-weight', 'bold');
         numberText.setAttribute('fill', 'white');
         numberText.setAttribute('stroke', '#333');
-        numberText.setAttribute('stroke-width', '1');
+        numberText.setAttribute('stroke-width', '1.2');
         numberText.setAttribute('class', 'balloon-number-word');
         numberText.textContent = numberWord;
         
@@ -592,45 +613,34 @@ class TraceGameController {
     }
 
     createBalloonString(balloon) {
-        const balloonRadius = 40; // Updated for larger balloons
-        const stringLength = 90; // Longer string
+        const balloonRadius = 45; // Updated for larger balloons
+        const stringLength = 100; // Longer string for larger balloons
         
-        // Create curved string path - REVERTED to more curly strings without swaying
-        const string = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        // Create SIMPLE straight line string - no curves to prevent swaying
+        const string = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         
         // String starts at bottom of balloon
         const startX = balloon.x + balloonRadius;
         const startY = balloon.y + balloonRadius * 2; // Bottom of balloon
         
-        // String ends below balloon with MORE curve variation for curlier look
-        const endX = startX + (Math.random() - 0.5) * 25; // More horizontal offset
+        // String ends directly below balloon - NO horizontal offset
+        const endX = startX; // Same X position - straight down
         const endY = startY + stringLength;
         
-        // Control points with MORE variation for curlier strings
-        const controlX1 = startX + (Math.random() - 0.5) * 20; // More curve
-        const controlY1 = startY + stringLength * 0.25;
-        const controlX2 = endX + (Math.random() - 0.5) * 20; // More curve
-        const controlY2 = startY + stringLength * 0.75;
-        
-        // Create curved path
-        const pathData = `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
-        
-        string.setAttribute('d', pathData);
+        // Set line attributes
+        string.setAttribute('x1', startX);
+        string.setAttribute('y1', startY);
+        string.setAttribute('x2', endX);
+        string.setAttribute('y2', endY);
         string.setAttribute('stroke', '#8B4513'); // Brown string
-        string.setAttribute('stroke-width', 2);
-        string.setAttribute('fill', 'none');
-        string.setAttribute('class', 'balloon-string');
-        // REMOVED the swaying animation class
+        string.setAttribute('stroke-width', 3); // Slightly thicker for larger balloons
+        string.setAttribute('class', 'balloon-string-static'); // Different class to avoid CSS animations
         
-        // Store ABSOLUTE positions for proper tracking (not relative)
+        // Store SIMPLE positions - just start and end points
         balloon.stringStartX = startX;
         balloon.stringStartY = startY;
         balloon.stringEndX = endX;
         balloon.stringEndY = endY;
-        balloon.stringControlX1 = controlX1;
-        balloon.stringControlY1 = controlY1;
-        balloon.stringControlX2 = controlX2;
-        balloon.stringControlY2 = controlY2;
         
         return string;
     }
@@ -721,7 +731,8 @@ class TraceGameController {
         const fallingSpeed = 90; // pixels per second
         
         const fallingNumber = {
-            x: x, // Fixed X position - no horizontal movement
+            x: x, // FIXED X position - this never changes
+            startX: x, // Store the original X position
             y: y,
             targetY: groundLevel - 40,
             number: number,
@@ -732,7 +743,7 @@ class TraceGameController {
         
         // Create large number element (digit version for falling)
         const numberElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        numberElement.setAttribute('x', fallingNumber.x);
+        numberElement.setAttribute('x', fallingNumber.startX); // Use startX which never changes
         numberElement.setAttribute('y', fallingNumber.y);
         numberElement.setAttribute('text-anchor', 'middle');
         numberElement.setAttribute('dominant-baseline', 'middle');
@@ -741,14 +752,14 @@ class TraceGameController {
         numberElement.setAttribute('fill', CONFIG.FILL_COLOR);
         numberElement.setAttribute('stroke', 'white');
         numberElement.setAttribute('stroke-width', 2);
-        numberElement.setAttribute('class', 'falling-number');
+        numberElement.setAttribute('class', 'falling-number-static'); // Different class to avoid animations
         numberElement.textContent = number; // Show digit for falling number
         
         fallingNumber.element = numberElement;
         this.fallingNumbers.push(fallingNumber);
         this.renderer.svg.appendChild(numberElement);
         
-        console.log(`Created falling number ${number} at (${x}, ${y}) with speed ${fallingSpeed}`);
+        console.log(`Created falling number ${number} at FIXED position (${fallingNumber.startX}, ${y}) with speed ${fallingSpeed}`);
         
         return fallingNumber;
     }
@@ -796,28 +807,21 @@ class TraceGameController {
                     balloon.textWord.setAttribute('y', balloon.y + balloon.radius + 2);
                 }
                 
-                // Update string - FIXED attachment using absolute positioning
+                // Update string - SIMPLE line attachment
                 if (balloon.string) {
                     // Calculate current balloon bottom position
                     const currentStartX = balloon.x + balloon.radius;
                     const currentStartY = balloon.y + balloon.radius * 2;
                     
-                    // Calculate movement delta
-                    const deltaX = currentStartX - balloon.stringStartX;
-                    const deltaY = currentStartY - balloon.stringStartY;
+                    // String hangs straight down from bottom of balloon
+                    const currentEndX = currentStartX; // Same X - straight down
+                    const currentEndY = currentStartY + 100; // String length
                     
-                    // Update all string points by the same delta
-                    const newStartX = currentStartX;
-                    const newStartY = currentStartY;
-                    const newEndX = balloon.stringEndX + deltaX;
-                    const newEndY = balloon.stringEndY + deltaY;
-                    const newControlX1 = balloon.stringControlX1 + deltaX;
-                    const newControlY1 = balloon.stringControlY1 + deltaY;
-                    const newControlX2 = balloon.stringControlX2 + deltaX;
-                    const newControlY2 = balloon.stringControlY2 + deltaY;
-                    
-                    const pathData = `M ${newStartX} ${newStartY} C ${newControlX1} ${newControlY1}, ${newControlX2} ${newControlY2}, ${newEndX} ${newEndY}`;
-                    balloon.string.setAttribute('d', pathData);
+                    // Update line positions
+                    balloon.string.setAttribute('x1', currentStartX);
+                    balloon.string.setAttribute('y1', currentStartY);
+                    balloon.string.setAttribute('x2', currentEndX);
+                    balloon.string.setAttribute('y2', currentEndY);
                 }
                 
                 // Check if balloon reached top of screen
@@ -830,10 +834,10 @@ class TraceGameController {
             }
         });
         
-        // Update falling numbers - FIXED straight vertical fall only
+        // Update falling numbers - ABSOLUTELY STRAIGHT vertical fall
         this.fallingNumbers.forEach(fallingNumber => {
             if (!fallingNumber.landed) {
-                // Move number down (Y increases) - X position NEVER changes
+                // ONLY update Y position - X position is NEVER modified
                 fallingNumber.y += fallingNumber.speed * deltaTime;
                 
                 // Check if reached ground
@@ -842,10 +846,10 @@ class TraceGameController {
                     fallingNumber.landed = true;
                 }
                 
-                // Update ONLY Y position - X stays exactly the same
+                // Update ONLY Y position - X position remains at startX forever
                 if (fallingNumber.element) {
                     fallingNumber.element.setAttribute('y', fallingNumber.y);
-                    // DO NOT update X position - it should remain constant
+                    // NEVER update X position - it stays at the original startX value
                 }
             }
         });
