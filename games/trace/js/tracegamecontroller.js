@@ -356,7 +356,7 @@ class TraceGameController {
 
     createBalloons() {
         const balloonCount = 12;
-        const balloonWidth = 80;
+        const balloonWidth = 100; // Increased for larger balloons
         
         // Generate non-overlapping positions
         const positions = this.generateNonOverlappingPositions(balloonCount, balloonWidth);
@@ -388,7 +388,47 @@ class TraceGameController {
         console.log(`Created ${balloonCount} balloons with ${this.totalCorrectBalloons} correct numbers`);
     }
 
-    generateNonOverlappingPositions(count, width) {
+    createBalloonString(balloon) {
+        const balloonRadius = 35;
+        const stringLength = 60;
+        
+        // Create curved string path
+        const string = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        
+        // String starts at bottom of balloon
+        const startX = balloon.x + balloonRadius;
+        const startY = balloon.y + balloonRadius * 2; // Bottom of balloon
+        
+        // String ends below balloon with slight curve
+        const endX = startX + (Math.random() - 0.5) * 20; // Slight horizontal offset
+        const endY = startY + stringLength;
+        
+        // Control points for curved string
+        const controlX1 = startX + (Math.random() - 0.5) * 15;
+        const controlY1 = startY + stringLength * 0.3;
+        const controlX2 = endX + (Math.random() - 0.5) * 15;
+        const controlY2 = startY + stringLength * 0.7;
+        
+        // Create curved path
+        const pathData = `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
+        
+        string.setAttribute('d', pathData);
+        string.setAttribute('stroke', '#8B4513'); // Brown string
+        string.setAttribute('stroke-width', 2);
+        string.setAttribute('fill', 'none');
+        string.setAttribute('class', 'balloon-string');
+        
+        // Store string properties for animation
+        balloon.stringEndX = endX;
+        balloon.stringEndY = endY;
+        balloon.stringControlX1 = controlX1;
+        balloon.stringControlY1 = controlY1;
+        balloon.stringControlX2 = controlX2;
+        balloon.stringControlY2 = controlY2;
+        balloon.initialY = balloon.y; // Store initial position for relative calculations
+        
+        return string;
+    }
         const positions = [];
         const margin = 20;
         const totalWidth = width + margin;
@@ -423,14 +463,29 @@ class TraceGameController {
     createBalloon(x, number) {
         const isCorrectNumber = number === this.currentNumber;
         const riseSpeed = 40 + Math.random() * 20; // 40-60 pixels per second
+        const groundLevel = CONFIG.SVG_HEIGHT - 80;
+        
+        // Rainbow colors for balloons
+        const balloonColors = [
+            '#FF0000', '#FF8000', '#FFFF00', '#80FF00', '#00FF00',
+            '#00FF80', '#00FFFF', '#0080FF', '#0000FF', '#8000FF'
+        ];
+        const balloonColor = balloonColors[Math.floor(Math.random() * balloonColors.length)];
+        
+        // Number words
+        const numberWords = {
+            0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four',
+            5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine'
+        };
         
         const balloon = {
             x: x,
-            y: CONFIG.SVG_HEIGHT + 50, // Start below screen
+            y: groundLevel - 80, // Start just above ground (not below screen)
             number: number,
             isCorrect: isCorrectNumber,
             riseSpeed: riseSpeed,
             popped: false,
+            color: balloonColor,
             group: null
         };
         
@@ -439,40 +494,63 @@ class TraceGameController {
         balloonGroup.setAttribute('class', 'balloon-group');
         balloonGroup.style.cursor = 'pointer';
         
-        // Create balloon string FIRST (so it appears behind balloon)
-        const string = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        string.setAttribute('x1', balloon.x + 25);
-        string.setAttribute('y1', balloon.y + 50);
-        string.setAttribute('x2', balloon.x + 25);
-        string.setAttribute('y2', balloon.y + 120);
-        string.setAttribute('stroke', '#8B4513');
-        string.setAttribute('stroke-width', 2);
-        string.setAttribute('class', 'balloon-string');
+        // Create balloon string FIRST (curved and properly connected)
+        const string = this.createBalloonString(balloon);
         balloonGroup.appendChild(string);
         
-        // Create balloon circle
+        // Create larger balloon circle
+        const balloonRadius = 35; // Increased from 25 to 35
         const balloonCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        balloonCircle.setAttribute('cx', balloon.x + 25);
-        balloonCircle.setAttribute('cy', balloon.y + 25);
-        balloonCircle.setAttribute('r', 25);
-        balloonCircle.setAttribute('fill', isCorrectNumber ? '#FF6B6B' : '#87CEEB');
+        balloonCircle.setAttribute('cx', balloon.x + balloonRadius);
+        balloonCircle.setAttribute('cy', balloon.y + balloonRadius);
+        balloonCircle.setAttribute('r', balloonRadius);
+        balloonCircle.setAttribute('fill', balloonColor);
         balloonCircle.setAttribute('stroke', '#333');
         balloonCircle.setAttribute('stroke-width', 2);
         balloonCircle.setAttribute('class', 'balloon-circle');
-        balloonGroup.appendChild(balloonCircle);
         
-        // Create number text on balloon
+        // Add balloon highlight for 3D effect
+        const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        highlight.setAttribute('cx', balloon.x + balloonRadius - 10);
+        highlight.setAttribute('cy', balloon.y + balloonRadius - 10);
+        highlight.setAttribute('r', 8);
+        highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.6)');
+        highlight.setAttribute('class', 'balloon-highlight');
+        
+        balloonGroup.appendChild(balloonCircle);
+        balloonGroup.appendChild(highlight);
+        
+        // Create number text with word version
+        const numberWord = numberWords[number];
         const numberText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        numberText.setAttribute('x', balloon.x + 25);
-        numberText.setAttribute('y', balloon.y + 32);
+        numberText.setAttribute('x', balloon.x + balloonRadius);
+        numberText.setAttribute('y', balloon.y + balloonRadius - 5);
         numberText.setAttribute('text-anchor', 'middle');
         numberText.setAttribute('dominant-baseline', 'middle');
-        numberText.setAttribute('font-size', '20');
+        numberText.setAttribute('font-size', '14'); // Smaller font for word
         numberText.setAttribute('font-weight', 'bold');
         numberText.setAttribute('fill', 'white');
-        numberText.setAttribute('class', 'balloon-number');
-        numberText.textContent = number;
+        numberText.setAttribute('stroke', '#333');
+        numberText.setAttribute('stroke-width', '0.5');
+        numberText.setAttribute('class', 'balloon-number-word');
+        numberText.textContent = numberWord;
+        
+        // Create numeric digit below the word
+        const numberDigit = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        numberDigit.setAttribute('x', balloon.x + balloonRadius);
+        numberDigit.setAttribute('y', balloon.y + balloonRadius + 12);
+        numberDigit.setAttribute('text-anchor', 'middle');
+        numberDigit.setAttribute('dominant-baseline', 'middle');
+        numberDigit.setAttribute('font-size', '20'); // Larger font for digit
+        numberDigit.setAttribute('font-weight', 'bold');
+        numberDigit.setAttribute('fill', 'white');
+        numberDigit.setAttribute('stroke', '#333');
+        numberDigit.setAttribute('stroke-width', '1');
+        numberDigit.setAttribute('class', 'balloon-number-digit');
+        numberDigit.textContent = number;
+        
         balloonGroup.appendChild(numberText);
+        balloonGroup.appendChild(numberDigit);
         
         // Add click handler
         balloonGroup.addEventListener('click', () => this.popBalloon(balloon));
@@ -484,7 +562,10 @@ class TraceGameController {
         balloon.group = balloonGroup;
         balloon.string = string;
         balloon.circle = balloonCircle;
-        balloon.text = numberText;
+        balloon.highlight = highlight;
+        balloon.textWord = numberText;
+        balloon.textDigit = numberDigit;
+        balloon.radius = balloonRadius;
         
         this.renderer.svg.appendChild(balloonGroup);
         
@@ -619,14 +700,36 @@ class TraceGameController {
                 
                 // Update balloon position
                 if (balloon.circle) {
-                    balloon.circle.setAttribute('cy', balloon.y + 25);
+                    balloon.circle.setAttribute('cy', balloon.y + balloon.radius);
                 }
-                if (balloon.text) {
-                    balloon.text.setAttribute('y', balloon.y + 32);
+                if (balloon.highlight) {
+                    balloon.highlight.setAttribute('cy', balloon.y + balloon.radius - 10);
                 }
+                if (balloon.textWord) {
+                    balloon.textWord.setAttribute('y', balloon.y + balloon.radius - 5);
+                }
+                if (balloon.textDigit) {
+                    balloon.textDigit.setAttribute('y', balloon.y + balloon.radius + 12);
+                }
+                
+                // Update string - FIXED: String stays connected to bottom of balloon
                 if (balloon.string) {
-                    balloon.string.setAttribute('y1', balloon.y + 50);
-                    balloon.string.setAttribute('y2', balloon.y + 120);
+                    const startX = balloon.x + balloon.radius;
+                    const startY = balloon.y + balloon.radius * 2; // Bottom of balloon
+                    
+                    // Calculate how much the balloon has moved from initial position
+                    const deltaY = balloon.y - balloon.initialY;
+                    
+                    // String end and control points move with balloon
+                    const endX = balloon.stringEndX;
+                    const endY = balloon.stringEndY + deltaY;
+                    const controlX1 = balloon.stringControlX1;
+                    const controlY1 = balloon.stringControlY1 + deltaY;
+                    const controlX2 = balloon.stringControlX2;
+                    const controlY2 = balloon.stringControlY2 + deltaY;
+                    
+                    const pathData = `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
+                    balloon.string.setAttribute('d', pathData);
                 }
                 
                 // Check if balloon reached top of screen
