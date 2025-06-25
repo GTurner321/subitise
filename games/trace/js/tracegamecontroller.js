@@ -379,7 +379,7 @@ class TraceGameController {
         // Shuffle the numbers array
         this.shuffleArray(numbers);
         
-        // Create balloons
+        // Create balloons with random starting heights
         for (let i = 0; i < balloonCount; i++) {
             const balloon = this.createBalloon(positions[i], numbers[i]);
             this.balloons.push(balloon);
@@ -422,8 +422,13 @@ class TraceGameController {
 
     createBalloon(x, number) {
         const isCorrectNumber = number === this.currentNumber;
-        const riseSpeed = 40 + Math.random() * 20; // 40-60 pixels per second
+        const riseSpeed = 20 + Math.random() * 20; // Slower: 20-40 pixels per second
         const groundLevel = CONFIG.SVG_HEIGHT - 80;
+        
+        // Random starting height in lower half of game area
+        const gameAreaHeight = CONFIG.SVG_HEIGHT - 80; // Total game area minus grass
+        const lowerHalfStart = gameAreaHeight * 0.5; // Start of lower half
+        const randomStartHeight = lowerHalfStart + Math.random() * (gameAreaHeight * 0.3); // Random within lower portion
         
         // Rainbow colors for balloons
         const balloonColors = [
@@ -440,7 +445,7 @@ class TraceGameController {
         
         const balloon = {
             x: x,
-            y: groundLevel - 80, // Start just above ground (not below screen)
+            y: randomStartHeight, // Random starting height in lower half
             number: number,
             isCorrect: isCorrectNumber,
             riseSpeed: riseSpeed,
@@ -480,37 +485,22 @@ class TraceGameController {
         balloonGroup.appendChild(balloonCircle);
         balloonGroup.appendChild(highlight);
         
-        // Create number text with word version
+        // Create number text with ONLY word version (no digit)
         const numberWord = numberWords[number];
         const numberText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         numberText.setAttribute('x', balloon.x + balloonRadius);
-        numberText.setAttribute('y', balloon.y + balloonRadius - 5);
+        numberText.setAttribute('y', balloon.y + balloonRadius + 2); // Centered in balloon
         numberText.setAttribute('text-anchor', 'middle');
         numberText.setAttribute('dominant-baseline', 'middle');
-        numberText.setAttribute('font-size', '14'); // Smaller font for word
+        numberText.setAttribute('font-size', '16'); // Slightly larger since it's the only text
         numberText.setAttribute('font-weight', 'bold');
         numberText.setAttribute('fill', 'white');
         numberText.setAttribute('stroke', '#333');
-        numberText.setAttribute('stroke-width', '0.5');
+        numberText.setAttribute('stroke-width', '0.8');
         numberText.setAttribute('class', 'balloon-number-word');
         numberText.textContent = numberWord;
         
-        // Create numeric digit below the word
-        const numberDigit = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        numberDigit.setAttribute('x', balloon.x + balloonRadius);
-        numberDigit.setAttribute('y', balloon.y + balloonRadius + 12);
-        numberDigit.setAttribute('text-anchor', 'middle');
-        numberDigit.setAttribute('dominant-baseline', 'middle');
-        numberDigit.setAttribute('font-size', '20'); // Larger font for digit
-        numberDigit.setAttribute('font-weight', 'bold');
-        numberDigit.setAttribute('fill', 'white');
-        numberDigit.setAttribute('stroke', '#333');
-        numberDigit.setAttribute('stroke-width', '1');
-        numberDigit.setAttribute('class', 'balloon-number-digit');
-        numberDigit.textContent = number;
-        
         balloonGroup.appendChild(numberText);
-        balloonGroup.appendChild(numberDigit);
         
         // Add click handler
         balloonGroup.addEventListener('click', () => this.popBalloon(balloon));
@@ -524,7 +514,6 @@ class TraceGameController {
         balloon.circle = balloonCircle;
         balloon.highlight = highlight;
         balloon.textWord = numberText;
-        balloon.textDigit = numberDigit;
         balloon.radius = balloonRadius;
         
         this.renderer.svg.appendChild(balloonGroup);
@@ -534,14 +523,14 @@ class TraceGameController {
 
     createBalloonString(balloon) {
         const balloonRadius = 35;
-        const stringLength = 60;
+        const stringLength = 80; // Longer string
         
         // Create curved string path
         const string = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         
-        // String starts at bottom of balloon
+        // String starts HIGHER UP on the balloon (so end is hidden by balloon)
         const startX = balloon.x + balloonRadius;
-        const startY = balloon.y + balloonRadius * 2; // Bottom of balloon
+        const startY = balloon.y + balloonRadius * 1.7; // Higher attachment point
         
         // String ends below balloon with slight curve
         const endX = startX + (Math.random() - 0.5) * 20; // Slight horizontal offset
@@ -563,6 +552,7 @@ class TraceGameController {
         string.setAttribute('class', 'balloon-string');
         
         // Store string properties for animation
+        balloon.stringStartY = startY; // Store the relative start position
         balloon.stringEndX = endX;
         balloon.stringEndY = endY;
         balloon.stringControlX1 = controlX1;
@@ -655,17 +645,21 @@ class TraceGameController {
     createFallingNumber(x, y, number) {
         const groundLevel = CONFIG.SVG_HEIGHT - 80;
         
+        // Calculate falling speed: 3x average balloon speed
+        // Average balloon speed is (20 + 40) / 2 = 30, so falling speed = 90
+        const fallingSpeed = 90; // pixels per second
+        
         const fallingNumber = {
-            x: x,
+            x: x, // Fixed X position - no horizontal movement
             y: y,
             targetY: groundLevel - 40,
             number: number,
-            speed: 100, // pixels per second
+            speed: fallingSpeed,
             element: null,
             landed: false
         };
         
-        // Create large number element
+        // Create large number element (digit version for falling)
         const numberElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         numberElement.setAttribute('x', fallingNumber.x);
         numberElement.setAttribute('y', fallingNumber.y);
@@ -677,13 +671,13 @@ class TraceGameController {
         numberElement.setAttribute('stroke', 'white');
         numberElement.setAttribute('stroke-width', 2);
         numberElement.setAttribute('class', 'falling-number');
-        numberElement.textContent = number;
+        numberElement.textContent = number; // Show digit for falling number
         
         fallingNumber.element = numberElement;
         this.fallingNumbers.push(fallingNumber);
         this.renderer.svg.appendChild(numberElement);
         
-        console.log(`Created falling number ${number} at (${x}, ${y})`);
+        console.log(`Created falling number ${number} at (${x}, ${y}) with speed ${fallingSpeed}`);
         
         return fallingNumber;
     }
@@ -708,16 +702,13 @@ class TraceGameController {
                     balloon.highlight.setAttribute('cy', balloon.y + balloon.radius - 10);
                 }
                 if (balloon.textWord) {
-                    balloon.textWord.setAttribute('y', balloon.y + balloon.radius - 5);
-                }
-                if (balloon.textDigit) {
-                    balloon.textDigit.setAttribute('y', balloon.y + balloon.radius + 12);
+                    balloon.textWord.setAttribute('y', balloon.y + balloon.radius + 2);
                 }
                 
-                // Update string - FIXED: String stays connected to bottom of balloon
+                // Update string - String stays connected and hidden by balloon
                 if (balloon.string) {
                     const startX = balloon.x + balloon.radius;
-                    const startY = balloon.y + balloon.radius * 2; // Bottom of balloon
+                    const startY = balloon.y + balloon.radius * 1.7; // Higher attachment point
                     
                     // Calculate how much the balloon has moved from initial position
                     const deltaY = balloon.y - balloon.initialY;
@@ -744,10 +735,10 @@ class TraceGameController {
             }
         });
         
-        // Update falling numbers
+        // Update falling numbers - straight vertical fall only
         this.fallingNumbers.forEach(fallingNumber => {
             if (!fallingNumber.landed) {
-                // Move number down
+                // Move number down (Y increases)
                 fallingNumber.y += fallingNumber.speed * deltaTime;
                 
                 // Check if reached ground
@@ -756,9 +747,10 @@ class TraceGameController {
                     fallingNumber.landed = true;
                 }
                 
-                // Update element position
+                // Update element position - X stays fixed, only Y changes
                 if (fallingNumber.element) {
                     fallingNumber.element.setAttribute('y', fallingNumber.y);
+                    // X position stays constant - no setAttribute('x') needed
                 }
             }
         });
@@ -981,11 +973,11 @@ class TraceGameController {
                 
                 // Adjust pitch and rate for more child-like sound
                 if (preferredGender === 'boy') {
-                    utterance.pitch = 1.2; // Higher than adult male but not as high as girl
-                    utterance.rate = 0.9;
+                    utterance.pitch = 1.6; // Much higher pitch for boy voice
+                    utterance.rate = 1.0; // Normal rate
                 } else if (preferredGender === 'girl') {
-                    utterance.pitch = 1.4; // Higher pitch for girl voice
-                    utterance.rate = 0.9;
+                    utterance.pitch = 1.8; // Even higher pitch for girl voice
+                    utterance.rate = 1.0; // Normal rate
                 }
                 
                 speechSynthesis.speak(utterance);
