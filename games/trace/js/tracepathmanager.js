@@ -195,22 +195,45 @@ class TracePathManager {
         console.log('Drag ended - finger lifted');
         this.isDragging = false;
         
-        // SHOW the real slider again at the current coordinate position
-        if (this.slider) {
-            const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-            if (currentCoord) {
-                // Update slider position
-                this.slider.setAttribute('cx', currentCoord.x);
-                this.slider.setAttribute('cy', currentCoord.y);
-                this.slider.style.opacity = '1';
-                this.addSliderPulseAnimation();
+        // Delay showing the real slider by 500ms to avoid jarring catch-up movement
+        setTimeout(() => {
+            // Only proceed if we haven't started dragging again
+            if (!this.isDragging && this.slider) {
+                const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
+                if (currentCoord) {
+                    // Update slider position (while still invisible)
+                    this.slider.setAttribute('cx', currentCoord.x);
+                    this.slider.setAttribute('cy', currentCoord.y);
+                    
+                    // Fade in over 250ms
+                    this.slider.style.transition = 'opacity 0.25s ease-in';
+                    this.slider.style.opacity = '1';
+                    
+                    // Add pulsing animation after fade completes
+                    setTimeout(() => {
+                        if (!this.isDragging) { // Double-check we're still not dragging
+                            this.addSliderPulseAnimation();
+                        }
+                    }, 250);
+                    
+                    // Reset transition after animation completes
+                    setTimeout(() => {
+                        if (this.slider) {
+                            this.slider.style.transition = '';
+                        }
+                    }, 300);
+                }
             }
-        }
+        }, 500); // Half second delay
         
-        // REMOVE the front marker
-        this.removeFrontMarker();
+        // REMOVE the front marker immediately (but keep it visible until slider fades in)
+        setTimeout(() => {
+            if (!this.isDragging) { // Only remove if we haven't started dragging again
+                this.removeFrontMarker();
+            }
+        }, 500); // Remove at same time as slider appears
         
-        console.log('🔴 Real slider restored at coordinate position, 🔴 front marker removed');
+        console.log('🔴 Real slider will fade in after 500ms delay, 🔴 front marker will be removed then');
     }
 
     getEventPoint(event) {
