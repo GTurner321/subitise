@@ -540,7 +540,7 @@ class TraceGameController {
         numberText.setAttribute('y', balloon.y + balloonRadius + 2); // Centered in balloon
         numberText.setAttribute('text-anchor', 'middle');
         numberText.setAttribute('dominant-baseline', 'middle');
-        numberText.setAttribute('font-size', '20'); // Increased from 18 to 20
+        numberText.setAttribute('font-size', '22'); // Increased from 20 to 22
         numberText.setAttribute('font-weight', 'bold');
         numberText.setAttribute('fill', 'white');
         numberText.setAttribute('stroke', '#333');
