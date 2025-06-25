@@ -1,11 +1,12 @@
+// Fixed traceconfig.js - Generate NUMBER_PATHS from STROKE_DEFINITIONS
 const CONFIG = {
     NUMBERS_TO_COMPLETE: 10,
     RAINBOW_PIECES: 10,
     
     SLIDER_SIZE: 40,
-    PATH_TOLERANCE: 50, // Increased for easier dragging
-    SLIDER_DRAG_TOLERANCE: 100, // Increased for easier finger tracking
-    MAX_SLIDER_SPEED: 1000, // Removed speed limit - much faster
+    PATH_TOLERANCE: 50,
+    SLIDER_DRAG_TOLERANCE: 100,
+    MAX_SLIDER_SPEED: 1000,
     FILL_COLOR: '#4CAF50',
     OUTLINE_COLOR: '#2C2C2C',
     SLIDER_COLOR: '#FF6B6B',
@@ -29,7 +30,7 @@ const CONFIG = {
         return window.innerWidth / 2;
     },
     get NUMBER_CENTER_Y() {
-        return (window.innerHeight - 80) / 2; // Centered in available space above grass
+        return (window.innerHeight - 80) / 2;
     },
     
     COMPLETION_DELAY: 2000,
@@ -326,5 +327,113 @@ const CONFIG = {
     
     NUMBERS_SEQUENCE: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
     DEBUG_MODE: false,
-    SHOW_START_POINTS: true
+    SHOW_START_POINTS: true,
+
+    // NEW: TRACE COLOR FOR PAINTING
+    TRACE_COLOR: '#4CAF50',
+    COMPLETE_COLOR: '#4CAF50'
 };
+
+// ==============================================
+// AUTO-GENERATE NUMBER_PATHS FROM COORDINATES
+// ==============================================
+
+/**
+ * Convert coordinate array to SVG path string
+ * @param {Array} coordinates - Array of {x, y} coordinate objects
+ * @param {Object} centerOffset - {x, y} offset to center the number
+ * @returns {string} SVG path string
+ */
+function coordinatesToSVGPath(coordinates, centerOffset = { x: 0, y: 0 }) {
+    if (!coordinates || coordinates.length === 0) return '';
+    
+    // Apply centering offset and start with Move command
+    const pathCommands = coordinates.map((coord, index) => {
+        const x = coord.x + centerOffset.x;
+        const y = coord.y + centerOffset.y;
+        
+        if (index === 0) {
+            return `M ${x} ${y}`;
+        } else {
+            return `L ${x} ${y}`;
+        }
+    });
+    
+    return pathCommands.join(' ');
+}
+
+/**
+ * Position numbers in the center of the screen
+ * @param {number} number - The number to position
+ * @returns {Object} Center offset for this number
+ */
+function getNumberCenterOffset(number) {
+    // Calculate center position based on screen size
+    const centerX = CONFIG.NUMBER_CENTER_X - 50; // Offset for number width
+    const centerY = CONFIG.NUMBER_CENTER_Y - 100; // Offset for number height
+    
+    return { x: centerX, y: centerY };
+}
+
+/**
+ * Generate NUMBER_PATHS automatically from STROKE_DEFINITIONS
+ */
+function generateNumberPaths() {
+    const numberPaths = {};
+    
+    Object.keys(CONFIG.STROKE_DEFINITIONS).forEach(numberKey => {
+        const number = parseInt(numberKey);
+        const definition = CONFIG.STROKE_DEFINITIONS[number];
+        
+        if (!definition || !definition.strokes) {
+            console.warn(`No stroke definition found for number ${number}`);
+            return;
+        }
+        
+        // Get centering offset for this number
+        const centerOffset = getNumberCenterOffset(number);
+        
+        // Convert each stroke to SVG path format
+        const strokes = definition.strokes.map((stroke, strokeIndex) => {
+            if (!stroke.coordinates || stroke.coordinates.length === 0) {
+                console.warn(`No coordinates found for number ${number}, stroke ${strokeIndex}`);
+                return null;
+            }
+            
+            return {
+                id: stroke.id || `stroke-${strokeIndex}`,
+                path: coordinatesToSVGPath(stroke.coordinates, centerOffset),
+                coordinates: stroke.coordinates.map(coord => ({
+                    x: coord.x + centerOffset.x,
+                    y: coord.y + centerOffset.y
+                })),
+                width: stroke.width || CONFIG.OUTLINE_WIDTH,
+                color: stroke.color || CONFIG.OUTLINE_COLOR,
+                description: stroke.description || `Stroke ${strokeIndex + 1} for number ${number}`,
+                startPoint: stroke.startPoint ? {
+                    x: stroke.startPoint.x + centerOffset.x,
+                    y: stroke.startPoint.y + centerOffset.y
+                } : null
+            };
+        }).filter(stroke => stroke !== null);
+        
+        if (strokes.length > 0) {
+            numberPaths[number] = { strokes };
+        }
+    });
+    
+    return numberPaths;
+}
+
+// Generate the NUMBER_PATHS automatically
+CONFIG.NUMBER_PATHS = generateNumberPaths();
+
+// Debug logging
+console.log('=== CONFIG PATHS GENERATED ===');
+console.log('NUMBER_PATHS created:', Object.keys(CONFIG.NUMBER_PATHS));
+console.log('Sample number 0 paths:', CONFIG.NUMBER_PATHS[0]);
+console.log('Sample number 1 paths:', CONFIG.NUMBER_PATHS[1]);
+console.log('==============================');
+
+// Make CONFIG available globally
+window.CONFIG = CONFIG;
