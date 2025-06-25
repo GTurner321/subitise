@@ -5,20 +5,23 @@ class TraceGameController {
         this.pathManager = null;
         this.rainbow = new Rainbow();
         this.bear = new Bear();
-        this.balloonGame = null; // Will be initialized after renderer
+        this.balloonGame = null;
         
-        // Game state
+        // MAIN GAME STATE - All controlled by this controller
         this.currentNumberIndex = 0;
         this.currentNumber = 0;
         this.numbersCompleted = 0;
         this.gameComplete = false;
         this.isProcessingCompletion = false;
-        this.playingBalloonGame = false; // New state for balloon mini-game
+        this.playingBalloonGame = false;
         
-        // Audio
+        // MAIN GAME PROGRESSION LOGIC
+        this.numbersSequence = [...CONFIG.NUMBERS_SEQUENCE];
+        this.currentVoiceGender = 'male'; // Start with male voice
+        
+        // Audio management
         this.audioContext = null;
         this.audioEnabled = CONFIG.AUDIO_ENABLED;
-        this.currentVoiceGender = 'male'; // Start with male voice
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
@@ -26,10 +29,7 @@ class TraceGameController {
         this.numberWordDisplay = document.getElementById('numberWord');
         this.traceContainer = document.getElementById('traceContainer');
         
-        // Game progression
-        this.numbersSequence = [...CONFIG.NUMBERS_SEQUENCE];
-        
-        // Bind resize handler
+        // Event handlers
         this.handleResize = this.handleResize.bind(this);
         this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
         
@@ -37,18 +37,18 @@ class TraceGameController {
     }
 
     async initializeGame() {
-        console.log('Initializing Enhanced Trace Game Controller...');
+        console.log('Initializing main game controller...');
         
         // Find DOM elements
         this.findDOMElements();
         
-        // Add window resize listener for full screen support
+        // Add window resize listener
         window.addEventListener('resize', this.handleResize);
         
-        // Initialize audio
+        // Initialize audio system
         await this.initializeAudio();
         
-        // Create renderer
+        // Create main renderer
         this.renderer = new TraceNumberRenderer();
         if (!this.renderer.initialize('traceContainer')) {
             console.error('Failed to initialize renderer');
@@ -58,25 +58,11 @@ class TraceGameController {
         // Create path manager
         this.pathManager = new TracePathManager(this.renderer.svg, this.renderer);
         
-        // Wait a moment for all classes to be available, then create balloon game
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait for dependencies to be ready
+        await this.waitForDependencies();
         
-        // Create balloon game with full screen support
-        try {
-            if (typeof BalloonGame !== 'undefined') {
-                this.balloonGame = new BalloonGame(this.renderer.svg, this.renderer);
-                console.log('BalloonGame successfully created');
-            } else if (typeof window.BalloonGame !== 'undefined') {
-                this.balloonGame = new window.BalloonGame(this.renderer.svg, this.renderer);
-                console.log('BalloonGame successfully created from window object');
-            } else {
-                console.warn('BalloonGame class not found, balloon mini-game will be disabled');
-                this.balloonGame = null;
-            }
-        } catch (error) {
-            console.error('Error creating BalloonGame:', error);
-            this.balloonGame = null;
-        }
+        // Initialize balloon mini-game component
+        this.initializeBalloonGame();
         
         // Set up event listeners
         this.setupEventListeners();
@@ -84,7 +70,73 @@ class TraceGameController {
         // Start the first number
         this.startNewNumber();
         
-        console.log('Enhanced game initialized successfully');
+        console.log('Main game controller initialized successfully');
+    }
+
+    async waitForDependencies() {
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            const checkDependencies = () => {
+                attempts++;
+                
+                if (typeof CONFIG === 'undefined') {
+                    console.warn('CONFIG not yet available, waiting...');
+                    if (attempts < maxAttempts) {
+                        requestAnimationFrame(checkDependencies);
+                        return;
+                    }
+                }
+                
+                if (!this.renderer || !this.renderer.svg) {
+                    console.warn('Renderer SVG not yet ready, waiting...');
+                    if (attempts < maxAttempts) {
+                        requestAnimationFrame(checkDependencies);
+                        return;
+                    }
+                }
+                
+                console.log('All dependencies ready');
+                resolve();
+            };
+            
+            setTimeout(checkDependencies, 100);
+        });
+    }
+
+    initializeBalloonGame() {
+        try {
+            // Find BalloonGame class
+            let BalloonGameClass = null;
+            
+            if (typeof BalloonGame !== 'undefined') {
+                BalloonGameClass = BalloonGame;
+            } else if (typeof window.BalloonGame !== 'undefined') {
+                BalloonGameClass = window.BalloonGame;
+            }
+            
+            if (BalloonGameClass && this.renderer && this.renderer.svg) {
+                this.balloonGame = new BalloonGameClass(this.renderer.svg, this.renderer);
+                console.log('Balloon mini-game component initialized');
+            } else {
+                throw new Error('BalloonGame class not found or renderer not ready');
+            }
+            
+        } catch (error) {
+            console.error('Error initializing balloon mini-game:', error);
+            console.warn('Balloon mini-game disabled');
+            
+            // Create dummy fallback
+            this.balloonGame = {
+                startGame: (number, callback) => {
+                    console.log('Dummy balloon game - immediate completion');
+                    setTimeout(callback, 1000);
+                },
+                cleanup: () => {},
+                reset: () => {}
+            };
+        }
     }
 
     findDOMElements() {
@@ -102,11 +154,10 @@ class TraceGameController {
         if (!this.audioEnabled) return;
         
         try {
-            // Initialize Web Audio Context for speech synthesis
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            console.log('Audio context initialized');
+            console.log('Audio system initialized');
         } catch (error) {
-            console.warn('Audio context initialization failed:', error);
+            console.warn('Audio initialization failed:', error);
             this.audioEnabled = false;
         }
     }
@@ -119,33 +170,29 @@ class TraceGameController {
             });
         }
         
-        // Set up renderer callbacks
+        // Renderer callbacks
         this.setupRendererCallbacks();
         
-        // Handle page visibility changes for better performance
+        // Page visibility changes
         document.addEventListener('visibilitychange', this.handleVisibilityChange);
         
-        // Keyboard support for testing
+        // Debug keyboard controls
         document.addEventListener('keydown', (e) => {
             if (CONFIG.DEBUG_MODE) {
                 if (e.key === ' ') {
-                    // Spacebar to skip to next number (debug)
                     e.preventDefault();
                     this.completeCurrentNumber();
                 }
                 if (e.key === 'r' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-                    // R key to restart current number
                     e.preventDefault();
                     this.startCurrentNumberOver();
                 }
-                // Number keys 0-9 to jump directly to that number
                 if (e.key >= '0' && e.key <= '9' && !e.ctrlKey && !e.altKey && !e.metaKey) {
                     e.preventDefault();
                     const targetNumber = parseInt(e.key);
                     this.skipToNumber(targetNumber);
                 }
                 if (e.key === 'd') {
-                    // D key to show debug coordinate points
                     e.preventDefault();
                     this.pathManager.showCoordinatePoints();
                 }
@@ -154,14 +201,12 @@ class TraceGameController {
     }
 
     setupRendererCallbacks() {
-        // Override renderer's completeNumber method to notify controller
         const originalCompleteNumber = this.renderer.completeNumber.bind(this.renderer);
         this.renderer.completeNumber = () => {
             originalCompleteNumber();
             this.handleNumberCompletion();
         };
         
-        // Override renderer's completeStroke to handle multi-stroke progression
         const originalCompleteStroke = this.renderer.completeStroke.bind(this.renderer);
         this.renderer.completeStroke = (strokeIndex) => {
             originalCompleteStroke(strokeIndex);
@@ -170,30 +215,21 @@ class TraceGameController {
     }
 
     handleResize() {
-        // Handle window resize to update game dimensions
         console.log('Window resized, updating game dimensions');
-        console.log(`New dimensions: ${CONFIG.SVG_WIDTH} x ${CONFIG.SVG_HEIGHT}`);
-        console.log(`New center: (${CONFIG.NUMBER_CENTER_X}, ${CONFIG.NUMBER_CENTER_Y})`);
         
-        // Update renderer SVG dimensions
         if (this.renderer && this.renderer.svg) {
             this.renderer.updateSVGDimensions();
         }
         
-        // If currently showing a number, re-render it with new dimensions
         if (this.renderer && this.currentNumber !== null) {
-            console.log(`Re-rendering number ${this.currentNumber} for new screen size`);
             this.renderer.renderNumber(this.currentNumber);
             
-            // Restart path manager for current stroke if needed
             if (this.pathManager && !this.playingBalloonGame) {
                 this.pathManager.startNewStroke(this.renderer.currentStroke);
             }
         }
         
-        // Update balloon game boundaries if active
         if (this.balloonGame && this.balloonGame.isActive) {
-            console.log('Updating balloon game boundaries for new screen size');
             this.balloonGame.gameRight = CONFIG.SVG_WIDTH - 50;
             this.balloonGame.gameBottom = CONFIG.SVG_HEIGHT - 100;
             this.balloonGame.gameLeft = 50;
@@ -201,16 +237,17 @@ class TraceGameController {
         }
     }
 
+    // MAIN GAME FLOW CONTROL
     startNewGame() {
-        console.log('Starting new enhanced game');
+        console.log('Starting new game');
         
-        // Reset game state
+        // Reset ALL game state
         this.currentNumberIndex = 0;
         this.numbersCompleted = 0;
         this.gameComplete = false;
         this.isProcessingCompletion = false;
         this.playingBalloonGame = false;
-        this.currentVoiceGender = 'male'; // Reset to male voice
+        this.currentVoiceGender = 'male';
         
         // Reset components
         this.rainbow.reset();
@@ -218,8 +255,7 @@ class TraceGameController {
         this.renderer.reset();
         this.pathManager.reset();
         
-        // Reset balloon game if it exists
-        if (this.balloonGame) {
+        if (this.balloonGame && typeof this.balloonGame.reset === 'function') {
             this.balloonGame.reset();
         }
         
@@ -228,7 +264,6 @@ class TraceGameController {
             this.modal.classList.add('hidden');
         }
         
-        // Clear number word display
         this.updateNumberWordDisplay('');
         
         // Start first number
@@ -243,9 +278,8 @@ class TraceGameController {
         
         this.currentNumber = this.numbersSequence[this.currentNumberIndex];
         console.log(`Starting number: ${this.currentNumber} (${this.currentNumberIndex + 1}/${this.numbersSequence.length})`);
-        console.log(`Using ${this.currentVoiceGender} voice for this number`);
+        console.log(`Using ${this.currentVoiceGender} voice`);
         
-        // Clear any existing number word
         this.updateNumberWordDisplay('');
         
         // Render the number
@@ -254,10 +288,10 @@ class TraceGameController {
             return;
         }
         
-        // Start path manager for first stroke
+        // Start tracing for first stroke
         this.pathManager.startNewStroke(0);
         
-        // Announce the number using current voice gender
+        // Announce the number
         if (this.audioEnabled) {
             this.speakText(`Trace the number ${this.currentNumber}`, this.currentVoiceGender);
         }
@@ -266,18 +300,14 @@ class TraceGameController {
     startCurrentNumberOver() {
         console.log('Restarting current number:', this.currentNumber);
         
-        // Reset renderer and path manager for current number
         this.renderer.renderNumber(this.currentNumber);
         this.pathManager.startNewStroke(0);
-        
-        // Clear number word display
         this.updateNumberWordDisplay('');
     }
 
     handleStrokeCompletion(strokeIndex) {
         console.log(`Stroke ${strokeIndex} completed for number ${this.currentNumber}`);
         
-        // Check if there are more strokes for this number
         const totalStrokes = this.renderer.getStrokeCount();
         
         if (strokeIndex + 1 < totalStrokes) {
@@ -300,13 +330,12 @@ class TraceGameController {
         const pieces = this.rainbow.addPiece();
         console.log(`Rainbow pieces: ${pieces}/${CONFIG.RAINBOW_PIECES}`);
         
-        // Instead of immediately showing number word and moving to next number,
-        // start the balloon mini-game
+        // Start the balloon mini-game instead of immediately moving to next number
         this.startBalloonMiniGame();
     }
 
     startBalloonMiniGame() {
-        console.log('Starting enhanced balloon mini-game for number:', this.currentNumber);
+        console.log('Starting balloon mini-game for number:', this.currentNumber);
         
         // Check if balloon game is available
         if (!this.balloonGame) {
@@ -330,7 +359,7 @@ class TraceGameController {
     }
 
     onBalloonGameComplete() {
-        console.log('Enhanced balloon mini-game completed for number:', this.currentNumber);
+        console.log('Balloon mini-game completed for number:', this.currentNumber);
         
         this.playingBalloonGame = false;
         
@@ -342,17 +371,17 @@ class TraceGameController {
             console.log('Rainbow completed! Starting end game sequence...');
             setTimeout(() => {
                 this.completeGame();
-            }, 1000); // Shorter delay since balloon game provided the interaction
+            }, 1000);
             return;
         }
         
-        // Switch voice gender for NEXT number (after current number is fully complete)
+        // Switch voice gender for NEXT number
         this.switchVoiceGender();
         
         // Move to next number after delay
         setTimeout(() => {
             this.moveToNextNumber();
-        }, 1000); // Shorter delay since balloon game was the main interaction
+        }, 1000);
     }
 
     switchVoiceGender() {
@@ -396,18 +425,17 @@ class TraceGameController {
         if (this.gameComplete) return;
         
         this.gameComplete = true;
-        console.log('Enhanced game completed! All numbers traced and rainbow complete.');
+        console.log('Game completed! All numbers traced and rainbow complete.');
         
         // Clean up current tracing
         this.pathManager.cleanup();
         
-        // The rainbow should already be in celebration mode from the final addPiece() call
-        // Now show the completion modal
+        // Show the completion modal
         if (this.modal) {
             this.modal.classList.remove('hidden');
         }
         
-        // Start bear celebration when modal opens - this matches your addition game pattern
+        // Start bear celebration when modal opens
         this.bear.startCelebration();
         
         // Speak completion message using current voice gender
@@ -577,14 +605,13 @@ class TraceGameController {
         // Remove event listeners
         window.removeEventListener('resize', this.handleResize);
         document.removeEventListener('visibilitychange', this.handleVisibilityChange);
-        document.removeEventListener('keydown', this.handleKeyDown);
         
         // Clean up components
         if (this.pathManager) {
             this.pathManager.cleanup();
         }
         
-        if (this.balloonGame) {
+        if (this.balloonGame && typeof this.balloonGame.cleanup === 'function') {
             this.balloonGame.cleanup();
         }
         
@@ -619,10 +646,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Initialize the enhanced game
+    // Initialize the game
     window.traceGame = new TraceGameController();
     
-    console.log('Enhanced trace game loaded and ready!');
+    console.log('Trace game loaded and ready!');
 });
 
 // Handle page unload
