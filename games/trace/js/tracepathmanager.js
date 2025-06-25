@@ -499,43 +499,54 @@ class TracePathManager {
         const currentCoord = this.currentStrokeCoords[coordIndex];
         const nextCoord = this.currentStrokeCoords[coordIndex + 1];
         
-        // Calculate exact slider position (this is always smooth and responsive)
+        // Calculate exact slider position (this is the SOURCE OF TRUTH)
         const sliderX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
         const sliderY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
         
-        // Update slider visual position immediately (this keeps it responsive)
+        // Update slider visual position immediately
         this.slider.setAttribute('cx', sliderX);
         this.slider.setAttribute('cy', sliderY);
         
-        console.log(`Slider positioned at (${sliderX.toFixed(1)}, ${sliderY.toFixed(1)}) on path segment ${coordIndex} + ${(progress * 100).toFixed(1)}%`);
+        console.log(`Red slider at segment ${coordIndex}, ${(progress * 100).toFixed(1)}% = (${sliderX.toFixed(1)}, ${sliderY.toFixed(1)})`);
         
-        // SMART COORDINATE INDEX PROGRESSION
-        // The key is to base the green trace on the RED SLIDER position
+        // CRITICAL FIX: Green trace coordinate index should NEVER exceed red slider position
+        // Calculate what coordinate index the green trace should fill up to
         let newCoordinateIndex = this.currentCoordinateIndex;
         
-        // Only advance coordinate index when slider is well into the next segment
         if (coordIndex > this.currentCoordinateIndex) {
-            // User has moved to next segment
-            if (progress >= 0.3) { // 30% into new segment before advancing trace
-                newCoordinateIndex = coordIndex;
+            // Red slider moved to a new segment ahead
+            if (progress >= 0.5) { // More conservative threshold
+                // Only advance green trace to the PREVIOUS completed segment
+                // Never let green trace go beyond where red slider currently is
+                newCoordinateIndex = coordIndex; // This is still the segment the slider is in
             }
         } else if (coordIndex === this.currentCoordinateIndex) {
-            // Still in current segment
-            if (progress >= 0.95) { // 95% rule - but applied correctly
+            // Red slider still in current segment
+            if (progress >= 0.95) { // 95% rule for current segment
                 // Advance to next coordinate when 95% through current segment
                 newCoordinateIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
             }
         }
         
-        // SYNCHRONIZED UPDATE: Green trace follows red slider state
+        // ADDITIONAL SAFETY CHECK: Green trace coordinate can never exceed red slider segment
+        newCoordinateIndex = Math.min(newCoordinateIndex, coordIndex);
+        
+        // If red slider is in the middle of a segment, green trace should only fill to previous complete segments
+        if (progress < 0.95 && coordIndex === newCoordinateIndex) {
+            // If slider is less than 95% through its current segment,
+            // green trace should only fill to the previous complete segment
+            newCoordinateIndex = Math.max(0, coordIndex - 1);
+        }
+        
+        // Update green trace only when coordinate index actually changes
         if (newCoordinateIndex !== this.currentCoordinateIndex) {
             const oldIndex = this.currentCoordinateIndex;
             this.currentCoordinateIndex = newCoordinateIndex;
             
-            // Update green trace to match red slider position
+            // Update green trace to match
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
             
-            console.log(`✅ Trace advanced from ${oldIndex} to ${this.currentCoordinateIndex} (slider at segment ${coordIndex}, ${(progress * 100).toFixed(1)}%)`);
+            console.log(`✅ Green trace: ${oldIndex} → ${this.currentCoordinateIndex} (red slider at segment ${coordIndex}, ${(progress * 100).toFixed(1)}%)`);
             
             this.updateDirectionArrow();
         }
