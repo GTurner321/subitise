@@ -4,19 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Number Tracing Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="styles/tracemain.css">
 </head>
 <body>
-    <!-- Back button -->
-    <a href="../index.html" class="back-button">
+    <!-- Back to games navigation -->
+    <a href="../../index.html" class="back-button">
         <i class="fas fa-arrow-left"></i>
         Back to Games
     </a>
+    
     <!-- Main game area -->
     <div class="game-area">
-        <!-- Tracing container -->
+        <!-- Rainbow background -->
+        <div class="rainbow-container" id="rainbowContainer">
+            <!-- Rainbow arcs will be added here by JavaScript -->
+        </div>
+        
+        <!-- Number tracing container -->
         <div class="trace-container" id="traceContainer">
-            <!-- SVG will be inserted here by the renderer -->
+            <!-- SVG will be created here by JavaScript -->
         </div>
         
         <!-- Number word display -->
@@ -24,65 +32,26 @@
             <div class="number-word" id="numberWord"></div>
         </div>
     </div>
-    <!-- Rainbow container -->
-    <div class="rainbow-container" id="rainbowContainer">
-        <!-- Rainbow will insert arcs here -->
-    </div>
-    <!-- Grass band -->
-    <div class="grass-band"></div>
+    
     <!-- Game completion modal -->
     <div class="modal hidden" id="gameModal">
         <div class="modal-content">
-            <h2>🎉 Fantastic!</h2>
-            <p>You've completed all the numbers!</p>
+            <h2>🌈 Amazing Work! 🌈</h2>
+            <p>You traced all the numbers!</p>
             <button class="play-again-btn" id="playAgainBtn">
                 <i class="fas fa-redo"></i>
-                Play Again
+                TRACE AGAIN
             </button>
         </div>
     </div>
-    <!-- Font Awesome for icons -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     
-    <!-- Load configuration and dependencies -->
+    <!-- JavaScript files -->
     <script src="js/traceconfig.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
-    <!-- TEMPORARY DEBUG - Check if CONFIG is working -->
-    <script>
-        console.log('=== CONFIG DEBUG ===');
-        console.log('CONFIG loaded:', typeof CONFIG);
-        console.log('NUMBER_PATHS available:', CONFIG?.NUMBER_PATHS ? 'YES' : 'NO');
-        if (CONFIG?.NUMBER_PATHS) {
-            console.log('Available numbers:', Object.keys(CONFIG.NUMBER_PATHS));
-            console.log('Sample number 0 data:', CONFIG.NUMBER_PATHS[0]);
-            console.log('Sample number 1 data:', CONFIG.NUMBER_PATHS[1]);
-        } else {
-            console.log('CONFIG.NUMBER_PATHS is missing!');
-        }
-        console.log('Raw CONFIG object:', CONFIG);
-        console.log('==================');
-    </script>
-    <!-- Load game classes -->
     <script src="js/tracenumberrenderer.js"></script>
     <script src="js/tracepathmanager.js"></script>
     <script src="js/balloongame.js"></script>
     <script src="js/tracegamecontroller.js"></script>
-    <!-- Initialize game -->
-    <script>
-        // Start the game with error handling for rainbow
-        try {
-            const gameController = new TraceGameController();
-            
-            // Try to initialize, but handle rainbow errors gracefully
-            gameController.initializeGame().catch(error => {
-                console.warn('Rainbow initialization failed, continuing without rainbow:', error);
-                // Continue game initialization without rainbow
-                console.log('Game running in paint-only mode');
-            });
-        } catch (error) {
-            console.error('Game controller creation failed:', error);
-        }
-    </script>
 </body>
 </html>
