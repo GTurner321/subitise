@@ -3,57 +3,57 @@ class TracePathManager {
         this.svg = svg;
         this.renderer = renderer;
         
-        // Slider elements - TWO separate systems
-        this.slider = null;              // Real interactive slider (becomes invisible during drag)
-        this.frontMarker = null;         // Fake red marker at front of green trace (visible during drag)
+        // Slider elements - dual system
+        this.slider = null;              // Real interactive slider
+        this.frontMarker = null;         // Front marker during drag
         
         // Tracking state
         this.isTracing = false;
         this.currentStroke = 0;
-        this.currentCoordinateIndex = 0; // Which coordinate point we're at (green trace position)
+        this.currentCoordinateIndex = 0;
         this.isDragging = false;
         
-        // Front marker tracking (separate from green trace)
+        // Front marker tracking
         this.frontMarkerCoordIndex = 0;
         this.frontMarkerProgress = 0;
         this.finalFrontMarkerCoordIndex = 0;
         this.finalFrontMarkerProgress = 0;
         
-        // Current stroke data
-        this.strokeCoordinates = [];
+        // Stroke data
         this.currentStrokeCoords = [];
+        this.strokeCompletionCoordIndex = 0;
+        this.strokeCompletionCoord = null;
         
         // Movement tracking
         this.lastMovementTime = Date.now();
         
-        // Stroke completion coordinates - based on actual traceconfig coordinates
-        // End points of each stroke per number
-this.strokeEndCoordinates = {
-    0: [[100, 100]], // Single stroke
-    1: [[50, 0]], // Single stroke
-    2: [[0, 0], [100, 0]], // Two strokes
-    3: [[35, 100], [0, 10]], // Two strokes
-    4: [[0, 80], [100, 80], [60, 0]], // Three strokes
-    5: [[100, 200], [0, 125], [0, 13]], // Three strokes
-    6: [[0, 60]], // Single stroke
-    7: [[100, 200], [40, 0]], // Two strokes
-    8: [[95, 152.5]], // Single stroke
-    9: [[100, 190], [80, 0]] // Two strokes
-};
-
-// Trigger points for completion (2 coordinates before end points)
-this.strokeCompletionTriggers = {
-    0: [[99, 80]], // 2 before {x: 100, y: 100}
-    1: [[50, 20]], // 2 before {x: 50, y: 0}
-    2: [[36, 48], [80, 0]], // 2 before {x: 0, y: 0} and {x: 100, y: 0}
-    3: [[70, 107], [2, 9]], // 2 before {x: 35, y: 100} and {x: 0, y: 10}
-    4: [[18, 152], [80, 80], [60, 30]], // 2 before each end point
-    5: [[80, 200], [0, 150], [2, 11]], // 2 before each end point
-    6: [[2, 77]], // 2 before {x: 0, y: 60}
-    7: [[80, 200], [50, 33]], // 2 before each end point
-    8: [[94, 142.5]], // 2 before {x: 95, y: 152.5}
-    9: [[98.9, 182], [83, 30]] // 2 before each end point
-};
+        // Stroke end coordinates - exact end points per stroke per number
+        this.strokeEndCoordinates = {
+            0: [[100, 100]], // Single stroke
+            1: [[50, 0]], // Single stroke
+            2: [[0, 0], [100, 0]], // Two strokes
+            3: [[35, 100], [0, 10]], // Two strokes
+            4: [[0, 80], [100, 80], [60, 0]], // Three strokes
+            5: [[100, 200], [0, 125], [0, 13]], // Three strokes
+            6: [[0, 60]], // Single stroke
+            7: [[100, 200], [40, 0]], // Two strokes
+            8: [[95, 152.5]], // Single stroke
+            9: [[100, 190], [80, 0]] // Two strokes
+        };
+        
+        // Trigger points - when to auto-complete strokes
+        this.strokeCompletionTriggers = {
+            0: [[99, 80]], // 2 before {x: 100, y: 100}
+            1: [[50, 20]], // 2 before {x: 50, y: 0}
+            2: [[36, 48], [80, 0]], // 2 before each end point
+            3: [[70, 107], [2, 9]], // 2 before each end point
+            4: [[18, 152], [80, 80], [60, 30]], // 2 before each end point
+            5: [[80, 200], [0, 150], [2, 11]], // 2 before each end point
+            6: [[2, 77]], // 2 before {x: 0, y: 60}
+            7: [[80, 200], [50, 33]], // 2 before each end point
+            8: [[94, 142.5]], // 2 before {x: 95, y: 152.5}
+            9: [[98.9, 182], [83, 30]] // 2 before each end point
+        };
         
         this.initializeEventListeners();
     }
@@ -61,13 +61,12 @@ this.strokeCompletionTriggers = {
     initializeEventListeners() {
         if (!this.svg) return;
         
-        // Mouse events (for desktop testing)
+        // Mouse and touch events
         this.svg.addEventListener('mousedown', (e) => this.handleStart(e));
         this.svg.addEventListener('mousemove', (e) => this.handleMove(e));
         this.svg.addEventListener('mouseup', (e) => this.handleEnd(e));
         this.svg.addEventListener('mouseleave', (e) => this.handleEnd(e));
         
-        // Touch events (for mobile)
         this.svg.addEventListener('touchstart', (e) => this.handleStart(e), { passive: false });
         this.svg.addEventListener('touchmove', (e) => this.handleMove(e), { passive: false });
         this.svg.addEventListener('touchend', (e) => this.handleEnd(e));
@@ -95,63 +94,52 @@ this.strokeCompletionTriggers = {
             return false;
         }
         
-        // Calculate stroke completion coordinate based on actual coordinate lookup
-        this.calculateStrokeCompletionFromConfig();
+        // Set up stroke completion point
+        this.setupStrokeCompletion();
         
-        // Remove any existing slider and front marker
+        // Remove existing elements
         this.removeSlider();
         this.removeFrontMarker();
         
-        // Create simple slider at first coordinate
+        // Create slider at start
         const startPoint = this.currentStrokeCoords[0];
         this.createSlider(startPoint);
         
         return true;
     }
 
-    calculateStrokeCompletionFromConfig() {
-        // Get current number being traced
-        const currentNumber = this.renderer.getCurrentNumber();
+    setupStrokeCompletion() {
+        // Get current number from game controller
+        let currentNumber = null;
         
-        if (currentNumber === null || currentNumber === undefined) {
-            // Fallback to old method if we can't get current number
-            this.calculateStrokeCompletionCoordinate();
-            return;
+        if (window.traceGame && typeof window.traceGame.getCurrentNumber === 'function') {
+            currentNumber = window.traceGame.getCurrentNumber();
         }
         
-        // Get the end coordinate for this stroke
-        const strokeEndCoords = this.strokeEndCoordinates[currentNumber];
-        if (!strokeEndCoords || !strokeEndCoords[this.currentStroke]) {
-            // Fallback to old method if no config found
-            this.calculateStrokeCompletionCoordinate();
-            return;
+        if (currentNumber !== null && this.strokeCompletionTriggers[currentNumber]) {
+            // Use predefined trigger coordinates
+            const triggerCoords = this.strokeCompletionTriggers[currentNumber];
+            if (triggerCoords && triggerCoords[this.currentStroke]) {
+                const targetTrigger = triggerCoords[this.currentStroke];
+                
+                // Find trigger coordinate in path
+                const triggerIndex = this.findCoordinateInPath(targetTrigger);
+                if (triggerIndex !== -1) {
+                    this.strokeCompletionCoordIndex = triggerIndex;
+                    this.strokeCompletionCoord = this.currentStrokeCoords[triggerIndex];
+                    return;
+                }
+            }
         }
         
-        const targetEndCoord = strokeEndCoords[this.currentStroke];
-        
-        // Find this coordinate in the current stroke path
-        const endCoordIndex = this.findCoordinateInPath(targetEndCoord);
-        
-        if (endCoordIndex === -1) {
-            // If we can't find the exact coordinate, use fallback method
-            this.calculateStrokeCompletionCoordinate();
-            return;
-        }
-        
-        // Set completion trigger to 2 coordinates before the end coordinate
-        this.strokeCompletionCoordIndex = Math.max(0, endCoordIndex - 2);
+        // Fallback: use "2 before end" method
+        const totalCoords = this.currentStrokeCoords.length;
+        this.strokeCompletionCoordIndex = Math.max(0, totalCoords - 3);
         this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
-        
-        // Store this in our triggers database for future reference
-        if (!this.strokeCompletionTriggers[currentNumber]) {
-            this.strokeCompletionTriggers[currentNumber] = [];
-        }
-        this.strokeCompletionTriggers[currentNumber][this.currentStroke] = this.strokeCompletionCoord;
     }
 
     findCoordinateInPath(targetCoord) {
-        // Find the coordinate in current stroke path that matches target (with tolerance)
-        const tolerance = 5; // Allow 5 pixel tolerance for coordinate matching
+        const tolerance = 5;
         
         for (let i = 0; i < this.currentStrokeCoords.length; i++) {
             const coord = this.currentStrokeCoords[i];
@@ -159,37 +147,16 @@ this.strokeCompletionTriggers = {
             const deltaY = Math.abs(coord.y - targetCoord[1]);
             
             if (deltaX <= tolerance && deltaY <= tolerance) {
-                return i; // Found matching coordinate at index i
+                return i;
             }
         }
         
-        return -1; // Not found
-    }
-
-    calculateStrokeCompletionCoordinate() {
-        // Fallback method - calculate the coordinate index that represents "2 before end"
-        const totalCoords = this.currentStrokeCoords.length;
-        
-        if (totalCoords >= 3) {
-            // For strokes with 3+ coordinates, completion is at index (length - 3)
-            this.strokeCompletionCoordIndex = totalCoords - 3;
-        } else if (totalCoords === 2) {
-            // For very short strokes, completion is at first coordinate
-            this.strokeCompletionCoordIndex = 0;
-        } else {
-            // Single coordinate stroke (shouldn't happen, but handle gracefully)
-            this.strokeCompletionCoordIndex = 0;
-        }
-        
-        // Store the actual coordinate for reference
-        this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
+        return -1;
     }
 
     createSlider(position) {
-        // Remove existing slider
         this.removeSlider();
         
-        // Create simple slider circle
         this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         this.slider.setAttribute('cx', position.x);
         this.slider.setAttribute('cy', position.y);
@@ -199,12 +166,8 @@ this.strokeCompletionTriggers = {
         this.slider.setAttribute('stroke-width', 3);
         this.slider.setAttribute('class', 'trace-slider');
         this.slider.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
-        this.slider.style.zIndex = '1000';
         
-        // Add pulsing animation
         this.addSliderPulseAnimation();
-        
-        // Ensure slider is added AFTER trace paths (higher z-index)
         this.svg.appendChild(this.slider);
     }
 
@@ -216,10 +179,8 @@ this.strokeCompletionTriggers = {
     }
 
     createFrontMarker(position) {
-        // Remove existing front marker
         this.removeFrontMarker();
         
-        // Create new front marker circle (looks identical to slider but separate)
         this.frontMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         this.frontMarker.setAttribute('cx', position.x);
         this.frontMarker.setAttribute('cy', position.y);
@@ -229,7 +190,6 @@ this.strokeCompletionTriggers = {
         this.frontMarker.setAttribute('stroke-width', 3);
         this.frontMarker.setAttribute('class', 'front-marker');
         this.frontMarker.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
-        this.frontMarker.style.zIndex = '1001';
         
         this.svg.appendChild(this.frontMarker);
     }
@@ -248,32 +208,44 @@ this.strokeCompletionTriggers = {
         }
     }
 
+    addSliderPulseAnimation() {
+        if (!this.slider) return;
+        
+        const existingAnimate = this.slider.querySelector('animate');
+        if (existingAnimate) {
+            existingAnimate.remove();
+        }
+        
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animate.setAttribute('attributeName', 'r');
+        animate.setAttribute('values', `${CONFIG.SLIDER_SIZE / 2};${CONFIG.SLIDER_SIZE / 2 + 3};${CONFIG.SLIDER_SIZE / 2}`);
+        animate.setAttribute('dur', '2s');
+        animate.setAttribute('repeatCount', 'indefinite');
+        
+        this.slider.appendChild(animate);
+    }
+
     handleStart(event) {
         event.preventDefault();
         
         const point = this.getEventPoint(event);
         if (!point) return;
         
-        // Must touch WITHIN the red slider circle to start/restart tracing
-        if (this.isPointNearSlider(point, false)) {
+        if (this.isPointNearSlider(point)) {
             this.isDragging = true;
             this.isTracing = true;
             
-            // HIDE the real slider during dragging
+            // Hide real slider
             if (this.slider) {
                 this.slider.style.opacity = '0';
-                // Remove pulsing animation
                 const animate = this.slider.querySelector('animate');
-                if (animate) {
-                    animate.remove();
-                }
+                if (animate) animate.remove();
             }
             
-            // CREATE front marker at current trace position
+            // Create front marker
             const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
             if (currentCoord) {
                 this.createFrontMarker(currentCoord);
-                // Initialize front marker tracking
                 this.frontMarkerCoordIndex = this.currentCoordinateIndex;
                 this.frontMarkerProgress = 0;
             }
@@ -287,14 +259,10 @@ this.strokeCompletionTriggers = {
         const point = this.getEventPoint(event);
         if (!point) return;
         
-        // Update movement time
         this.lastMovementTime = Date.now();
         
-        // Find best position along the path for the drag point
         const bestPosition = this.findBestSliderPosition(point);
-        
         if (bestPosition !== null) {
-            // Update the tracing progress based on drag position
             this.updateTracingProgress(bestPosition);
         }
     }
@@ -304,44 +272,44 @@ this.strokeCompletionTriggers = {
         
         this.isDragging = false;
         
-        // Store the final front marker position (KEY FIX!)
+        // Store final front marker position
         this.finalFrontMarkerCoordIndex = this.frontMarkerCoordIndex;
         this.finalFrontMarkerProgress = this.frontMarkerProgress;
         
-        // Delay showing the real slider by 500ms to avoid jarring catch-up movement
+        // Delay showing real slider
         setTimeout(() => {
-            // Only proceed if we haven't started dragging again
             if (!this.isDragging && this.slider) {
-                // Position slider at final front marker position (NOT green trace position)
-                const finalPosition = this.getInterpolatedPosition(this.finalFrontMarkerCoordIndex, this.finalFrontMarkerProgress);
+                const finalPosition = this.getInterpolatedPosition(
+                    this.finalFrontMarkerCoordIndex, 
+                    this.finalFrontMarkerProgress
+                );
                 
                 if (finalPosition) {
-                    // Update slider position to front marker's final position
                     this.slider.setAttribute('cx', finalPosition.x);
                     this.slider.setAttribute('cy', finalPosition.y);
                     
-                    // Update currentCoordinateIndex to match front marker position
+                    // Update coordinate index to match front marker
                     this.currentCoordinateIndex = this.finalFrontMarkerCoordIndex;
                     if (this.finalFrontMarkerProgress >= 0.95) {
-                        this.currentCoordinateIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
+                        this.currentCoordinateIndex = Math.min(
+                            this.currentCoordinateIndex + 1, 
+                            this.currentStrokeCoords.length - 1
+                        );
                     }
                     
-                    // Update green trace to match new coordinate index
                     this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
                 }
                 
-                // Fade in over 250ms
+                // Fade in slider
                 this.slider.style.transition = 'opacity 0.25s ease-in';
                 this.slider.style.opacity = '1';
                 
-                // Add pulsing animation after fade completes
                 setTimeout(() => {
                     if (!this.isDragging) {
                         this.addSliderPulseAnimation();
                     }
                 }, 250);
                 
-                // Reset transition after animation completes
                 setTimeout(() => {
                     if (this.slider) {
                         this.slider.style.transition = '';
@@ -350,7 +318,7 @@ this.strokeCompletionTriggers = {
             }
         }, 500);
         
-        // REMOVE the front marker immediately (but keep it visible until slider fades in)
+        // Remove front marker
         setTimeout(() => {
             if (!this.isDragging) {
                 this.removeFrontMarker();
@@ -371,7 +339,6 @@ this.strokeCompletionTriggers = {
             clientY = event.clientY;
         }
         
-        // Convert to SVG coordinates using dynamic CONFIG dimensions
         const scaleX = CONFIG.SVG_WIDTH / rect.width;
         const scaleY = CONFIG.SVG_HEIGHT / rect.height;
         
@@ -381,7 +348,7 @@ this.strokeCompletionTriggers = {
         };
     }
 
-    isPointNearSlider(point, isDuringDrag = false) {
+    isPointNearSlider(point) {
         if (!this.slider) return false;
         
         const sliderX = parseFloat(this.slider.getAttribute('cx'));
@@ -392,32 +359,8 @@ this.strokeCompletionTriggers = {
             Math.pow(point.y - sliderY, 2)
         );
         
-        if (isDuringDrag) {
-            return true; // During drag, we're more permissive
-        } else {
-            // For INITIAL touch, must be within the slider circle
-            const sliderRadius = CONFIG.SLIDER_SIZE / 2;
-            return distance <= sliderRadius + 5; // Small buffer for easier touching
-        }
-    }
-
-    addSliderPulseAnimation() {
-        if (!this.slider) return;
-        
-        // Remove any existing animation first
-        const existingAnimate = this.slider.querySelector('animate');
-        if (existingAnimate) {
-            existingAnimate.remove();
-        }
-        
-        // Add pulsing animation to indicate it's ready for interaction
-        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-        animate.setAttribute('attributeName', 'r');
-        animate.setAttribute('values', `${CONFIG.SLIDER_SIZE / 2};${CONFIG.SLIDER_SIZE / 2 + 3};${CONFIG.SLIDER_SIZE / 2}`);
-        animate.setAttribute('dur', '2s');
-        animate.setAttribute('repeatCount', 'indefinite');
-        
-        this.slider.appendChild(animate);
+        const sliderRadius = CONFIG.SLIDER_SIZE / 2;
+        return distance <= sliderRadius + 5;
     }
 
     findBestSliderPosition(dragPoint) {
@@ -425,9 +368,11 @@ this.strokeCompletionTriggers = {
         let bestProgress = 0;
         let bestDistance = Infinity;
         
-        // Allow slider to look ahead by 1-2 segments for smooth dragging
         const lookAheadDistance = this.currentCoordinateIndex === 0 ? 3 : 2;
-        const maxSearchIndex = Math.min(this.currentCoordinateIndex + lookAheadDistance, this.currentStrokeCoords.length - 2);
+        const maxSearchIndex = Math.min(
+            this.currentCoordinateIndex + lookAheadDistance, 
+            this.currentStrokeCoords.length - 2
+        );
         
         for (let i = this.currentCoordinateIndex; i <= maxSearchIndex; i++) {
             const currentCoord = this.currentStrokeCoords[i];
@@ -464,7 +409,6 @@ this.strokeCompletionTriggers = {
             }
         }
         
-        // Return best position found within tolerance
         if (bestDistance <= (CONFIG.PATH_TOLERANCE || 50)) {
             return {
                 coordIndex: bestCoordIndex,
@@ -486,56 +430,48 @@ this.strokeCompletionTriggers = {
         const currentCoord = this.currentStrokeCoords[coordIndex];
         const nextCoord = this.currentStrokeCoords[coordIndex + 1];
         
-        // Calculate front marker position (at the drag point projection)
+        // Calculate front marker position
         const frontMarkerX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
         const frontMarkerY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
         
-        // UPDATE FRONT MARKER POSITION immediately (this is what user sees during drag)
+        // Update front marker position
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
-        // CHECK FOR STROKE COMPLETION - using coordinate-based completion
+        // Check for stroke completion
         if (this.hasReachedStrokeCompletionPoint(coordIndex, progress)) {
             this.autoCompleteCurrentStroke();
             return;
         }
         
-        // Calculate what coordinate index the green trace should fill up to (CONSERVATIVE)
+        // Update green trace (conservative)
         let newCoordinateIndex = this.currentCoordinateIndex;
         
         if (coordIndex > this.currentCoordinateIndex) {
-            // Front marker moved to a new segment ahead
             if (progress >= 0.5) {
                 newCoordinateIndex = coordIndex;
             }
         } else if (coordIndex === this.currentCoordinateIndex) {
-            // Front marker still in current segment
             if (progress >= 0.7) {
-                // Advance to next coordinate when 70% through current segment
                 newCoordinateIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
             }
         }
         
-        // SAFETY CHECK: Green trace coordinate can never exceed front marker segment
+        // Safety check
         newCoordinateIndex = Math.min(newCoordinateIndex, coordIndex);
         
-        // If front marker is in the middle of a segment, green trace should only fill to previous complete segments
         if (progress < 0.7 && coordIndex === newCoordinateIndex && coordIndex > 0) {
             newCoordinateIndex = Math.max(0, coordIndex - 1);
         }
         
-        // Update green trace only when coordinate index actually changes
+        // Update green trace
         if (newCoordinateIndex !== this.currentCoordinateIndex) {
             this.currentCoordinateIndex = newCoordinateIndex;
-            
-            // Update green trace to match
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         }
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
-        // Check if we've reached the completion coordinate (2 before end)
         if (coordIndex >= this.strokeCompletionCoordIndex) {
-            // If we're at the completion coordinate with good progress, or past it
             if (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5) {
                 return true;
             }
@@ -544,7 +480,7 @@ this.strokeCompletionTriggers = {
     }
 
     autoCompleteCurrentStroke() {
-        // Complete this stroke immediately
+        // Complete stroke immediately
         this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
         
         // Update green trace to show full completion
@@ -556,14 +492,45 @@ this.strokeCompletionTriggers = {
             this.updateFrontMarkerPosition(finalCoord);
         }
         
-        // Store final position for slider positioning
+        // Store final position
         this.finalFrontMarkerCoordIndex = this.currentStrokeCoords.length - 1;
         this.finalFrontMarkerProgress = 1.0;
         
-        // Brief pause to show completion, then advance
+        // Brief pause then complete
         setTimeout(() => {
             this.completeCurrentStroke();
         }, 200);
+    }
+
+    completeCurrentStroke() {
+        this.isTracing = false;
+        this.isDragging = false;
+        
+        // Hide elements
+        if (this.slider) {
+            this.slider.style.opacity = '0';
+        }
+        this.removeFrontMarker();
+        
+        // Notify renderer
+        this.renderer.completeStroke(this.currentStroke);
+        
+        // Check for more strokes
+        const totalStrokes = this.renderer.getStrokeCount();
+        
+        if (this.currentStroke + 1 < totalStrokes) {
+            // Auto-advance to next stroke
+            setTimeout(() => {
+                this.startNewStroke(this.currentStroke + 1);
+            }, 300);
+        } else {
+            // All strokes complete
+            setTimeout(() => {
+                this.removeSlider();
+            }, 300);
+            
+            this.renderer.completeNumber();
+        }
     }
 
     getInterpolatedPosition(coordIndex, progress) {
@@ -584,75 +551,7 @@ this.strokeCompletionTriggers = {
         };
     }
 
-    stopTracing() {
-        this.isTracing = false;
-        this.isDragging = false;
-        
-        // Show real slider and remove front marker
-        if (this.slider) {
-            this.slider.style.opacity = '1';
-            this.addSliderPulseAnimation();
-        }
-        this.removeFrontMarker();
-    }
-
-    completeCurrentStroke() {
-        this.isTracing = false;
-        this.isDragging = false;
-        
-        // Hide slider and front marker
-        if (this.slider) {
-            this.slider.style.opacity = '0';
-        }
-        this.removeFrontMarker();
-        
-        // Notify renderer of stroke completion
-        this.renderer.completeStroke(this.currentStroke);
-        
-        // Check if there are more strokes
-        const totalStrokes = this.renderer.getStrokeCount();
-        
-        if (this.currentStroke + 1 < totalStrokes) {
-            // Auto-advance to next stroke after brief delay
-            setTimeout(() => {
-                this.startNewStroke(this.currentStroke + 1);
-            }, 300);
-        } else {
-            // All strokes complete - remove slider completely
-            setTimeout(() => {
-                this.removeSlider();
-            }, 300);
-            
-            // Notify renderer that the entire number is complete
-            this.renderer.completeNumber();
-        }
-    }
-
-    moveToNextStroke() {
-        const nextStroke = this.currentStroke + 1;
-        const totalStrokes = this.renderer.getStrokeCount();
-        
-        if (nextStroke < totalStrokes) {
-            // Small delay before starting next stroke
-            setTimeout(() => {
-                this.startNewStroke(nextStroke);
-            }, 500);
-            return true;
-        }
-        return false;
-    }
-
-    getCurrentProgress() {
-        if (this.currentStrokeCoords.length === 0) return 0;
-        return this.currentCoordinateIndex / (this.currentStrokeCoords.length - 1);
-    }
-
-    isCurrentlyTracing() {
-        return this.isTracing;
-    }
-
     cleanup() {
-        // Remove slider and front marker
         this.removeSlider();
         this.removeFrontMarker();
         
@@ -661,7 +560,6 @@ this.strokeCompletionTriggers = {
         this.currentCoordinateIndex = 0;
         this.currentStrokeCoords = [];
         
-        // Reset front marker tracking
         this.frontMarkerCoordIndex = 0;
         this.frontMarkerProgress = 0;
         this.finalFrontMarkerCoordIndex = 0;
@@ -673,11 +571,19 @@ this.strokeCompletionTriggers = {
         this.currentStroke = 0;
     }
 
-    // Debug methods
+    getCurrentProgress() {
+        if (this.currentStrokeCoords.length === 0) return 0;
+        return this.currentCoordinateIndex / (this.currentStrokeCoords.length - 1);
+    }
+
+    isCurrentlyTracing() {
+        return this.isTracing;
+    }
+
+    // Debug method
     showCoordinatePoints() {
         if (!CONFIG.DEBUG_MODE || !this.currentStrokeCoords) return;
         
-        // Remove existing debug points
         const existingPoints = this.svg.querySelectorAll('.debug-coord-point');
         existingPoints.forEach(point => point.remove());
         
@@ -689,7 +595,6 @@ this.strokeCompletionTriggers = {
             circle.setAttribute('fill', index === this.currentCoordinateIndex ? 'red' : 'blue');
             circle.setAttribute('class', 'debug-coord-point');
             
-            // Add coordinate index as text
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             text.setAttribute('x', coord.x + 5);
             text.setAttribute('y', coord.y - 5);
