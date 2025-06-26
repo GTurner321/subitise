@@ -486,103 +486,107 @@ class TraceGameController {
         return fallingNumber;
     }
 
-    animateBalloons(currentTime = performance.now()) {
-        if (!this.playingBalloonGame) return;
-        
-        const deltaTime = (currentTime - this.balloonLastTime) / 1000;
-        this.balloonLastTime = currentTime;
-        
-        this.balloons.forEach(balloon => {
-            if (!balloon.popped) {
-                balloon.y -= balloon.riseSpeed * deltaTime;
-                
-                // Check ceiling collision
-                if (balloon.y <= 0) {
-                    this.popBalloon(balloon);
-                    return;
-                }
-                
-                balloon.x += Math.abs(balloon.sidewaysSpeed) * balloon.sidewaysDirection * deltaTime;
-                
-                // Bounce off edges
-                const gameAreaWidth = CONFIG.SVG_WIDTH;
-                const balloonWidth = balloon.radius * 2;
-                if (balloon.x <= 0) {
-                    balloon.x = 0;
-                    balloon.sidewaysDirection = 1;
-                } else if (balloon.x + balloonWidth >= gameAreaWidth) {
-                    balloon.x = gameAreaWidth - balloonWidth;
-                    balloon.sidewaysDirection = -1;
-                }
-                
-                // Update balloon position
-                if (balloon.circle) {
-                    balloon.circle.setAttribute('cx', balloon.x + balloon.radius);
-                    balloon.circle.setAttribute('cy', balloon.y + balloon.radius);
-                }
-                if (balloon.highlight) {
-                    balloon.highlight.setAttribute('cx', balloon.x + balloon.radius - 17);
-                    balloon.highlight.setAttribute('cy', balloon.y + balloon.radius - 17);
-                }
-                if (balloon.textWord) {
-                    balloon.textWord.setAttribute('x', balloon.x + balloon.radius);
-                    balloon.textWord.setAttribute('y', balloon.y + balloon.radius + 2);
-                }
-                
-                // Update string
-                if (balloon.string) {
-                    const currentStartX = balloon.x + balloon.radius;
-                    const currentStartY = balloon.y + balloon.radius * 2;
-                    const deltaX = currentStartX - balloon.stringStartX;
-                    const deltaY = currentStartY - balloon.stringStartY;
-                    const newEndX = balloon.stringEndX + deltaX;
-                    const newEndY = balloon.stringEndY + deltaY;
-                    
-                    const pathData = `M ${currentStartX} ${currentStartY} 
-                                     C ${currentStartX + 6} ${currentStartY + 12}, ${currentStartX + 18} ${currentStartY + 18}, ${currentStartX + 18} ${currentStartY + 30}
-                                     C ${currentStartX + 18} ${currentStartY + 42}, ${currentStartX - 18} ${currentStartY + 48}, ${currentStartX - 18} ${currentStartY + 60}
-                                     C ${currentStartX - 18} ${currentStartY + 72}, ${currentStartX + 12} ${currentStartY + 78}, ${currentStartX + 12} ${currentStartY + 90}
-                                     C ${currentStartX + 12} ${currentStartY + 102}, ${newEndX - 6} ${newEndY - 12}, ${newEndX} ${newEndY}`;
-                    
-                    balloon.string.setAttribute('d', pathData);
-                }
+// Updated animateBalloons method with balloon ceiling collision fix
+animateBalloons(currentTime = performance.now()) {
+    if (!this.playingBalloonGame) return;
+    
+    const deltaTime = (currentTime - this.balloonLastTime) / 1000;
+    this.balloonLastTime = currentTime;
+    
+    this.balloons.forEach(balloon => {
+        if (!balloon.popped) {
+            balloon.y -= balloon.riseSpeed * deltaTime;
+            
+            // FIXED: Check ceiling collision - only pop, don't create falling numbers
+            if (balloon.y <= 0) {
+                balloon.popped = true;
+                if (balloon.group) balloon.group.remove();
+                // Do NOT call this.popBalloon(balloon) which creates falling numbers
+                // Just mark as popped and remove from screen
+                return;
             }
-        });
-        
-        // Update falling numbers
-        this.fallingNumbers.forEach(fallingNumber => {
-            if (!fallingNumber.landed) {
-                fallingNumber.y += fallingNumber.speed * deltaTime;
-                
-                if (fallingNumber.y >= fallingNumber.targetY) {
-                    fallingNumber.y = fallingNumber.targetY;
-                    fallingNumber.landed = true;
-                    
-                    // Check if all correct numbers (not all numbers) have landed
-                    const allCorrectLanded = this.fallingNumbers.length >= this.totalCorrectBalloons && 
-                                           this.fallingNumbers.every(fn => fn.landed);
-                    if (allCorrectLanded) {
-                        this.checkBalloonGameCompletion();
-                    }
-                }
-                
-                if (fallingNumber.element) {
-                    fallingNumber.element.setAttribute('y', fallingNumber.y);
-                }
+            
+            balloon.x += Math.abs(balloon.sidewaysSpeed) * balloon.sidewaysDirection * deltaTime;
+            
+            // Bounce off edges
+            const gameAreaWidth = CONFIG.SVG_WIDTH;
+            const balloonWidth = balloon.radius * 2;
+            if (balloon.x <= 0) {
+                balloon.x = 0;
+                balloon.sidewaysDirection = 1;
+            } else if (balloon.x + balloonWidth >= gameAreaWidth) {
+                balloon.x = gameAreaWidth - balloonWidth;
+                balloon.sidewaysDirection = -1;
             }
-        });
-        
-        // Check if all balloons are gone - but still wait for completion requirements
-        const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
-        if (activeBalloonsCount === 0) {
-            // Don't auto-complete, just check if we can complete with current state
-            this.checkBalloonGameCompletion();
-            return;
+            
+            // Update balloon position
+            if (balloon.circle) {
+                balloon.circle.setAttribute('cx', balloon.x + balloon.radius);
+                balloon.circle.setAttribute('cy', balloon.y + balloon.radius);
+            }
+            if (balloon.highlight) {
+                balloon.highlight.setAttribute('cx', balloon.x + balloon.radius - 17);
+                balloon.highlight.setAttribute('cy', balloon.y + balloon.radius - 17);
+            }
+            if (balloon.textWord) {
+                balloon.textWord.setAttribute('x', balloon.x + balloon.radius);
+                balloon.textWord.setAttribute('y', balloon.y + balloon.radius + 2);
+            }
+            
+            // Update string
+            if (balloon.string) {
+                const currentStartX = balloon.x + balloon.radius;
+                const currentStartY = balloon.y + balloon.radius * 2;
+                const deltaX = currentStartX - balloon.stringStartX;
+                const deltaY = currentStartY - balloon.stringStartY;
+                const newEndX = balloon.stringEndX + deltaX;
+                const newEndY = balloon.stringEndY + deltaY;
+                
+                const pathData = `M ${currentStartX} ${currentStartY} 
+                                 C ${currentStartX + 6} ${currentStartY + 12}, ${currentStartX + 18} ${currentStartY + 18}, ${currentStartX + 18} ${currentStartY + 30}
+                                 C ${currentStartX + 18} ${currentStartY + 42}, ${currentStartX - 18} ${currentStartY + 48}, ${currentStartX - 18} ${currentStartY + 60}
+                                 C ${currentStartX - 18} ${currentStartY + 72}, ${currentStartX + 12} ${currentStartY + 78}, ${currentStartX + 12} ${currentStartY + 90}
+                                 C ${currentStartX + 12} ${currentStartY + 102}, ${newEndX - 6} ${newEndY - 12}, ${newEndX} ${newEndY}`;
+                
+                balloon.string.setAttribute('d', pathData);
+            }
         }
-        
-        this.balloonAnimationId = requestAnimationFrame((time) => this.animateBalloons(time));
+    });
+    
+    // Update falling numbers
+    this.fallingNumbers.forEach(fallingNumber => {
+        if (!fallingNumber.landed) {
+            fallingNumber.y += fallingNumber.speed * deltaTime;
+            
+            if (fallingNumber.y >= fallingNumber.targetY) {
+                fallingNumber.y = fallingNumber.targetY;
+                fallingNumber.landed = true;
+                
+                // Check if all correct numbers (not all numbers) have landed
+                const allCorrectLanded = this.fallingNumbers.length >= this.totalCorrectBalloons && 
+                                       this.fallingNumbers.every(fn => fn.landed);
+                if (allCorrectLanded) {
+                    this.checkBalloonGameCompletion();
+                }
+            }
+            
+            if (fallingNumber.element) {
+                fallingNumber.element.setAttribute('y', fallingNumber.y);
+            }
+        }
+    });
+    
+    // Check if all balloons are gone - but still wait for completion requirements
+    const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
+    if (activeBalloonsCount === 0) {
+        // Don't auto-complete, just check if we can complete with current state
+        this.checkBalloonGameCompletion();
+        return;
     }
-
+    
+    this.balloonAnimationId = requestAnimationFrame((time) => this.animateBalloons(time));
+}
+    
     checkBalloonGameCompletion() {
         // Check if we have 3 correct falling numbers and they've all landed
         const correctFallingNumbers = this.fallingNumbers.filter(fn => fn.number === this.currentNumber);
