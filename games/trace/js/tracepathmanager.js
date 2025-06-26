@@ -26,19 +26,35 @@ class TracePathManager {
         // Movement tracking
         this.lastMovementTime = Date.now();
         
-        // Stroke completion coordinates - end points for each stroke per number
+        // Stroke completion coordinates - based on actual traceconfig coordinates
+        // End points of each stroke per number
         this.strokeEndCoordinates = {
-            0: [], // Single stroke - will be calculated
-            1: [], // Single stroke - will be calculated
-            2: [[0, 0], [100, 0]], // Two strokes
-            3: [[35, 100], [0, 10]], // Two strokes
-            4: [[0, 80], [100, 80], [60, 0]], // Three strokes
-            5: [[100, 200], [0, 125], [0, 13]], // Three strokes
-            6: [], // Single stroke - will be calculated
-            7: [[100, 200], [40, 0]], // Two strokes
-            8: [], // Single stroke - will be calculated
-            9: [[100, 190], [80, 0]] // Two strokes
+            0: [[50, 50]], // Single stroke - need to find actual end point
+            1: [[50, 200]], // Single stroke - need to find actual end point  
+            2: [[0, 200], [100, 200]], // Two strokes: bottom left, bottom right
+            3: [[35, 100], [100, 10]], // Two strokes: middle center, end of second arc
+            4: [[50, 80], [100, 80], [100, 200]], // Three strokes: vertical end, horizontal end, down end
+            5: [[100, 20], [0, 125], [100, 200]], // Three strokes: top right, middle left, bottom right  
+            6: [[50, 50]], // Single stroke - need to find actual end point
+            7: [[100, 20], [40, 200]], // Two strokes: top right, bottom left
+            8: [[50, 50]], // Single stroke - need to find actual end point
+            9: [[100, 20], [80, 200]] // Two strokes: top of circle, bottom end
         };
+        
+        // Trigger points for completion (2 coordinates before end points)
+        // These will be calculated based on finding the end coordinates in the actual path
+this.strokeCompletionTriggers = {
+    0: [[98, 72]], // Single stroke
+    1: [[50, 20]], // Single stroke
+    2: [[18, 24], [80, 0]], // Two strokes
+    3: [[65, 95], [4, 8]], // Two strokes
+    4: [[80, 80], [80, 80], [60, 20]], // Three strokes
+    5: [[80, 200], [0, 160], [4, 10]], // Three strokes
+    6: [[94, 142.5]], // Single stroke
+    7: [[70, 100], [50, 33]], // Two strokes
+    8: [[92, 135.5]], // Single stroke
+    9: [[97, 166], [82, 20]] // Two strokes
+};
         
         this.initializeEventListeners();
     }
@@ -80,8 +96,8 @@ class TracePathManager {
             return false;
         }
         
-        // Calculate stroke completion coordinate (2 before end)
-        this.calculateStrokeCompletionCoordinate();
+        // Calculate stroke completion coordinate based on actual coordinate lookup
+        this.calculateStrokeCompletionFromConfig();
         
         // Remove any existing slider and front marker
         this.removeSlider();
@@ -94,8 +110,65 @@ class TracePathManager {
         return true;
     }
 
+    calculateStrokeCompletionFromConfig() {
+        // Get current number being traced
+        const currentNumber = this.renderer.getCurrentNumber();
+        
+        if (currentNumber === null || currentNumber === undefined) {
+            // Fallback to old method if we can't get current number
+            this.calculateStrokeCompletionCoordinate();
+            return;
+        }
+        
+        // Get the end coordinate for this stroke
+        const strokeEndCoords = this.strokeEndCoordinates[currentNumber];
+        if (!strokeEndCoords || !strokeEndCoords[this.currentStroke]) {
+            // Fallback to old method if no config found
+            this.calculateStrokeCompletionCoordinate();
+            return;
+        }
+        
+        const targetEndCoord = strokeEndCoords[this.currentStroke];
+        
+        // Find this coordinate in the current stroke path
+        const endCoordIndex = this.findCoordinateInPath(targetEndCoord);
+        
+        if (endCoordIndex === -1) {
+            // If we can't find the exact coordinate, use fallback method
+            this.calculateStrokeCompletionCoordinate();
+            return;
+        }
+        
+        // Set completion trigger to 2 coordinates before the end coordinate
+        this.strokeCompletionCoordIndex = Math.max(0, endCoordIndex - 2);
+        this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
+        
+        // Store this in our triggers database for future reference
+        if (!this.strokeCompletionTriggers[currentNumber]) {
+            this.strokeCompletionTriggers[currentNumber] = [];
+        }
+        this.strokeCompletionTriggers[currentNumber][this.currentStroke] = this.strokeCompletionCoord;
+    }
+
+    findCoordinateInPath(targetCoord) {
+        // Find the coordinate in current stroke path that matches target (with tolerance)
+        const tolerance = 5; // Allow 5 pixel tolerance for coordinate matching
+        
+        for (let i = 0; i < this.currentStrokeCoords.length; i++) {
+            const coord = this.currentStrokeCoords[i];
+            const deltaX = Math.abs(coord.x - targetCoord[0]);
+            const deltaY = Math.abs(coord.y - targetCoord[1]);
+            
+            if (deltaX <= tolerance && deltaY <= tolerance) {
+                return i; // Found matching coordinate at index i
+            }
+        }
+        
+        return -1; // Not found
+    }
+
     calculateStrokeCompletionCoordinate() {
-        // Calculate the coordinate index that represents "2 before end"
+        // Fallback method - calculate the coordinate index that represents "2 before end"
         const totalCoords = this.currentStrokeCoords.length;
         
         if (totalCoords >= 3) {
