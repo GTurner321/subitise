@@ -340,10 +340,10 @@ class TraceNumberRenderer {
         tracedPath.setAttribute('stroke-linejoin', 'round');
         tracedPath.setAttribute('class', `traced-path-${strokeIndex}`);
         
-        // Insert traced path before any sliders to ensure slider stays on top
-        const sliders = this.svg.querySelectorAll('.trace-slider, .direction-arrow');
-        if (sliders.length > 0) {
-            this.svg.insertBefore(tracedPath, sliders[0]);
+        // FIXED: Insert traced path before sliders AND balloons to ensure both stay on top
+        const overlayElements = this.svg.querySelectorAll('.trace-slider, .direction-arrow, .balloon-group');
+        if (overlayElements.length > 0) {
+            this.svg.insertBefore(tracedPath, overlayElements[0]);
         } else {
             this.svg.appendChild(tracedPath);
         }
