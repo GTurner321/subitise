@@ -395,13 +395,14 @@ class TraceGameController {
         if (balloon.popped || !this.playingBalloonGame) return;
         balloon.popped = true;
         
-        // Create flashing yellow star pop effect
+        // Create flashing yellow splash pop effect
         this.createPopEffect(balloon.x + balloon.radius, balloon.y + balloon.radius);
         
+        // If this is a correct balloon, create falling number regardless of how it was popped
         if (balloon.isCorrect) {
-            this.correctBalloonsFound++;
-            if (this.audioEnabled) this.playCompletionSound();
             this.createFallingNumber(balloon.x + balloon.radius, balloon.y + balloon.radius, balloon.number);
+            
+            if (this.audioEnabled) this.playCompletionSound();
             
             if (this.audioEnabled) {
                 const encouragements = ['Great job!', 'Well done!', 'Excellent!', 'Perfect!'];
@@ -423,16 +424,16 @@ class TraceGameController {
         star.setAttribute('y', y);
         star.setAttribute('text-anchor', 'middle');
         star.setAttribute('dominant-baseline', 'middle');
-        star.setAttribute('font-size', '40');
+        star.setAttribute('font-size', '50');
         star.setAttribute('fill', '#FFD700');
         star.setAttribute('class', 'pop-star');
-        star.textContent = '⭐';
+        star.textContent = '💥'; // Using splash/burst emoji instead of star
         
-        // Flash on and off once
+        // Flash on and off once (off-on-off-on-off for clear flashing effect)
         const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
         animate.setAttribute('attributeName', 'opacity');
         animate.setAttribute('values', '0;1;0;1;0');
-        animate.setAttribute('dur', '0.8s');
+        animate.setAttribute('dur', '0.6s');
         animate.setAttribute('fill', 'freeze');
         
         star.appendChild(animate);
@@ -440,7 +441,7 @@ class TraceGameController {
         
         setTimeout(() => {
             if (star.parentNode) star.parentNode.removeChild(star);
-        }, 800);
+        }, 600);
     }
 
     createFallingNumber(x, y, number) {
@@ -557,9 +558,10 @@ class TraceGameController {
                     fallingNumber.y = fallingNumber.targetY;
                     fallingNumber.landed = true;
                     
-                    const allLanded = this.fallingNumbers.every(fn => fn.landed);
-                    if (allLanded && !this.numbersLanded) {
-                        this.numbersLanded = true;
+                    // Check if all correct numbers (not all numbers) have landed
+                    const allCorrectLanded = this.fallingNumbers.length >= this.totalCorrectBalloons && 
+                                           this.fallingNumbers.every(fn => fn.landed);
+                    if (allCorrectLanded) {
                         this.checkBalloonGameCompletion();
                     }
                 }
@@ -570,8 +572,10 @@ class TraceGameController {
             }
         });
         
+        // Check if all balloons are gone - but still wait for completion requirements
         const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
         if (activeBalloonsCount === 0) {
+            // Don't auto-complete, just check if we can complete with current state
             this.checkBalloonGameCompletion();
             return;
         }
@@ -580,10 +584,13 @@ class TraceGameController {
     }
 
     checkBalloonGameCompletion() {
-        const hasFoundAllCorrect = this.correctBalloonsFound >= this.totalCorrectBalloons;
+        // Check if we have 3 correct falling numbers and they've all landed
+        const correctFallingNumbers = this.fallingNumbers.filter(fn => fn.number === this.currentNumber);
+        const hasAll3CorrectNumbers = correctFallingNumbers.length >= this.totalCorrectBalloons;
+        const allCorrectNumbersLanded = correctFallingNumbers.every(fn => fn.landed);
         
-        // Game can only complete when ALL 3 correct balloons have been found AND fallen
-        if (hasFoundAllCorrect && this.speechComplete && this.numbersLanded) {
+        // Game completes when ALL 3 correct numbers have fallen to ground AND speech is done
+        if (hasAll3CorrectNumbers && allCorrectNumbersLanded && this.speechComplete) {
             this.onBalloonGameComplete();
         }
     }
