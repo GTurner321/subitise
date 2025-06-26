@@ -10,8 +10,14 @@ class TracePathManager {
         // Tracking state
         this.isTracing = false;
         this.currentStroke = 0;
-        this.currentCoordinateIndex = 0; // Which coordinate point we're at
+        this.currentCoordinateIndex = 0; // Which coordinate point we're at (green trace position)
         this.isDragging = false;
+        
+        // Front marker tracking (separate from green trace)
+        this.frontMarkerCoordIndex = 0;
+        this.frontMarkerProgress = 0;
+        this.finalFrontMarkerCoordIndex = 0;
+        this.finalFrontMarkerProgress = 0;
         
         // Current stroke data
         this.strokeCoordinates = [];
@@ -46,6 +52,12 @@ class TracePathManager {
         this.isDragging = false;
         this.lastMovementTime = Date.now();
         
+        // Reset front marker tracking
+        this.frontMarkerCoordIndex = 0;
+        this.frontMarkerProgress = 0;
+        this.finalFrontMarkerCoordIndex = 0;
+        this.finalFrontMarkerProgress = 0;
+        
         // Get coordinates for this stroke
         this.currentStrokeCoords = this.renderer.getStrokeCoordinates(strokeIndex);
         
@@ -54,8 +66,6 @@ class TracePathManager {
             return false;
         }
         
-        console.log(`Starting stroke ${strokeIndex} with ${this.currentStrokeCoords.length} coordinates`);
-        
         // Remove any existing slider and front marker
         this.removeSlider();
         this.removeFrontMarker();
@@ -63,8 +73,6 @@ class TracePathManager {
         // Create simple slider at first coordinate
         const startPoint = this.currentStrokeCoords[0];
         this.createSlider(startPoint);
-        
-        console.log('Simple slider created at start position');
         
         return true;
     }
@@ -83,15 +91,13 @@ class TracePathManager {
         this.slider.setAttribute('stroke-width', 3);
         this.slider.setAttribute('class', 'trace-slider');
         this.slider.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
-        this.slider.style.zIndex = '1000'; // Very high z-index to ensure always on top
+        this.slider.style.zIndex = '1000';
         
         // Add pulsing animation
         this.addSliderPulseAnimation();
         
         // Ensure slider is added AFTER trace paths (higher z-index)
         this.svg.appendChild(this.slider);
-        
-        console.log(`Created simple slider at coordinate ${this.currentCoordinateIndex}:`, position);
     }
 
     removeSlider() {
@@ -115,11 +121,9 @@ class TracePathManager {
         this.frontMarker.setAttribute('stroke-width', 3);
         this.frontMarker.setAttribute('class', 'front-marker');
         this.frontMarker.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
-        this.frontMarker.style.zIndex = '1001'; // Even higher than slider
+        this.frontMarker.style.zIndex = '1001';
         
         this.svg.appendChild(this.frontMarker);
-        
-        console.log(`Created front marker at:`, position);
     }
 
     removeFrontMarker() {
@@ -144,7 +148,6 @@ class TracePathManager {
         
         // Must touch WITHIN the red slider circle to start/restart tracing
         if (this.isPointNearSlider(point, false)) {
-            console.log('Valid touch within slider circle - starting/restarting drag');
             this.isDragging = true;
             this.isTracing = true;
             
@@ -162,11 +165,10 @@ class TracePathManager {
             const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
             if (currentCoord) {
                 this.createFrontMarker(currentCoord);
+                // Initialize front marker tracking
+                this.frontMarkerCoordIndex = this.currentCoordinateIndex;
+                this.frontMarkerProgress = 0;
             }
-            
-            console.log('🔴 Real slider hidden, 🔴 front marker created at trace position');
-        } else {
-            console.log('Touch OUTSIDE slider circle - drag not started (must touch red circle to begin/restart)');
         }
     }
 
@@ -192,48 +194,60 @@ class TracePathManager {
     handleEnd(event) {
         if (!this.isDragging) return;
         
-        console.log('Drag ended - finger lifted');
         this.isDragging = false;
+        
+        // Store the final front marker position (KEY FIX!)
+        this.finalFrontMarkerCoordIndex = this.frontMarkerCoordIndex;
+        this.finalFrontMarkerProgress = this.frontMarkerProgress;
         
         // Delay showing the real slider by 500ms to avoid jarring catch-up movement
         setTimeout(() => {
             // Only proceed if we haven't started dragging again
             if (!this.isDragging && this.slider) {
-                const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-                if (currentCoord) {
-                    // Update slider position (while still invisible)
-                    this.slider.setAttribute('cx', currentCoord.x);
-                    this.slider.setAttribute('cy', currentCoord.y);
+                // Position slider at final front marker position (NOT green trace position)
+                const finalPosition = this.getInterpolatedPosition(this.finalFrontMarkerCoordIndex, this.finalFrontMarkerProgress);
+                
+                if (finalPosition) {
+                    // Update slider position to front marker's final position
+                    this.slider.setAttribute('cx', finalPosition.x);
+                    this.slider.setAttribute('cy', finalPosition.y);
                     
-                    // Fade in over 250ms
-                    this.slider.style.transition = 'opacity 0.25s ease-in';
-                    this.slider.style.opacity = '1';
+                    // Update currentCoordinateIndex to match front marker position
+                    this.currentCoordinateIndex = this.finalFrontMarkerCoordIndex;
+                    if (this.finalFrontMarkerProgress >= 0.95) {
+                        this.currentCoordinateIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
+                    }
                     
-                    // Add pulsing animation after fade completes
-                    setTimeout(() => {
-                        if (!this.isDragging) { // Double-check we're still not dragging
-                            this.addSliderPulseAnimation();
-                        }
-                    }, 250);
-                    
-                    // Reset transition after animation completes
-                    setTimeout(() => {
-                        if (this.slider) {
-                            this.slider.style.transition = '';
-                        }
-                    }, 300);
+                    // Update green trace to match new coordinate index
+                    this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
                 }
+                
+                // Fade in over 250ms
+                this.slider.style.transition = 'opacity 0.25s ease-in';
+                this.slider.style.opacity = '1';
+                
+                // Add pulsing animation after fade completes
+                setTimeout(() => {
+                    if (!this.isDragging) {
+                        this.addSliderPulseAnimation();
+                    }
+                }, 250);
+                
+                // Reset transition after animation completes
+                setTimeout(() => {
+                    if (this.slider) {
+                        this.slider.style.transition = '';
+                    }
+                }, 300);
             }
-        }, 500); // Half second delay
+        }, 500);
         
         // REMOVE the front marker immediately (but keep it visible until slider fades in)
         setTimeout(() => {
-            if (!this.isDragging) { // Only remove if we haven't started dragging again
+            if (!this.isDragging) {
                 this.removeFrontMarker();
             }
-        }, 500); // Remove at same time as slider appears
-        
-        console.log('🔴 Real slider will fade in after 500ms delay, 🔴 front marker will be removed then');
+        }, 500);
     }
 
     getEventPoint(event) {
@@ -296,12 +310,9 @@ class TracePathManager {
         animate.setAttribute('repeatCount', 'indefinite');
         
         this.slider.appendChild(animate);
-        console.log('Added pulse animation - slider ready for touch');
     }
 
     findBestSliderPosition(dragPoint) {
-        // SIMPLE APPROACH: Basic position finding without complex direction logic
-        
         let bestCoordIndex = this.currentCoordinateIndex;
         let bestProgress = 0;
         let bestDistance = Infinity;
@@ -359,6 +370,11 @@ class TracePathManager {
 
     updateTracingProgress(position) {
         const { coordIndex, progress } = position;
+        
+        // Update front marker tracking
+        this.frontMarkerCoordIndex = coordIndex;
+        this.frontMarkerProgress = progress;
+        
         const currentCoord = this.currentStrokeCoords[coordIndex];
         const nextCoord = this.currentStrokeCoords[coordIndex + 1];
         
@@ -369,7 +385,7 @@ class TracePathManager {
         // UPDATE FRONT MARKER POSITION immediately (this is what user sees during drag)
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
-        // Calculate what coordinate index the green trace should fill up to
+        // Calculate what coordinate index the green trace should fill up to (CONSERVATIVE)
         let newCoordinateIndex = this.currentCoordinateIndex;
         
         // SPECIAL CASE: If we're at the final segment, allow completion
@@ -415,11 +431,27 @@ class TracePathManager {
         }
     }
 
+    getInterpolatedPosition(coordIndex, progress) {
+        if (coordIndex < 0 || coordIndex >= this.currentStrokeCoords.length - 1) {
+            return this.currentStrokeCoords[Math.max(0, Math.min(coordIndex, this.currentStrokeCoords.length - 1))];
+        }
+        
+        const currentCoord = this.currentStrokeCoords[coordIndex];
+        const nextCoord = this.currentStrokeCoords[coordIndex + 1];
+        
+        if (!currentCoord || !nextCoord) {
+            return currentCoord || nextCoord;
+        }
+        
+        return {
+            x: currentCoord.x + (nextCoord.x - currentCoord.x) * progress,
+            y: currentCoord.y + (nextCoord.y - currentCoord.y) * progress
+        };
+    }
+
     stopTracing() {
         this.isTracing = false;
         this.isDragging = false;
-        
-        console.log('Tracing stopped');
         
         // Show real slider and remove front marker
         if (this.slider) {
@@ -430,8 +462,6 @@ class TracePathManager {
     }
 
     completeCurrentStroke() {
-        console.log(`Completing stroke ${this.currentStroke}`);
-        
         this.isTracing = false;
         this.isDragging = false;
         
@@ -482,6 +512,12 @@ class TracePathManager {
         this.isDragging = false;
         this.currentCoordinateIndex = 0;
         this.currentStrokeCoords = [];
+        
+        // Reset front marker tracking
+        this.frontMarkerCoordIndex = 0;
+        this.frontMarkerProgress = 0;
+        this.finalFrontMarkerCoordIndex = 0;
+        this.finalFrontMarkerProgress = 0;
     }
 
     reset() {
