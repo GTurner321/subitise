@@ -28,32 +28,31 @@ class TracePathManager {
         
         // Stroke completion coordinates - based on actual traceconfig coordinates
         // End points of each stroke per number
-        this.strokeEndCoordinates = {
-            0: [[50, 50]], // Single stroke - need to find actual end point
-            1: [[50, 200]], // Single stroke - need to find actual end point  
-            2: [[0, 200], [100, 200]], // Two strokes: bottom left, bottom right
-            3: [[35, 100], [100, 10]], // Two strokes: middle center, end of second arc
-            4: [[50, 80], [100, 80], [100, 200]], // Three strokes: vertical end, horizontal end, down end
-            5: [[100, 20], [0, 125], [100, 200]], // Three strokes: top right, middle left, bottom right  
-            6: [[50, 50]], // Single stroke - need to find actual end point
-            7: [[100, 20], [40, 200]], // Two strokes: top right, bottom left
-            8: [[50, 50]], // Single stroke - need to find actual end point
-            9: [[100, 20], [80, 200]] // Two strokes: top of circle, bottom end
-        };
-        
-        // Trigger points for completion (2 coordinates before end points)
-        // These will be calculated based on finding the end coordinates in the actual path
+this.strokeEndCoordinates = {
+    0: [[100, 100]], // Single stroke
+    1: [[50, 0]], // Single stroke
+    2: [[0, 0], [100, 0]], // Two strokes
+    3: [[35, 100], [0, 10]], // Two strokes
+    4: [[0, 80], [100, 80], [60, 0]], // Three strokes
+    5: [[100, 200], [0, 125], [0, 13]], // Three strokes
+    6: [[0, 60]], // Single stroke
+    7: [[100, 200], [40, 0]], // Two strokes
+    8: [[95, 152.5]], // Single stroke
+    9: [[100, 190], [80, 0]] // Two strokes
+};
+
+// Trigger points for completion (2 coordinates before end points)
 this.strokeCompletionTriggers = {
-    0: [[98, 72]], // Single stroke
-    1: [[50, 20]], // Single stroke
-    2: [[18, 24], [80, 0]], // Two strokes
-    3: [[65, 95], [4, 8]], // Two strokes
-    4: [[80, 80], [80, 80], [60, 20]], // Three strokes
-    5: [[80, 200], [0, 160], [4, 10]], // Three strokes
-    6: [[94, 142.5]], // Single stroke
-    7: [[70, 100], [50, 33]], // Two strokes
-    8: [[92, 135.5]], // Single stroke
-    9: [[97, 166], [82, 20]] // Two strokes
+    0: [[99, 80]], // 2 before {x: 100, y: 100}
+    1: [[50, 20]], // 2 before {x: 50, y: 0}
+    2: [[36, 48], [80, 0]], // 2 before {x: 0, y: 0} and {x: 100, y: 0}
+    3: [[70, 107], [2, 9]], // 2 before {x: 35, y: 100} and {x: 0, y: 10}
+    4: [[18, 152], [80, 80], [60, 30]], // 2 before each end point
+    5: [[80, 200], [0, 150], [2, 11]], // 2 before each end point
+    6: [[2, 77]], // 2 before {x: 0, y: 60}
+    7: [[80, 200], [50, 33]], // 2 before each end point
+    8: [[94, 142.5]], // 2 before {x: 95, y: 152.5}
+    9: [[98.9, 182], [83, 30]] // 2 before each end point
 };
         
         this.initializeEventListeners();
