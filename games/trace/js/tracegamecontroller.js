@@ -233,7 +233,6 @@ class TraceGameController {
                     this.currentVoiceGender,
                     () => {
                         this.speechComplete = true;
-                        this.checkBalloonGameCompletion();
                     }
                 );
             }, 500);
@@ -391,14 +390,15 @@ class TraceGameController {
         return string;
     }
 
+    // SIMPLIFIED: Pop balloon and create falling number for ALL correct balloons (clicked OR ceiling hit)
     popBalloon(balloon) {
         if (balloon.popped || !this.playingBalloonGame) return;
         balloon.popped = true;
         
-        // Create flashing yellow splash pop effect
+        // Create flashing pop effect
         this.createPopEffect(balloon.x + balloon.radius, balloon.y + balloon.radius);
         
-        // If this is a correct balloon, create falling number regardless of how it was popped
+        // If this is a correct balloon, ALWAYS create falling number
         if (balloon.isCorrect) {
             this.createFallingNumber(balloon.x + balloon.radius, balloon.y + balloon.radius, balloon.number);
             
@@ -415,7 +415,6 @@ class TraceGameController {
         }
         
         if (balloon.group) balloon.group.remove();
-        this.checkBalloonGameCompletion();
     }
 
     createPopEffect(x, y) {
@@ -427,9 +426,8 @@ class TraceGameController {
         star.setAttribute('font-size', '50');
         star.setAttribute('fill', '#FFD700');
         star.setAttribute('class', 'pop-star');
-        star.textContent = '💥'; // Using splash/burst emoji instead of star
+        star.textContent = '💥';
         
-        // Flash on and off once (off-on-off-on-off for clear flashing effect)
         const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
         animate.setAttribute('attributeName', 'opacity');
         animate.setAttribute('values', '0;1;0;1;0');
@@ -449,7 +447,6 @@ class TraceGameController {
         const gameAreaHeight = CONFIG.SVG_HEIGHT;
         const grassBandTop = gameAreaHeight - grassBandHeight;
         
-        // Random landing position within 40% to 80% of grass band height from bottom
         const minHeightFromTop = grassBandHeight * 0.2;
         const maxHeightFromTop = grassBandHeight * 0.6;
         const randomHeightFromTop = minHeightFromTop + Math.random() * (maxHeightFromTop - minHeightFromTop);
@@ -461,7 +458,7 @@ class TraceGameController {
             y: y,
             targetY: targetY,
             number: number,
-            speed: 180, // Doubled falling speed
+            speed: 180,
             element: null,
             landed: false
         };
@@ -486,179 +483,110 @@ class TraceGameController {
         return fallingNumber;
     }
 
-// Updated animateBalloons method with balloon ceiling collision fix
-animateBalloons(currentTime = performance.now()) {
-    if (!this.playingBalloonGame) return;
-    
-    const deltaTime = (currentTime - this.balloonLastTime) / 1000;
-    this.balloonLastTime = currentTime;
-    
-    this.balloons.forEach(balloon => {
-        if (!balloon.popped) {
-            balloon.y -= balloon.riseSpeed * deltaTime;
-            
-            // Check ceiling collision - only pop, don't create falling numbers
-            if (balloon.y <= 0) {
-                balloon.popped = true;
-                if (balloon.group) balloon.group.remove();
-                return;
-            }
-            
-            balloon.x += Math.abs(balloon.sidewaysSpeed) * balloon.sidewaysDirection * deltaTime;
-            
-            // Bounce off edges
-            const gameAreaWidth = CONFIG.SVG_WIDTH;
-            const balloonWidth = balloon.radius * 2;
-            if (balloon.x <= 0) {
-                balloon.x = 0;
-                balloon.sidewaysDirection = 1;
-            } else if (balloon.x + balloonWidth >= gameAreaWidth) {
-                balloon.x = gameAreaWidth - balloonWidth;
-                balloon.sidewaysDirection = -1;
-            }
-            
-            // Update balloon position
-            if (balloon.circle) {
-                balloon.circle.setAttribute('cx', balloon.x + balloon.radius);
-                balloon.circle.setAttribute('cy', balloon.y + balloon.radius);
-            }
-            if (balloon.highlight) {
-                balloon.highlight.setAttribute('cx', balloon.x + balloon.radius - 17);
-                balloon.highlight.setAttribute('cy', balloon.y + balloon.radius - 17);
-            }
-            if (balloon.textWord) {
-                balloon.textWord.setAttribute('x', balloon.x + balloon.radius);
-                balloon.textWord.setAttribute('y', balloon.y + balloon.radius + 2);
-            }
-            
-            // Update string
-            if (balloon.string) {
-                const currentStartX = balloon.x + balloon.radius;
-                const currentStartY = balloon.y + balloon.radius * 2;
-                const deltaX = currentStartX - balloon.stringStartX;
-                const deltaY = currentStartY - balloon.stringStartY;
-                const newEndX = balloon.stringEndX + deltaX;
-                const newEndY = balloon.stringEndY + deltaY;
-                
-                const pathData = `M ${currentStartX} ${currentStartY} 
-                                 C ${currentStartX + 6} ${currentStartY + 12}, ${currentStartX + 18} ${currentStartY + 18}, ${currentStartX + 18} ${currentStartY + 30}
-                                 C ${currentStartX + 18} ${currentStartY + 42}, ${currentStartX - 18} ${currentStartY + 48}, ${currentStartX - 18} ${currentStartY + 60}
-                                 C ${currentStartX - 18} ${currentStartY + 72}, ${currentStartX + 12} ${currentStartY + 78}, ${currentStartX + 12} ${currentStartY + 90}
-                                 C ${currentStartX + 12} ${currentStartY + 102}, ${newEndX - 6} ${newEndY - 12}, ${newEndX} ${newEndY}`;
-                
-                balloon.string.setAttribute('d', pathData);
-            }
-        }
-    });
-    
-    // Update falling numbers
-    this.fallingNumbers.forEach(fallingNumber => {
-        if (!fallingNumber.landed) {
-            fallingNumber.y += fallingNumber.speed * deltaTime;
-            
-            if (fallingNumber.y >= fallingNumber.targetY) {
-                fallingNumber.y = fallingNumber.targetY;
-                fallingNumber.landed = true;
-            }
-            
-            if (fallingNumber.element) {
-                fallingNumber.element.setAttribute('y', fallingNumber.y);
-            }
-        }
-    });
-    
-    // Check for completion
-    this.checkBalloonGameCompletion();
-    
-    // Continue animation if there are still active balloons or we're not complete
-    const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
-    if (activeBalloonsCount > 0 || !this.speechComplete) {
-        this.balloonAnimationId = requestAnimationFrame((time) => this.animateBalloons(time));
-    } else {
-        // Final check for completion when all balloons are gone
-        this.checkBalloonGameCompletion();
-    }
-}
-    
-   checkBalloonGameCompletion() {
-    // Check if we have 3 correct falling numbers and they've all landed
-    const correctFallingNumbers = this.fallingNumbers.filter(fn => fn.number === this.currentNumber);
-    const hasAll3CorrectNumbers = correctFallingNumbers.length >= this.totalCorrectBalloons;
-    const allCorrectNumbersLanded = correctFallingNumbers.every(fn => fn.landed);
-    
-    // Primary completion: ALL 3 correct numbers have fallen to ground AND speech is done
-    if (hasAll3CorrectNumbers && allCorrectNumbersLanded && this.speechComplete) {
-        this.onBalloonGameComplete();
-        return;
-    }
-    
-    // FALLBACK: If all balloons are gone, handle based on performance
-    const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
-    if (activeBalloonsCount === 0 && this.speechComplete) {
+    // SIMPLIFIED: Animate balloons and check for completion
+    animateBalloons(currentTime = performance.now()) {
+        if (!this.playingBalloonGame) return;
         
-        if (correctFallingNumbers.length > 0) {
-            // SCENARIO 2: Partial success - create missing numbers and complete
-            const allCorrectLanded = correctFallingNumbers.every(fn => fn.landed);
-            if (allCorrectLanded) {
-                // Create additional falling numbers to reach the required 3
-                const numbersNeeded = this.totalCorrectBalloons - correctFallingNumbers.length;
-                for (let i = 0; i < numbersNeeded; i++) {
-                    const randomX = CONFIG.SVG_WIDTH * 0.2 + Math.random() * (CONFIG.SVG_WIDTH * 0.6);
-                    const randomY = CONFIG.SVG_HEIGHT * 0.3 + Math.random() * (CONFIG.SVG_HEIGHT * 0.2);
-                    const fallingNumber = this.createFallingNumber(randomX, randomY, this.currentNumber);
-                    // Make it land immediately
-                    fallingNumber.landed = true;
-                    fallingNumber.y = fallingNumber.targetY;
-                    if (fallingNumber.element) {
-                        fallingNumber.element.setAttribute('y', fallingNumber.y);
+        const deltaTime = (currentTime - this.balloonLastTime) / 1000;
+        this.balloonLastTime = currentTime;
+        
+        this.balloons.forEach(balloon => {
+            if (!balloon.popped) {
+                balloon.y -= balloon.riseSpeed * deltaTime;
+                
+                // SIMPLE: If balloon hits ceiling AND it's correct, pop it (which creates falling number)
+                if (balloon.y <= 0) {
+                    if (balloon.isCorrect) {
+                        this.popBalloon(balloon); // This will create the falling number
+                    } else {
+                        // Just remove incorrect balloons that hit ceiling
+                        balloon.popped = true;
+                        if (balloon.group) balloon.group.remove();
                     }
+                    return;
                 }
                 
-                if (this.audioEnabled) {
-                    this.speakText(`Great job! You found ${correctFallingNumbers.length} correct balloons!`, this.currentVoiceGender);
+                balloon.x += Math.abs(balloon.sidewaysSpeed) * balloon.sidewaysDirection * deltaTime;
+                
+                // Bounce off edges
+                const gameAreaWidth = CONFIG.SVG_WIDTH;
+                const balloonWidth = balloon.radius * 2;
+                if (balloon.x <= 0) {
+                    balloon.x = 0;
+                    balloon.sidewaysDirection = 1;
+                } else if (balloon.x + balloonWidth >= gameAreaWidth) {
+                    balloon.x = gameAreaWidth - balloonWidth;
+                    balloon.sidewaysDirection = -1;
                 }
                 
-                setTimeout(() => this.onBalloonGameComplete(), 1000);
+                // Update balloon position
+                if (balloon.circle) {
+                    balloon.circle.setAttribute('cx', balloon.x + balloon.radius);
+                    balloon.circle.setAttribute('cy', balloon.y + balloon.radius);
+                }
+                if (balloon.highlight) {
+                    balloon.highlight.setAttribute('cx', balloon.x + balloon.radius - 17);
+                    balloon.highlight.setAttribute('cy', balloon.y + balloon.radius - 17);
+                }
+                if (balloon.textWord) {
+                    balloon.textWord.setAttribute('x', balloon.x + balloon.radius);
+                    balloon.textWord.setAttribute('y', balloon.y + balloon.radius + 2);
+                }
+                
+                // Update string
+                if (balloon.string) {
+                    const currentStartX = balloon.x + balloon.radius;
+                    const currentStartY = balloon.y + balloon.radius * 2;
+                    const deltaX = currentStartX - balloon.stringStartX;
+                    const deltaY = currentStartY - balloon.stringStartY;
+                    const newEndX = balloon.stringEndX + deltaX;
+                    const newEndY = balloon.stringEndY + deltaY;
+                    
+                    const pathData = `M ${currentStartX} ${currentStartY} 
+                                     C ${currentStartX + 6} ${currentStartY + 12}, ${currentStartX + 18} ${currentStartY + 18}, ${currentStartX + 18} ${currentStartY + 30}
+                                     C ${currentStartX + 18} ${currentStartY + 42}, ${currentStartX - 18} ${currentStartY + 48}, ${currentStartX - 18} ${currentStartY + 60}
+                                     C ${currentStartX - 18} ${currentStartY + 72}, ${currentStartX + 12} ${currentStartY + 78}, ${currentStartX + 12} ${currentStartY + 90}
+                                     C ${currentStartX + 12} ${currentStartY + 102}, ${newEndX - 6} ${newEndY - 12}, ${newEndX} ${newEndY}`;
+                    
+                    balloon.string.setAttribute('d', pathData);
+                }
             }
-        } else {
-            // SCENARIO 3: Complete miss - give feedback and move on
-            this.handleCompleteMiss();
-        }
+        });
+        
+        // Update falling numbers
+        this.fallingNumbers.forEach(fallingNumber => {
+            if (!fallingNumber.landed) {
+                fallingNumber.y += fallingNumber.speed * deltaTime;
+                
+                if (fallingNumber.y >= fallingNumber.targetY) {
+                    fallingNumber.y = fallingNumber.targetY;
+                    fallingNumber.landed = true;
+                }
+                
+                if (fallingNumber.element) {
+                    fallingNumber.element.setAttribute('y', fallingNumber.y);
+                }
+            }
+        });
+        
+        // SIMPLE: Check if we have 3 landed numbers of the correct type
+        this.checkBalloonGameCompletion();
+        
+        this.balloonAnimationId = requestAnimationFrame((time) => this.animateBalloons(time));
     }
-}
 
-handleCompleteMiss() {
-    console.log('Complete miss - providing feedback and moving on');
-    
-    // Create 3 falling numbers anyway so the visual completion works
-    for (let i = 0; i < this.totalCorrectBalloons; i++) {
-        const randomX = CONFIG.SVG_WIDTH * 0.2 + Math.random() * (CONFIG.SVG_WIDTH * 0.6);
-        const randomY = CONFIG.SVG_HEIGHT * 0.3 + Math.random() * (CONFIG.SVG_HEIGHT * 0.2);
-        const fallingNumber = this.createFallingNumber(randomX, randomY, this.currentNumber);
-        // Make it land immediately
-        fallingNumber.landed = true;
-        fallingNumber.y = fallingNumber.targetY;
-        if (fallingNumber.element) {
-            fallingNumber.element.setAttribute('y', fallingNumber.y);
+    // SIMPLIFIED: Just check if we have 3 correct numbers that have landed
+    checkBalloonGameCompletion() {
+        const correctLandedNumbers = this.fallingNumbers.filter(fn => 
+            fn.number === this.currentNumber && fn.landed
+        );
+        
+        // Complete when we have 3 correct numbers landed AND speech is done
+        if (correctLandedNumbers.length >= 3 && this.speechComplete) {
+            this.onBalloonGameComplete();
         }
     }
-    
-    if (this.audioEnabled) {
-        // Give gentle feedback and wait for speech to complete before moving on
-        this.speakTextWithCallback(
-            'Try to pop the balloons next time to find the numbers!', 
-            this.currentVoiceGender,
-            () => {
-                // Wait a moment after speech completes, then move on
-                setTimeout(() => this.onBalloonGameComplete(), 1500);
-            }
-        );
-    } else {
-        // No audio - just wait a moment then move on
-        setTimeout(() => this.onBalloonGameComplete(), 2000);
-    }
-}
-    
+
     onBalloonGameComplete() {
         this.playingBalloonGame = false;
         
