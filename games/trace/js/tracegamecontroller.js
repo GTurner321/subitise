@@ -1048,7 +1048,6 @@ window.addEventListener('beforeunload', () => {
     checkBalloonGameCompletion() {
         const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
         const hasFoundAllCorrect = this.correctBalloonsFound >= this.totalCorrectBalloons;
-        const allBalloonsGone = activeBalloonsCount === 0;
         
         // Game can only complete when ALL 3 correct balloons have been found AND fallen
         if (hasFoundAllCorrect && this.speechComplete && this.numbersLanded) {
