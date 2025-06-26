@@ -1,3 +1,4 @@
+// TracePathManager - handles tracing interaction and slider movement
 class TracePathManager {
     constructor(svg, renderer) {
         this.svg = svg;
@@ -39,7 +40,17 @@ class TracePathManager {
             7: [[100, 200], [40, 0]], // Two strokes
             8: [[95, 152.5]], // Single stroke
             9: [[100, 190], [80, 0]] // Two strokes
-        };
+        }
+
+// Export for use in other modules if needed
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = TracePathManager;
+}
+
+// Make available globally
+if (typeof window !== 'undefined') {
+    window.TracePathManager = TracePathManager;
+};
         
         // Trigger points - when to auto-complete strokes
         this.strokeCompletionTriggers = {
