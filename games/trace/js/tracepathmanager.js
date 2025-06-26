@@ -488,15 +488,15 @@ class TracePathManager {
             const needsSectionBreak = this.needsSectionBreakAfterStroke(currentNumber, this.currentStroke);
             
             if (needsSectionBreak) {
-                console.log('Section break detected - jumping to start of next stroke');
+                console.log('Section break detected - adding second move to next stroke start');
                 
                 // Get the starting point of the next stroke
                 const nextStrokeCoords = this.renderer.getStrokeCoordinates(this.currentStroke + 1);
                 if (nextStrokeCoords && nextStrokeCoords.length > 0) {
                     const nextStartPoint = nextStrokeCoords[0];
                     
-                    // Tell renderer to add a "move" command to jump to the new starting point
-                    this.renderer.addMoveToPoint(nextStartPoint.x, nextStartPoint.y);
+                    // Add a second move command to jump to the start of the next stroke
+                    this.renderer.addMoveToTracePath(nextStartPoint.x, nextStartPoint.y);
                 }
             }
             
