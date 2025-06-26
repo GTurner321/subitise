@@ -90,10 +90,8 @@ class TracePathManager {
         
         const startPoint = this.currentStrokeCoords[0];
         
-        // CRITICAL FIX: Reset the trace line to the start of the new stroke
-        // This ensures the trace line jumps to the correct starting position
-        this.renderer.updateTracingProgress(this.currentStroke, 0);
-        
+        // FIXED: Only move the slider to the start position
+        // Don't update renderer progress until user starts tracing
         this.createSlider(startPoint);
         
         return true;
