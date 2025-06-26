@@ -497,12 +497,10 @@ animateBalloons(currentTime = performance.now()) {
         if (!balloon.popped) {
             balloon.y -= balloon.riseSpeed * deltaTime;
             
-            // FIXED: Check ceiling collision - only pop, don't create falling numbers
+            // Check ceiling collision - only pop, don't create falling numbers
             if (balloon.y <= 0) {
                 balloon.popped = true;
                 if (balloon.group) balloon.group.remove();
-                // Do NOT call this.popBalloon(balloon) which creates falling numbers
-                // Just mark as popped and remove from screen
                 return;
             }
             
@@ -561,13 +559,6 @@ animateBalloons(currentTime = performance.now()) {
             if (fallingNumber.y >= fallingNumber.targetY) {
                 fallingNumber.y = fallingNumber.targetY;
                 fallingNumber.landed = true;
-                
-                // Check if all correct numbers (not all numbers) have landed
-                const allCorrectLanded = this.fallingNumbers.length >= this.totalCorrectBalloons && 
-                                       this.fallingNumbers.every(fn => fn.landed);
-                if (allCorrectLanded) {
-                    this.checkBalloonGameCompletion();
-                }
             }
             
             if (fallingNumber.element) {
@@ -576,29 +567,98 @@ animateBalloons(currentTime = performance.now()) {
         }
     });
     
-    // Check if all balloons are gone - but still wait for completion requirements
+    // Check for completion
+    this.checkBalloonGameCompletion();
+    
+    // Continue animation if there are still active balloons or we're not complete
     const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
-    if (activeBalloonsCount === 0) {
-        // Don't auto-complete, just check if we can complete with current state
+    if (activeBalloonsCount > 0 || !this.speechComplete) {
+        this.balloonAnimationId = requestAnimationFrame((time) => this.animateBalloons(time));
+    } else {
+        // Final check for completion when all balloons are gone
         this.checkBalloonGameCompletion();
+    }
+}
+    
+   checkBalloonGameCompletion() {
+    // Check if we have 3 correct falling numbers and they've all landed
+    const correctFallingNumbers = this.fallingNumbers.filter(fn => fn.number === this.currentNumber);
+    const hasAll3CorrectNumbers = correctFallingNumbers.length >= this.totalCorrectBalloons;
+    const allCorrectNumbersLanded = correctFallingNumbers.every(fn => fn.landed);
+    
+    // Primary completion: ALL 3 correct numbers have fallen to ground AND speech is done
+    if (hasAll3CorrectNumbers && allCorrectNumbersLanded && this.speechComplete) {
+        this.onBalloonGameComplete();
         return;
     }
     
-    this.balloonAnimationId = requestAnimationFrame((time) => this.animateBalloons(time));
-}
-    
-    checkBalloonGameCompletion() {
-        // Check if we have 3 correct falling numbers and they've all landed
-        const correctFallingNumbers = this.fallingNumbers.filter(fn => fn.number === this.currentNumber);
-        const hasAll3CorrectNumbers = correctFallingNumbers.length >= this.totalCorrectBalloons;
-        const allCorrectNumbersLanded = correctFallingNumbers.every(fn => fn.landed);
+    // FALLBACK: If all balloons are gone, handle based on performance
+    const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
+    if (activeBalloonsCount === 0 && this.speechComplete) {
         
-        // Game completes when ALL 3 correct numbers have fallen to ground AND speech is done
-        if (hasAll3CorrectNumbers && allCorrectNumbersLanded && this.speechComplete) {
-            this.onBalloonGameComplete();
+        if (correctFallingNumbers.length > 0) {
+            // SCENARIO 2: Partial success - create missing numbers and complete
+            const allCorrectLanded = correctFallingNumbers.every(fn => fn.landed);
+            if (allCorrectLanded) {
+                // Create additional falling numbers to reach the required 3
+                const numbersNeeded = this.totalCorrectBalloons - correctFallingNumbers.length;
+                for (let i = 0; i < numbersNeeded; i++) {
+                    const randomX = CONFIG.SVG_WIDTH * 0.2 + Math.random() * (CONFIG.SVG_WIDTH * 0.6);
+                    const randomY = CONFIG.SVG_HEIGHT * 0.3 + Math.random() * (CONFIG.SVG_HEIGHT * 0.2);
+                    const fallingNumber = this.createFallingNumber(randomX, randomY, this.currentNumber);
+                    // Make it land immediately
+                    fallingNumber.landed = true;
+                    fallingNumber.y = fallingNumber.targetY;
+                    if (fallingNumber.element) {
+                        fallingNumber.element.setAttribute('y', fallingNumber.y);
+                    }
+                }
+                
+                if (this.audioEnabled) {
+                    this.speakText(`Great job! You found ${correctFallingNumbers.length} correct balloons!`, this.currentVoiceGender);
+                }
+                
+                setTimeout(() => this.onBalloonGameComplete(), 1000);
+            }
+        } else {
+            // SCENARIO 3: Complete miss - give feedback and move on
+            this.handleCompleteMiss();
         }
     }
+}
 
+handleCompleteMiss() {
+    console.log('Complete miss - providing feedback and moving on');
+    
+    // Create 3 falling numbers anyway so the visual completion works
+    for (let i = 0; i < this.totalCorrectBalloons; i++) {
+        const randomX = CONFIG.SVG_WIDTH * 0.2 + Math.random() * (CONFIG.SVG_WIDTH * 0.6);
+        const randomY = CONFIG.SVG_HEIGHT * 0.3 + Math.random() * (CONFIG.SVG_HEIGHT * 0.2);
+        const fallingNumber = this.createFallingNumber(randomX, randomY, this.currentNumber);
+        // Make it land immediately
+        fallingNumber.landed = true;
+        fallingNumber.y = fallingNumber.targetY;
+        if (fallingNumber.element) {
+            fallingNumber.element.setAttribute('y', fallingNumber.y);
+        }
+    }
+    
+    if (this.audioEnabled) {
+        // Give gentle feedback and wait for speech to complete before moving on
+        this.speakTextWithCallback(
+            'Try to pop the balloons next time to find the numbers!', 
+            this.currentVoiceGender,
+            () => {
+                // Wait a moment after speech completes, then move on
+                setTimeout(() => this.onBalloonGameComplete(), 1500);
+            }
+        );
+    } else {
+        // No audio - just wait a moment then move on
+        setTimeout(() => this.onBalloonGameComplete(), 2000);
+    }
+}
+    
     onBalloonGameComplete() {
         this.playingBalloonGame = false;
         
