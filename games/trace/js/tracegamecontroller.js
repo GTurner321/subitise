@@ -555,29 +555,21 @@ class TraceGameController {
         star.setAttribute('class', 'pop-star');
         star.textContent = '⭐';
         
-        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
-        animate.setAttribute('attributeName', 'transform');
-        animate.setAttribute('type', 'scale');
-        animate.setAttribute('values', '0;1.5;1');
-        animate.setAttribute('dur', '0.6s');
+        // Flash on and off once
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animate.setAttribute('attributeName', 'opacity');
+        animate.setAttribute('values', '0;1;0;1;0');
+        animate.setAttribute('dur', '0.8s');
         animate.setAttribute('fill', 'freeze');
         
-        const fadeOut = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-        fadeOut.setAttribute('attributeName', 'opacity');
-        fadeOut.setAttribute('values', '1;1;0');
-        fadeOut.setAttribute('dur', '0.6s');
-        fadeOut.setAttribute('fill', 'freeze');
-        
         star.appendChild(animate);
-        star.appendChild(fadeOut);
-        
         this.renderer.svg.appendChild(star);
         
         setTimeout(() => {
             if (star.parentNode) {
                 star.parentNode.removeChild(star);
             }
-        }, 600);
+        }, 800);
     }
 
     createFallingNumber(x, y, number) {
@@ -733,36 +725,6 @@ class TraceGameController {
         this.balloonAnimationId = requestAnimationFrame((time) => this.animateBalloons(time));
     }
 
-    checkBalloonGameCompletion() {
-        const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
-        const hasFoundEnoughCorrect = this.correctBalloonsFound >= this.totalCorrectBalloons;
-        const allBalloonsGone = activeBalloonsCount === 0;
-        
-        // Complete when conditions are met AND both speech and numbers are done
-        if ((hasFoundEnoughCorrect || allBalloonsGone) && this.speechComplete && this.numbersLanded) {
-            this.onBalloonGameComplete();
-        }
-    }
-
-    onBalloonGameComplete() {
-        this.playingBalloonGame = false;
-        
-        if (this.balloonAnimationId) {
-            cancelAnimationFrame(this.balloonAnimationId);
-            this.balloonAnimationId = null;
-        }
-        
-        this.clearBalloonGameElements();
-        this.numbersCompleted++;
-        
-        if (this.rainbow.isComplete()) {
-            setTimeout(() => this.completeGame(), 1000);
-            return;
-        }
-        
-        this.switchVoiceGender();
-        setTimeout(() => this.moveToNextNumber(), 1000);
-    }
     clearBalloonGameElements() {
         const elementsToRemove = this.renderer.svg.querySelectorAll(
             '.balloon-group, .falling-number-static, .pop-star'
@@ -1082,3 +1044,34 @@ window.addEventListener('beforeunload', () => {
         window.traceGame.destroy();
     }
 });
+
+    checkBalloonGameCompletion() {
+        const activeBalloonsCount = this.balloons.filter(b => !b.popped).length;
+        const hasFoundAllCorrect = this.correctBalloonsFound >= this.totalCorrectBalloons;
+        const allBalloonsGone = activeBalloonsCount === 0;
+        
+        // Game can only complete when ALL 3 correct balloons have been found AND fallen
+        if (hasFoundAllCorrect && this.speechComplete && this.numbersLanded) {
+            this.onBalloonGameComplete();
+        }
+    }
+
+    onBalloonGameComplete() {
+        this.playingBalloonGame = false;
+        
+        if (this.balloonAnimationId) {
+            cancelAnimationFrame(this.balloonAnimationId);
+            this.balloonAnimationId = null;
+        }
+        
+        this.clearBalloonGameElements();
+        this.numbersCompleted++;
+        
+        if (this.rainbow.isComplete()) {
+            setTimeout(() => this.completeGame(), 1000);
+            return;
+        }
+        
+        this.switchVoiceGender();
+        setTimeout(() => this.moveToNextNumber(), 1000);
+    }
