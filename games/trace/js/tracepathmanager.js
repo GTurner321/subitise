@@ -89,6 +89,11 @@ class TracePathManager {
         this.removeFrontMarker();
         
         const startPoint = this.currentStrokeCoords[0];
+        
+        // CRITICAL FIX: Reset the trace line to the start of the new stroke
+        // This ensures the trace line jumps to the correct starting position
+        this.renderer.updateTracingProgress(this.currentStroke, 0);
+        
         this.createSlider(startPoint);
         
         return true;
@@ -530,6 +535,14 @@ class TracePathManager {
             x: currentCoord.x + (nextCoord.x - currentCoord.x) * progress,
             y: currentCoord.y + (nextCoord.y - currentCoord.y) * progress
         };
+    }
+
+    // NEW METHOD: Force move to next stroke position
+    moveToNextStroke() {
+        const totalStrokes = this.renderer.getStrokeCount();
+        if (this.currentStroke + 1 < totalStrokes) {
+            this.startNewStroke(this.currentStroke + 1);
+        }
     }
 
     cleanup() {
