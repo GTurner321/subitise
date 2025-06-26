@@ -26,6 +26,20 @@ class TracePathManager {
         // Movement tracking
         this.lastMovementTime = Date.now();
         
+        // Stroke completion coordinates - end points for each stroke per number
+        this.strokeEndCoordinates = {
+            0: [], // Single stroke - will be calculated
+            1: [], // Single stroke - will be calculated
+            2: [[0, 0], [100, 0]], // Two strokes
+            3: [[35, 100], [0, 10]], // Two strokes
+            4: [[0, 80], [100, 80], [60, 0]], // Three strokes
+            5: [[100, 200], [0, 125], [0, 13]], // Three strokes
+            6: [], // Single stroke - will be calculated
+            7: [[100, 200], [40, 0]], // Two strokes
+            8: [], // Single stroke - will be calculated
+            9: [[100, 190], [80, 0]] // Two strokes
+        };
+        
         this.initializeEventListeners();
     }
 
@@ -66,6 +80,9 @@ class TracePathManager {
             return false;
         }
         
+        // Calculate stroke completion coordinate (2 before end)
+        this.calculateStrokeCompletionCoordinate();
+        
         // Remove any existing slider and front marker
         this.removeSlider();
         this.removeFrontMarker();
@@ -75,6 +92,25 @@ class TracePathManager {
         this.createSlider(startPoint);
         
         return true;
+    }
+
+    calculateStrokeCompletionCoordinate() {
+        // Calculate the coordinate index that represents "2 before end"
+        const totalCoords = this.currentStrokeCoords.length;
+        
+        if (totalCoords >= 3) {
+            // For strokes with 3+ coordinates, completion is at index (length - 3)
+            this.strokeCompletionCoordIndex = totalCoords - 3;
+        } else if (totalCoords === 2) {
+            // For very short strokes, completion is at first coordinate
+            this.strokeCompletionCoordIndex = 0;
+        } else {
+            // Single coordinate stroke (shouldn't happen, but handle gracefully)
+            this.strokeCompletionCoordIndex = 0;
+        }
+        
+        // Store the actual coordinate for reference
+        this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
     }
 
     createSlider(position) {
@@ -385,36 +421,34 @@ class TracePathManager {
         // UPDATE FRONT MARKER POSITION immediately (this is what user sees during drag)
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
+        // CHECK FOR STROKE COMPLETION - using coordinate-based completion
+        if (this.hasReachedStrokeCompletionPoint(coordIndex, progress)) {
+            this.autoCompleteCurrentStroke();
+            return;
+        }
+        
         // Calculate what coordinate index the green trace should fill up to (CONSERVATIVE)
         let newCoordinateIndex = this.currentCoordinateIndex;
         
-        // SPECIAL CASE: If we're at the final segment, allow completion
-        const isFinalSegment = coordIndex >= this.currentStrokeCoords.length - 2;
-        
-        if (isFinalSegment && progress >= 0.95) {
-            // At final segment with 95%+ progress - complete the stroke
-            newCoordinateIndex = this.currentStrokeCoords.length - 1;
-        } else if (coordIndex > this.currentCoordinateIndex) {
+        if (coordIndex > this.currentCoordinateIndex) {
             // Front marker moved to a new segment ahead
             if (progress >= 0.5) {
                 newCoordinateIndex = coordIndex;
             }
         } else if (coordIndex === this.currentCoordinateIndex) {
             // Front marker still in current segment
-            if (progress >= 0.95) {
-                // Advance to next coordinate when 95% through current segment
+            if (progress >= 0.7) {
+                // Advance to next coordinate when 70% through current segment
                 newCoordinateIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
             }
         }
         
-        // SAFETY CHECK: Green trace coordinate can never exceed front marker segment (except at completion)
-        if (!isFinalSegment || progress < 0.95) {
-            newCoordinateIndex = Math.min(newCoordinateIndex, coordIndex);
-            
-            // If front marker is in the middle of a segment, green trace should only fill to previous complete segments
-            if (progress < 0.95 && coordIndex === newCoordinateIndex && coordIndex > 0) {
-                newCoordinateIndex = Math.max(0, coordIndex - 1);
-            }
+        // SAFETY CHECK: Green trace coordinate can never exceed front marker segment
+        newCoordinateIndex = Math.min(newCoordinateIndex, coordIndex);
+        
+        // If front marker is in the middle of a segment, green trace should only fill to previous complete segments
+        if (progress < 0.7 && coordIndex === newCoordinateIndex && coordIndex > 0) {
+            newCoordinateIndex = Math.max(0, coordIndex - 1);
         }
         
         // Update green trace only when coordinate index actually changes
@@ -424,11 +458,40 @@ class TracePathManager {
             // Update green trace to match
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         }
-        
-        // Complete stroke when we reach the final coordinate
-        if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
-            this.completeCurrentStroke();
+    }
+
+    hasReachedStrokeCompletionPoint(coordIndex, progress) {
+        // Check if we've reached the completion coordinate (2 before end)
+        if (coordIndex >= this.strokeCompletionCoordIndex) {
+            // If we're at the completion coordinate with good progress, or past it
+            if (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5) {
+                return true;
+            }
         }
+        return false;
+    }
+
+    autoCompleteCurrentStroke() {
+        // Complete this stroke immediately
+        this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
+        
+        // Update green trace to show full completion
+        this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+        
+        // Update front marker to final position
+        const finalCoord = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
+        if (finalCoord && this.frontMarker) {
+            this.updateFrontMarkerPosition(finalCoord);
+        }
+        
+        // Store final position for slider positioning
+        this.finalFrontMarkerCoordIndex = this.currentStrokeCoords.length - 1;
+        this.finalFrontMarkerProgress = 1.0;
+        
+        // Brief pause to show completion, then advance
+        setTimeout(() => {
+            this.completeCurrentStroke();
+        }, 200);
     }
 
     getInterpolatedPosition(coordIndex, progress) {
@@ -471,13 +534,26 @@ class TracePathManager {
         }
         this.removeFrontMarker();
         
-        // Remove slider after fade
-        setTimeout(() => {
-            this.removeSlider();
-        }, 300);
-        
-        // Notify renderer of completion
+        // Notify renderer of stroke completion
         this.renderer.completeStroke(this.currentStroke);
+        
+        // Check if there are more strokes
+        const totalStrokes = this.renderer.getStrokeCount();
+        
+        if (this.currentStroke + 1 < totalStrokes) {
+            // Auto-advance to next stroke after brief delay
+            setTimeout(() => {
+                this.startNewStroke(this.currentStroke + 1);
+            }, 300);
+        } else {
+            // All strokes complete - remove slider completely
+            setTimeout(() => {
+                this.removeSlider();
+            }, 300);
+            
+            // Notify renderer that the entire number is complete
+            this.renderer.completeNumber();
+        }
     }
 
     moveToNextStroke() {
