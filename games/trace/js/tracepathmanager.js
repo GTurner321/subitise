@@ -69,6 +69,11 @@ class TracePathManager {
     }
 
     startNewStroke(strokeIndex) {
+        const currentNumber = this.getCurrentNumber();
+        const totalStrokes = this.renderer.getStrokeCount();
+        
+        console.log(`🎯 Starting stroke ${strokeIndex} for number ${currentNumber} (${strokeIndex + 1}/${totalStrokes})`);
+        
         this.currentStroke = strokeIndex;
         this.currentCoordinateIndex = 0;
         this.isTracing = false;
@@ -82,7 +87,12 @@ class TracePathManager {
         
         this.currentStrokeCoords = this.renderer.getStrokeCoordinates(strokeIndex);
         
-        if (!this.currentStrokeCoords?.length) return false;
+        if (!this.currentStrokeCoords?.length) {
+            console.error(`❌ No coordinates found for stroke ${strokeIndex} of number ${currentNumber}`);
+            return false;
+        }
+        
+        console.log(`✅ Stroke ${strokeIndex} has ${this.currentStrokeCoords.length} coordinates`);
         
         this.setupStrokeCompletion();
         this.removeSlider();
@@ -567,20 +577,25 @@ class TracePathManager {
     }
 
     completeCurrentStroke() {
-        console.log(`Completing stroke ${this.currentStroke} for number ${this.getCurrentNumber()}`);
+        const currentNumber = this.getCurrentNumber();
+        console.log(`Completing stroke ${this.currentStroke} for number ${currentNumber}`);
         
         this.renderer.completeStroke(this.currentStroke);
         
         const totalStrokes = this.renderer.getStrokeCount();
-        console.log(`Total strokes: ${totalStrokes}, current stroke: ${this.currentStroke}`);
+        console.log(`Total strokes for number ${currentNumber}: ${totalStrokes}, completed stroke: ${this.currentStroke}`);
         
-        if (this.currentStroke + 1 < totalStrokes) {
+        // Check if this was the final stroke
+        const isLastStroke = (this.currentStroke + 1) >= totalStrokes;
+        
+        if (!isLastStroke) {
             // More strokes to go - start next stroke
-            console.log(`Starting next stroke: ${this.currentStroke + 1}`);
-            this.endCurrentStroke(() => this.startNewStroke(this.currentStroke + 1));
+            const nextStroke = this.currentStroke + 1;
+            console.log(`Moving to next stroke: ${nextStroke} (${nextStroke + 1}/${totalStrokes})`);
+            this.endCurrentStroke(() => this.startNewStroke(nextStroke));
         } else {
             // This was the final stroke - complete the number
-            console.log('Final stroke completed - calling renderer.completeNumber()');
+            console.log(`✅ ALL STROKES COMPLETED for number ${currentNumber} - calling renderer.completeNumber()`);
             this.endCurrentStroke(() => {
                 this.removeSlider();
                 this.renderer.completeNumber();
