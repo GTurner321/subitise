@@ -369,20 +369,26 @@ class TracePathManager {
         
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
-        // Debug: Log progress for number 0
+        // Debug: Log progress for problematic numbers
         const currentNumber = this.getCurrentNumber();
-        if (currentNumber === 0) {
-            console.log(`Number 0 progress: coordIndex=${coordIndex}, progress=${progress.toFixed(2)}, totalCoords=${this.currentStrokeCoords.length}`);
+        if (currentNumber === 0 || currentNumber === 2) {
+            console.log(`Number ${currentNumber} stroke ${this.currentStroke}: coordIndex=${coordIndex}/${this.currentStrokeCoords.length-1}, progress=${progress.toFixed(2)}`);
         }
         
         // Check if we've reached the trigger coordinate in the path
-        console.log(`About to check trigger for coordIndex: ${coordIndex}`);
+        if (currentNumber === 0 || currentNumber === 2) {
+            console.log(`About to check trigger for number ${currentNumber}, stroke ${this.currentStroke}, coordIndex: ${coordIndex}`);
+        }
+        
         if (this.checkForTriggerAtCurrentCoord(coordIndex)) {
             console.log(`Trigger detected! Calling autoCompleteCurrentStroke()`);
             this.autoCompleteCurrentStroke();
             return;
         }
-        console.log(`No trigger detected for coordIndex: ${coordIndex}`);
+        
+        if (currentNumber === 0 || currentNumber === 2) {
+            console.log(`No trigger detected for number ${currentNumber}, stroke ${this.currentStroke}, coordIndex: ${coordIndex}`);
+        }
         
         let newCoordinateIndex = this.currentCoordinateIndex;
         
@@ -402,15 +408,22 @@ class TracePathManager {
             this.currentCoordinateIndex = newCoordinateIndex;
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
             
-            // Debug: Log when we update the coordinate index for number 0
-            if (currentNumber === 0) {
-                console.log(`Number 0 coordinate index updated to: ${this.currentCoordinateIndex}`);
+            // Debug: Log when we update the coordinate index
+            if (currentNumber === 0 || currentNumber === 2) {
+                console.log(`Number ${currentNumber} coordinate index updated to: ${this.currentCoordinateIndex}`);
             }
         }
         
         // ADDITIONAL CHECK: If we're at the very end, force completion
         if (coordIndex >= this.currentStrokeCoords.length - 1 && progress >= 0.9) {
-            console.log(`Forcing completion - reached end of stroke: coordIndex=${coordIndex}, totalCoords=${this.currentStrokeCoords.length}, progress=${progress}`);
+            console.log(`FORCING COMPLETION - Number ${currentNumber}, stroke ${this.currentStroke}: coordIndex=${coordIndex}, totalCoords=${this.currentStrokeCoords.length}, progress=${progress}`);
+            this.autoCompleteCurrentStroke();
+            return;
+        }
+        
+        // EXTRA CHECK: Also force completion if we're very close to the end
+        if (coordIndex >= this.currentStrokeCoords.length - 3 && progress >= 0.95) {
+            console.log(`FORCING COMPLETION (near end) - Number ${currentNumber}, stroke ${this.currentStroke}: coordIndex=${coordIndex}, progress=${progress}`);
             this.autoCompleteCurrentStroke();
             return;
         }
@@ -421,7 +434,14 @@ class TracePathManager {
         const triggerCoords = this.strokeCompletionTriggers[currentNumber]?.[this.currentStroke];
         
         const currentCoord = this.currentStrokeCoords[coordIndex];
-        if (!currentCoord) return false;
+        if (!currentCoord) {
+            console.log(`No current coord for coordIndex: ${coordIndex}`);
+            return false;
+        }
+        
+        console.log(`Checking trigger for number ${currentNumber}, stroke ${this.currentStroke}, coordIndex ${coordIndex}`);
+        console.log(`Current coord: (${currentCoord.x.toFixed(1)}, ${currentCoord.y.toFixed(1)})`);
+        console.log(`Raw trigger coords:`, triggerCoords);
         
         // Check if we've reached the specific trigger point (need to scale trigger coords to match scaled stroke coords)
         if (triggerCoords) {
@@ -431,15 +451,22 @@ class TracePathManager {
             const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
             const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
             
+            console.log(`Scale factors: scaleX=${scaleX}, scaleY=${scaleY}, offsetX=${offsetX}, offsetY=${offsetY}`);
+            
             const scaledTriggerX = offsetX + (triggerCoords[0] * scaleX);
             const scaledTriggerY = offsetY + ((200 - triggerCoords[1]) * scaleY);
             
-            const tolerance = 5; // Allow small differences due to scaling/floating point
+            console.log(`Scaled trigger: (${scaledTriggerX.toFixed(1)}, ${scaledTriggerY.toFixed(1)})`);
+            
+            const tolerance = 10; // Increased tolerance
             const xMatch = Math.abs(currentCoord.x - scaledTriggerX) <= tolerance;
             const yMatch = Math.abs(currentCoord.y - scaledTriggerY) <= tolerance;
             
+            console.log(`Distance check: xDiff=${Math.abs(currentCoord.x - scaledTriggerX).toFixed(1)}, yDiff=${Math.abs(currentCoord.y - scaledTriggerY).toFixed(1)}, tolerance=${tolerance}`);
+            console.log(`Matches: xMatch=${xMatch}, yMatch=${yMatch}`);
+            
             if (xMatch && yMatch) {
-                console.log(`Trigger reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x.toFixed(1)}, ${currentCoord.y.toFixed(1)}) matches scaled trigger (${scaledTriggerX.toFixed(1)}, ${scaledTriggerY.toFixed(1)})`);
+                console.log(`✅ TRIGGER REACHED for number ${currentNumber}, stroke ${this.currentStroke}`);
                 return true;
             }
         }
@@ -447,17 +474,14 @@ class TracePathManager {
         // Also check if we've reached the final coordinate in the stroke path
         const isLastCoord = coordIndex === this.currentStrokeCoords.length - 1;
         if (isLastCoord) {
-            console.log(`Final coordinate reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x.toFixed(1)}, ${currentCoord.y.toFixed(1)})`);
+            console.log(`✅ FINAL COORDINATE reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x.toFixed(1)}, ${currentCoord.y.toFixed(1)})`);
             return true;
         }
         
-        // Additional debug logging to see what coordinates we're hitting
-        if (currentNumber === 0 && coordIndex % 5 === 0) {
-            const triggerScaled = triggerCoords ? {
-                x: CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2 + (triggerCoords[0] * CONFIG.NUMBER_RECT_WIDTH / 100),
-                y: CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2 + ((200 - triggerCoords[1]) * CONFIG.NUMBER_RECT_HEIGHT / 200)
-            } : null;
-            console.log(`Number 0 debug - coordIndex: ${coordIndex}/${this.currentStrokeCoords.length-1}, coord: (${currentCoord.x.toFixed(1)}, ${currentCoord.y.toFixed(1)}), scaled trigger: (${triggerScaled?.x.toFixed(1)}, ${triggerScaled?.y.toFixed(1)})`);
+        // Check if we're very close to the end (within last 2 coordinates)
+        const isNearEnd = coordIndex >= this.currentStrokeCoords.length - 3;
+        if (isNearEnd) {
+            console.log(`Near end: coordIndex=${coordIndex}, totalCoords=${this.currentStrokeCoords.length}`);
         }
         
         return false;
