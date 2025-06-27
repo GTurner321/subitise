@@ -1,4 +1,4 @@
-class TracePathManager {
+class FixedTracePathManager {
     constructor(svg, renderer) {
         this.svg = svg;
         this.renderer = renderer;
