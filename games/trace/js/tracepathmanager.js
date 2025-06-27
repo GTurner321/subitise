@@ -436,8 +436,21 @@ class TracePathManager {
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
-        return coordIndex >= this.strokeCompletionCoordIndex && 
-               (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5);
+        const result = coordIndex >= this.strokeCompletionCoordIndex && 
+                      (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5);
+        
+        // Debug logging for number 1
+        const currentNumber = this.getCurrentNumber();
+        if (currentNumber === 1 && result) {
+            console.log('Number 1 completion triggered:', { 
+                coordIndex, 
+                progress, 
+                strokeCompletionCoordIndex: this.strokeCompletionCoordIndex,
+                currentStroke: this.currentStroke 
+            });
+        }
+        
+        return result;
     }
 
     autoCompleteCurrentStroke() {
@@ -473,13 +486,21 @@ class TracePathManager {
     }
 
     completeCurrentStroke() {
+        const currentNumber = this.getCurrentNumber();
+        console.log(`Completing stroke ${this.currentStroke} for number ${currentNumber}`);
+        
         this.renderer.completeStroke(this.currentStroke);
         
         const totalStrokes = this.renderer.getStrokeCount();
+        console.log(`Total strokes: ${totalStrokes}, current stroke: ${this.currentStroke}`);
         
         if (this.currentStroke + 1 < totalStrokes) {
+            // More strokes to go - start next stroke
+            console.log('Starting next stroke...');
             this.endCurrentStroke(() => this.startNewStroke(this.currentStroke + 1));
         } else {
+            // This was the final stroke - complete the number
+            console.log('Completing number - calling renderer.completeNumber()');
             this.endCurrentStroke(() => {
                 this.removeSlider();
                 this.renderer.completeNumber();
