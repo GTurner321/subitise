@@ -203,13 +203,6 @@ startNewNumber() {
         this.updateNumberWordDisplay('');
     }
 
-    handleStrokeCompletion(strokeIndex) {
-        const totalStrokes = this.renderer.getStrokeCount();
-        if (strokeIndex + 1 < totalStrokes) {
-            this.pathManager.moveToNextStroke();
-        }
-    }
-
     handleNumberCompletion() {
         if (this.isProcessingCompletion) return;
         this.isProcessingCompletion = true;
