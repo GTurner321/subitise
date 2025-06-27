@@ -398,20 +398,28 @@ class TracePathManager {
         const currentNumber = this.getCurrentNumber();
         const triggerCoords = this.strokeCompletionTriggers[currentNumber]?.[this.currentStroke];
         
-        if (!triggerCoords) return false;
-        
         const currentCoord = this.currentStrokeCoords[coordIndex];
         if (!currentCoord) return false;
         
-        // Exact coordinate match for THIS stroke's trigger point
-        const match = (currentCoord.x === triggerCoords[0]) && 
-                     (currentCoord.y === triggerCoords[1]);
-        
-        if (match) {
-            console.log(`Trigger reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x}, ${currentCoord.y})`);
+        // Check if we've reached the specific trigger point
+        if (triggerCoords) {
+            const triggerMatch = (currentCoord.x === triggerCoords[0]) && 
+                                (currentCoord.y === triggerCoords[1]);
+            
+            if (triggerMatch) {
+                console.log(`Trigger reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x}, ${currentCoord.y})`);
+                return true;
+            }
         }
         
-        return match;
+        // Also check if we've reached the final coordinate in the stroke path
+        const isLastCoord = coordIndex === this.currentStrokeCoords.length - 1;
+        if (isLastCoord) {
+            console.log(`Final coordinate reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x}, ${currentCoord.y})`);
+            return true;
+        }
+        
+        return false;
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
