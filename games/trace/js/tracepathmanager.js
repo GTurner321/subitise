@@ -17,6 +17,7 @@ class TracePathManager {
         this.strokeCompletionCoordIndex = 0;
         this.strokeCompletionCoord = null;
         this.lastMovementTime = Date.now();
+        this.currentNumberForFallback = 0; // Add fallback storage
         
         this.strokeEndCoordinates = {
             0: [[100, 100]],
@@ -527,6 +528,7 @@ class TracePathManager {
         setTimeout(callback, 300);
     }
 
+    // FIXED: Enhanced getCurrentNumber method with multiple fallbacks
     getCurrentNumber() {
         // Check if window.traceGame exists and has getCurrentNumber method
         if (window.traceGame && typeof window.traceGame.getCurrentNumber === 'function') {
@@ -542,9 +544,29 @@ class TracePathManager {
             return num;
         }
         
-        console.log('getCurrentNumber failed - window.traceGame not found or no getCurrentNumber method');
+        // Additional fallback - check renderer's currentNumber
+        if (this.renderer && this.renderer.currentNumber !== undefined && this.renderer.currentNumber !== null) {
+            const num = this.renderer.currentNumber;
+            console.log(`getCurrentNumber from renderer: ${num}`);
+            return num;
+        }
+        
+        // Final fallback - use stored number
+        if (this.currentNumberForFallback !== undefined) {
+            const num = this.currentNumberForFallback;
+            console.log(`getCurrentNumber from fallback storage: ${num}`);
+            return num;
+        }
+        
+        console.log('getCurrentNumber failed - returning 0 as default');
         console.log('window.traceGame:', window.traceGame);
-        return null;
+        return 0; // Return 0 instead of null as a safe default
+    }
+
+    // NEW: Method to set current number for fallback
+    setCurrentNumber(number) {
+        this.currentNumberForFallback = number;
+        console.log(`PathManager: setCurrentNumber called with ${number}`);
     }
 
     getInterpolatedPosition(coordIndex, progress) {
@@ -579,6 +601,7 @@ class TracePathManager {
     reset() {
         this.cleanup();
         this.currentStroke = 0;
+        this.currentNumberForFallback = 0;
     }
 
     getCurrentProgress() {
