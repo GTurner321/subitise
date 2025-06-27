@@ -100,26 +100,14 @@ class TracePathManager {
             endCoords: this.strokeEndCoordinates[currentNumber]?.[this.currentStroke]
         });
         
-        if (triggerCoords) {
-            const triggerIndex = this.findCoordinateInPath(triggerCoords);
-            if (triggerIndex !== -1) {
-                this.strokeCompletionCoordIndex = triggerIndex;
-                this.strokeCompletionCoord = this.currentStrokeCoords[triggerIndex];
-                console.log(`Trigger found at index ${triggerIndex}`);
-                return;
-            } else {
-                console.log(`Trigger coordinate not found in path:`, triggerCoords);
-            }
-        }
-        
+        // Simple fallback completion near end of stroke
         const totalCoords = this.currentStrokeCoords.length;
         this.strokeCompletionCoordIndex = Math.max(0, totalCoords - 3);
         this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
-        console.log(`Using fallback completion index: ${this.strokeCompletionCoordIndex}`);
     }
 
     findCoordinateInPath(targetCoord) {
-        const tolerance = 10;
+        const tolerance = 15; // Increased tolerance from 10 to 15
         let closestIndex = -1;
         let closestDistance = Infinity;
         
@@ -380,7 +368,8 @@ class TracePathManager {
         
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
-        if (this.hasReachedStrokeCompletionPoint(coordIndex, progress)) {
+        // Check if we've reached the trigger coordinate in the path
+        if (this.checkForTriggerAtCurrentCoord(coordIndex)) {
             this.autoCompleteCurrentStroke();
             return;
         }
@@ -403,6 +392,26 @@ class TracePathManager {
             this.currentCoordinateIndex = newCoordinateIndex;
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         }
+    }
+
+    checkForTriggerAtCurrentCoord(coordIndex) {
+        const currentNumber = this.getCurrentNumber();
+        const triggerCoords = this.strokeCompletionTriggers[currentNumber]?.[this.currentStroke];
+        
+        if (!triggerCoords) return false;
+        
+        const currentCoord = this.currentStrokeCoords[coordIndex];
+        if (!currentCoord) return false;
+        
+        // Exact coordinate match for THIS stroke's trigger point
+        const match = (currentCoord.x === triggerCoords[0]) && 
+                     (currentCoord.y === triggerCoords[1]);
+        
+        if (match) {
+            console.log(`Trigger reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x}, ${currentCoord.y})`);
+        }
+        
+        return match;
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
