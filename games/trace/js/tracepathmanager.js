@@ -23,8 +23,8 @@ class TracePathManager {
             1: [[50, 0]],
             2: [[0, 0], [100, 0]],
             3: [[35, 100], [0, 10]],
-            4: [[0, 80], [60, 40], [60, 0]], // stroke 1 ends at start of stroke 2 (60,40)
-            5: [[0, 200], [0, 125], [0, 13]], // stroke 0 ends at start of stroke 1 (0,200)
+            4: [[0, 80], [60, 40], [100, 80]], // stroke 1 ends at start of stroke 2 (60,40), but final stroke ends at (100,80)
+            5: [[0, 200], [0, 125], [100, 200]], // stroke 0 ends at start of stroke 1 (0,200), but final stroke ends at (100,200)
             6: [[2, 77]],
             7: [[100, 200], [40, 0]],
             8: [[95, 152.5]],
@@ -476,13 +476,20 @@ class TracePathManager {
     }
 
     completeCurrentStroke() {
+        console.log(`Completing stroke ${this.currentStroke} for number ${this.getCurrentNumber()}`);
+        
         this.renderer.completeStroke(this.currentStroke);
         
         const totalStrokes = this.renderer.getStrokeCount();
+        console.log(`Total strokes: ${totalStrokes}, current stroke: ${this.currentStroke}`);
         
         if (this.currentStroke + 1 < totalStrokes) {
+            // More strokes to go - start next stroke
+            console.log('Starting next stroke...');
             this.endCurrentStroke(() => this.startNewStroke(this.currentStroke + 1));
         } else {
+            // This was the final stroke - complete the number
+            console.log('Final stroke completed - calling renderer.completeNumber()');
             this.endCurrentStroke(() => {
                 this.removeSlider();
                 this.renderer.completeNumber();
