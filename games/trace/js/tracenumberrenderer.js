@@ -386,22 +386,12 @@ class TraceNumberRenderer {
         return true;
     }
 
-completeNumber() {
-    console.log(`🎉 TraceNumberRenderer.completeNumber() called for number ${this.currentNumber}`);
-    console.log(`Number complete status check:`, this.areAllStrokesComplete());
-    
-    // Check if all strokes have traced paths
-    const totalStrokes = this.getStrokeCount();
-    for (let i = 0; i < totalStrokes; i++) {
-        const tracedPath = this.svg.querySelector(`.traced-path-${i}`);
-        console.log(`Stroke ${i} traced path exists:`, !!tracedPath);
+    completeNumber() {
+        console.log(`Number ${this.currentNumber} fully completed!`);
+        
+        // Add completion effect with dynamic positioning
+        this.addCompletionEffect();
     }
-    
-    console.log(`Number ${this.currentNumber} fully completed!`);
-    
-    // Add completion effect with dynamic positioning
-    this.addCompletionEffect();
-}
 
     addCompletionEffect() {
         // Create a group for the completion effect
