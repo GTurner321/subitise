@@ -18,27 +18,29 @@ class TracePathManager {
         this.strokeCompletionCoord = null;
         this.lastMovementTime = Date.now();
         
+        // Updated stroke end coordinates with corrected values for numbers 4 and 5
         this.strokeEndCoordinates = {
             0: [[100, 100]],
             1: [[50, 0]],
             2: [[0, 0], [100, 0]],
             3: [[35, 100], [0, 10]],
-            4: [[0, 80], [100, 80], [60, 0]],
-            5: [[100, 200], [0, 125], [0, 13]],
-            6: [[0, 60]],
+            4: [[0, 80], [60, 140], [60, 0]], // stroke 2 ends at start of stroke 3 (60,140)
+            5: [[0, 200], [0, 125], [0, 13]], // stroke 1 ends at start of stroke 2 (0,200)
+            6: [[2, 77]],
             7: [[100, 200], [40, 0]],
             8: [[95, 152.5]],
             9: [[100, 190], [80, 0]]
         };
         
+        // Updated stroke completion triggers with corrected values
         this.strokeCompletionTriggers = {
             0: [[99, 80]],
             1: [[50, 20]],
             2: [[36, 48], [80, 0]],
-            3: [[70, 107], [2, 9]],
+            3: [[70, 107], [4, 8]],
             4: [[18, 152], [80, 80], [60, 30]],
             5: [[80, 200], [0, 150], [2, 11]],
-            6: [[2, 77]],
+            6: [[6, 88]],
             7: [[80, 200], [50, 33]],
             8: [[94, 142.5]],
             9: [[98.9, 182], [83, 30]]
