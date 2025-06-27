@@ -790,6 +790,26 @@ class TraceGameController {
         return this.gameComplete;
     }
 
+    skipToNextNumber() {
+        if (!CONFIG.DEBUG_MODE) return;
+        
+        // Force complete current number and move to next
+        this.numbersCompleted++;
+        
+        if (this.numbersCompleted >= CONFIG.NUMBERS_TO_COMPLETE) {
+            this.completeGame();
+            return;
+        }
+        
+        // Move to next number
+        this.currentNumberIndex++;
+        if (this.currentNumberIndex >= this.numbersSequence.length) {
+            this.currentNumberIndex = 0; // Wrap around if needed
+        }
+        
+        this.startNewNumber();
+    }
+
     skipToNumber(number) {
         if (!CONFIG.DEBUG_MODE) return;
         const index = this.numbersSequence.indexOf(number);
