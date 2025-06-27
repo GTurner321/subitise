@@ -44,6 +44,18 @@ class TracePathManager {
             9: [[98.9, 182], [83, 30]]
         };
         
+        // NEW: Section break triggers - move to next section without completing
+        this.sectionBreakTriggers = {
+            4: [[18, 152], [100, 80]], // After stroke 1 at (18,152), after stroke 2 at (100,80)
+            5: [[100, 200]] // After stroke 1 at (100,200)
+        };
+        
+        // Where to move when section break is triggered
+        this.sectionBreakTargets = {
+            4: [null, [60, 40]], // stroke 1 -> null, stroke 2 -> (60,40)
+            5: [[0, 200]] // stroke 1 -> (0,200)
+        };
+        
         this.sectionBreaks = {
             4: [1],
             5: [1]
@@ -421,6 +433,13 @@ class TracePathManager {
         
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
+        // NEW: Check for section break triggers first
+        if (this.hasReachedSectionBreakPoint(coordIndex, progress)) {
+            this.autoMoveToNextSection();
+            return;
+        }
+        
+        // Then check for completion triggers
         if (this.hasReachedStrokeCompletionPoint(coordIndex, progress)) {
             this.autoCompleteCurrentStroke();
             return;
@@ -448,6 +467,58 @@ class TracePathManager {
             this.currentCoordinateIndex = newCoordinateIndex;
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         }
+    }
+
+    hasReachedSectionBreakPoint(coordIndex, progress) {
+        const currentNumber = this.getCurrentNumber();
+        
+        if (!this.sectionBreakTriggers[currentNumber]) {
+            return false;
+        }
+        
+        const triggerCoords = this.sectionBreakTriggers[currentNumber];
+        if (!triggerCoords || !triggerCoords[this.currentStroke]) {
+            return false;
+        }
+        
+        const targetTrigger = triggerCoords[this.currentStroke];
+        const triggerIndex = this.findCoordinateInPath(targetTrigger);
+        
+        if (triggerIndex === -1) {
+            return false;
+        }
+        
+        return coordIndex >= triggerIndex && 
+               (coordIndex > triggerIndex || progress >= 0.5);
+    }
+
+    autoMoveToNextSection() {
+        console.log('Section break triggered - moving to next section');
+        
+        const currentNumber = this.getCurrentNumber();
+        const targetCoords = this.sectionBreakTargets[currentNumber];
+        
+        if (targetCoords && targetCoords[this.currentStroke]) {
+            const targetPoint = targetCoords[this.currentStroke];
+            
+            // Add moves to trace path: current position -> target position
+            const currentStrokeEnd = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
+            this.renderer.addMoveToTracePath(currentStrokeEnd.x, currentStrokeEnd.y);
+            this.renderer.addMoveToTracePath(targetPoint[0], targetPoint[1]);
+        }
+        
+        // Move to next stroke without completing
+        this.isTracing = false;
+        this.isDragging = false;
+        
+        if (this.slider) {
+            this.slider.style.opacity = '0';
+        }
+        this.removeFrontMarker();
+        
+        setTimeout(() => {
+            this.startNewStroke(this.currentStroke + 1);
+        }, 300);
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
