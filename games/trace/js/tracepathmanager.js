@@ -342,7 +342,9 @@ class TracePathManager {
         );
         
         const sliderRadius = CONFIG.SLIDER_SIZE / 2;
-        return distance <= sliderRadius + 5;
+        // INCREASED TOLERANCE: Double the touch/click area for easier initial contact
+        const touchTolerance = sliderRadius * 2; // Was: sliderRadius + 5
+        return distance <= touchTolerance;
     }
 
     findBestSliderPosition(dragPoint) {
