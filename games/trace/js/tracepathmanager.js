@@ -25,7 +25,7 @@ class TracePathManager {
             3: [[35, 100], [0, 10]],
             4: [[0, 80], [100, 80], [60, 0]],
             5: [[100, 200], [0, 125], [0, 13]],
-            6: [[2, 77]],
+            6: [[0, 60]],
             7: [[100, 200], [40, 0]],
             8: [[95, 152.5]],
             9: [[100, 190], [80, 0]]
@@ -35,10 +35,10 @@ class TracePathManager {
             0: [[99, 80]],
             1: [[50, 20]],
             2: [[36, 48], [80, 0]],
-            3: [[70, 107], [4, 8]],
+            3: [[70, 107], [2, 9]],
             4: [[18, 152], [80, 80], [60, 30]],
             5: [[80, 200], [0, 150], [2, 11]],
-            6: [[6, 88]],
+            6: [[2, 77]],
             7: [[80, 200], [50, 33]],
             8: [[94, 142.5]],
             9: [[98.9, 182], [83, 30]]
@@ -54,11 +54,6 @@ class TracePathManager {
         this.sectionBreakTargets = {
             4: [null, [60, 40]], // stroke 1 -> null, stroke 2 -> (60,40)
             5: [[0, 200]] // stroke 1 -> (0,200)
-        };
-        
-        this.sectionBreaks = {
-            4: [1],
-            5: [1]
         };
         
         this.initializeEventListeners();
@@ -552,41 +547,16 @@ class TracePathManager {
         }
         this.removeFrontMarker();
         
+        // Always call completeStroke for normal completion
+        this.renderer.completeStroke(this.currentStroke);
+        
         const totalStrokes = this.renderer.getStrokeCount();
-        const currentNumber = this.getCurrentNumber();
-        const needsSectionBreak = this.needsSectionBreakAfterStroke(currentNumber, this.currentStroke);
         
         if (this.currentStroke + 1 < totalStrokes) {
-            if (needsSectionBreak) {
-                console.log('Section break detected - moving to next section WITHOUT completing stroke');
-                
-                // Get the starting point of the next stroke
-                const nextStrokeCoords = this.renderer.getStrokeCoordinates(this.currentStroke + 1);
-                if (nextStrokeCoords && nextStrokeCoords.length > 0) {
-                    const nextStartPoint = nextStrokeCoords[0];
-                    
-                    // Add move to end of current stroke, then move to start of next stroke
-                    const currentStrokeEnd = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
-                    this.renderer.addMoveToTracePath(currentStrokeEnd.x, currentStrokeEnd.y);
-                    this.renderer.addMoveToTracePath(nextStartPoint.x, nextStartPoint.y);
-                }
-                
-                // Move to next stroke WITHOUT calling completeStroke
-                setTimeout(() => {
-                    this.startNewStroke(this.currentStroke + 1);
-                }, 300);
-            } else {
-                // Normal stroke completion - call completeStroke
-                this.renderer.completeStroke(this.currentStroke);
-                
-                setTimeout(() => {
-                    this.startNewStroke(this.currentStroke + 1);
-                }, 300);
-            }
+            setTimeout(() => {
+                this.startNewStroke(this.currentStroke + 1);
+            }, 300);
         } else {
-            // Final stroke - complete normally
-            this.renderer.completeStroke(this.currentStroke);
-            
             setTimeout(() => {
                 this.removeSlider();
             }, 300);
@@ -600,13 +570,6 @@ class TracePathManager {
             return window.traceGame.getCurrentNumber();
         }
         return null;
-    }
-
-    needsSectionBreakAfterStroke(currentNumber, strokeIndex) {
-        if (!this.sectionBreaks[currentNumber]) {
-            return false;
-        }
-        return this.sectionBreaks[currentNumber].includes(strokeIndex);
     }
 
     getInterpolatedPosition(coordIndex, progress) {
