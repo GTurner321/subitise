@@ -95,18 +95,27 @@ class TracePathManager {
         const currentNumber = this.getCurrentNumber();
         const triggerCoords = this.strokeCompletionTriggers[currentNumber]?.[this.currentStroke];
         
+        console.log(`Setting up stroke completion for number ${currentNumber}, stroke ${this.currentStroke}:`, {
+            triggerCoords,
+            endCoords: this.strokeEndCoordinates[currentNumber]?.[this.currentStroke]
+        });
+        
         if (triggerCoords) {
             const triggerIndex = this.findCoordinateInPath(triggerCoords);
             if (triggerIndex !== -1) {
                 this.strokeCompletionCoordIndex = triggerIndex;
                 this.strokeCompletionCoord = this.currentStrokeCoords[triggerIndex];
+                console.log(`Trigger found at index ${triggerIndex}`);
                 return;
+            } else {
+                console.log(`Trigger coordinate not found in path:`, triggerCoords);
             }
         }
         
         const totalCoords = this.currentStrokeCoords.length;
         this.strokeCompletionCoordIndex = Math.max(0, totalCoords - 3);
         this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
+        console.log(`Using fallback completion index: ${this.strokeCompletionCoordIndex}`);
     }
 
     findCoordinateInPath(targetCoord) {
@@ -397,17 +406,58 @@ class TracePathManager {
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
-        return coordIndex >= this.strokeCompletionCoordIndex && 
+        const result = coordIndex >= this.strokeCompletionCoordIndex && 
                (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5);
+        
+        // Debug logging for ALL numbers to see if triggers are working
+        const currentNumber = this.getCurrentNumber();
+        if (result) {
+            console.log(`Stroke completion triggered for number ${currentNumber}, stroke ${this.currentStroke}:`, {
+                coordIndex,
+                progress,
+                strokeCompletionCoordIndex: this.strokeCompletionCoordIndex,
+                triggerCoords: this.strokeCompletionTriggers[currentNumber]?.[this.currentStroke],
+                endCoords: this.strokeEndCoordinates[currentNumber]?.[this.currentStroke]
+            });
+        }
+        
+        return result;
     }
 
     autoCompleteCurrentStroke() {
+        // First complete the current stroke path
         this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
         this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         
-        const finalCoord = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
-        if (finalCoord && this.frontMarker) {
-            this.updateFrontMarkerPosition(finalCoord);
+        // Move front marker and slider to the defined end point
+        const currentNumber = this.getCurrentNumber();
+        const endCoords = this.strokeEndCoordinates[currentNumber]?.[this.currentStroke];
+        
+        if (endCoords) {
+            // Update front marker to the defined end position
+            if (this.frontMarker) {
+                this.updateFrontMarkerPosition({ x: endCoords[0], y: endCoords[1] });
+            }
+            
+            // Update slider position to end coordinates
+            if (this.slider) {
+                this.slider.setAttribute('cx', endCoords[0]);
+                this.slider.setAttribute('cy', endCoords[1]);
+            }
+            
+            console.log(`Moving to end coordinates for number ${currentNumber}, stroke ${this.currentStroke}:`, endCoords);
+        } else {
+            // Fallback to final coordinate if no end point defined
+            const finalCoord = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
+            if (finalCoord) {
+                if (this.frontMarker) {
+                    this.updateFrontMarkerPosition(finalCoord);
+                }
+                if (this.slider) {
+                    this.slider.setAttribute('cx', finalCoord.x);
+                    this.slider.setAttribute('cy', finalCoord.y);
+                }
+            }
         }
         
         this.finalFrontMarkerCoordIndex = this.currentStrokeCoords.length - 1;
