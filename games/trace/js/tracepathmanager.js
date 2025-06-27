@@ -535,7 +535,7 @@ class TracePathManager {
         
         if (this.currentStroke + 1 < totalStrokes) {
             // More strokes to go - start next stroke
-            console.log('Starting next stroke...');
+            console.log(`Starting next stroke: ${this.currentStroke + 1}`);
             this.endCurrentStroke(() => this.startNewStroke(this.currentStroke + 1));
         } else {
             // This was the final stroke - complete the number
@@ -596,6 +596,21 @@ class TracePathManager {
     setCurrentNumber(number) {
         this.currentNumberForFallback = number;
         console.log(`PathManager: setCurrentNumber called with ${number}`);
+    }
+
+    // ADD MISSING METHOD: moveToNextStroke
+    moveToNextStroke() {
+        const totalStrokes = this.renderer.getStrokeCount();
+        const nextStroke = this.currentStroke + 1;
+        
+        console.log(`moveToNextStroke called: current=${this.currentStroke}, next=${nextStroke}, total=${totalStrokes}`);
+        
+        if (nextStroke < totalStrokes) {
+            return this.startNewStroke(nextStroke);
+        } else {
+            console.log('No more strokes to move to');
+            return false;
+        }
     }
 
     getInterpolatedPosition(coordIndex, progress) {
