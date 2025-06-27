@@ -528,7 +528,23 @@ class TracePathManager {
     }
 
     getCurrentNumber() {
-        return window.traceGame?.getCurrentNumber?.() || null;
+        // Check if window.traceGame exists and has getCurrentNumber method
+        if (window.traceGame && typeof window.traceGame.getCurrentNumber === 'function') {
+            const num = window.traceGame.getCurrentNumber();
+            console.log(`getCurrentNumber from window.traceGame: ${num}`);
+            return num;
+        }
+        
+        // Fallback - try direct property access
+        if (window.traceGame && window.traceGame.currentNumber !== undefined) {
+            const num = window.traceGame.currentNumber;
+            console.log(`getCurrentNumber from window.traceGame.currentNumber: ${num}`);
+            return num;
+        }
+        
+        console.log('getCurrentNumber failed - window.traceGame not found or no getCurrentNumber method');
+        console.log('window.traceGame:', window.traceGame);
+        return null;
     }
 
     getInterpolatedPosition(coordIndex, progress) {
