@@ -423,84 +423,37 @@ class TracePathManager {
     }
 
     autoMoveToNextSection() {
-        const currentNumber = this.getCurrentNumber();
-        const targetCoords = this.sectionBreakTargets[currentNumber]?.[this.currentStroke];
-        
-        if (targetCoords) {
-            const currentStrokeEnd = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
-            this.renderer.addMoveToTracePath(currentStrokeEnd.x, currentStrokeEnd.y);
-            this.renderer.addMoveToTracePath(targetCoords[0], targetCoords[1]);
-        }
-        
         this.endCurrentStroke(() => this.startNewStroke(this.currentStroke + 1));
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
-        const result = coordIndex >= this.strokeCompletionCoordIndex && 
-                      (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5);
-        
-        // Debug logging for number 1
-        const currentNumber = this.getCurrentNumber();
-        if (currentNumber === 1 && result) {
-            console.log('Number 1 completion triggered:', { 
-                coordIndex, 
-                progress, 
-                strokeCompletionCoordIndex: this.strokeCompletionCoordIndex,
-                currentStroke: this.currentStroke 
-            });
-        }
-        
-        return result;
+        return coordIndex >= this.strokeCompletionCoordIndex && 
+               (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5);
     }
 
     autoCompleteCurrentStroke() {
         this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
         this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         
-        // Move to the defined end point for this stroke
-        const currentNumber = this.getCurrentNumber();
-        const endCoords = this.strokeEndCoordinates[currentNumber]?.[this.currentStroke];
-        
-        if (endCoords) {
-            this.renderer.addMoveToTracePath(endCoords[0], endCoords[1]);
-            
-            // Update front marker to end position
-            if (this.frontMarker) {
-                this.updateFrontMarkerPosition({ x: endCoords[0], y: endCoords[1] });
-            }
-            
-            this.finalFrontMarkerCoordIndex = this.currentStrokeCoords.length - 1;
-            this.finalFrontMarkerProgress = 1.0;
-        } else {
-            // Fallback to final coordinate if no end point defined
-            const finalCoord = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
-            if (finalCoord && this.frontMarker) {
-                this.updateFrontMarkerPosition(finalCoord);
-            }
-            
-            this.finalFrontMarkerCoordIndex = this.currentStrokeCoords.length - 1;
-            this.finalFrontMarkerProgress = 1.0;
+        const finalCoord = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
+        if (finalCoord && this.frontMarker) {
+            this.updateFrontMarkerPosition(finalCoord);
         }
+        
+        this.finalFrontMarkerCoordIndex = this.currentStrokeCoords.length - 1;
+        this.finalFrontMarkerProgress = 1.0;
         
         setTimeout(() => this.completeCurrentStroke(), 200);
     }
 
     completeCurrentStroke() {
-        const currentNumber = this.getCurrentNumber();
-        console.log(`Completing stroke ${this.currentStroke} for number ${currentNumber}`);
-        
         this.renderer.completeStroke(this.currentStroke);
         
         const totalStrokes = this.renderer.getStrokeCount();
-        console.log(`Total strokes: ${totalStrokes}, current stroke: ${this.currentStroke}`);
         
         if (this.currentStroke + 1 < totalStrokes) {
-            // More strokes to go - start next stroke
-            console.log('Starting next stroke...');
             this.endCurrentStroke(() => this.startNewStroke(this.currentStroke + 1));
         } else {
-            // This was the final stroke - complete the number
-            console.log('Completing number - calling renderer.completeNumber()');
             this.endCurrentStroke(() => {
                 this.removeSlider();
                 this.renderer.completeNumber();
