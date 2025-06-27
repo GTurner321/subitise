@@ -481,31 +481,41 @@ class TracePathManager {
         }
         this.removeFrontMarker();
         
-        this.renderer.completeStroke(this.currentStroke);
-        
         const totalStrokes = this.renderer.getStrokeCount();
+        const currentNumber = this.getCurrentNumber();
+        const needsSectionBreak = this.needsSectionBreakAfterStroke(currentNumber, this.currentStroke);
         
         if (this.currentStroke + 1 < totalStrokes) {
-            const currentNumber = this.getCurrentNumber();
-            const needsSectionBreak = this.needsSectionBreakAfterStroke(currentNumber, this.currentStroke);
-            
             if (needsSectionBreak) {
-                console.log('Section break detected - adding second move to next stroke start');
+                console.log('Section break detected - moving to next section WITHOUT completing stroke');
                 
                 // Get the starting point of the next stroke
                 const nextStrokeCoords = this.renderer.getStrokeCoordinates(this.currentStroke + 1);
                 if (nextStrokeCoords && nextStrokeCoords.length > 0) {
                     const nextStartPoint = nextStrokeCoords[0];
                     
-                    // Add a second move command to jump to the start of the next stroke
+                    // Add move to end of current stroke, then move to start of next stroke
+                    const currentStrokeEnd = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
+                    this.renderer.addMoveToTracePath(currentStrokeEnd.x, currentStrokeEnd.y);
                     this.renderer.addMoveToTracePath(nextStartPoint.x, nextStartPoint.y);
                 }
+                
+                // Move to next stroke WITHOUT calling completeStroke
+                setTimeout(() => {
+                    this.startNewStroke(this.currentStroke + 1);
+                }, 300);
+            } else {
+                // Normal stroke completion - call completeStroke
+                this.renderer.completeStroke(this.currentStroke);
+                
+                setTimeout(() => {
+                    this.startNewStroke(this.currentStroke + 1);
+                }, 300);
             }
-            
-            setTimeout(() => {
-                this.startNewStroke(this.currentStroke + 1);
-            }, 300);
         } else {
+            // Final stroke - complete normally
+            this.renderer.completeStroke(this.currentStroke);
+            
             setTimeout(() => {
                 this.removeSlider();
             }, 300);
