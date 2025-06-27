@@ -368,8 +368,15 @@ class TracePathManager {
         
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
+        // Debug: Log progress for number 0
+        const currentNumber = this.getCurrentNumber();
+        if (currentNumber === 0) {
+            console.log(`Number 0 progress: coordIndex=${coordIndex}, progress=${progress.toFixed(2)}, totalCoords=${this.currentStrokeCoords.length}`);
+        }
+        
         // Check if we've reached the trigger coordinate in the path
         if (this.checkForTriggerAtCurrentCoord(coordIndex)) {
+            console.log(`Trigger detected! Calling autoCompleteCurrentStroke()`);
             this.autoCompleteCurrentStroke();
             return;
         }
@@ -391,6 +398,11 @@ class TracePathManager {
         if (newCoordinateIndex !== this.currentCoordinateIndex) {
             this.currentCoordinateIndex = newCoordinateIndex;
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+            
+            // Debug: Log when we update the coordinate index for number 0
+            if (currentNumber === 0) {
+                console.log(`Number 0 coordinate index updated to: ${this.currentCoordinateIndex}`);
+            }
         }
     }
 
