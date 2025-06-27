@@ -114,13 +114,7 @@ class TraceGameController {
             originalCompleteNumber();
             this.handleNumberCompletion();
         };
-        
-        const originalCompleteStroke = this.renderer.completeStroke.bind(this.renderer);
-        this.renderer.completeStroke = (strokeIndex) => {
-            originalCompleteStroke(strokeIndex);
-            this.handleStrokeCompletion(strokeIndex);
-        };
-        
+                
         document.addEventListener('visibilitychange', this.handleVisibilityChange);
         
         if (CONFIG.DEBUG_MODE) {
