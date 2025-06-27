@@ -114,7 +114,13 @@ class TraceGameController {
             originalCompleteNumber();
             this.handleNumberCompletion();
         };
-                
+        
+        const originalCompleteStroke = this.renderer.completeStroke.bind(this.renderer);
+        this.renderer.completeStroke = (strokeIndex) => {
+            originalCompleteStroke(strokeIndex);
+            this.handleStrokeCompletion(strokeIndex);
+        };
+        
         document.addEventListener('visibilitychange', this.handleVisibilityChange);
         
         if (CONFIG.DEBUG_MODE) {
@@ -168,33 +174,34 @@ class TraceGameController {
         this.startNewNumber();
     }
 
-startNewNumber() {
-    if (this.currentNumberIndex >= this.numbersSequence.length) {
-        this.completeGame();
-        return;
+    startNewNumber() {
+        if (this.currentNumberIndex >= this.numbersSequence.length) {
+            this.completeGame();
+            return;
+        }
+        
+        this.currentNumber = this.numbersSequence[this.currentNumberIndex];
+        this.updateNumberWordDisplay('');
+        
+        if (!this.renderer.renderNumber(this.currentNumber)) return;
+        this.pathManager.startNewStroke(0);
+        
+        if (this.audioEnabled) {
+            this.speakText(`Trace the number ${this.currentNumber}`, this.currentVoiceGender);
+        }
     }
-    
-    this.currentNumber = this.numbersSequence[this.currentNumberIndex];
-    this.updateNumberWordDisplay('');
-    
-    if (!this.renderer.renderNumber(this.currentNumber)) return;
-    
-    // ADDED: Ensure PathManager knows the current number
-    if (this.pathManager) {
-        this.pathManager.setCurrentNumber(this.currentNumber);
-    }
-    
-    this.pathManager.startNewStroke(0);
-    
-    if (this.audioEnabled) {
-        this.speakText(`Trace the number ${this.currentNumber}`, this.currentVoiceGender);
-    }
-}
-    
+
     startCurrentNumberOver() {
         this.renderer.renderNumber(this.currentNumber);
         this.pathManager.startNewStroke(0);
         this.updateNumberWordDisplay('');
+    }
+
+    handleStrokeCompletion(strokeIndex) {
+        const totalStrokes = this.renderer.getStrokeCount();
+        if (strokeIndex + 1 < totalStrokes) {
+            this.pathManager.moveToNextStroke();
+        }
     }
 
     handleNumberCompletion() {
@@ -781,26 +788,6 @@ startNewNumber() {
 
     isGameComplete() {
         return this.gameComplete;
-    }
-
-    skipToNextNumber() {
-        if (!CONFIG.DEBUG_MODE) return;
-        
-        // Force complete current number and move to next
-        this.numbersCompleted++;
-        
-        if (this.numbersCompleted >= CONFIG.NUMBERS_TO_COMPLETE) {
-            this.completeGame();
-            return;
-        }
-        
-        // Move to next number
-        this.currentNumberIndex++;
-        if (this.currentNumberIndex >= this.numbersSequence.length) {
-            this.currentNumberIndex = 0; // Wrap around if needed
-        }
-        
-        this.startNewNumber();
     }
 
     skipToNumber(number) {
