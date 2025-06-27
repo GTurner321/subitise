@@ -174,23 +174,29 @@ class TraceGameController {
         this.startNewNumber();
     }
 
-    startNewNumber() {
-        if (this.currentNumberIndex >= this.numbersSequence.length) {
-            this.completeGame();
-            return;
-        }
-        
-        this.currentNumber = this.numbersSequence[this.currentNumberIndex];
-        this.updateNumberWordDisplay('');
-        
-        if (!this.renderer.renderNumber(this.currentNumber)) return;
-        this.pathManager.startNewStroke(0);
-        
-        if (this.audioEnabled) {
-            this.speakText(`Trace the number ${this.currentNumber}`, this.currentVoiceGender);
-        }
+startNewNumber() {
+    if (this.currentNumberIndex >= this.numbersSequence.length) {
+        this.completeGame();
+        return;
     }
-
+    
+    this.currentNumber = this.numbersSequence[this.currentNumberIndex];
+    this.updateNumberWordDisplay('');
+    
+    if (!this.renderer.renderNumber(this.currentNumber)) return;
+    
+    // ADDED: Ensure PathManager knows the current number
+    if (this.pathManager) {
+        this.pathManager.setCurrentNumber(this.currentNumber);
+    }
+    
+    this.pathManager.startNewStroke(0);
+    
+    if (this.audioEnabled) {
+        this.speakText(`Trace the number ${this.currentNumber}`, this.currentVoiceGender);
+    }
+}
+    
     startCurrentNumberOver() {
         this.renderer.renderNumber(this.currentNumber);
         this.pathManager.startNewStroke(0);
