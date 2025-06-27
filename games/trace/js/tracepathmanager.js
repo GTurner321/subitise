@@ -376,11 +376,13 @@ class TracePathManager {
         }
         
         // Check if we've reached the trigger coordinate in the path
+        console.log(`About to check trigger for coordIndex: ${coordIndex}`);
         if (this.checkForTriggerAtCurrentCoord(coordIndex)) {
             console.log(`Trigger detected! Calling autoCompleteCurrentStroke()`);
             this.autoCompleteCurrentStroke();
             return;
         }
+        console.log(`No trigger detected for coordIndex: ${coordIndex}`);
         
         let newCoordinateIndex = this.currentCoordinateIndex;
         
@@ -405,6 +407,13 @@ class TracePathManager {
                 console.log(`Number 0 coordinate index updated to: ${this.currentCoordinateIndex}`);
             }
         }
+        
+        // ADDITIONAL CHECK: If we're at the very end, force completion
+        if (coordIndex >= this.currentStrokeCoords.length - 1 && progress >= 0.9) {
+            console.log(`Forcing completion - reached end of stroke: coordIndex=${coordIndex}, totalCoords=${this.currentStrokeCoords.length}, progress=${progress}`);
+            this.autoCompleteCurrentStroke();
+            return;
+        }
     }
 
     checkForTriggerAtCurrentCoord(coordIndex) {
@@ -414,13 +423,23 @@ class TracePathManager {
         const currentCoord = this.currentStrokeCoords[coordIndex];
         if (!currentCoord) return false;
         
-        // Check if we've reached the specific trigger point
+        // Check if we've reached the specific trigger point (need to scale trigger coords to match scaled stroke coords)
         if (triggerCoords) {
-            const triggerMatch = (currentCoord.x === triggerCoords[0]) && 
-                                (currentCoord.y === triggerCoords[1]);
+            // Scale the trigger coordinates the same way the stroke coordinates are scaled
+            const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
+            const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
+            const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
+            const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
             
-            if (triggerMatch) {
-                console.log(`Trigger reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x}, ${currentCoord.y})`);
+            const scaledTriggerX = offsetX + (triggerCoords[0] * scaleX);
+            const scaledTriggerY = offsetY + ((200 - triggerCoords[1]) * scaleY);
+            
+            const tolerance = 5; // Allow small differences due to scaling/floating point
+            const xMatch = Math.abs(currentCoord.x - scaledTriggerX) <= tolerance;
+            const yMatch = Math.abs(currentCoord.y - scaledTriggerY) <= tolerance;
+            
+            if (xMatch && yMatch) {
+                console.log(`Trigger reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x.toFixed(1)}, ${currentCoord.y.toFixed(1)}) matches scaled trigger (${scaledTriggerX.toFixed(1)}, ${scaledTriggerY.toFixed(1)})`);
                 return true;
             }
         }
@@ -428,8 +447,17 @@ class TracePathManager {
         // Also check if we've reached the final coordinate in the stroke path
         const isLastCoord = coordIndex === this.currentStrokeCoords.length - 1;
         if (isLastCoord) {
-            console.log(`Final coordinate reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x}, ${currentCoord.y})`);
+            console.log(`Final coordinate reached for number ${currentNumber}, stroke ${this.currentStroke}: (${currentCoord.x.toFixed(1)}, ${currentCoord.y.toFixed(1)})`);
             return true;
+        }
+        
+        // Additional debug logging to see what coordinates we're hitting
+        if (currentNumber === 0 && coordIndex % 5 === 0) {
+            const triggerScaled = triggerCoords ? {
+                x: CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2 + (triggerCoords[0] * CONFIG.NUMBER_RECT_WIDTH / 100),
+                y: CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2 + ((200 - triggerCoords[1]) * CONFIG.NUMBER_RECT_HEIGHT / 200)
+            } : null;
+            console.log(`Number 0 debug - coordIndex: ${coordIndex}/${this.currentStrokeCoords.length-1}, coord: (${currentCoord.x.toFixed(1)}, ${currentCoord.y.toFixed(1)}), scaled trigger: (${triggerScaled?.x.toFixed(1)}, ${triggerScaled?.y.toFixed(1)})`);
         }
         
         return false;
