@@ -17,40 +17,36 @@ class TracePathManager {
         this.strokeCompletionCoordIndex = 0;
         this.strokeCompletionCoord = null;
         this.lastMovementTime = Date.now();
-        this.currentNumberForFallback = 0;
         
-        // CORRECTED: Based on your original file - these are the CONCEPTUAL stroke endpoints
-        // Numbers 2 and 3 ARE multi-stroke conceptually even though they're single paths
         this.strokeEndCoordinates = {
-            0: [[100, 100]], // Single conceptual stroke
-            1: [[50, 0]], // Single conceptual stroke
-            2: [[0, 0], [100, 0]], // TWO conceptual strokes: curve ends at (0,0), line ends at (100,0)
-            3: [[35, 100], [0, 10]], // TWO conceptual strokes: curves end at (35,100), final curve ends at (0,10)
-            4: [[0, 80], [60, 40], [100, 80]], // THREE strokes: L-shape, connection, vertical
-            5: [[0, 200], [0, 125], [100, 200]], // THREE strokes: horizontal, vertical, curve
-            6: [[2, 77]], // Single conceptual stroke
-            7: [[100, 200], [40, 0]], // TWO conceptual strokes: horizontal, diagonal
-            8: [[95, 152.5]], // Single conceptual stroke
-            9: [[100, 190], [80, 0]] // TWO conceptual strokes: circle, tail
+            0: [[100, 100]],
+            1: [[50, 0]],
+            2: [[0, 0], [100, 0]],
+            3: [[35, 100], [0, 10]],
+            4: [[0, 80], [100, 80], [60, 0]],
+            5: [[100, 200], [0, 125], [0, 13]],
+            6: [[0, 60]],
+            7: [[100, 200], [40, 0]],
+            8: [[95, 152.5]],
+            9: [[100, 190], [80, 0]]
         };
         
-        // CORRECTED: Trigger points that match the coordinate paths (unscaled 0-100, 0-200 system)
         this.strokeCompletionTriggers = {
-            0: [[99, 80]], // Near the end but not at start
-            1: [[50, 20]], // Near the top
-            2: [[36, 48], [80, 0]], // End of curve, end of horizontal line
-            3: [[70, 107], [4, 8]], // End of middle section, end of final curve
-            4: [[18, 152], [80, 80], [60, 30]], // End of L-shape, end of horizontal, end of vertical
-            5: [[80, 200], [0, 150], [2, 11]], // End of horizontal, partway down vertical, end of curve
-            6: [[6, 88]], // Near the end
-            7: [[80, 200], [50, 33]], // End of horizontal, end of diagonal
-            8: [[94, 142.5]], // Near the end
-            9: [[98.9, 182], [83, 30]] // End of circle, end of tail
+            0: [[99, 80]],
+            1: [[50, 20]],
+            2: [[36, 48], [80, 0]],
+            3: [[70, 107], [2, 9]],
+            4: [[18, 152], [80, 80], [60, 30]],
+            5: [[80, 200], [0, 150], [2, 11]],
+            6: [[2, 77]],
+            7: [[80, 200], [50, 33]],
+            8: [[94, 142.5]],
+            9: [[98.9, 182], [83, 30]]
         };
         
-        // CORRECTED: Number of conceptual strokes (matches trigger/end coordinate arrays)
-        this.strokeCounts = {
-            0: 1, 1: 1, 2: 2, 3: 2, 4: 3, 5: 3, 6: 1, 7: 2, 8: 1, 9: 2
+        this.sectionBreaks = {
+            4: [1],
+            5: [1]
         };
         
         this.initializeEventListeners();
@@ -59,35 +55,18 @@ class TracePathManager {
     initializeEventListeners() {
         if (!this.svg) return;
         
-        const events = [
-            ['mousedown', 'handleStart'],
-            ['mousemove', 'handleMove'],
-            ['mouseup', 'handleEnd'],
-            ['mouseleave', 'handleEnd'],
-            ['touchstart', 'handleStart'],
-            ['touchmove', 'handleMove'],
-            ['touchend', 'handleEnd'],
-            ['touchcancel', 'handleEnd']
-        ];
+        this.svg.addEventListener('mousedown', (e) => this.handleStart(e));
+        this.svg.addEventListener('mousemove', (e) => this.handleMove(e));
+        this.svg.addEventListener('mouseup', (e) => this.handleEnd(e));
+        this.svg.addEventListener('mouseleave', (e) => this.handleEnd(e));
         
-        events.forEach(([event, handler]) => {
-            const options = event.startsWith('touch') ? { passive: false } : undefined;
-            this.svg.addEventListener(event, (e) => this[handler](e), options);
-        });
-    }
-
-    // Use our internal stroke count, not CONFIG
-    getStrokeCount() {
-        const currentNumber = this.getCurrentNumber();
-        return this.strokeCounts[currentNumber] || 1;
+        this.svg.addEventListener('touchstart', (e) => this.handleStart(e), { passive: false });
+        this.svg.addEventListener('touchmove', (e) => this.handleMove(e), { passive: false });
+        this.svg.addEventListener('touchend', (e) => this.handleEnd(e));
+        this.svg.addEventListener('touchcancel', (e) => this.handleEnd(e));
     }
 
     startNewStroke(strokeIndex) {
-        const currentNumber = this.getCurrentNumber();
-        const totalStrokes = this.getStrokeCount();
-        
-        console.log(`🎯 Starting stroke ${strokeIndex} for number ${currentNumber} (${strokeIndex + 1}/${totalStrokes})`);
-        
         this.currentStroke = strokeIndex;
         this.currentCoordinateIndex = 0;
         this.isTracing = false;
@@ -99,44 +78,74 @@ class TracePathManager {
         this.finalFrontMarkerCoordIndex = 0;
         this.finalFrontMarkerProgress = 0;
         
-        // For multi-stroke conceptual numbers (2,3,7,9), we always use stroke 0 coordinates 
-        // since they're single paths split conceptually
-        const coordStrokeIndex = (currentNumber === 2 || currentNumber === 3 || currentNumber === 7 || currentNumber === 9) ? 0 : strokeIndex;
-        this.currentStrokeCoords = this.renderer.getStrokeCoordinates(coordStrokeIndex);
+        this.currentStrokeCoords = this.renderer.getStrokeCoordinates(strokeIndex);
         
-        if (!this.currentStrokeCoords?.length) {
-            console.error(`❌ No coordinates found for stroke ${coordStrokeIndex} of number ${currentNumber}`);
+        if (!this.currentStrokeCoords || this.currentStrokeCoords.length === 0) {
             return false;
         }
-        
-        console.log(`✅ Stroke ${strokeIndex} has ${this.currentStrokeCoords.length} coordinates`);
         
         this.setupStrokeCompletion();
         this.removeSlider();
         this.removeFrontMarker();
-        this.createSlider(this.currentStrokeCoords[0]);
+        
+        const startPoint = this.currentStrokeCoords[0];
+        
+        // CRITICAL FIX: Reset the trace line to the start of the new stroke
+        // This ensures the trace line jumps to the correct starting position
+        this.renderer.updateTracingProgress(this.currentStroke, 0);
+        
+        this.createSlider(startPoint);
         
         return true;
     }
 
     setupStrokeCompletion() {
-        const currentNumber = this.getCurrentNumber();
-        const triggerCoords = this.strokeCompletionTriggers[currentNumber]?.[this.currentStroke];
+        let currentNumber = null;
         
-        console.log(`Setting up stroke completion for number ${currentNumber}, stroke ${this.currentStroke}:`, {
-            triggerCoords,
-            endCoords: this.strokeEndCoordinates[currentNumber]?.[this.currentStroke],
-            totalStrokes: this.getStrokeCount()
-        });
+        if (window.traceGame && typeof window.traceGame.getCurrentNumber === 'function') {
+            currentNumber = window.traceGame.getCurrentNumber();
+        }
         
-        // Set completion near end of stroke as fallback
+        if (currentNumber !== null && this.strokeCompletionTriggers[currentNumber]) {
+            const triggerCoords = this.strokeCompletionTriggers[currentNumber];
+            if (triggerCoords && triggerCoords[this.currentStroke]) {
+                const targetTrigger = triggerCoords[this.currentStroke];
+                const triggerIndex = this.findCoordinateInPath(targetTrigger);
+                
+                if (triggerIndex !== -1) {
+                    this.strokeCompletionCoordIndex = triggerIndex;
+                    this.strokeCompletionCoord = this.currentStrokeCoords[triggerIndex];
+                    return;
+                }
+            }
+        }
+        
         const totalCoords = this.currentStrokeCoords.length;
         this.strokeCompletionCoordIndex = Math.max(0, totalCoords - 3);
         this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
     }
 
+    findCoordinateInPath(targetCoord) {
+        const tolerance = 10;
+        let closestIndex = -1;
+        let closestDistance = Infinity;
+        
+        for (let i = 0; i < this.currentStrokeCoords.length; i++) {
+            const coord = this.currentStrokeCoords[i];
+            const deltaX = Math.abs(coord.x - targetCoord[0]);
+            const deltaY = Math.abs(coord.y - targetCoord[1]);
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            if (distance <= tolerance && distance < closestDistance) {
+                closestDistance = distance;
+                closestIndex = i;
+            }
+        }
+        
+        return closestIndex;
+    }
+
     createSlider(position) {
-        console.log('Creating slider at position:', position);
         this.removeSlider();
         
         this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -154,8 +163,10 @@ class TracePathManager {
     }
 
     removeSlider() {
-        this.slider?.remove();
-        this.slider = null;
+        if (this.slider) {
+            this.slider.remove();
+            this.slider = null;
+        }
     }
 
     createFrontMarker(position) {
@@ -175,8 +186,10 @@ class TracePathManager {
     }
 
     removeFrontMarker() {
-        this.frontMarker?.remove();
-        this.frontMarker = null;
+        if (this.frontMarker) {
+            this.frontMarker.remove();
+            this.frontMarker = null;
+        }
     }
 
     updateFrontMarkerPosition(position) {
@@ -190,11 +203,13 @@ class TracePathManager {
         if (!this.slider) return;
         
         const existingAnimate = this.slider.querySelector('animate');
-        existingAnimate?.remove();
+        if (existingAnimate) {
+            existingAnimate.remove();
+        }
         
         const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
         animate.setAttribute('attributeName', 'r');
-        animate.setAttribute('values', `${CONFIG.SLIDER_SIZE / 2};${(CONFIG.SLIDER_SIZE / 2) + 3};${CONFIG.SLIDER_SIZE / 2}`);
+        animate.setAttribute('values', CONFIG.SLIDER_SIZE / 2 + ';' + (CONFIG.SLIDER_SIZE / 2 + 3) + ';' + CONFIG.SLIDER_SIZE / 2);
         animate.setAttribute('dur', '2s');
         animate.setAttribute('repeatCount', 'indefinite');
         
@@ -205,21 +220,24 @@ class TracePathManager {
         event.preventDefault();
         
         const point = this.getEventPoint(event);
-        if (!point || !this.isPointNearSlider(point)) return;
+        if (!point) return;
         
-        this.isDragging = true;
-        this.isTracing = true;
-        
-        if (this.slider) {
-            this.slider.style.opacity = '0';
-            this.slider.querySelector('animate')?.remove();
-        }
-        
-        const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-        if (currentCoord) {
-            this.createFrontMarker(currentCoord);
-            this.frontMarkerCoordIndex = this.currentCoordinateIndex;
-            this.frontMarkerProgress = 0;
+        if (this.isPointNearSlider(point)) {
+            this.isDragging = true;
+            this.isTracing = true;
+            
+            if (this.slider) {
+                this.slider.style.opacity = '0';
+                const animate = this.slider.querySelector('animate');
+                if (animate) animate.remove();
+            }
+            
+            const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
+            if (currentCoord) {
+                this.createFrontMarker(currentCoord);
+                this.frontMarkerCoordIndex = this.currentCoordinateIndex;
+                this.frontMarkerProgress = 0;
+            }
         }
     }
 
@@ -233,7 +251,7 @@ class TracePathManager {
         this.lastMovementTime = Date.now();
         
         const bestPosition = this.findBestSliderPosition(point);
-        if (bestPosition) {
+        if (bestPosition !== null) {
             this.updateTracingProgress(bestPosition);
         }
     }
@@ -242,6 +260,7 @@ class TracePathManager {
         if (!this.isDragging) return;
         
         this.isDragging = false;
+        
         this.finalFrontMarkerCoordIndex = this.frontMarkerCoordIndex;
         this.finalFrontMarkerProgress = this.frontMarkerProgress;
         
@@ -271,32 +290,45 @@ class TracePathManager {
                 this.slider.style.opacity = '1';
                 
                 setTimeout(() => {
-                    if (!this.isDragging) this.addSliderPulseAnimation();
+                    if (!this.isDragging) {
+                        this.addSliderPulseAnimation();
+                    }
                 }, 250);
                 
                 setTimeout(() => {
-                    if (this.slider) this.slider.style.transition = '';
+                    if (this.slider) {
+                        this.slider.style.transition = '';
+                    }
                 }, 300);
             }
         }, 500);
         
         setTimeout(() => {
-            if (!this.isDragging) this.removeFrontMarker();
+            if (!this.isDragging) {
+                this.removeFrontMarker();
+            }
         }, 500);
     }
 
     getEventPoint(event) {
         const rect = this.svg.getBoundingClientRect();
-        const isTouch = event.type.startsWith('touch');
+        let clientX, clientY;
         
-        if (isTouch && !event.touches.length) return null;
+        if (event.type.startsWith('touch')) {
+            if (event.touches.length === 0) return null;
+            clientX = event.touches[0].clientX;
+            clientY = event.touches[0].clientY;
+        } else {
+            clientX = event.clientX;
+            clientY = event.clientY;
+        }
         
-        const clientX = isTouch ? event.touches[0].clientX : event.clientX;
-        const clientY = isTouch ? event.touches[0].clientY : event.clientY;
+        const scaleX = CONFIG.SVG_WIDTH / rect.width;
+        const scaleY = CONFIG.SVG_HEIGHT / rect.height;
         
         return {
-            x: (clientX - rect.left) * (CONFIG.SVG_WIDTH / rect.width),
-            y: (clientY - rect.top) * (CONFIG.SVG_HEIGHT / rect.height)
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
         };
     }
 
@@ -307,10 +339,12 @@ class TracePathManager {
         const sliderY = parseFloat(this.slider.getAttribute('cy'));
         
         const distance = Math.sqrt(
-            Math.pow(point.x - sliderX, 2) + Math.pow(point.y - sliderY, 2)
+            Math.pow(point.x - sliderX, 2) +
+            Math.pow(point.y - sliderY, 2)
         );
         
-        return distance <= CONFIG.SLIDER_SIZE;
+        const sliderRadius = CONFIG.SLIDER_SIZE / 2;
+        return distance <= sliderRadius + 5;
     }
 
     findBestSliderPosition(dragPoint) {
@@ -318,11 +352,15 @@ class TracePathManager {
         let bestProgress = 0;
         let bestDistance = Infinity;
         
-        const lookAhead = this.currentCoordinateIndex === 0 ? 5 : 3;
-        const maxIndex = Math.min(this.currentCoordinateIndex + lookAhead, this.currentStrokeCoords.length - 2);
-        const minIndex = Math.max(0, this.currentCoordinateIndex - 2);
+        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 5 : 3;
+        const maxSearchIndex = Math.min(
+            this.currentCoordinateIndex + lookAheadDistance, 
+            this.currentStrokeCoords.length - 2
+        );
         
-        for (let i = minIndex; i <= maxIndex; i++) {
+        const minSearchIndex = Math.max(0, this.currentCoordinateIndex - 2);
+        
+        for (let i = minSearchIndex; i <= maxSearchIndex; i++) {
             const currentCoord = this.currentStrokeCoords[i];
             const nextCoord = this.currentStrokeCoords[i + 1];
             
@@ -344,7 +382,8 @@ class TracePathManager {
             const pointY = currentCoord.y + segmentY * projectionProgress;
             
             const distanceToSegment = Math.sqrt(
-                Math.pow(dragPoint.x - pointX, 2) + Math.pow(dragPoint.y - pointY, 2)
+                Math.pow(dragPoint.x - pointX, 2) + 
+                Math.pow(dragPoint.y - pointY, 2)
             );
             
             const maxDistance = CONFIG.PATH_TOLERANCE || 60;
@@ -356,15 +395,20 @@ class TracePathManager {
             }
         }
         
-        return bestDistance <= (CONFIG.PATH_TOLERANCE || 60) ? {
-            coordIndex: bestCoordIndex,
-            progress: bestProgress,
-            distance: bestDistance
-        } : null;
+        if (bestDistance <= (CONFIG.PATH_TOLERANCE || 60)) {
+            return {
+                coordIndex: bestCoordIndex,
+                progress: bestProgress,
+                distance: bestDistance
+            };
+        }
+        
+        return null;
     }
 
     updateTracingProgress(position) {
-        const { coordIndex, progress } = position;
+        const coordIndex = position.coordIndex;
+        const progress = position.progress;
         
         this.frontMarkerCoordIndex = coordIndex;
         this.frontMarkerProgress = progress;
@@ -377,9 +421,7 @@ class TracePathManager {
         
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
-        // Check for trigger coordinate match using SCALED coordinates
-        if (this.checkForTriggerAtCurrentCoord(coordIndex)) {
-            console.log(`🎯 Trigger detected! Calling autoCompleteCurrentStroke()`);
+        if (this.hasReachedStrokeCompletionPoint(coordIndex, progress)) {
             this.autoCompleteCurrentStroke();
             return;
         }
@@ -387,9 +429,13 @@ class TracePathManager {
         let newCoordinateIndex = this.currentCoordinateIndex;
         
         if (coordIndex > this.currentCoordinateIndex) {
-            if (progress >= 0.5) newCoordinateIndex = coordIndex;
-        } else if (coordIndex === this.currentCoordinateIndex && progress >= 0.7) {
-            newCoordinateIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
+            if (progress >= 0.5) {
+                newCoordinateIndex = coordIndex;
+            }
+        } else if (coordIndex === this.currentCoordinateIndex) {
+            if (progress >= 0.7) {
+                newCoordinateIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
+            }
         }
         
         newCoordinateIndex = Math.min(newCoordinateIndex, coordIndex);
@@ -402,176 +448,75 @@ class TracePathManager {
             this.currentCoordinateIndex = newCoordinateIndex;
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         }
-        
-        // Force completion if at the very end
-        if (coordIndex === this.currentStrokeCoords.length - 1 && progress >= 0.95) {
-            console.log(`🔚 Forcing completion at final coordinate`);
-            this.autoCompleteCurrentStroke();
-            return;
-        }
     }
 
-    // CORRECTED: Convert scaled coordinates back to 0-100, 0-200 system for comparison
-    checkForTriggerAtCurrentCoord(coordIndex) {
-        const currentNumber = this.getCurrentNumber();
-        const triggerCoords = this.strokeCompletionTriggers[currentNumber]?.[this.currentStroke];
-        
-        const currentCoord = this.currentStrokeCoords[coordIndex];
-        if (!currentCoord || !triggerCoords) return false;
-        
-        // Convert scaled coordinate back to 0-100, 0-200 system
-        const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
-        const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
-        const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
-        const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
-        
-        const unscaledX = (currentCoord.x - offsetX) / scaleX;
-        const unscaledY = 200 - ((currentCoord.y - offsetY) / scaleY);
-        
-        // Check for exact match (within 1 unit tolerance)
-        const targetX = triggerCoords[0];
-        const targetY = triggerCoords[1];
-        
-        const xMatch = Math.abs(unscaledX - targetX) <= 1;
-        const yMatch = Math.abs(unscaledY - targetY) <= 1;
-        
-        // Don't trigger on start if start equals end (like number 0)
-        if (coordIndex === 0) {
-            const endCoords = this.strokeEndCoordinates[currentNumber]?.[this.currentStroke];
-            if (endCoords && Math.abs(targetX - endCoords[0]) <= 1 && Math.abs(targetY - endCoords[1]) <= 1) {
-                console.log(`🚫 Skipping trigger at start for number ${currentNumber} (start == end)`);
-                return false;
-            }
-        }
-        
-        if (xMatch && yMatch) {
-            console.log(`✅ TRIGGER MATCH for number ${currentNumber}, stroke ${this.currentStroke}: (${unscaledX.toFixed(1)}, ${unscaledY.toFixed(1)}) matches (${targetX}, ${targetY})`);
-            return true;
-        }
-        
-        // Also check if we've reached the final coordinate
-        const isLastCoord = coordIndex === this.currentStrokeCoords.length - 1;
-        if (isLastCoord) {
-            console.log(`✅ Final coordinate reached for number ${currentNumber}, stroke ${this.currentStroke}`);
-            return true;
-        }
-        
-        return false;
+    hasReachedStrokeCompletionPoint(coordIndex, progress) {
+        return coordIndex >= this.strokeCompletionCoordIndex && 
+               (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5);
     }
 
     autoCompleteCurrentStroke() {
-        // First complete the current stroke path
         this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
         this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         
-        const currentNumber = this.getCurrentNumber();
-        const endCoords = this.strokeEndCoordinates[currentNumber]?.[this.currentStroke];
-        
-        if (endCoords) {
-            // CORRECTED: Scale the end coordinates properly for display
-            const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
-            const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
-            const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
-            const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
-            
-            const scaledX = offsetX + (endCoords[0] * scaleX);
-            const scaledY = offsetY + ((200 - endCoords[1]) * scaleY);
-            
-            console.log(`Moving to end coords for number ${currentNumber}, stroke ${this.currentStroke}: (${endCoords[0]}, ${endCoords[1]}) → (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
-            
-            // Update front marker to the scaled end position
-            if (this.frontMarker) {
-                this.updateFrontMarkerPosition({ x: scaledX, y: scaledY });
-            }
-            
-            // Update slider position to scaled end coordinates
-            if (this.slider) {
-                this.slider.setAttribute('cx', scaledX);
-                this.slider.setAttribute('cy', scaledY);
-            }
-        } else {
-            // Fallback to final coordinate
-            const finalCoord = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
-            if (finalCoord) {
-                if (this.frontMarker) {
-                    this.updateFrontMarkerPosition(finalCoord);
-                }
-                if (this.slider) {
-                    this.slider.setAttribute('cx', finalCoord.x);
-                    this.slider.setAttribute('cy', finalCoord.y);
-                }
-            }
+        const finalCoord = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
+        if (finalCoord && this.frontMarker) {
+            this.updateFrontMarkerPosition(finalCoord);
         }
         
         this.finalFrontMarkerCoordIndex = this.currentStrokeCoords.length - 1;
         this.finalFrontMarkerProgress = 1.0;
         
-        setTimeout(() => this.completeCurrentStroke(), 200);
+        setTimeout(() => {
+            this.completeCurrentStroke();
+        }, 200);
     }
 
     completeCurrentStroke() {
-        const currentNumber = this.getCurrentNumber();
-        console.log(`Completing stroke ${this.currentStroke} for number ${currentNumber}`);
-        
-        this.renderer.completeStroke(this.currentStroke);
-        
-        const totalStrokes = this.getStrokeCount(); // Use our internal count
-        console.log(`Total strokes: ${totalStrokes}, current stroke: ${this.currentStroke}`);
-        
-        if (this.currentStroke + 1 < totalStrokes) {
-            // More strokes to go - start next conceptual stroke
-            const nextStroke = this.currentStroke + 1;
-            console.log(`Starting next conceptual stroke: ${nextStroke}`);
-            this.endCurrentStroke(() => this.startNewStroke(nextStroke));
-        } else {
-            // This was the final stroke - complete the number
-            console.log(`✅ All conceptual strokes completed - calling renderer.completeNumber()`);
-            this.endCurrentStroke(() => {
-                this.removeSlider();
-                this.renderer.completeNumber();
-            });
-        }
-    }
-
-    endCurrentStroke(callback) {
         this.isTracing = false;
         this.isDragging = false;
         
-        if (this.slider) this.slider.style.opacity = '0';
+        if (this.slider) {
+            this.slider.style.opacity = '0';
+        }
         this.removeFrontMarker();
         
-        setTimeout(callback, 300);
+        this.renderer.completeStroke(this.currentStroke);
+        
+        const totalStrokes = this.renderer.getStrokeCount();
+        
+        if (this.currentStroke + 1 < totalStrokes) {
+            const currentNumber = this.getCurrentNumber();
+            const needsSectionBreak = this.needsSectionBreakAfterStroke(currentNumber, this.currentStroke);
+            
+            if (needsSectionBreak) {
+                console.log('Section break detected - jumping to start of next stroke');
+            }
+            
+            setTimeout(() => {
+                this.startNewStroke(this.currentStroke + 1);
+            }, 300);
+        } else {
+            setTimeout(() => {
+                this.removeSlider();
+            }, 300);
+            
+            this.renderer.completeNumber();
+        }
     }
 
     getCurrentNumber() {
-        // Check if window.traceGame exists and has getCurrentNumber method
         if (window.traceGame && typeof window.traceGame.getCurrentNumber === 'function') {
             return window.traceGame.getCurrentNumber();
         }
-        
-        // Fallback - try direct property access
-        if (window.traceGame && window.traceGame.currentNumber !== undefined) {
-            return window.traceGame.currentNumber;
-        }
-        
-        // Additional fallback - check renderer's currentNumber
-        if (this.renderer && this.renderer.currentNumber !== undefined && this.renderer.currentNumber !== null) {
-            return this.renderer.currentNumber;
-        }
-        
-        // Final fallback - use stored number
-        if (this.currentNumberForFallback !== undefined) {
-            return this.currentNumberForFallback;
-        }
-        
-        console.warn('getCurrentNumber failed - returning 0 as default');
-        return 0;
+        return null;
     }
 
-    // Method to set current number for fallback
-    setCurrentNumber(number) {
-        this.currentNumberForFallback = number;
-        console.log(`PathManager: setCurrentNumber called with ${number}`);
+    needsSectionBreakAfterStroke(currentNumber, strokeIndex) {
+        if (!this.sectionBreaks[currentNumber]) {
+            return false;
+        }
+        return this.sectionBreaks[currentNumber].includes(strokeIndex);
     }
 
     getInterpolatedPosition(coordIndex, progress) {
@@ -582,12 +527,22 @@ class TracePathManager {
         const currentCoord = this.currentStrokeCoords[coordIndex];
         const nextCoord = this.currentStrokeCoords[coordIndex + 1];
         
-        if (!currentCoord || !nextCoord) return currentCoord || nextCoord;
+        if (!currentCoord || !nextCoord) {
+            return currentCoord || nextCoord;
+        }
         
         return {
             x: currentCoord.x + (nextCoord.x - currentCoord.x) * progress,
             y: currentCoord.y + (nextCoord.y - currentCoord.y) * progress
         };
+    }
+
+    // NEW METHOD: Force move to next stroke position
+    moveToNextStroke() {
+        const totalStrokes = this.renderer.getStrokeCount();
+        if (this.currentStroke + 1 < totalStrokes) {
+            this.startNewStroke(this.currentStroke + 1);
+        }
     }
 
     cleanup() {
@@ -606,12 +561,11 @@ class TracePathManager {
     reset() {
         this.cleanup();
         this.currentStroke = 0;
-        this.currentNumberForFallback = 0;
     }
 
     getCurrentProgress() {
-        return this.currentStrokeCoords.length === 0 ? 0 : 
-               this.currentCoordinateIndex / (this.currentStrokeCoords.length - 1);
+        if (this.currentStrokeCoords.length === 0) return 0;
+        return this.currentCoordinateIndex / (this.currentStrokeCoords.length - 1);
     }
 
     isCurrentlyTracing() {
