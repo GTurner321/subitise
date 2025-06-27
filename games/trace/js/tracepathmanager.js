@@ -129,6 +129,7 @@ class TracePathManager {
     }
 
     createSlider(position) {
+        console.log('Creating slider at position:', position);
         this.removeSlider();
         
         this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -143,6 +144,7 @@ class TracePathManager {
         
         this.addSliderPulseAnimation();
         this.svg.appendChild(this.slider);
+        console.log('Slider created and added to SVG');
     }
 
     removeSlider() {
@@ -194,11 +196,18 @@ class TracePathManager {
     }
 
     handleStart(event) {
+        console.log('handleStart called', event.type);
         event.preventDefault();
         
         const point = this.getEventPoint(event);
-        if (!point || !this.isPointNearSlider(point)) return;
+        console.log('Event point:', point);
         
+        if (!point || !this.isPointNearSlider(point)) {
+            console.log('Point not near slider or point is null');
+            return;
+        }
+        
+        console.log('Starting drag/trace');
         this.isDragging = true;
         this.isTracing = true;
         
@@ -216,17 +225,28 @@ class TracePathManager {
     }
 
     handleMove(event) {
+        console.log('handleMove called, isDragging:', this.isDragging, 'isTracing:', this.isTracing);
+        
         if (!this.isDragging || !this.isTracing) return;
         
         event.preventDefault();
         const point = this.getEventPoint(event);
-        if (!point) return;
+        if (!point) {
+            console.log('No point from getEventPoint');
+            return;
+        }
+        
+        console.log('Move point:', point);
         
         this.lastMovementTime = Date.now();
         
         const bestPosition = this.findBestSliderPosition(point);
+        console.log('Best position:', bestPosition);
+        
         if (bestPosition) {
             this.updateTracingProgress(bestPosition);
+        } else {
+            console.log('No best position found');
         }
     }
 
@@ -306,6 +326,10 @@ class TracePathManager {
     }
 
     findBestSliderPosition(dragPoint) {
+        console.log('findBestSliderPosition called with:', dragPoint);
+        console.log('currentCoordinateIndex:', this.currentCoordinateIndex);
+        console.log('currentStrokeCoords length:', this.currentStrokeCoords.length);
+        
         let bestCoordIndex = this.currentCoordinateIndex;
         let bestProgress = 0;
         let bestDistance = Infinity;
@@ -314,17 +338,25 @@ class TracePathManager {
         const maxIndex = Math.min(this.currentCoordinateIndex + lookAhead, this.currentStrokeCoords.length - 2);
         const minIndex = Math.max(0, this.currentCoordinateIndex - 2);
         
+        console.log(`Checking coordinates from ${minIndex} to ${maxIndex}`);
+        
         for (let i = minIndex; i <= maxIndex; i++) {
             const currentCoord = this.currentStrokeCoords[i];
             const nextCoord = this.currentStrokeCoords[i + 1];
             
-            if (!nextCoord) continue;
+            if (!nextCoord) {
+                console.log(`No next coord for index ${i}`);
+                continue;
+            }
             
             const segmentX = nextCoord.x - currentCoord.x;
             const segmentY = nextCoord.y - currentCoord.y;
             const segmentLength = Math.sqrt(segmentX * segmentX + segmentY * segmentY);
             
-            if (segmentLength === 0) continue;
+            if (segmentLength === 0) {
+                console.log(`Zero length segment at index ${i}`);
+                continue;
+            }
             
             const dragX = dragPoint.x - currentCoord.x;
             const dragY = dragPoint.y - currentCoord.y;
@@ -341,18 +373,27 @@ class TracePathManager {
             
             const maxDistance = CONFIG.PATH_TOLERANCE || 60;
             
+            if (i <= minIndex + 2) { // Log first few checks
+                console.log(`Index ${i}: currentCoord=(${currentCoord.x.toFixed(1)}, ${currentCoord.y.toFixed(1)}), nextCoord=(${nextCoord.x.toFixed(1)}, ${nextCoord.y.toFixed(1)})`);
+                console.log(`  segmentLength=${segmentLength.toFixed(1)}, distanceToSegment=${distanceToSegment.toFixed(1)}, maxDistance=${maxDistance}`);
+            }
+            
             if (distanceToSegment <= maxDistance && distanceToSegment < bestDistance) {
                 bestDistance = distanceToSegment;
                 bestCoordIndex = i;
                 bestProgress = projectionProgress;
+                console.log(`New best: index=${i}, distance=${distanceToSegment.toFixed(1)}, progress=${projectionProgress.toFixed(2)}`);
             }
         }
         
-        return bestDistance <= (CONFIG.PATH_TOLERANCE || 60) ? {
+        const result = bestDistance <= (CONFIG.PATH_TOLERANCE || 60) ? {
             coordIndex: bestCoordIndex,
             progress: bestProgress,
             distance: bestDistance
         } : null;
+        
+        console.log('findBestSliderPosition result:', result);
+        return result;
     }
 
     updateTracingProgress(position) {
