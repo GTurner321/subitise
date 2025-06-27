@@ -23,8 +23,8 @@ class TracePathManager {
             1: [[50, 0]],
             2: [[0, 0], [100, 0]],
             3: [[35, 100], [0, 10]],
-            4: [[0, 80], [100, 80], [60, 0]],
-            5: [[100, 200], [0, 125], [0, 13]],
+            4: [[0, 80], [60, 40], [60, 0]], // stroke 1 ends at start of stroke 2 (60,40)
+            5: [[0, 200], [0, 125], [0, 13]], // stroke 0 ends at start of stroke 1 (0,200)
             6: [[2, 77]],
             7: [[100, 200], [40, 0]],
             8: [[95, 152.5]],
@@ -42,16 +42,6 @@ class TracePathManager {
             7: [[80, 200], [50, 33]],
             8: [[94, 142.5]],
             9: [[98.9, 182], [83, 30]]
-        };
-        
-        this.sectionBreakTriggers = {
-            4: [null, [100, 80]],
-            5: [[100, 200]]
-        };
-        
-        this.sectionBreakTargets = {
-            4: [null, [60, 40]],
-            5: [[0, 200]]
         };
         
         this.initializeEventListeners();
@@ -381,11 +371,6 @@ class TracePathManager {
         
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
-        if (this.hasReachedSectionBreakPoint(coordIndex, progress)) {
-            this.autoMoveToNextSection();
-            return;
-        }
-        
         if (this.hasReachedStrokeCompletionPoint(coordIndex, progress)) {
             this.autoCompleteCurrentStroke();
             return;
@@ -409,21 +394,6 @@ class TracePathManager {
             this.currentCoordinateIndex = newCoordinateIndex;
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         }
-    }
-
-    hasReachedSectionBreakPoint(coordIndex, progress) {
-        const currentNumber = this.getCurrentNumber();
-        const triggerCoords = this.sectionBreakTriggers[currentNumber]?.[this.currentStroke];
-        
-        if (!triggerCoords) return false;
-        
-        const triggerIndex = this.findCoordinateInPath(triggerCoords);
-        return triggerIndex !== -1 && 
-               (coordIndex > triggerIndex || (coordIndex >= triggerIndex && progress >= 0.5));
-    }
-
-    autoMoveToNextSection() {
-        this.endCurrentStroke(() => this.startNewStroke(this.currentStroke + 1));
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
