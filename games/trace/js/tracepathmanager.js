@@ -210,8 +210,8 @@ class TracePathManager {
         return closestIndex;
     }
 
-    // NEW: Find coordinate index by original coordinate values (before scaling)
-    findOriginalCoordinateIndex(targetCoord) {
+    // NEW: Find coordinate index by original coordinate values, searching forward from current position
+    findOriginalCoordinateIndex(targetCoord, searchFromIndex = 0) {
         const currentNumber = this.getCurrentNumber();
         if (currentNumber === null) return -1;
         
@@ -223,7 +223,8 @@ class TracePathManager {
         
         const tolerance = 1.0; // Very tight tolerance for exact matches
         
-        for (let i = 0; i < originalCoords.length; i++) {
+        // Search forward from the specified index to avoid finding earlier duplicates
+        for (let i = searchFromIndex; i < originalCoords.length; i++) {
             const coord = originalCoords[i];
             const deltaX = Math.abs(coord.x - targetCoord[0]);
             const deltaY = Math.abs(coord.y - targetCoord[1]);
@@ -260,8 +261,8 @@ class TracePathManager {
             
             // Must be exact match - user has traced to this coordinate
             if (deltaX <= 1.0 && deltaY <= 1.0) {
-                // Find the target coordinate index to complete up to
-                const targetIndex = this.findOriginalCoordinateIndex(trigger.jumpTo);
+                // Find the target coordinate index, searching AFTER the current position
+                const targetIndex = this.findOriginalCoordinateIndex(trigger.jumpTo, coordIndex + 1);
                 if (targetIndex !== -1) {
                     return {
                         targetIndex: targetIndex,
@@ -298,7 +299,9 @@ class TracePathManager {
             
             if (deltaX <= 1.0 && deltaY <= 1.0) {
                 const targetCoord = isMovingForward ? progression.forwardTo : progression.backwardTo;
-                const targetIndex = this.findOriginalCoordinateIndex(targetCoord);
+                // Search in the appropriate direction
+                const searchFromIndex = isMovingForward ? coordIndex + 1 : 0;
+                const targetIndex = this.findOriginalCoordinateIndex(targetCoord, searchFromIndex);
                 
                 if (targetIndex !== -1) {
                     return targetIndex;
@@ -704,17 +707,17 @@ class TracePathManager {
         
         const totalStrokes = this.renderer.getStrokeCount();
         
-        if (this.currentStroke + 1 < totalStrokes) {
-            setTimeout(() => {
-                this.startNewStroke(this.currentStroke + 1);
-            }, 300);
-        } else {
+        // IMPORTANT: Do NOT automatically move to next stroke here
+        // Let the game controller handle stroke progression through handleStrokeCompletion
+        // Only complete the number if this was the final stroke
+        if (this.currentStroke + 1 >= totalStrokes) {
             setTimeout(() => {
                 this.removeSlider();
             }, 300);
             
             this.renderer.completeNumber();
         }
+        // If there are more strokes, the game controller will handle the progression
     }
 
     getCurrentNumber() {
