@@ -1,473 +1,776 @@
-class TraceNumberRenderer {
-    constructor() {
-        this.svg = null;
-        this.currentNumber = null;
+class TracePathManager {
+    constructor(svg, renderer) {
+        this.svg = svg;
+        this.renderer = renderer;
+        
+        this.slider = null;
+        this.frontMarker = null;
+        this.isTracing = false;
         this.currentStroke = 0;
-        this.container = null;
-        this.scaledCoordinates = [];
-        this.handleResize = null;
+        this.currentCoordinateIndex = 0;
+        this.isDragging = false;
+        this.frontMarkerCoordIndex = 0;
+        this.frontMarkerProgress = 0;
+        this.finalFrontMarkerCoordIndex = 0;
+        this.finalFrontMarkerProgress = 0;
+        this.currentStrokeCoords = [];
+        this.strokeCompletionCoordIndex = 0;
+        this.strokeCompletionCoord = null;
+        this.lastMovementTime = Date.now();
+        
+        // NEW: Auto progression trigger points - first coordinate triggers jump to second coordinate
+        this.autoProgressionTriggers = {
+            0: [{ trigger: [96, 61], jumpTo: [100, 100] }],
+            1: [{ trigger: [50, 30], jumpTo: [50, 0] }],
+            2: [{ trigger: [27, 36], jumpTo: [0, 0] }],
+            3: [{ trigger: [50, 101], jumpTo: [35, 100] }],
+            4: [
+                { trigger: [9, 116], jumpTo: [0, 80] },
+                { trigger: [80, 80], jumpTo: [100, 80] },
+                { trigger: [100, 80], jumpTo: [60, 140], sectionBreak: true }, // Section break for stroke 2
+                { trigger: [60, 30], jumpTo: [60, 0] }
+            ],
+            5: [
+                { trigger: [80, 200], jumpTo: [100, 200] },
+                { trigger: [100, 200], jumpTo: [0, 200], sectionBreak: true }, // Section break for stroke 2
+                { trigger: [0, 140], jumpTo: [0, 125] },
+                { trigger: [15, 4], jumpTo: [0, 13] }
+            ],
+            6: [{ trigger: [25, 112], jumpTo: [0, 60] }],
+            7: [
+                { trigger: [80, 200], jumpTo: [100, 200] },
+                { trigger: [50, 33], jumpTo: [40, 0] }
+            ],
+            8: [{ trigger: [70, 110], jumpTo: [95, 152.5] }],
+            9: [
+                { trigger: [95.9, 158], jumpTo: [100, 190] },
+                { trigger: [82, 20], jumpTo: [80, 0] }
+            ]
+        };
+        
+        // NEW: Mandatory progression points for sharp corners
+        this.mandatoryProgressions = {
+            2: [
+                { 
+                    coordinate: [0, 0], 
+                    forwardTo: [10, 0], 
+                    backwardTo: [9, 12] 
+                }
+            ],
+            3: [
+                { 
+                    coordinate: [35, 100], 
+                    forwardTo: [40, 99.9], 
+                    backwardTo: [40, 100.1] 
+                }
+            ],
+            4: [
+                { 
+                    coordinate: [0, 80], 
+                    forwardTo: [10, 80], 
+                    backwardTo: [3, 92] 
+                }
+            ],
+            7: [
+                { 
+                    coordinate: [100, 200], 
+                    forwardTo: [95, 183], 
+                    backwardTo: [90, 200] 
+                }
+            ],
+            9: [
+                { 
+                    coordinate: [100, 190], 
+                    forwardTo: [99, 182], 
+                    backwardTo: [98.9, 182] 
+                }
+            ]
+        };
+        
+        // Updated stroke end coordinates
+        this.strokeEndCoordinates = {
+            0: [[100, 100]],
+            1: [[50, 0]],
+            2: [[0, 0], [100, 0]],
+            3: [[35, 100], [0, 10]],
+            4: [[0, 80], [60, 140], [60, 0]], 
+            5: [[0, 200], [0, 125], [0, 13]], 
+            6: [[2, 77]],
+            7: [[100, 200], [40, 0]],
+            8: [[95, 152.5]],
+            9: [[100, 190], [80, 0]]
+        };
+        
+        // Updated stroke completion triggers
+        this.strokeCompletionTriggers = {
+            0: [[99, 80]],
+            1: [[50, 20]],
+            2: [[36, 48], [80, 0]],
+            3: [[70, 107], [4, 8]],
+            4: [[18, 152], [80, 80], [60, 30]],
+            5: [[80, 200], [0, 150], [2, 11]],
+            6: [[6, 88]],
+            7: [[80, 200], [50, 33]],
+            8: [[94, 142.5]],
+            9: [[98.9, 182], [83, 30]]
+        };
+        
+        this.initializeEventListeners();
     }
 
-    initialize(containerId) {
-        console.log('Initializing renderer with container:', containerId);
+    initializeEventListeners() {
+        if (!this.svg) return;
         
-        this.container = document.getElementById(containerId);
-        if (!this.container) {
-            console.error('Container not found:', containerId);
+        this.svg.addEventListener('mousedown', (e) => this.handleStart(e));
+        this.svg.addEventListener('mousemove', (e) => this.handleMove(e));
+        this.svg.addEventListener('mouseup', (e) => this.handleEnd(e));
+        this.svg.addEventListener('mouseleave', (e) => this.handleEnd(e));
+        
+        this.svg.addEventListener('touchstart', (e) => this.handleStart(e), { passive: false });
+        this.svg.addEventListener('touchmove', (e) => this.handleMove(e), { passive: false });
+        this.svg.addEventListener('touchend', (e) => this.handleEnd(e));
+        this.svg.addEventListener('touchcancel', (e) => this.handleEnd(e));
+    }
+
+    startNewStroke(strokeIndex) {
+        this.currentStroke = strokeIndex;
+        this.currentCoordinateIndex = 0;
+        this.isTracing = false;
+        this.isDragging = false;
+        this.lastMovementTime = Date.now();
+        
+        this.frontMarkerCoordIndex = 0;
+        this.frontMarkerProgress = 0;
+        this.finalFrontMarkerCoordIndex = 0;
+        this.finalFrontMarkerProgress = 0;
+        
+        this.currentStrokeCoords = this.renderer.getStrokeCoordinates(strokeIndex);
+        
+        if (!this.currentStrokeCoords || this.currentStrokeCoords.length === 0) {
             return false;
         }
         
-        console.log('Container found:', this.container);
-        this.createSVG();
+        this.setupStrokeCompletion();
+        this.removeSlider();
+        this.removeFrontMarker();
         
-        // Add window resize handler for dynamic dimensions
-        this.handleResize = () => {
-            if (this.svg) {
-                this.updateSVGDimensions();
-                // Re-render current number if one is displayed
-                if (this.currentNumber !== null) {
-                    this.renderNumber(this.currentNumber);
-                }
-            }
-        };
-        window.addEventListener('resize', this.handleResize);
+        const startPoint = this.currentStrokeCoords[0];
         
-        console.log('SVG created:', this.svg);
+        // Reset the trace line to the start of the new stroke
+        this.renderer.updateTracingProgress(this.currentStroke, 0);
+        
+        this.createSlider(startPoint);
+        
         return true;
     }
 
-    createSVG() {
-        // Clear existing content
-        this.container.innerHTML = '';
+    setupStrokeCompletion() {
+        let currentNumber = null;
         
-        // Create main SVG element
-        this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        this.updateSVGDimensions();
-        this.svg.setAttribute('class', 'trace-svg');
-        
-        console.log('Created SVG element:', this.svg);
-        
-        // Add background for debug purposes
-        if (CONFIG.DEBUG_MODE) {
-            const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            background.setAttribute('width', CONFIG.SVG_WIDTH);
-            background.setAttribute('height', CONFIG.SVG_HEIGHT);
-            background.setAttribute('fill', 'rgba(0,0,255,0.1)');
-            this.svg.appendChild(background);
-            console.log('Added debug background');
+        if (window.traceGame && typeof window.traceGame.getCurrentNumber === 'function') {
+            currentNumber = window.traceGame.getCurrentNumber();
         }
         
-        this.container.appendChild(this.svg);
-        console.log('SVG added to container');
-    }
-
-    updateSVGDimensions() {
-        // Update SVG dimensions dynamically using CONFIG getters
-        this.svg.setAttribute('viewBox', `0 0 ${CONFIG.SVG_WIDTH} ${CONFIG.SVG_HEIGHT}`);
-        this.svg.setAttribute('width', '100%');
-        this.svg.setAttribute('height', '100%');
-        console.log(`SVG dimensions updated: ${CONFIG.SVG_WIDTH} x ${CONFIG.SVG_HEIGHT}`);
-    }
-
-    renderNumber(number) {
-        if (number < 0 || number > 9) {
-            console.error('Invalid number:', number);
-            return false;
-        }
-        
-        this.currentNumber = number;
-        this.currentStroke = 0;
-        this.clearSVG();
-        this.scaledCoordinates = [];
-        
-        const numberConfig = CONFIG.STROKE_DEFINITIONS[number];
-        if (!numberConfig || !numberConfig.strokes) {
-            console.error('No stroke definition found for number:', number);
-            return false;
-        }
-        
-        console.log(`Rendering number ${number} with ${numberConfig.strokes.length} stroke(s)`);
-        
-        try {
-            // Process and scale all coordinates first
-            this.processCoordinates(numberConfig.strokes);
-            
-            // Create the visible number outline with improved layering for number 4
-            this.createNumberOutline(numberConfig.strokes);
-            
-            console.log(`Successfully rendered number ${number}`);
-            return true;
-        } catch (error) {
-            console.error('Error rendering number:', number, error);
-            return false;
-        }
-    }
-
-    processCoordinates(strokes) {
-        strokes.forEach((stroke, strokeIndex) => {
-            if (stroke.type === 'coordinates' && stroke.coordinates) {
-                const scaledCoords = this.scaleCoordinates(stroke.coordinates);
-                this.scaledCoordinates[strokeIndex] = scaledCoords;
-                console.log(`Processed ${scaledCoords.length} coordinates for stroke ${strokeIndex}`);
-            }
-        });
-    }
-
-    scaleCoordinates(coordinates) {
-        console.log('=== scaleCoordinates called ===');
-        console.log('Input coordinates length:', coordinates ? coordinates.length : 'null');
-        
-        if (!coordinates || coordinates.length === 0) {
-            console.error('No coordinates provided to scaleCoordinates');
-            return [];
-        }
-        
-        // Validate coordinates
-        for (let i = 0; i < coordinates.length; i++) {
-            const coord = coordinates[i];
-            if (!coord || typeof coord.x === 'undefined' || typeof coord.y === 'undefined') {
-                console.error(`Invalid coordinate at index ${i}:`, coord);
-                return [];
+        if (currentNumber !== null && this.strokeCompletionTriggers[currentNumber]) {
+            const triggerCoords = this.strokeCompletionTriggers[currentNumber];
+            if (triggerCoords && triggerCoords[this.currentStroke]) {
+                const targetTrigger = triggerCoords[this.currentStroke];
+                const triggerIndex = this.findCoordinateInPath(targetTrigger);
+                
+                if (triggerIndex !== -1) {
+                    this.strokeCompletionCoordIndex = triggerIndex;
+                    this.strokeCompletionCoord = this.currentStrokeCoords[triggerIndex];
+                    return;
+                }
             }
         }
         
-        // Scale coordinates to fit in the centered number rectangle using dynamic CONFIG
-        const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;  // 120px / 100 = 1.2
-        const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200; // 200px / 200 = 1.0
-        const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2; // Dynamic center
-        const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2; // Dynamic center
-        
-        console.log('Scaling factors:', { scaleX, scaleY, offsetX, offsetY });
-        console.log('Screen dimensions:', { width: CONFIG.SVG_WIDTH, height: CONFIG.SVG_HEIGHT });
-        console.log('Number center:', { x: CONFIG.NUMBER_CENTER_X, y: CONFIG.NUMBER_CENTER_Y });
-        
-        const scaledCoords = coordinates.map((coord, index) => {
-            const scaledX = offsetX + (coord.x * scaleX);
-            // Flip Y coordinate: SVG Y increases downward, coordinates Y increases upward
-            const scaledY = offsetY + ((200 - coord.y) * scaleY);
-            
-            // Log first few coordinates for debugging
-            if (index < 3) {
-                console.log(`Coord ${index}: (${coord.x}, ${coord.y}) → (${scaledX}, ${scaledY})`);
-            }
-            
-            return { x: scaledX, y: scaledY };
-        });
-        
-        console.log('=== Scaled coordinates generated ===');
-        console.log('Scaled coordinates length:', scaledCoords.length);
-        
-        return scaledCoords;
+        const totalCoords = this.currentStrokeCoords.length;
+        this.strokeCompletionCoordIndex = Math.max(0, totalCoords - 3);
+        this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
     }
 
-    createNumberOutline(strokes) {
-        // Special handling for number 4 to prevent overlapping outlines
-        if (this.currentNumber === 4) {
-            this.createNumber4Outline(strokes);
+    findCoordinateInPath(targetCoord) {
+        const tolerance = 10;
+        let closestIndex = -1;
+        let closestDistance = Infinity;
+        
+        for (let i = 0; i < this.currentStrokeCoords.length; i++) {
+            const coord = this.currentStrokeCoords[i];
+            const deltaX = Math.abs(coord.x - targetCoord[0]);
+            const deltaY = Math.abs(coord.y - targetCoord[1]);
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            if (distance <= tolerance && distance < closestDistance) {
+                closestDistance = distance;
+                closestIndex = i;
+            }
+        }
+        
+        return closestIndex;
+    }
+
+    // NEW: Find coordinate index by original coordinate values (before scaling)
+    findOriginalCoordinateIndex(targetCoord) {
+        const currentNumber = this.getCurrentNumber();
+        if (currentNumber === null) return -1;
+        
+        const numberConfig = CONFIG.STROKE_DEFINITIONS[currentNumber];
+        if (!numberConfig || !numberConfig.strokes[this.currentStroke]) return -1;
+        
+        const originalCoords = numberConfig.strokes[this.currentStroke].coordinates;
+        if (!originalCoords) return -1;
+        
+        const tolerance = 1.0; // Very tight tolerance for exact matches
+        
+        for (let i = 0; i < originalCoords.length; i++) {
+            const coord = originalCoords[i];
+            const deltaX = Math.abs(coord.x - targetCoord[0]);
+            const deltaY = Math.abs(coord.y - targetCoord[1]);
+            
+            if (deltaX <= tolerance && deltaY <= tolerance) {
+                return i;
+            }
+        }
+        
+        return -1;
+    }
+
+    // NEW: Check if current position triggers auto progression
+    checkAutoProgression(coordIndex) {
+        const currentNumber = this.getCurrentNumber();
+        if (currentNumber === null) return null;
+        
+        const triggers = this.autoProgressionTriggers[currentNumber];
+        if (!triggers) return null;
+        
+        // Get original coordinate for the current position
+        const numberConfig = CONFIG.STROKE_DEFINITIONS[currentNumber];
+        if (!numberConfig || !numberConfig.strokes[this.currentStroke]) return null;
+        
+        const originalCoords = numberConfig.strokes[this.currentStroke].coordinates;
+        if (!originalCoords || coordIndex >= originalCoords.length) return null;
+        
+        const currentOriginalCoord = originalCoords[coordIndex];
+        
+        // Check if current coordinate exactly matches any trigger
+        for (const trigger of triggers) {
+            const deltaX = Math.abs(currentOriginalCoord.x - trigger.trigger[0]);
+            const deltaY = Math.abs(currentOriginalCoord.y - trigger.trigger[1]);
+            
+            // Must be exact match - user has traced to this coordinate
+            if (deltaX <= 1.0 && deltaY <= 1.0) {
+                // Find the target coordinate index
+                const targetIndex = this.findOriginalCoordinateIndex(trigger.jumpTo);
+                if (targetIndex !== -1) {
+                    return {
+                        targetIndex: targetIndex,
+                        sectionBreak: trigger.sectionBreak || false
+                    };
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    // NEW: Check mandatory progression for sharp corners
+    checkMandatoryProgression(coordIndex, isMovingForward) {
+        const currentNumber = this.getCurrentNumber();
+        if (currentNumber === null) return null;
+        
+        const progressions = this.mandatoryProgressions[currentNumber];
+        if (!progressions) return null;
+        
+        // Get original coordinate for the current position
+        const numberConfig = CONFIG.STROKE_DEFINITIONS[currentNumber];
+        if (!numberConfig || !numberConfig.strokes[this.currentStroke]) return null;
+        
+        const originalCoords = numberConfig.strokes[this.currentStroke].coordinates;
+        if (!originalCoords || coordIndex >= originalCoords.length) return null;
+        
+        const currentOriginalCoord = originalCoords[coordIndex];
+        
+        // Check if current coordinate matches any mandatory progression point
+        for (const progression of progressions) {
+            const deltaX = Math.abs(currentOriginalCoord.x - progression.coordinate[0]);
+            const deltaY = Math.abs(currentOriginalCoord.y - progression.coordinate[1]);
+            
+            if (deltaX <= 1.0 && deltaY <= 1.0) {
+                const targetCoord = isMovingForward ? progression.forwardTo : progression.backwardTo;
+                const targetIndex = this.findOriginalCoordinateIndex(targetCoord);
+                
+                if (targetIndex !== -1) {
+                    return targetIndex;
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    createSlider(position) {
+        this.removeSlider();
+        
+        this.slider = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        this.slider.setAttribute('cx', position.x);
+        this.slider.setAttribute('cy', position.y);
+        this.slider.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
+        this.slider.setAttribute('fill', CONFIG.SLIDER_COLOR);
+        this.slider.setAttribute('stroke', 'white');
+        this.slider.setAttribute('stroke-width', 3);
+        this.slider.setAttribute('class', 'trace-slider');
+        this.slider.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+        
+        this.addSliderPulseAnimation();
+        this.svg.appendChild(this.slider);
+    }
+
+    removeSlider() {
+        if (this.slider) {
+            this.slider.remove();
+            this.slider = null;
+        }
+    }
+
+    createFrontMarker(position) {
+        this.removeFrontMarker();
+        
+        this.frontMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        this.frontMarker.setAttribute('cx', position.x);
+        this.frontMarker.setAttribute('cy', position.y);
+        this.frontMarker.setAttribute('r', CONFIG.SLIDER_SIZE / 2);
+        this.frontMarker.setAttribute('fill', CONFIG.SLIDER_COLOR);
+        this.frontMarker.setAttribute('stroke', 'white');
+        this.frontMarker.setAttribute('stroke-width', 3);
+        this.frontMarker.setAttribute('class', 'front-marker');
+        this.frontMarker.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+        
+        this.svg.appendChild(this.frontMarker);
+    }
+
+    removeFrontMarker() {
+        if (this.frontMarker) {
+            this.frontMarker.remove();
+            this.frontMarker = null;
+        }
+    }
+
+    updateFrontMarkerPosition(position) {
+        if (this.frontMarker) {
+            this.frontMarker.setAttribute('cx', position.x);
+            this.frontMarker.setAttribute('cy', position.y);
+        }
+    }
+
+    addSliderPulseAnimation() {
+        if (!this.slider) return;
+        
+        const existingAnimate = this.slider.querySelector('animate');
+        if (existingAnimate) {
+            existingAnimate.remove();
+        }
+        
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animate.setAttribute('attributeName', 'r');
+        animate.setAttribute('values', CONFIG.SLIDER_SIZE / 2 + ';' + (CONFIG.SLIDER_SIZE / 2 + 3) + ';' + CONFIG.SLIDER_SIZE / 2);
+        animate.setAttribute('dur', '2s');
+        animate.setAttribute('repeatCount', 'indefinite');
+        
+        this.slider.appendChild(animate);
+    }
+
+    handleStart(event) {
+        event.preventDefault();
+        
+        const point = this.getEventPoint(event);
+        if (!point) return;
+        
+        if (this.isPointNearSlider(point)) {
+            this.isDragging = true;
+            this.isTracing = true;
+            
+            if (this.slider) {
+                this.slider.style.opacity = '0';
+                const animate = this.slider.querySelector('animate');
+                if (animate) animate.remove();
+            }
+            
+            const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
+            if (currentCoord) {
+                this.createFrontMarker(currentCoord);
+                this.frontMarkerCoordIndex = this.currentCoordinateIndex;
+                this.frontMarkerProgress = 0;
+            }
+        }
+    }
+
+    handleMove(event) {
+        if (!this.isDragging || !this.isTracing) return;
+        
+        event.preventDefault();
+        const point = this.getEventPoint(event);
+        if (!point) return;
+        
+        this.lastMovementTime = Date.now();
+        
+        const bestPosition = this.findBestSliderPosition(point);
+        if (bestPosition !== null) {
+            this.updateTracingProgress(bestPosition);
+        }
+    }
+
+    handleEnd(event) {
+        if (!this.isDragging) return;
+        
+        this.isDragging = false;
+        
+        this.finalFrontMarkerCoordIndex = this.frontMarkerCoordIndex;
+        this.finalFrontMarkerProgress = this.frontMarkerProgress;
+        
+        setTimeout(() => {
+            if (!this.isDragging && this.slider) {
+                const finalPosition = this.getInterpolatedPosition(
+                    this.finalFrontMarkerCoordIndex, 
+                    this.finalFrontMarkerProgress
+                );
+                
+                if (finalPosition) {
+                    this.slider.setAttribute('cx', finalPosition.x);
+                    this.slider.setAttribute('cy', finalPosition.y);
+                    
+                    this.currentCoordinateIndex = this.finalFrontMarkerCoordIndex;
+                    if (this.finalFrontMarkerProgress >= 0.95) {
+                        this.currentCoordinateIndex = Math.min(
+                            this.currentCoordinateIndex + 1, 
+                            this.currentStrokeCoords.length - 1
+                        );
+                    }
+                    
+                    this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+                }
+                
+                this.slider.style.transition = 'opacity 0.25s ease-in';
+                this.slider.style.opacity = '1';
+                
+                setTimeout(() => {
+                    if (!this.isDragging) {
+                        this.addSliderPulseAnimation();
+                    }
+                }, 250);
+                
+                setTimeout(() => {
+                    if (this.slider) {
+                        this.slider.style.transition = '';
+                    }
+                }, 300);
+            }
+        }, 500);
+        
+        setTimeout(() => {
+            if (!this.isDragging) {
+                this.removeFrontMarker();
+            }
+        }, 500);
+    }
+
+    getEventPoint(event) {
+        const rect = this.svg.getBoundingClientRect();
+        let clientX, clientY;
+        
+        if (event.type.startsWith('touch')) {
+            if (event.touches.length === 0) return null;
+            clientX = event.touches[0].clientX;
+            clientY = event.touches[0].clientY;
+        } else {
+            clientX = event.clientX;
+            clientY = event.clientY;
+        }
+        
+        const scaleX = CONFIG.SVG_WIDTH / rect.width;
+        const scaleY = CONFIG.SVG_HEIGHT / rect.height;
+        
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+
+    isPointNearSlider(point) {
+        if (!this.slider) return false;
+        
+        const sliderX = parseFloat(this.slider.getAttribute('cx'));
+        const sliderY = parseFloat(this.slider.getAttribute('cy'));
+        
+        const distance = Math.sqrt(
+            Math.pow(point.x - sliderX, 2) +
+            Math.pow(point.y - sliderY, 2)
+        );
+        
+        const sliderRadius = CONFIG.SLIDER_SIZE / 2;
+        return distance <= sliderRadius + 5;
+    }
+
+    findBestSliderPosition(dragPoint) {
+        let bestCoordIndex = this.currentCoordinateIndex;
+        let bestProgress = 0;
+        let bestDistance = Infinity;
+        
+        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 5 : 3;
+        const maxSearchIndex = Math.min(
+            this.currentCoordinateIndex + lookAheadDistance, 
+            this.currentStrokeCoords.length - 2
+        );
+        
+        const minSearchIndex = Math.max(0, this.currentCoordinateIndex - 2);
+        
+        for (let i = minSearchIndex; i <= maxSearchIndex; i++) {
+            const currentCoord = this.currentStrokeCoords[i];
+            const nextCoord = this.currentStrokeCoords[i + 1];
+            
+            if (!nextCoord) continue;
+            
+            const segmentX = nextCoord.x - currentCoord.x;
+            const segmentY = nextCoord.y - currentCoord.y;
+            const segmentLength = Math.sqrt(segmentX * segmentX + segmentY * segmentY);
+            
+            if (segmentLength === 0) continue;
+            
+            const dragX = dragPoint.x - currentCoord.x;
+            const dragY = dragPoint.y - currentCoord.y;
+            
+            const dotProduct = (dragX * segmentX + dragY * segmentY) / segmentLength;
+            const projectionProgress = Math.max(0, Math.min(segmentLength, dotProduct)) / segmentLength;
+            
+            const pointX = currentCoord.x + segmentX * projectionProgress;
+            const pointY = currentCoord.y + segmentY * projectionProgress;
+            
+            const distanceToSegment = Math.sqrt(
+                Math.pow(dragPoint.x - pointX, 2) + 
+                Math.pow(dragPoint.y - pointY, 2)
+            );
+            
+            const maxDistance = CONFIG.PATH_TOLERANCE || 60;
+            
+            if (distanceToSegment <= maxDistance && distanceToSegment < bestDistance) {
+                bestDistance = distanceToSegment;
+                bestCoordIndex = i;
+                bestProgress = projectionProgress;
+            }
+        }
+        
+        if (bestDistance <= (CONFIG.PATH_TOLERANCE || 60)) {
+            return {
+                coordIndex: bestCoordIndex,
+                progress: bestProgress,
+                distance: bestDistance
+            };
+        }
+        
+        return null;
+    }
+
+    updateTracingProgress(position) {
+        const coordIndex = position.coordIndex;
+        const progress = position.progress;
+        
+        this.frontMarkerCoordIndex = coordIndex;
+        this.frontMarkerProgress = progress;
+        
+        const currentCoord = this.currentStrokeCoords[coordIndex];
+        const nextCoord = this.currentStrokeCoords[coordIndex + 1];
+        
+        const frontMarkerX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
+        const frontMarkerY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
+        
+        this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
+        
+        // Check for stroke completion first
+        if (this.hasReachedStrokeCompletionPoint(coordIndex, progress)) {
+            this.autoCompleteCurrentStroke();
             return;
         }
         
-        // Standard rendering for other numbers
-        strokes.forEach((stroke, strokeIndex) => {
-            if (stroke.type === 'coordinates' && this.scaledCoordinates[strokeIndex]) {
-                const coords = this.scaledCoordinates[strokeIndex];
-                
-                // Create path data from coordinates
-                let pathData = '';
-                coords.forEach((coord, index) => {
-                    if (index === 0) {
-                        pathData += `M ${coord.x} ${coord.y}`;
-                    } else {
-                        pathData += ` L ${coord.x} ${coord.y}`;
-                    }
-                });
-                
-                // Layer 1: Thick black outline (increased to 30px for full screen)
-                const thickOutlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                thickOutlinePath.setAttribute('d', pathData);
-                thickOutlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR);
-                thickOutlinePath.setAttribute('stroke-width', '30');
-                thickOutlinePath.setAttribute('fill', 'none');
-                thickOutlinePath.setAttribute('stroke-linecap', 'round');
-                thickOutlinePath.setAttribute('stroke-linejoin', 'round');
-                thickOutlinePath.setAttribute('class', `thick-outline-stroke-${strokeIndex}`);
-                this.svg.appendChild(thickOutlinePath);
-                
-                // Layer 2: White interior (increased to 20px for full screen) - creates the "channel" to fill
-                const whiteInteriorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                whiteInteriorPath.setAttribute('d', pathData);
-                whiteInteriorPath.setAttribute('stroke', 'white');
-                whiteInteriorPath.setAttribute('stroke-width', '20');
-                whiteInteriorPath.setAttribute('fill', 'none');
-                whiteInteriorPath.setAttribute('stroke-linecap', 'round');
-                whiteInteriorPath.setAttribute('stroke-linejoin', 'round');
-                whiteInteriorPath.setAttribute('class', `white-interior-stroke-${strokeIndex}`);
-                this.svg.appendChild(whiteInteriorPath);
-                
-                console.log(`Created layered outline for stroke ${strokeIndex} with ${coords.length} points`);
+        let newCoordinateIndex = this.currentCoordinateIndex;
+        
+        // Determine movement direction
+        const isMovingForward = coordIndex > this.currentCoordinateIndex || 
+                               (coordIndex === this.currentCoordinateIndex && progress >= 0.7);
+        
+        // Normal progression logic
+        if (coordIndex > this.currentCoordinateIndex) {
+            if (progress >= 0.5) {
+                newCoordinateIndex = coordIndex;
             }
-        });
-        
-        // Add debug rectangle if in debug mode
-        if (CONFIG.DEBUG_MODE) {
-            this.addDebugRectangle();
-        }
-    }
-
-    createNumber4Outline(strokes) {
-        // For number 4, create all black outlines first, then all white interiors
-        // This prevents the overlapping black outline issue
-        
-        const allPathData = [];
-        
-        // Collect all path data first
-        strokes.forEach((stroke, strokeIndex) => {
-            if (stroke.type === 'coordinates' && this.scaledCoordinates[strokeIndex]) {
-                const coords = this.scaledCoordinates[strokeIndex];
-                
-                let pathData = '';
-                coords.forEach((coord, index) => {
-                    if (index === 0) {
-                        pathData += `M ${coord.x} ${coord.y}`;
-                    } else {
-                        pathData += ` L ${coord.x} ${coord.y}`;
-                    }
-                });
-                
-                allPathData.push({ pathData, strokeIndex });
-            }
-        });
-        
-        // First pass: Create all black outlines
-        allPathData.forEach(({ pathData, strokeIndex }) => {
-            const thickOutlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            thickOutlinePath.setAttribute('d', pathData);
-            thickOutlinePath.setAttribute('stroke', CONFIG.OUTLINE_COLOR);
-            thickOutlinePath.setAttribute('stroke-width', '30');
-            thickOutlinePath.setAttribute('fill', 'none');
-            thickOutlinePath.setAttribute('stroke-linecap', 'round');
-            thickOutlinePath.setAttribute('stroke-linejoin', 'round');
-            thickOutlinePath.setAttribute('class', `thick-outline-stroke-${strokeIndex}`);
-            this.svg.appendChild(thickOutlinePath);
-        });
-        
-        // Second pass: Create all white interiors
-        allPathData.forEach(({ pathData, strokeIndex }) => {
-            const whiteInteriorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            whiteInteriorPath.setAttribute('d', pathData);
-            whiteInteriorPath.setAttribute('stroke', 'white');
-            whiteInteriorPath.setAttribute('stroke-width', '20');
-            whiteInteriorPath.setAttribute('fill', 'none');
-            whiteInteriorPath.setAttribute('stroke-linecap', 'round');
-            whiteInteriorPath.setAttribute('stroke-linejoin', 'round');
-            whiteInteriorPath.setAttribute('class', `white-interior-stroke-${strokeIndex}`);
-            this.svg.appendChild(whiteInteriorPath);
-        });
-        
-        console.log(`Created proper layered outline for number 4 with ${allPathData.length} strokes`);
-        
-        // Add debug rectangle if in debug mode
-        if (CONFIG.DEBUG_MODE) {
-            this.addDebugRectangle();
-        }
-    }
-
-    addDebugRectangle() {
-        const debugRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        debugRect.setAttribute('x', CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH/2);
-        debugRect.setAttribute('y', CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT/2);
-        debugRect.setAttribute('width', CONFIG.NUMBER_RECT_WIDTH);
-        debugRect.setAttribute('height', CONFIG.NUMBER_RECT_HEIGHT);
-        debugRect.setAttribute('stroke', 'red');
-        debugRect.setAttribute('stroke-width', 1);
-        debugRect.setAttribute('fill', 'none');
-        debugRect.setAttribute('stroke-dasharray', '5,5');
-        debugRect.setAttribute('class', 'debug-rectangle');
-        
-        this.svg.appendChild(debugRect);
-    }
-
-    // Get scaled coordinates for a specific stroke
-    getStrokeCoordinates(strokeIndex) {
-        return this.scaledCoordinates[strokeIndex] || [];
-    }
-
-    // Get the start point for a stroke
-    getStrokeStartPoint(strokeIndex) {
-        const coords = this.getStrokeCoordinates(strokeIndex);
-        return coords.length > 0 ? coords[0] : null;
-    }
-
-    // Get total number of strokes for current number
-    getStrokeCount() {
-        const numberConfig = CONFIG.STROKE_DEFINITIONS[this.currentNumber];
-        return numberConfig ? numberConfig.strokes.length : 0;
-    }
-
-    // Create a traced path element for showing progress
-    createTracedPath(strokeIndex, progressCoordIndex) {
-        const coords = this.getStrokeCoordinates(strokeIndex);
-        if (!coords || coords.length === 0 || progressCoordIndex < 0) {
-            return null;
-        }
-        
-        // Create path from start to current progress point
-        const endIndex = Math.min(progressCoordIndex + 1, coords.length);
-        const progressCoords = coords.slice(0, endIndex);
-        
-        let pathData = '';
-        progressCoords.forEach((coord, index) => {
-            if (index === 0) {
-                pathData += `M ${coord.x} ${coord.y}`;
-            } else {
-                pathData += ` L ${coord.x} ${coord.y}`;
-            }
-        });
-        
-        // Remove existing traced path for this stroke
-        const existingPath = this.svg.querySelector(`.traced-path-${strokeIndex}`);
-        if (existingPath) {
-            existingPath.remove();
-        }
-        
-        // Create new traced path (increased to 24px for full screen to fill the channel nicely)
-        const tracedPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        tracedPath.setAttribute('d', pathData);
-        tracedPath.setAttribute('stroke', CONFIG.FILL_COLOR);
-        tracedPath.setAttribute('stroke-width', '24'); // 24px to fill the 20px white channel with slight overlap
-        tracedPath.setAttribute('fill', 'none');
-        tracedPath.setAttribute('stroke-linecap', 'round');
-        tracedPath.setAttribute('stroke-linejoin', 'round');
-        tracedPath.setAttribute('class', `traced-path-${strokeIndex}`);
-        
-        // FIXED: Insert traced path before sliders AND balloons to ensure both stay on top
-        const overlayElements = this.svg.querySelectorAll('.trace-slider, .direction-arrow, .balloon-group');
-        if (overlayElements.length > 0) {
-            this.svg.insertBefore(tracedPath, overlayElements[0]);
-        } else {
-            this.svg.appendChild(tracedPath);
-        }
-        
-        return tracedPath;
-    }
-
-    // Update traced path for current progress
-    updateTracingProgress(strokeIndex, coordinateIndex) {
-        this.createTracedPath(strokeIndex, coordinateIndex);
-    }
-
-    // Complete a stroke by showing the full traced path
-    completeStroke(strokeIndex) {
-        const coords = this.getStrokeCoordinates(strokeIndex);
-        if (coords && coords.length > 0) {
-            this.createTracedPath(strokeIndex, coords.length - 1);
-        }
-        
-        console.log(`Stroke ${strokeIndex} completed for number ${this.currentNumber}`);
-        
-        // Check if all strokes are complete
-        if (this.areAllStrokesComplete()) {
-            this.completeNumber();
-        } else {
-            // Move to next stroke
-            this.currentStroke++;
-        }
-    }
-
-    areAllStrokesComplete() {
-        const totalStrokes = this.getStrokeCount();
-        // Check if all strokes have traced paths
-        for (let i = 0; i < totalStrokes; i++) {
-            const tracedPath = this.svg.querySelector(`.traced-path-${i}`);
-            if (!tracedPath) {
-                return false;
+        } else if (coordIndex === this.currentCoordinateIndex) {
+            if (progress >= 0.7) {
+                newCoordinateIndex = Math.min(this.currentCoordinateIndex + 1, this.currentStrokeCoords.length - 1);
             }
         }
-        return true;
+        
+        newCoordinateIndex = Math.min(newCoordinateIndex, coordIndex);
+        
+        if (progress < 0.7 && coordIndex === newCoordinateIndex && coordIndex > 0) {
+            newCoordinateIndex = Math.max(0, coordIndex - 1);
+        }
+        
+        // Update coordinate index if changed
+        if (newCoordinateIndex !== this.currentCoordinateIndex) {
+            this.currentCoordinateIndex = newCoordinateIndex;
+            this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+            
+            // Check for auto progression triggers ONLY when we reach a new coordinate exactly
+            const autoProgression = this.checkAutoProgression(this.currentCoordinateIndex);
+            if (autoProgression) {
+                console.log(`Auto progression triggered: jumping from coordinate ${this.currentCoordinateIndex} to index ${autoProgression.targetIndex}`);
+                this.jumpToCoordinate(autoProgression.targetIndex, autoProgression.sectionBreak);
+                return;
+            }
+            
+            // Check for mandatory progression at sharp corners ONLY when we reach a new coordinate exactly
+            const mandatoryTarget = this.checkMandatoryProgression(this.currentCoordinateIndex, isMovingForward);
+            if (mandatoryTarget !== null) {
+                console.log(`Mandatory progression triggered: jumping from coordinate ${this.currentCoordinateIndex} to index ${mandatoryTarget}`);
+                this.jumpToCoordinate(mandatoryTarget, false);
+                return;
+            }
+        }
     }
 
-    completeNumber() {
-        console.log(`Number ${this.currentNumber} fully completed!`);
+    // NEW: Jump to a specific coordinate index
+    jumpToCoordinate(targetIndex, isSectionBreak = false) {
+        if (targetIndex < 0 || targetIndex >= this.currentStrokeCoords.length) return;
         
-        // Add completion effect with dynamic positioning
-        this.addCompletionEffect();
+        this.currentCoordinateIndex = targetIndex;
+        this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+        
+        // Update front marker position
+        const targetCoord = this.currentStrokeCoords[targetIndex];
+        if (targetCoord && this.frontMarker) {
+            this.updateFrontMarkerPosition(targetCoord);
+            this.frontMarkerCoordIndex = targetIndex;
+            this.frontMarkerProgress = 0;
+        }
+        
+        // Update slider position
+        if (this.slider && targetCoord) {
+            this.slider.setAttribute('cx', targetCoord.x);
+            this.slider.setAttribute('cy', targetCoord.y);
+        }
+        
+        // If this is a section break, handle stroke completion
+        if (isSectionBreak) {
+            setTimeout(() => {
+                this.completeCurrentStroke();
+            }, 300);
+        }
     }
 
-    addCompletionEffect() {
-        // Create a group for the completion effect
-        const effectGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        effectGroup.setAttribute('class', 'completion-effect');
+    hasReachedStrokeCompletionPoint(coordIndex, progress) {
+        return coordIndex >= this.strokeCompletionCoordIndex && 
+               (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5);
+    }
+
+    autoCompleteCurrentStroke() {
+        this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
+        this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         
-        // Add stars around the number using dynamic center positioning
-        const starPositions = [
-            { x: CONFIG.NUMBER_CENTER_X - 100, y: CONFIG.NUMBER_CENTER_Y - 100 },
-            { x: CONFIG.NUMBER_CENTER_X + 100, y: CONFIG.NUMBER_CENTER_Y - 100 },
-            { x: CONFIG.NUMBER_CENTER_X + 120, y: CONFIG.NUMBER_CENTER_Y },
-            { x: CONFIG.NUMBER_CENTER_X + 100, y: CONFIG.NUMBER_CENTER_Y + 100 },
-            { x: CONFIG.NUMBER_CENTER_X - 100, y: CONFIG.NUMBER_CENTER_Y + 100 },
-            { x: CONFIG.NUMBER_CENTER_X - 120, y: CONFIG.NUMBER_CENTER_Y }
-        ];
+        const finalCoord = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
+        if (finalCoord && this.frontMarker) {
+            this.updateFrontMarkerPosition(finalCoord);
+        }
         
-        starPositions.forEach((pos, index) => {
-            const star = this.createStar(pos.x, pos.y);
-            star.style.animationDelay = `${index * 0.1}s`;
-            effectGroup.appendChild(star);
-        });
+        this.finalFrontMarkerCoordIndex = this.currentStrokeCoords.length - 1;
+        this.finalFrontMarkerProgress = 1.0;
         
-        this.svg.appendChild(effectGroup);
-        
-        // Remove effect after animation
         setTimeout(() => {
-            if (effectGroup.parentNode) {
-                effectGroup.parentNode.removeChild(effectGroup);
-            }
-        }, 2000);
+            this.completeCurrentStroke();
+        }, 200);
     }
 
-    createStar(x, y) {
-        const star = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        star.setAttribute('x', x);
-        star.setAttribute('y', y);
-        star.setAttribute('text-anchor', 'middle');
-        star.setAttribute('dominant-baseline', 'middle');
-        star.setAttribute('font-size', '30'); // Larger for full screen
-        star.setAttribute('fill', '#FFD700');
-        star.setAttribute('class', 'completion-star');
-        star.textContent = '✨';
+    completeCurrentStroke() {
+        this.isTracing = false;
+        this.isDragging = false;
         
-        return star;
-    }
-
-    getCurrentStroke() {
-        return this.currentStroke;
-    }
-
-    isNumberComplete() {
-        return this.areAllStrokesComplete();
-    }
-
-    clearSVG() {
-        // Clear all paths and elements except the SVG itself
-        while (this.svg.firstChild) {
-            this.svg.removeChild(this.svg.firstChild);
+        if (this.slider) {
+            this.slider.style.opacity = '0';
         }
+        this.removeFrontMarker();
+        
+        this.renderer.completeStroke(this.currentStroke);
+        
+        const totalStrokes = this.renderer.getStrokeCount();
+        
+        if (this.currentStroke + 1 < totalStrokes) {
+            setTimeout(() => {
+                this.startNewStroke(this.currentStroke + 1);
+            }, 300);
+        } else {
+            setTimeout(() => {
+                this.removeSlider();
+            }, 300);
+            
+            this.renderer.completeNumber();
+        }
+    }
+
+    getCurrentNumber() {
+        if (window.traceGame && typeof window.traceGame.getCurrentNumber === 'function') {
+            return window.traceGame.getCurrentNumber();
+        }
+        return null;
+    }
+
+    getInterpolatedPosition(coordIndex, progress) {
+        if (coordIndex < 0 || coordIndex >= this.currentStrokeCoords.length - 1) {
+            return this.currentStrokeCoords[Math.max(0, Math.min(coordIndex, this.currentStrokeCoords.length - 1))];
+        }
+        
+        const currentCoord = this.currentStrokeCoords[coordIndex];
+        const nextCoord = this.currentStrokeCoords[coordIndex + 1];
+        
+        if (!currentCoord || !nextCoord) {
+            return currentCoord || nextCoord;
+        }
+        
+        return {
+            x: currentCoord.x + (nextCoord.x - currentCoord.x) * progress,
+            y: currentCoord.y + (nextCoord.y - currentCoord.y) * progress
+        };
+    }
+
+    // Force move to next stroke position
+    moveToNextStroke() {
+        const totalStrokes = this.renderer.getStrokeCount();
+        if (this.currentStroke + 1 < totalStrokes) {
+            this.startNewStroke(this.currentStroke + 1);
+        }
+    }
+
+    cleanup() {
+        this.removeSlider();
+        this.removeFrontMarker();
+        this.isTracing = false;
+        this.isDragging = false;
+        this.currentCoordinateIndex = 0;
+        this.currentStrokeCoords = [];
+        this.frontMarkerCoordIndex = 0;
+        this.frontMarkerProgress = 0;
+        this.finalFrontMarkerCoordIndex = 0;
+        this.finalFrontMarkerProgress = 0;
     }
 
     reset() {
-        this.currentNumber = null;
+        this.cleanup();
         this.currentStroke = 0;
-        this.scaledCoordinates = [];
-        if (this.svg) {
-            this.clearSVG();
-        }
     }
 
-    // Clean up method for proper resource management
-    destroy() {
-        if (this.handleResize) {
-            window.removeEventListener('resize', this.handleResize);
-            this.handleResize = null;
-        }
-        this.reset();
+    getCurrentProgress() {
+        if (this.currentStrokeCoords.length === 0) return 0;
+        return this.currentCoordinateIndex / (this.currentStrokeCoords.length - 1);
+    }
+
+    isCurrentlyTracing() {
+        return this.isTracing;
     }
 }
