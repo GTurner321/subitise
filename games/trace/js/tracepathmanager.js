@@ -642,6 +642,31 @@ class TracePathManager {
 
     // NEW: Complete trace up to a specific coordinate index (not jump to it)
     completeTraceUpTo(targetIndex, isSectionBreak = false) {
+        if (isSectionBreak) {
+            // For section breaks, complete the current stroke and move to next stroke
+            console.log(`Section break triggered: completing current stroke ${this.currentStroke} and moving to next stroke`);
+            
+            // Complete the current stroke entirely
+            this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
+            this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+            
+            // Update markers to the end of current stroke
+            const finalCoord = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
+            if (finalCoord && this.frontMarker) {
+                this.updateFrontMarkerPosition(finalCoord);
+                this.frontMarkerCoordIndex = this.currentStrokeCoords.length - 1;
+                this.frontMarkerProgress = 1.0;
+            }
+            
+            // Complete current stroke and move to next stroke
+            setTimeout(() => {
+                this.completeCurrentStroke();
+            }, 300);
+            
+            return;
+        }
+        
+        // Normal case: complete trace up to target coordinate within current stroke
         if (targetIndex < 0 || targetIndex >= this.currentStrokeCoords.length) return;
         
         console.log(`Completing trace from index ${this.currentCoordinateIndex} up to index ${targetIndex}`);
@@ -664,8 +689,8 @@ class TracePathManager {
             this.slider.setAttribute('cy', targetCoord.y);
         }
         
-        // If this completes the stroke or is a section break, handle stroke completion
-        if (isSectionBreak || targetIndex >= this.currentStrokeCoords.length - 1) {
+        // If this completes the stroke, handle stroke completion
+        if (targetIndex >= this.currentStrokeCoords.length - 1) {
             setTimeout(() => {
                 this.completeCurrentStroke();
             }, 300);
@@ -707,17 +732,19 @@ class TracePathManager {
         
         const totalStrokes = this.renderer.getStrokeCount();
         
-        // IMPORTANT: Do NOT automatically move to next stroke here
-        // Let the game controller handle stroke progression through handleStrokeCompletion
-        // Only complete the number if this was the final stroke
-        if (this.currentStroke + 1 >= totalStrokes) {
+        // Check if we should move to the next stroke
+        if (this.currentStroke + 1 < totalStrokes) {
+            setTimeout(() => {
+                this.startNewStroke(this.currentStroke + 1);
+            }, 300);
+        } else {
+            // This was the final stroke - complete the number
             setTimeout(() => {
                 this.removeSlider();
             }, 300);
             
             this.renderer.completeNumber();
         }
-        // If there are more strokes, the game controller will handle the progression
     }
 
     getCurrentNumber() {
