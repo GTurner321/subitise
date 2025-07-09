@@ -732,19 +732,16 @@ class TracePathManager {
         
         const totalStrokes = this.renderer.getStrokeCount();
         
-        // Check if we should move to the next stroke
-        if (this.currentStroke + 1 < totalStrokes) {
-            setTimeout(() => {
-                this.startNewStroke(this.currentStroke + 1);
-            }, 300);
-        } else {
-            // This was the final stroke - complete the number
+        // Only complete the number if this was the final stroke
+        // Otherwise, let the game controller handle stroke progression
+        if (this.currentStroke + 1 >= totalStrokes) {
             setTimeout(() => {
                 this.removeSlider();
             }, 300);
             
             this.renderer.completeNumber();
         }
+        // The game controller's handleStrokeCompletion will handle moving to next stroke
     }
 
     getCurrentNumber() {
