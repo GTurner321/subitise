@@ -31,14 +31,14 @@ class TracePathManager {
                 { trigger: [50, 101], jumpTo: [35, 100], isNewSection: false }
             ],
             4: [
-                { trigger: [9, 116], jumpTo: [0, 80], isNewSection: false }, // Additional jump condition
+                { trigger: [9, 116], jumpTo: [0, 80], isNewSection: false },
                 { trigger: [80, 80], jumpTo: [100, 80], isNewSection: false },
-                { trigger: [100, 80], jumpTo: [60, 140], isNewSection: true }, // Start of new section
+                { trigger: [100, 80], jumpTo: [60, 140], isNewSection: true },
                 { trigger: [60, 30], jumpTo: [60, 0], isNewSection: false }
             ],
             5: [
                 { trigger: [80, 200], jumpTo: [100, 200], isNewSection: false },
-                { trigger: [100, 200], jumpTo: [0, 200], isNewSection: true }, // Start of new section
+                { trigger: [100, 200], jumpTo: [0, 200], isNewSection: true },
                 { trigger: [0, 140], jumpTo: [0, 125], isNewSection: false },
                 { trigger: [15, 4], jumpTo: [0, 13], isNewSection: false }
             ],
@@ -59,7 +59,6 @@ class TracePathManager {
         };
         
         // Mandatory progressions for sharp angle turns
-        // These ensure smooth progression at corner points to prevent getting stuck
         this.mandatoryProgressions = {
             2: [
                 { 
@@ -98,9 +97,7 @@ class TracePathManager {
             ]
         };
         
-        // Track which jumps have been triggered to avoid repeating them
         this.triggeredJumps = new Set();
-        
         this.initializeEventListeners();
     }
 
@@ -130,7 +127,6 @@ class TracePathManager {
         this.finalFrontMarkerCoordIndex = 0;
         this.finalFrontMarkerProgress = 0;
         
-        // Reset triggered jumps for new stroke
         this.triggeredJumps.clear();
         
         this.currentStrokeCoords = this.renderer.getStrokeCoordinates(strokeIndex);
@@ -146,10 +142,7 @@ class TracePathManager {
         this.removeFrontMarker();
         
         const startPoint = this.currentStrokeCoords[0];
-        
-        // Reset the trace line to the start of the new stroke
         this.renderer.updateTracingProgress(this.currentStroke, 0);
-        
         this.createSlider(startPoint);
         
         return true;
@@ -405,7 +398,6 @@ class TracePathManager {
             }
         }
         
-        // Apply mandatory progression rules for sharp corners
         const mandatoryResult = this.checkMandatoryProgression(bestCoordIndex, bestProgress, dragPoint);
         if (mandatoryResult) {
             return mandatoryResult;
@@ -429,11 +421,9 @@ class TracePathManager {
         const currentPosition = this.getInterpolatedPosition(coordIndex, progress);
         if (!currentPosition) return null;
         
-        // Check each mandatory progression for this number
         for (const progression of this.mandatoryProgressions[currentNumber]) {
             const scaledCorner = this.scaleTargetCoordinate(progression.cornerPoint);
             
-            // Check if we're near the corner point
             const distanceToCorner = Math.sqrt(
                 Math.pow(currentPosition.x - scaledCorner.x, 2) + 
                 Math.pow(currentPosition.y - scaledCorner.y, 2)
@@ -442,15 +432,12 @@ class TracePathManager {
             const cornerTolerance = 15;
             
             if (distanceToCorner <= cornerTolerance) {
-                // Determine if user is trying to go forward or backward
                 const cornerIndex = this.findClosestCoordinateIndex(scaledCorner);
                 
                 if (cornerIndex !== -1) {
-                    // Check drag direction relative to the path
                     const isMovingForward = this.isDragDirectionForward(dragPoint, cornerIndex);
                     
                     if (isMovingForward) {
-                        // Force progression to forward coordinate
                         const scaledForward = this.scaleTargetCoordinate(progression.forwardTo);
                         const forwardIndex = this.findClosestCoordinateIndex(scaledForward);
                         
@@ -464,7 +451,6 @@ class TracePathManager {
                             };
                         }
                     } else {
-                        // Force progression to backward coordinate
                         const scaledBackward = this.scaleTargetCoordinate(progression.backwardTo);
                         const backwardIndex = this.findClosestCoordinateIndex(scaledBackward);
                         
@@ -486,9 +472,8 @@ class TracePathManager {
     }
 
     isDragDirectionForward(dragPoint, cornerIndex) {
-        // Determine if the drag direction is forward or backward along the path
-        if (cornerIndex === 0) return true; // At start, can only go forward
-        if (cornerIndex >= this.currentStrokeCoords.length - 1) return false; // At end, can only go backward
+        if (cornerIndex === 0) return true;
+        if (cornerIndex >= this.currentStrokeCoords.length - 1) return false;
         
         const cornerCoord = this.currentStrokeCoords[cornerIndex];
         const prevCoord = this.currentStrokeCoords[cornerIndex - 1];
@@ -496,7 +481,6 @@ class TracePathManager {
         
         if (!cornerCoord || !prevCoord || !nextCoord) return true;
         
-        // Calculate vectors from corner to previous and next points
         const toPrev = {
             x: prevCoord.x - cornerCoord.x,
             y: prevCoord.y - cornerCoord.y
@@ -507,195 +491,15 @@ class TracePathManager {
             y: nextCoord.y - cornerCoord.y
         };
         
-        // Calculate vector from corner to drag point
         const toDrag = {
             x: dragPoint.x - cornerCoord.x,
             y: dragPoint.y - cornerCoord.y
         };
         
-        // Calculate dot products to see which direction is closer
         const dotPrev = toDrag.x * toPrev.x + toDrag.y * toPrev.y;
         const dotNext = toDrag.x * toNext.x + toDrag.y * toNext.y;
         
-        // If closer to next direction, it's forward
         return dotNext > dotPrev;
-    } segmentY);
-            
-            if (segmentLength === 0) continue;
-            
-            const dragX = dragPoint.x - currentCoord.x;
-            const dragY = dragPoint.y - currentCoord.y;
-            
-            const dotProduct = (dragX * segmentX + dragY * segmentY) / segmentLength;
-            const projectionProgress = Math.max(0, Math.min(segmentLength, dotProduct)) / segmentLength;
-            
-            const pointX = currentCoord.x + segmentX * projectionProgress;
-            const pointY = currentCoord.y + segmentY * projectionProgress;
-            
-            const distanceToSegment = Math.sqrt(
-                Math.pow(dragPoint.x - pointX, 2) + 
-                Math.pow(dragPoint.y - pointY, 2)
-            );
-            
-            const maxDistance = CONFIG.PATH_TOLERANCE || 60;
-            
-            if (distanceToSegment <= maxDistance && distanceToSegment < bestDistance) {
-                bestDistance = distanceToSegment;
-                bestCoordIndex = i;
-                bestProgress = projectionProgress;
-            }
-        }
-        
-        // Apply mandatory progression rules for sharp corners
-        const mandatoryResult = this.checkMandatoryProgression(bestCoordIndex, bestProgress, dragPoint);
-        if (mandatoryResult) {
-            return mandatoryResult;
-        }
-        
-        if (bestDistance <= (CONFIG.PATH_TOLERANCE || 60)) {
-            return {
-                coordIndex: bestCoordIndex,
-                progress: bestProgress,
-                distance: bestDistance
-            };
-        }
-        
-        return null;
-    }
-
-    checkMandatoryProgression(coordIndex, progress, dragPoint) {
-        const currentNumber = this.getCurrentNumber();
-        if (!this.mandatoryProgressions[currentNumber]) return null;
-        
-        const currentPosition = this.getInterpolatedPosition(coordIndex, progress);
-        if (!currentPosition) return null;
-        
-        // Check each mandatory progression for this number
-        for (const progression of this.mandatoryProgressions[currentNumber]) {
-            const scaledCorner = this.scaleTargetCoordinate(progression.cornerPoint);
-            
-            // Check if we're near the corner point
-            const distanceToCorner = Math.sqrt(
-                Math.pow(currentPosition.x - scaledCorner.x, 2) + 
-                Math.pow(currentPosition.y - scaledCorner.y, 2)
-            );
-            
-            const cornerTolerance = 15;
-            
-            if (distanceToCorner <= cornerTolerance) {
-                // Determine if user is trying to go forward or backward
-                const cornerIndex = this.findClosestCoordinateIndex(scaledCorner);
-                
-                if (cornerIndex !== -1) {
-                    // Check drag direction relative to the path
-                    const isMovingForward = this.isDragDirectionForward(dragPoint, cornerIndex);
-                    
-                    if (isMovingForward) {
-                        // Force progression to forward coordinate
-                        const scaledForward = this.scaleTargetCoordinate(progression.forwardTo);
-                        const forwardIndex = this.findClosestCoordinateIndex(scaledForward);
-                        
-                        if (forwardIndex !== -1) {
-                            console.log(`Mandatory forward progression from ${progression.cornerPoint} to ${progression.forwardTo}`);
-                            return {
-                                coordIndex: forwardIndex,
-                                progress: 0,
-                                distance: 0,
-                                mandatory: true
-                            };
-                        }
-                    } else {
-                        // Force progression to backward coordinate
-                        const scaledBackward = this.scaleTargetCoordinate(progression.backwardTo);
-                        const backwardIndex = this.findClosestCoordinateIndex(scaledBackward);
-                        
-                        if (backwardIndex !== -1) {
-                            console.log(`Mandatory backward progression from ${progression.cornerPoint} to ${progression.backwardTo}`);
-                            return {
-                                coordIndex: backwardIndex,
-                                progress: 0,
-                                distance: 0,
-                                mandatory: true
-                            };
-                        }
-                    }
-                }
-            }
-        }
-        
-        return null;
-    }
-
-    isDragDirectionForward(dragPoint, cornerIndex) {
-        // Determine if the drag direction is forward or backward along the path
-        if (cornerIndex === 0) return true; // At start, can only go forward
-        if (cornerIndex >= this.currentStrokeCoords.length - 1) return false; // At end, can only go backward
-        
-        const cornerCoord = this.currentStrokeCoords[cornerIndex];
-        const prevCoord = this.currentStrokeCoords[cornerIndex - 1];
-        const nextCoord = this.currentStrokeCoords[cornerIndex + 1];
-        
-        if (!cornerCoord || !prevCoord || !nextCoord) return true;
-        
-        // Calculate vectors from corner to previous and next points
-        const toPrev = {
-            x: prevCoord.x - cornerCoord.x,
-            y: prevCoord.y - cornerCoord.y
-        };
-        
-        const toNext = {
-            x: nextCoord.x - cornerCoord.x,
-            y: nextCoord.y - cornerCoord.y
-        };
-        
-        // Calculate vector from corner to drag point
-        const toDrag = {
-            x: dragPoint.x - cornerCoord.x,
-            y: dragPoint.y - cornerCoord.y
-        };
-        
-        // Calculate dot products to see which direction is closer
-        const dotPrev = toDrag.x * toPrev.x + toDrag.y * toPrev.y;
-        const dotNext = toDrag.x * toNext.x + toDrag.y * toNext.y;
-        
-        // If closer to next direction, it's forward
-        return dotNext > dotPrev;
-    } segmentY);
-            
-            if (segmentLength === 0) continue;
-            
-            const dragX = dragPoint.x - currentCoord.x;
-            const dragY = dragPoint.y - currentCoord.y;
-            
-            const dotProduct = (dragX * segmentX + dragY * segmentY) / segmentLength;
-            const projectionProgress = Math.max(0, Math.min(segmentLength, dotProduct)) / segmentLength;
-            
-            const pointX = currentCoord.x + segmentX * projectionProgress;
-            const pointY = currentCoord.y + segmentY * projectionProgress;
-            
-            const distanceToSegment = Math.sqrt(
-                Math.pow(dragPoint.x - pointX, 2) + 
-                Math.pow(dragPoint.y - pointY, 2)
-            );
-            
-            const maxDistance = CONFIG.PATH_TOLERANCE || 60;
-            
-            if (distanceToSegment <= maxDistance && distanceToSegment < bestDistance) {
-                bestDistance = distanceToSegment;
-                bestCoordIndex = i;
-                bestProgress = projectionProgress;
-            }
-        }
-        
-        if (bestDistance <= (CONFIG.PATH_TOLERANCE || 60)) {
-            return {
-                coordIndex: bestCoordIndex,
-                progress: bestProgress,
-                distance: bestDistance
-            };
-        }
-        
-        return null;
     }
 
     updateTracingProgress(position) {
@@ -715,13 +519,11 @@ class TracePathManager {
         
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
-        // Check for jump triggers
         const jumpTriggered = this.checkForJumpTriggers(coordIndex, progress);
         if (jumpTriggered) {
-            return; // Jump handling will take over
+            return;
         }
         
-        // Update the trace line progress
         let newCoordinateIndex = this.currentCoordinateIndex;
         
         if (coordIndex > this.currentCoordinateIndex) {
@@ -745,7 +547,6 @@ class TracePathManager {
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         }
         
-        // Check if we've reached the end of the path
         if (this.currentCoordinateIndex >= this.currentStrokeCoords.length - 3) {
             setTimeout(() => {
                 this.completeCurrentStroke();
@@ -760,24 +561,20 @@ class TracePathManager {
         const currentPosition = this.getInterpolatedPosition(coordIndex, progress);
         if (!currentPosition) return false;
         
-        // Check each jump definition for this number
         for (let i = 0; i < this.jumpDefinitions[currentNumber].length; i++) {
             const jumpDef = this.jumpDefinitions[currentNumber][i];
             const jumpKey = `${currentNumber}-${i}`;
             
-            // Skip if this jump was already triggered
             if (this.triggeredJumps.has(jumpKey)) continue;
             
-            // Convert trigger coordinate to scaled coordinate system
             const scaledTrigger = this.scaleTargetCoordinate(jumpDef.trigger);
             
-            // Check if we're close enough to the trigger point
             const distance = Math.sqrt(
                 Math.pow(currentPosition.x - scaledTrigger.x, 2) + 
                 Math.pow(currentPosition.y - scaledTrigger.y, 2)
             );
             
-            const triggerTolerance = 25; // Tolerance for trigger detection
+            const triggerTolerance = 25;
             
             if (distance <= triggerTolerance) {
                 console.log(`Jump triggered for number ${currentNumber}: ${jumpDef.trigger} -> ${jumpDef.jumpTo}`);
@@ -792,24 +589,19 @@ class TracePathManager {
 
     executeJump(jumpDef) {
         const scaledJumpTo = this.scaleTargetCoordinate(jumpDef.jumpTo);
-        
-        // Find the coordinate index closest to the jump target
         const targetIndex = this.findClosestCoordinateIndex(scaledJumpTo);
         
         if (targetIndex !== -1) {
             if (jumpDef.isNewSection) {
                 console.log(`Jumping to new section at coordinate ${jumpDef.jumpTo}`);
-                // For new sections, move the slider and reset tracing from that point
                 this.currentCoordinateIndex = targetIndex;
                 this.renderer.updateTracingProgress(this.currentStroke, targetIndex);
                 
-                // Move slider to new position
                 if (this.slider) {
                     this.slider.setAttribute('cx', scaledJumpTo.x);
                     this.slider.setAttribute('cy', scaledJumpTo.y);
                 }
                 
-                // Update front marker if it exists
                 if (this.frontMarker) {
                     this.updateFrontMarkerPosition(scaledJumpTo);
                     this.frontMarkerCoordIndex = targetIndex;
@@ -817,11 +609,9 @@ class TracePathManager {
                 }
             } else {
                 console.log(`Auto-completing to coordinate ${jumpDef.jumpTo}`);
-                // For regular jumps, auto-complete the trace to the target point
                 this.currentCoordinateIndex = targetIndex;
                 this.renderer.updateTracingProgress(this.currentStroke, targetIndex);
                 
-                // Continue tracing from the new position
                 if (this.frontMarker) {
                     this.updateFrontMarkerPosition(scaledJumpTo);
                     this.frontMarkerCoordIndex = targetIndex;
@@ -852,14 +642,13 @@ class TracePathManager {
     }
 
     scaleTargetCoordinate(originalCoord) {
-        // Use the same scaling logic as the renderer
         const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
         const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
         const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
         const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
         
         const scaledX = offsetX + (originalCoord[0] * scaleX);
-        const scaledY = offsetY + ((200 - originalCoord[1]) * scaleY); // Flip Y coordinate
+        const scaledY = offsetY + ((200 - originalCoord[1]) * scaleY);
         
         return { x: scaledX, y: scaledY };
     }
@@ -875,7 +664,6 @@ class TracePathManager {
         }
         this.removeFrontMarker();
         
-        // Mark the stroke as complete in the renderer
         this.renderer.completeStroke(this.currentStroke);
         
         const totalStrokes = this.renderer.getStrokeCount();
