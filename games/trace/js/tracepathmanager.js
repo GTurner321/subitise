@@ -18,37 +18,46 @@ class TracePathManager {
         this.strokeCompletionCoord = null;
         this.lastMovementTime = Date.now();
         
-        // Updated stroke end coordinates with corrected values for numbers 4 and 5
-        this.strokeEndCoordinates = {
-            0: [[100, 100]],
-            1: [[50, 0]],
-            2: [[0, 0], [100, 0]],
-            3: [[35, 100], [0, 10]],
-            4: [[0, 80], [60, 140], [60, 0]], // stroke 2 ends at start of stroke 3 (60,140)
-            5: [[0, 200], [0, 125], [0, 13]], // stroke 1 ends at start of stroke 2 (0,200)
-            6: [[2, 77]],
-            7: [[100, 200], [40, 0]],
-            8: [[95, 152.5]],
-            9: [[100, 190], [80, 0]]
-        };
-        
-        // Updated stroke completion triggers with corrected values
+        // Updated stroke completion triggers - these define when each stroke should auto-complete
         this.strokeCompletionTriggers = {
-            0: [[99, 80]],
-            1: [[50, 20]],
-            2: [[36, 48], [80, 0]],
-            3: [[70, 107], [4, 8]],
-            4: [[18, 152], [80, 80], [60, 30]],
-            5: [[80, 200], [0, 150], [2, 11]],
-            6: [[6, 88]],
-            7: [[80, 200], [50, 33]],
-            8: [[94, 142.5]],
-            9: [[98.9, 182], [83, 30]]
+            0: [[99, 80]], // Complete when reaching near the end of the oval
+            1: [[50, 20]], // Complete when near the top
+            2: [[36, 48], [80, 0]], // First stroke completes at curve, second at end
+            3: [[70, 107], [4, 8]], // First stroke at middle curve, second at bottom
+            4: [
+                [90, 80], // First stroke (angle line) completes when horizontal line is mostly done
+                [60, 0]   // Second stroke (vertical line) completes at bottom
+            ],
+            5: [
+                [80, 200], // First stroke (horizontal top) completes at right end
+                [0, 13]    // Second stroke (vertical + curve) completes at bottom curve end
+            ],
+            6: [[15, 103]], // Complete early when reaching the trigger point
+            7: [[80, 200], [50, 33]], // Top line completes at end, diagonal completes partway
+            8: [[80, 117]], // Complete when reaching the trigger point in the figure-8
+            9: [
+                [95.9, 158], // First stroke (circle + partial vertical) completes at trigger
+                [83, 30]     // Second stroke (remaining vertical) completes near bottom
+            ]
         };
         
+        // Define which numbers have multiple sections that need breaks
         this.sectionBreaks = {
-            4: [1],
-            5: [1]
+            4: [0], // Break after first stroke (which includes both angle and horizontal)
+            5: [0], // Break after first stroke (horizontal top)
+            9: [0]  // Break after first stroke (circle part)
+        };
+        
+        // Define stroke groupings - some "strokes" in the config are actually multiple visual strokes
+        this.strokeGroupings = {
+            4: {
+                0: { startCoord: [30, 200], endCoord: [100, 80], description: "Angle line + horizontal" },
+                1: { startCoord: [60, 140], endCoord: [60, 0], description: "Vertical line" }
+            },
+            5: {
+                0: { startCoord: [0, 200], endCoord: [100, 200], description: "Top horizontal" },
+                1: { startCoord: [0, 200], endCoord: [0, 13], description: "Vertical + curve" }
+            }
         };
         
         this.initializeEventListeners();
@@ -83,8 +92,11 @@ class TracePathManager {
         this.currentStrokeCoords = this.renderer.getStrokeCoordinates(strokeIndex);
         
         if (!this.currentStrokeCoords || this.currentStrokeCoords.length === 0) {
+            console.error(`No coordinates found for stroke ${strokeIndex}`);
             return false;
         }
+        
+        console.log(`Starting stroke ${strokeIndex} with ${this.currentStrokeCoords.length} coordinates`);
         
         this.setupStrokeCompletion();
         this.removeSlider();
@@ -92,8 +104,7 @@ class TracePathManager {
         
         const startPoint = this.currentStrokeCoords[0];
         
-        // CRITICAL FIX: Reset the trace line to the start of the new stroke
-        // This ensures the trace line jumps to the correct starting position
+        // Reset the trace line to the start of the new stroke
         this.renderer.updateTracingProgress(this.currentStroke, 0);
         
         this.createSlider(startPoint);
@@ -102,11 +113,7 @@ class TracePathManager {
     }
 
     setupStrokeCompletion() {
-        let currentNumber = null;
-        
-        if (window.traceGame && typeof window.traceGame.getCurrentNumber === 'function') {
-            currentNumber = window.traceGame.getCurrentNumber();
-        }
+        const currentNumber = this.getCurrentNumber();
         
         if (currentNumber !== null && this.strokeCompletionTriggers[currentNumber]) {
             const triggerCoords = this.strokeCompletionTriggers[currentNumber];
@@ -117,26 +124,34 @@ class TracePathManager {
                 if (triggerIndex !== -1) {
                     this.strokeCompletionCoordIndex = triggerIndex;
                     this.strokeCompletionCoord = this.currentStrokeCoords[triggerIndex];
+                    console.log(`Stroke ${this.currentStroke} will complete at coordinate index ${triggerIndex} (${targetTrigger})`);
                     return;
                 }
             }
         }
         
+        // Fallback to completing near the end
         const totalCoords = this.currentStrokeCoords.length;
         this.strokeCompletionCoordIndex = Math.max(0, totalCoords - 3);
         this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
+        console.log(`Using fallback completion at index ${this.strokeCompletionCoordIndex}`);
     }
 
     findCoordinateInPath(targetCoord) {
-        const tolerance = 10;
+        const tolerance = 15; // Increased tolerance for better matching
         let closestIndex = -1;
         let closestDistance = Infinity;
         
+        // Convert target coordinates to match the scaled coordinate system
+        const currentNumber = this.getCurrentNumber();
+        let scaledTarget = this.scaleTargetCoordinate(targetCoord, currentNumber);
+        
         for (let i = 0; i < this.currentStrokeCoords.length; i++) {
             const coord = this.currentStrokeCoords[i];
-            const deltaX = Math.abs(coord.x - targetCoord[0]);
-            const deltaY = Math.abs(coord.y - targetCoord[1]);
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const distance = Math.sqrt(
+                Math.pow(coord.x - scaledTarget.x, 2) + 
+                Math.pow(coord.y - scaledTarget.y, 2)
+            );
             
             if (distance <= tolerance && distance < closestDistance) {
                 closestDistance = distance;
@@ -144,7 +159,21 @@ class TracePathManager {
             }
         }
         
+        console.log(`Looking for coordinate ${targetCoord} (scaled to ${scaledTarget.x}, ${scaledTarget.y}), found at index ${closestIndex} with distance ${closestDistance}`);
         return closestIndex;
+    }
+
+    scaleTargetCoordinate(originalCoord, currentNumber) {
+        // Use the same scaling logic as the renderer
+        const scaleX = CONFIG.NUMBER_RECT_WIDTH / 100;
+        const scaleY = CONFIG.NUMBER_RECT_HEIGHT / 200;
+        const offsetX = CONFIG.NUMBER_CENTER_X - CONFIG.NUMBER_RECT_WIDTH / 2;
+        const offsetY = CONFIG.NUMBER_CENTER_Y - CONFIG.NUMBER_RECT_HEIGHT / 2;
+        
+        const scaledX = offsetX + (originalCoord[0] * scaleX);
+        const scaledY = offsetY + ((200 - originalCoord[1]) * scaleY); // Flip Y coordinate
+        
+        return { x: scaledX, y: scaledY };
     }
 
     createSlider(position) {
@@ -354,7 +383,7 @@ class TracePathManager {
         let bestProgress = 0;
         let bestDistance = Infinity;
         
-        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 5 : 3;
+        const lookAheadDistance = this.currentCoordinateIndex === 0 ? 8 : 5;
         const maxSearchIndex = Math.min(
             this.currentCoordinateIndex + lookAheadDistance, 
             this.currentStrokeCoords.length - 2
@@ -418,16 +447,21 @@ class TracePathManager {
         const currentCoord = this.currentStrokeCoords[coordIndex];
         const nextCoord = this.currentStrokeCoords[coordIndex + 1];
         
+        if (!nextCoord) return;
+        
         const frontMarkerX = currentCoord.x + (nextCoord.x - currentCoord.x) * progress;
         const frontMarkerY = currentCoord.y + (nextCoord.y - currentCoord.y) * progress;
         
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
+        // Check if we've reached the stroke completion point
         if (this.hasReachedStrokeCompletionPoint(coordIndex, progress)) {
+            console.log(`Reached completion point for stroke ${this.currentStroke} at coordinate ${coordIndex}`);
             this.autoCompleteCurrentStroke();
             return;
         }
         
+        // Update the trace line progress
         let newCoordinateIndex = this.currentCoordinateIndex;
         
         if (coordIndex > this.currentCoordinateIndex) {
@@ -453,11 +487,21 @@ class TracePathManager {
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
-        return coordIndex >= this.strokeCompletionCoordIndex && 
-               (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5);
+        // More precise completion detection
+        if (coordIndex >= this.strokeCompletionCoordIndex) {
+            if (coordIndex > this.strokeCompletionCoordIndex) {
+                return true;
+            }
+            // If we're at the exact completion coordinate, require significant progress
+            return progress >= 0.3;
+        }
+        return false;
     }
 
     autoCompleteCurrentStroke() {
+        console.log(`Auto-completing stroke ${this.currentStroke}`);
+        
+        // Complete the stroke to the end
         this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
         this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         
@@ -469,12 +513,15 @@ class TracePathManager {
         this.finalFrontMarkerCoordIndex = this.currentStrokeCoords.length - 1;
         this.finalFrontMarkerProgress = 1.0;
         
+        // Mark the stroke as complete
         setTimeout(() => {
             this.completeCurrentStroke();
         }, 200);
     }
 
     completeCurrentStroke() {
+        console.log(`Completing stroke ${this.currentStroke}`);
+        
         this.isTracing = false;
         this.isDragging = false;
         
@@ -483,6 +530,7 @@ class TracePathManager {
         }
         this.removeFrontMarker();
         
+        // Mark the stroke as complete in the renderer
         this.renderer.completeStroke(this.currentStroke);
         
         const totalStrokes = this.renderer.getStrokeCount();
@@ -492,7 +540,7 @@ class TracePathManager {
             const needsSectionBreak = this.needsSectionBreakAfterStroke(currentNumber, this.currentStroke);
             
             if (needsSectionBreak) {
-                console.log('Section break detected - jumping to start of next stroke');
+                console.log(`Section break detected after stroke ${this.currentStroke} for number ${currentNumber}`);
             }
             
             setTimeout(() => {
@@ -503,6 +551,7 @@ class TracePathManager {
                 this.removeSlider();
             }, 300);
             
+            console.log(`All strokes completed for number ${currentNumber}`);
             this.renderer.completeNumber();
         }
     }
@@ -539,7 +588,6 @@ class TracePathManager {
         };
     }
 
-    // NEW METHOD: Force move to next stroke position
     moveToNextStroke() {
         const totalStrokes = this.renderer.getStrokeCount();
         if (this.currentStroke + 1 < totalStrokes) {
