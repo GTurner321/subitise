@@ -197,13 +197,16 @@ class TraceGameController {
         this.updateNumberWordDisplay('');
     }
 
-    handleStrokeCompletion(strokeIndex) {
-        const totalStrokes = this.renderer.getStrokeCount();
-        if (strokeIndex + 1 < totalStrokes) {
-            this.pathManager.moveToNextStroke();
-        }
-    }
-
+handleStrokeCompletion(strokeIndex) {
+    // REMOVED: Automatic stroke progression - let the trace path manager handle it
+    // const totalStrokes = this.renderer.getStrokeCount();
+    // if (strokeIndex + 1 < totalStrokes) {
+    //     this.pathManager.moveToNextStroke();
+    // }
+    
+    console.log(`Stroke ${strokeIndex} completed for number ${this.currentNumber}`);
+}
+    
     handleNumberCompletion() {
         if (this.isProcessingCompletion) return;
         this.isProcessingCompletion = true;
