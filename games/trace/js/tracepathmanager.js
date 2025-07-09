@@ -260,7 +260,7 @@ class TracePathManager {
             
             // Must be exact match - user has traced to this coordinate
             if (deltaX <= 1.0 && deltaY <= 1.0) {
-                // Find the target coordinate index
+                // Find the target coordinate index to complete up to
                 const targetIndex = this.findOriginalCoordinateIndex(trigger.jumpTo);
                 if (targetIndex !== -1) {
                     return {
@@ -622,29 +622,32 @@ class TracePathManager {
             // Check for auto progression triggers ONLY when we reach a new coordinate exactly
             const autoProgression = this.checkAutoProgression(this.currentCoordinateIndex);
             if (autoProgression) {
-                console.log(`Auto progression triggered: jumping from coordinate ${this.currentCoordinateIndex} to index ${autoProgression.targetIndex}`);
-                this.jumpToCoordinate(autoProgression.targetIndex, autoProgression.sectionBreak);
+                console.log(`Auto progression triggered: completing trace from coordinate ${this.currentCoordinateIndex} up to index ${autoProgression.targetIndex}`);
+                this.completeTraceUpTo(autoProgression.targetIndex, autoProgression.sectionBreak);
                 return;
             }
             
             // Check for mandatory progression at sharp corners ONLY when we reach a new coordinate exactly
             const mandatoryTarget = this.checkMandatoryProgression(this.currentCoordinateIndex, isMovingForward);
             if (mandatoryTarget !== null) {
-                console.log(`Mandatory progression triggered: jumping from coordinate ${this.currentCoordinateIndex} to index ${mandatoryTarget}`);
-                this.jumpToCoordinate(mandatoryTarget, false);
+                console.log(`Mandatory progression triggered: completing trace from coordinate ${this.currentCoordinateIndex} up to index ${mandatoryTarget}`);
+                this.completeTraceUpTo(mandatoryTarget, false);
                 return;
             }
         }
     }
 
-    // NEW: Jump to a specific coordinate index
-    jumpToCoordinate(targetIndex, isSectionBreak = false) {
+    // NEW: Complete trace up to a specific coordinate index (not jump to it)
+    completeTraceUpTo(targetIndex, isSectionBreak = false) {
         if (targetIndex < 0 || targetIndex >= this.currentStrokeCoords.length) return;
         
+        console.log(`Completing trace from index ${this.currentCoordinateIndex} up to index ${targetIndex}`);
+        
+        // Complete the trace up to the target coordinate
         this.currentCoordinateIndex = targetIndex;
         this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         
-        // Update front marker position
+        // Update front marker position to the target coordinate
         const targetCoord = this.currentStrokeCoords[targetIndex];
         if (targetCoord && this.frontMarker) {
             this.updateFrontMarkerPosition(targetCoord);
@@ -652,14 +655,14 @@ class TracePathManager {
             this.frontMarkerProgress = 0;
         }
         
-        // Update slider position
+        // Update slider position to the target coordinate
         if (this.slider && targetCoord) {
             this.slider.setAttribute('cx', targetCoord.x);
             this.slider.setAttribute('cy', targetCoord.y);
         }
         
-        // If this is a section break, handle stroke completion
-        if (isSectionBreak) {
+        // If this completes the stroke or is a section break, handle stroke completion
+        if (isSectionBreak || targetIndex >= this.currentStrokeCoords.length - 1) {
             setTimeout(() => {
                 this.completeCurrentStroke();
             }, 300);
