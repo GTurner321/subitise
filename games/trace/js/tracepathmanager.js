@@ -21,6 +21,13 @@ class TracePathManager {
         // Enhanced slider interaction area
         this.sliderInteractionRadius = CONFIG.SLIDER_SIZE * 1.5; // 1.5x larger hit area
         
+        // Direction arrow functionality
+        this.directionArrow = null;
+        this.arrowTimeout = null;
+        this.idleThreshold = 3000; // 3 seconds of inactivity
+        this.arrowDistance = 10; // 10 pixels from circle edge
+        this.arrowLength = 30; // 30 pixels long
+        
         // Faster catch-up animation for the red circle
         this.catchUpSpeed = 12; // Higher = faster catch-up
         this.animationFrameId = null;
@@ -139,6 +146,7 @@ class TracePathManager {
         
         setTimeout(() => {
             this.createSlider(startPoint);
+            this.startArrowTimer(); // Start the arrow timer for new stroke
         }, 100);
         
         return true;
@@ -360,6 +368,152 @@ class TracePathManager {
         this.slider.appendChild(animate);
     }
 
+    // Direction Arrow System
+    startArrowTimer() {
+        this.clearArrowTimer();
+        this.arrowTimeout = setTimeout(() => {
+            if (!this.isDragging && this.slider && this.currentStrokeCoords.length > 0) {
+                this.showDirectionArrow();
+            }
+        }, this.idleThreshold);
+    }
+
+    clearArrowTimer() {
+        if (this.arrowTimeout) {
+            clearTimeout(this.arrowTimeout);
+            this.arrowTimeout = null;
+        }
+        this.removeDirectionArrow();
+    }
+
+    showDirectionArrow() {
+        if (this.isDragging || !this.slider || this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
+            return; // Don't show arrow if dragging or at end of stroke
+        }
+
+        // Get current position and next target position
+        const currentPos = this.currentStrokeCoords[this.currentCoordinateIndex];
+        const nextPos = this.currentStrokeCoords[this.currentCoordinateIndex + 1];
+        
+        if (!currentPos || !nextPos) return;
+
+        // Calculate direction vector from current to next position
+        const deltaX = nextPos.x - currentPos.x;
+        const deltaY = nextPos.y - currentPos.y;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        if (distance === 0) return; // Avoid division by zero
+
+        // Normalize direction vector
+        const dirX = deltaX / distance;
+        const dirY = deltaY / distance;
+
+        // Get slider position
+        const sliderX = parseFloat(this.slider.getAttribute('cx'));
+        const sliderY = parseFloat(this.slider.getAttribute('cy'));
+        const sliderRadius = CONFIG.SLIDER_SIZE / 2;
+
+        // Calculate arrow start position (10px from circle edge)
+        const arrowStartX = sliderX + (dirX * (sliderRadius + this.arrowDistance));
+        const arrowStartY = sliderY + (dirY * (sliderRadius + this.arrowDistance));
+
+        // Calculate arrow end position (30px further along the line)
+        const arrowEndX = arrowStartX + (dirX * this.arrowLength);
+        const arrowEndY = arrowStartY + (dirY * this.arrowLength);
+
+        // Create the arrow
+        this.createDirectionArrow(arrowStartX, arrowStartY, arrowEndX, arrowEndY);
+    }
+
+    createDirectionArrow(startX, startY, endX, endY) {
+        this.removeDirectionArrow();
+
+        // Create arrow group
+        const arrowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        arrowGroup.setAttribute('class', 'direction-arrow');
+
+        // Calculate angle for arrowhead
+        const angle = Math.atan2(endY - startY, endX - startX);
+        const arrowHeadLength = 12;
+        const arrowHeadAngle = Math.PI / 6; // 30 degrees
+
+        // Main arrow line
+        const arrowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        arrowLine.setAttribute('x1', startX);
+        arrowLine.setAttribute('y1', startY);
+        arrowLine.setAttribute('x2', endX);
+        arrowLine.setAttribute('y2', endY);
+        arrowLine.setAttribute('stroke', CONFIG.ARROW_COLOR || '#4ECDC4');
+        arrowLine.setAttribute('stroke-width', '8');
+        arrowLine.setAttribute('stroke-linecap', 'round');
+        arrowLine.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+
+        // Arrowhead (left side)
+        const arrowHead1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        const head1X = endX - arrowHeadLength * Math.cos(angle - arrowHeadAngle);
+        const head1Y = endY - arrowHeadLength * Math.sin(angle - arrowHeadAngle);
+        arrowHead1.setAttribute('x1', endX);
+        arrowHead1.setAttribute('y1', endY);
+        arrowHead1.setAttribute('x2', head1X);
+        arrowHead1.setAttribute('y2', head1Y);
+        arrowHead1.setAttribute('stroke', CONFIG.ARROW_COLOR || '#4ECDC4');
+        arrowHead1.setAttribute('stroke-width', '8');
+        arrowHead1.setAttribute('stroke-linecap', 'round');
+        arrowHead1.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+
+        // Arrowhead (right side)
+        const arrowHead2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        const head2X = endX - arrowHeadLength * Math.cos(angle + arrowHeadAngle);
+        const head2Y = endY - arrowHeadLength * Math.sin(angle + arrowHeadAngle);
+        arrowHead2.setAttribute('x1', endX);
+        arrowHead2.setAttribute('y1', endY);
+        arrowHead2.setAttribute('x2', head2X);
+        arrowHead2.setAttribute('y2', head2Y);
+        arrowHead2.setAttribute('stroke', CONFIG.ARROW_COLOR || '#4ECDC4');
+        arrowHead2.setAttribute('stroke-width', '8');
+        arrowHead2.setAttribute('stroke-linecap', 'round');
+        arrowHead2.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+
+        // Add all parts to group
+        arrowGroup.appendChild(arrowLine);
+        arrowGroup.appendChild(arrowHead1);
+        arrowGroup.appendChild(arrowHead2);
+
+        // Add entrance animation
+        arrowGroup.style.opacity = '0';
+        arrowGroup.style.transform = 'scale(0.5)';
+        arrowGroup.style.transition = 'all 0.3s ease-out';
+        arrowGroup.style.transformOrigin = `${startX}px ${startY}px`;
+
+        // Add to SVG
+        this.svg.appendChild(arrowGroup);
+        this.directionArrow = arrowGroup;
+
+        // Trigger entrance animation
+        setTimeout(() => {
+            if (this.directionArrow) {
+                this.directionArrow.style.opacity = '1';
+                this.directionArrow.style.transform = 'scale(1)';
+            }
+        }, 50);
+
+        // Add subtle pulse animation
+        const pulseAnimation = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+        pulseAnimation.setAttribute('attributeName', 'transform');
+        pulseAnimation.setAttribute('type', 'scale');
+        pulseAnimation.setAttribute('values', '1;1.1;1');
+        pulseAnimation.setAttribute('dur', '2s');
+        pulseAnimation.setAttribute('repeatCount', 'indefinite');
+        arrowGroup.appendChild(pulseAnimation);
+    }
+
+    removeDirectionArrow() {
+        if (this.directionArrow) {
+            this.directionArrow.remove();
+            this.directionArrow = null;
+        }
+    }
+
     // Enhanced catch-up animation system
     startCatchUpAnimation(targetPosition) {
         this.stopCatchUpAnimation();
@@ -449,6 +603,7 @@ class TracePathManager {
             this.isDragging = true;
             this.isTracing = true;
             this.stopCatchUpAnimation();
+            this.clearArrowTimer(); // Hide arrow when starting to drag
             
             if (this.slider) {
                 this.slider.style.opacity = '0';
