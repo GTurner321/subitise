@@ -173,10 +173,14 @@ class TracePathManager {
         const startPoint = this.currentStrokeCoords[0];
         console.log(`Starting stroke ${strokeIndex} at scaled position [${startPoint.x}, ${startPoint.y}]`);
         
-        // Reset the trace line to the start of the new stroke
+        // IMPORTANT: Reset the trace line to the start of the new stroke
+        // Make sure we're starting fresh with no previous trace progress
         this.renderer.updateTracingProgress(this.currentStroke, 0);
         
-        this.createSlider(startPoint);
+        // Force create a fresh slider
+        setTimeout(() => {
+            this.createSlider(startPoint);
+        }, 100);
         
         return true;
     }
@@ -450,17 +454,28 @@ class TracePathManager {
     }
 
     handleMove(event) {
-        if (!this.isDragging || !this.isTracing) return;
+        if (!this.isDragging || !this.isTracing) {
+            // Debug: Log why movement is ignored
+            if (!this.isDragging) console.log("Movement ignored - not dragging");
+            if (!this.isTracing) console.log("Movement ignored - not tracing");
+            return;
+        }
         
         event.preventDefault();
         const point = this.getEventPoint(event);
-        if (!point) return;
+        if (!point) {
+            console.log("Movement ignored - no point");
+            return;
+        }
         
         this.lastMovementTime = Date.now();
         
         const bestPosition = this.findBestSliderPosition(point);
         if (bestPosition !== null) {
+            console.log(`Found best position at coord ${bestPosition.coordIndex} with progress ${bestPosition.progress}`);
             this.updateTracingProgress(bestPosition);
+        } else {
+            console.log(`No valid position found for point [${point.x}, ${point.y}]`);
         }
     }
 
