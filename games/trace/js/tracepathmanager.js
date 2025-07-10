@@ -24,7 +24,7 @@ class TracePathManager {
         // Direction arrow functionality
         this.directionArrow = null;
         this.arrowTimeout = null;
-        this.idleThreshold = 3000; // 3 seconds of inactivity
+        this.idleThreshold = 2000; // 2 seconds of inactivity
         this.arrowDistance = 15; // 15 pixels from circle edge
         this.arrowLength = 30; // 30 pixels long
         
@@ -437,14 +437,14 @@ class TracePathManager {
         const arrowHeadLength = 16; // Larger arrowhead for fatter arrow
         const arrowHeadAngle = Math.PI / 6; // 30 degrees
 
-        // Main arrow line with white outline + dark blue fill
+        // Main arrow line with thicker white outline + lighter blue fill
         const arrowLineOutline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         arrowLineOutline.setAttribute('x1', startX);
         arrowLineOutline.setAttribute('y1', startY);
         arrowLineOutline.setAttribute('x2', endX);
         arrowLineOutline.setAttribute('y2', endY);
         arrowLineOutline.setAttribute('stroke', 'white');
-        arrowLineOutline.setAttribute('stroke-width', '18'); // White outline
+        arrowLineOutline.setAttribute('stroke-width', '20'); // Thicker white outline
         arrowLineOutline.setAttribute('stroke-linecap', 'round');
         arrowLineOutline.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
 
@@ -453,11 +453,11 @@ class TracePathManager {
         arrowLine.setAttribute('y1', startY);
         arrowLine.setAttribute('x2', endX);
         arrowLine.setAttribute('y2', endY);
-        arrowLine.setAttribute('stroke', '#1e3a8a'); // Dark blue
-        arrowLine.setAttribute('stroke-width', '14'); // Fatter dark blue line
+        arrowLine.setAttribute('stroke', '#3b82f6'); // Lighter blue (was #1e3a8a)
+        arrowLine.setAttribute('stroke-width', '14');
         arrowLine.setAttribute('stroke-linecap', 'round');
 
-        // Arrowhead (left side) with white outline + dark blue fill
+        // Arrowhead (left side) with thicker white outline + lighter blue fill
         const arrowHead1Outline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         const head1X = endX - arrowHeadLength * Math.cos(angle - arrowHeadAngle);
         const head1Y = endY - arrowHeadLength * Math.sin(angle - arrowHeadAngle);
@@ -466,7 +466,7 @@ class TracePathManager {
         arrowHead1Outline.setAttribute('x2', head1X);
         arrowHead1Outline.setAttribute('y2', head1Y);
         arrowHead1Outline.setAttribute('stroke', 'white');
-        arrowHead1Outline.setAttribute('stroke-width', '18');
+        arrowHead1Outline.setAttribute('stroke-width', '20'); // Thicker white outline
         arrowHead1Outline.setAttribute('stroke-linecap', 'round');
 
         const arrowHead1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -474,11 +474,11 @@ class TracePathManager {
         arrowHead1.setAttribute('y1', endY);
         arrowHead1.setAttribute('x2', head1X);
         arrowHead1.setAttribute('y2', head1Y);
-        arrowHead1.setAttribute('stroke', '#1e3a8a'); // Dark blue
+        arrowHead1.setAttribute('stroke', '#3b82f6'); // Lighter blue
         arrowHead1.setAttribute('stroke-width', '14');
         arrowHead1.setAttribute('stroke-linecap', 'round');
 
-        // Arrowhead (right side) with white outline + dark blue fill
+        // Arrowhead (right side) with thicker white outline + lighter blue fill
         const arrowHead2Outline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         const head2X = endX - arrowHeadLength * Math.cos(angle + arrowHeadAngle);
         const head2Y = endY - arrowHeadLength * Math.sin(angle + arrowHeadAngle);
@@ -487,7 +487,7 @@ class TracePathManager {
         arrowHead2Outline.setAttribute('x2', head2X);
         arrowHead2Outline.setAttribute('y2', head2Y);
         arrowHead2Outline.setAttribute('stroke', 'white');
-        arrowHead2Outline.setAttribute('stroke-width', '18');
+        arrowHead2Outline.setAttribute('stroke-width', '20'); // Thicker white outline
         arrowHead2Outline.setAttribute('stroke-linecap', 'round');
 
         const arrowHead2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -495,7 +495,7 @@ class TracePathManager {
         arrowHead2.setAttribute('y1', endY);
         arrowHead2.setAttribute('x2', head2X);
         arrowHead2.setAttribute('y2', head2Y);
-        arrowHead2.setAttribute('stroke', '#1e3a8a'); // Dark blue
+        arrowHead2.setAttribute('stroke', '#3b82f6'); // Lighter blue
         arrowHead2.setAttribute('stroke-width', '14');
         arrowHead2.setAttribute('stroke-linecap', 'round');
 
@@ -525,12 +525,12 @@ class TracePathManager {
             }
         }, 50);
 
-        // Add subtle pulse animation
+        // Add soft pulse animation synchronized with red circle (same 2s timing)
         const pulseAnimation = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
         pulseAnimation.setAttribute('attributeName', 'transform');
         pulseAnimation.setAttribute('type', 'scale');
-        pulseAnimation.setAttribute('values', '1;1.1;1');
-        pulseAnimation.setAttribute('dur', '2s');
+        pulseAnimation.setAttribute('values', '1;1.05;1'); // Softer pulse (1.05 instead of 1.1)
+        pulseAnimation.setAttribute('dur', '2s'); // Same 2s timing as red circle
         pulseAnimation.setAttribute('repeatCount', 'indefinite');
         arrowGroup.appendChild(pulseAnimation);
     }
