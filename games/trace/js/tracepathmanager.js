@@ -192,15 +192,21 @@ class TracePathManager {
             currentNumber = window.traceGame.getCurrentNumber();
         }
         
+        console.log(`Setting up stroke completion for number ${currentNumber}, stroke ${this.currentStroke}`);
+        console.log(`Current stroke has ${this.currentStrokeCoords.length} coordinates`);
+        
         if (currentNumber !== null && this.strokeCompletionTriggers[currentNumber]) {
             const triggerCoords = this.strokeCompletionTriggers[currentNumber];
             if (triggerCoords && triggerCoords[this.currentStroke]) {
                 const targetTrigger = triggerCoords[this.currentStroke];
                 const triggerIndex = this.findCoordinateInPath(targetTrigger);
                 
+                console.log(`Found completion trigger for stroke ${this.currentStroke}: [${targetTrigger[0]}, ${targetTrigger[1]}] at index ${triggerIndex}`);
+                
                 if (triggerIndex !== -1) {
                     this.strokeCompletionCoordIndex = triggerIndex;
                     this.strokeCompletionCoord = this.currentStrokeCoords[triggerIndex];
+                    console.log(`Stroke completion set to coordinate index ${triggerIndex}`);
                     return;
                 }
             }
@@ -209,6 +215,7 @@ class TracePathManager {
         const totalCoords = this.currentStrokeCoords.length;
         this.strokeCompletionCoordIndex = Math.max(0, totalCoords - 3);
         this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
+        console.log(`Default stroke completion set to coordinate index ${this.strokeCompletionCoordIndex} (${totalCoords - 3} from end)`);
     }
 
     findCoordinateInPath(targetCoord) {
@@ -798,6 +805,9 @@ class TracePathManager {
     }
 
     completeCurrentStroke() {
+        console.log(`completeCurrentStroke() called for stroke ${this.currentStroke}`);
+        console.log(`Call stack:`, new Error().stack);
+        
         this.isTracing = false;
         this.isDragging = false;
         
