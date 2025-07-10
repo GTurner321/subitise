@@ -25,7 +25,7 @@ class TracePathManager {
         this.directionArrow = null;
         this.arrowTimeout = null;
         this.idleThreshold = 3000; // 3 seconds of inactivity
-        this.arrowDistance = 10; // 10 pixels from circle edge
+        this.arrowDistance = 15; // 15 pixels from circle edge
         this.arrowLength = 30; // 30 pixels long
         
         // Faster catch-up animation for the red circle
@@ -413,7 +413,7 @@ class TracePathManager {
         const sliderY = parseFloat(this.slider.getAttribute('cy'));
         const sliderRadius = CONFIG.SLIDER_SIZE / 2;
 
-        // Calculate arrow start position (10px from circle edge)
+        // Calculate arrow start position (15px from circle edge)
         const arrowStartX = sliderX + (dirX * (sliderRadius + this.arrowDistance));
         const arrowStartY = sliderY + (dirY * (sliderRadius + this.arrowDistance));
 
@@ -434,47 +434,75 @@ class TracePathManager {
 
         // Calculate angle for arrowhead
         const angle = Math.atan2(endY - startY, endX - startX);
-        const arrowHeadLength = 12;
+        const arrowHeadLength = 16; // Larger arrowhead for fatter arrow
         const arrowHeadAngle = Math.PI / 6; // 30 degrees
 
-        // Main arrow line
+        // Main arrow line with white outline + dark blue fill
+        const arrowLineOutline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        arrowLineOutline.setAttribute('x1', startX);
+        arrowLineOutline.setAttribute('y1', startY);
+        arrowLineOutline.setAttribute('x2', endX);
+        arrowLineOutline.setAttribute('y2', endY);
+        arrowLineOutline.setAttribute('stroke', 'white');
+        arrowLineOutline.setAttribute('stroke-width', '18'); // White outline
+        arrowLineOutline.setAttribute('stroke-linecap', 'round');
+        arrowLineOutline.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+
         const arrowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         arrowLine.setAttribute('x1', startX);
         arrowLine.setAttribute('y1', startY);
         arrowLine.setAttribute('x2', endX);
         arrowLine.setAttribute('y2', endY);
-        arrowLine.setAttribute('stroke', CONFIG.ARROW_COLOR || '#4ECDC4');
-        arrowLine.setAttribute('stroke-width', '8');
+        arrowLine.setAttribute('stroke', '#1e3a8a'); // Dark blue
+        arrowLine.setAttribute('stroke-width', '14'); // Fatter dark blue line
         arrowLine.setAttribute('stroke-linecap', 'round');
-        arrowLine.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
 
-        // Arrowhead (left side)
-        const arrowHead1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        // Arrowhead (left side) with white outline + dark blue fill
+        const arrowHead1Outline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         const head1X = endX - arrowHeadLength * Math.cos(angle - arrowHeadAngle);
         const head1Y = endY - arrowHeadLength * Math.sin(angle - arrowHeadAngle);
+        arrowHead1Outline.setAttribute('x1', endX);
+        arrowHead1Outline.setAttribute('y1', endY);
+        arrowHead1Outline.setAttribute('x2', head1X);
+        arrowHead1Outline.setAttribute('y2', head1Y);
+        arrowHead1Outline.setAttribute('stroke', 'white');
+        arrowHead1Outline.setAttribute('stroke-width', '18');
+        arrowHead1Outline.setAttribute('stroke-linecap', 'round');
+
+        const arrowHead1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         arrowHead1.setAttribute('x1', endX);
         arrowHead1.setAttribute('y1', endY);
         arrowHead1.setAttribute('x2', head1X);
         arrowHead1.setAttribute('y2', head1Y);
-        arrowHead1.setAttribute('stroke', CONFIG.ARROW_COLOR || '#4ECDC4');
-        arrowHead1.setAttribute('stroke-width', '8');
+        arrowHead1.setAttribute('stroke', '#1e3a8a'); // Dark blue
+        arrowHead1.setAttribute('stroke-width', '14');
         arrowHead1.setAttribute('stroke-linecap', 'round');
-        arrowHead1.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
 
-        // Arrowhead (right side)
-        const arrowHead2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        // Arrowhead (right side) with white outline + dark blue fill
+        const arrowHead2Outline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         const head2X = endX - arrowHeadLength * Math.cos(angle + arrowHeadAngle);
         const head2Y = endY - arrowHeadLength * Math.sin(angle + arrowHeadAngle);
+        arrowHead2Outline.setAttribute('x1', endX);
+        arrowHead2Outline.setAttribute('y1', endY);
+        arrowHead2Outline.setAttribute('x2', head2X);
+        arrowHead2Outline.setAttribute('y2', head2Y);
+        arrowHead2Outline.setAttribute('stroke', 'white');
+        arrowHead2Outline.setAttribute('stroke-width', '18');
+        arrowHead2Outline.setAttribute('stroke-linecap', 'round');
+
+        const arrowHead2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         arrowHead2.setAttribute('x1', endX);
         arrowHead2.setAttribute('y1', endY);
         arrowHead2.setAttribute('x2', head2X);
         arrowHead2.setAttribute('y2', head2Y);
-        arrowHead2.setAttribute('stroke', CONFIG.ARROW_COLOR || '#4ECDC4');
-        arrowHead2.setAttribute('stroke-width', '8');
+        arrowHead2.setAttribute('stroke', '#1e3a8a'); // Dark blue
+        arrowHead2.setAttribute('stroke-width', '14');
         arrowHead2.setAttribute('stroke-linecap', 'round');
-        arrowHead2.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
 
-        // Add all parts to group
+        // Add all parts to group (outlines first, then fills)
+        arrowGroup.appendChild(arrowLineOutline);
+        arrowGroup.appendChild(arrowHead1Outline);
+        arrowGroup.appendChild(arrowHead2Outline);
         arrowGroup.appendChild(arrowLine);
         arrowGroup.appendChild(arrowHead1);
         arrowGroup.appendChild(arrowHead2);
@@ -570,6 +598,7 @@ class TracePathManager {
             setTimeout(() => {
                 if (!this.isDragging && this.slider) {
                     this.addSliderPulseAnimation();
+                    this.startArrowTimer(); // Start arrow timer after animation finishes
                 }
             }, 250);
             
@@ -628,6 +657,7 @@ class TracePathManager {
         if (!point) return;
         
         this.lastMovementTime = Date.now();
+        this.clearArrowTimer(); // Reset arrow timer on movement
         
         const bestPosition = this.findBestSliderPosition(point);
         if (bestPosition !== null) {
@@ -671,6 +701,7 @@ class TracePathManager {
         setTimeout(() => {
             if (!this.isDragging) {
                 this.removeFrontMarker();
+                this.startArrowTimer(); // Restart arrow timer after drag ends
             }
         }, 200); // Reduced delay
     }
@@ -815,6 +846,9 @@ class TracePathManager {
         if (newCoordinateIndex !== this.currentCoordinateIndex) {
             this.currentCoordinateIndex = newCoordinateIndex;
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+            
+            // Restart arrow timer when coordinate index changes (user has made progress)
+            this.startArrowTimer();
             
             const autoProgression = this.checkAutoProgression(this.currentCoordinateIndex);
             if (autoProgression) {
@@ -976,6 +1010,8 @@ class TracePathManager {
     cleanup() {
         this.removeSlider();
         this.removeFrontMarker();
+        this.removeDirectionArrow();
+        this.clearArrowTimer();
         this.stopCatchUpAnimation();
         this.isTracing = false;
         this.isDragging = false;
