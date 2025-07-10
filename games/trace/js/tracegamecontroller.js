@@ -198,19 +198,13 @@ class TraceGameController {
     }
 
 handleStrokeCompletion(strokeIndex) {
-    const totalStrokes = this.renderer.getStrokeCount();
-    const currentNumber = this.currentNumber;
+    // DISABLE LEGACY AUTO-PROGRESSION - Let TracePathManager handle it
+    // const totalStrokes = this.renderer.getStrokeCount();
+    // if (strokeIndex + 1 < totalStrokes) {
+    //     this.pathManager.moveToNextStroke();
+    // }
     
-    console.log(`Stroke ${strokeIndex} completed for number ${currentNumber}`);
-    
-    // Always move to next stroke if there are more strokes
-    // The TracePathManager will handle section breaks through its trigger system
-    if (strokeIndex + 1 < totalStrokes) {
-        // Small delay to allow UI updates
-        setTimeout(() => {
-            this.pathManager.startNewStroke(strokeIndex + 1);
-        }, 100);
-    }
+    console.log(`Stroke ${strokeIndex} completed for number ${this.currentNumber}`);
 }
     
     handleNumberCompletion() {
