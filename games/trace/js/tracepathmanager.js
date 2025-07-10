@@ -18,7 +18,16 @@ class TracePathManager {
         this.strokeCompletionCoord = null;
         this.lastMovementTime = Date.now();
         
-        // NEW: Auto progression trigger points - first coordinate triggers jump to second coordinate
+        // Enhanced slider interaction area
+        this.sliderInteractionRadius = CONFIG.SLIDER_SIZE * 1.5; // 1.5x larger hit area
+        
+        // Faster catch-up animation for the red circle
+        this.catchUpSpeed = 12; // Higher = faster catch-up
+        this.animationFrameId = null;
+        this.targetPosition = null;
+        this.isAnimatingCatchUp = false;
+        
+        // Auto progression trigger points
         this.autoProgressionTriggers = {
             0: [{ trigger: [96, 61], jumpTo: [100, 100] }],
             1: [{ trigger: [50, 30], jumpTo: [50, 0] }],
@@ -27,12 +36,12 @@ class TracePathManager {
             4: [
                 { trigger: [9, 116], jumpTo: [0, 80] },
                 { trigger: [80, 80], jumpTo: [100, 80] },
-                { trigger: [100, 80], jumpTo: [60, 140], sectionBreak: true }, // Section break for stroke 2
+                { trigger: [100, 80], jumpTo: [60, 140], sectionBreak: true },
                 { trigger: [60, 30], jumpTo: [60, 0] }
             ],
             5: [
                 { trigger: [80, 200], jumpTo: [100, 200] },
-                { trigger: [100, 200], jumpTo: [0, 200], sectionBreak: true }, // Section break for stroke 2
+                { trigger: [100, 200], jumpTo: [0, 200], sectionBreak: true },
                 { trigger: [0, 140], jumpTo: [0, 125] },
                 { trigger: [15, 4], jumpTo: [0, 13] }
             ],
@@ -48,46 +57,16 @@ class TracePathManager {
             ]
         };
         
-        // NEW: Mandatory progression points for sharp corners
+        // Mandatory progression points for sharp corners
         this.mandatoryProgressions = {
-            2: [
-                { 
-                    coordinate: [0, 0], 
-                    forwardTo: [10, 0], 
-                    backwardTo: [9, 12] 
-                }
-            ],
-            3: [
-                { 
-                    coordinate: [35, 100], 
-                    forwardTo: [40, 99.9], 
-                    backwardTo: [40, 100.1] 
-                }
-            ],
-            4: [
-                { 
-                    coordinate: [0, 80], 
-                    forwardTo: [10, 80], 
-                    backwardTo: [3, 92] 
-                }
-            ],
-            7: [
-                { 
-                    coordinate: [100, 200], 
-                    forwardTo: [95, 183], 
-                    backwardTo: [90, 200] 
-                }
-            ],
-            9: [
-                { 
-                    coordinate: [100, 190], 
-                    forwardTo: [99, 182], 
-                    backwardTo: [98.9, 182] 
-                }
-            ]
+            2: [{ coordinate: [0, 0], forwardTo: [10, 0], backwardTo: [9, 12] }],
+            3: [{ coordinate: [35, 100], forwardTo: [40, 99.9], backwardTo: [40, 100.1] }],
+            4: [{ coordinate: [0, 80], forwardTo: [10, 80], backwardTo: [3, 92] }],
+            7: [{ coordinate: [100, 200], forwardTo: [95, 183], backwardTo: [90, 200] }],
+            9: [{ coordinate: [100, 190], forwardTo: [99, 182], backwardTo: [98.9, 182] }]
         };
         
-        // Updated stroke end coordinates
+        // Stroke end coordinates
         this.strokeEndCoordinates = {
             0: [[100, 100]],
             1: [[50, 0]],
@@ -101,7 +80,7 @@ class TracePathManager {
             9: [[100, 190], [80, 0]]
         };
         
-        // Updated stroke completion triggers
+        // Stroke completion triggers
         this.strokeCompletionTriggers = {
             0: [[99, 80]],
             1: [[50, 20]],
@@ -133,21 +112,6 @@ class TracePathManager {
     }
 
     startNewStroke(strokeIndex) {
-        console.log(`Starting new stroke ${strokeIndex} for number ${this.getCurrentNumber()}`);
-        
-        // DEBUG: Check what the renderer thinks about strokes
-        const rendererNumber = this.renderer.currentNumber;
-        const totalStrokes = this.renderer.getStrokeCount();
-        console.log(`Renderer thinks current number is: ${rendererNumber}`);
-        console.log(`Renderer says total strokes: ${totalStrokes}`);
-        
-        // DEBUG: Check the config directly
-        const currentNumber = this.getCurrentNumber();
-        if (CONFIG.STROKE_DEFINITIONS[currentNumber]) {
-            const actualStrokeCount = CONFIG.STROKE_DEFINITIONS[currentNumber].strokes.length;
-            console.log(`Config says number ${currentNumber} has ${actualStrokeCount} strokes`);
-        }
-        
         this.currentStroke = strokeIndex;
         this.currentCoordinateIndex = 0;
         this.isTracing = false;
@@ -162,34 +126,17 @@ class TracePathManager {
         this.currentStrokeCoords = this.renderer.getStrokeCoordinates(strokeIndex);
         
         if (!this.currentStrokeCoords || this.currentStrokeCoords.length === 0) {
-            console.log(`No coordinates found for stroke ${strokeIndex}`);
             return false;
-        }
-        
-        console.log(`Stroke ${strokeIndex} has ${this.currentStrokeCoords.length} coordinates`);
-        
-        // Get the original coordinates to verify start position
-        const numberConfig = CONFIG.STROKE_DEFINITIONS[currentNumber];
-        if (numberConfig && numberConfig.strokes[strokeIndex]) {
-            const originalCoords = numberConfig.strokes[strokeIndex].coordinates;
-            if (originalCoords && originalCoords.length > 0) {
-                const startCoord = originalCoords[0];
-                console.log(`Stroke ${strokeIndex} starts at original coordinate [${startCoord.x}, ${startCoord.y}]`);
-            }
         }
         
         this.setupStrokeCompletion();
         this.removeSlider();
         this.removeFrontMarker();
+        this.stopCatchUpAnimation();
         
         const startPoint = this.currentStrokeCoords[0];
-        console.log(`Starting stroke ${strokeIndex} at scaled position [${startPoint.x}, ${startPoint.y}]`);
-        
-        // IMPORTANT: Reset the trace line to the start of the new stroke
-        // Make sure we're starting fresh with no previous trace progress
         this.renderer.updateTracingProgress(this.currentStroke, 0);
         
-        // Force create a fresh slider
         setTimeout(() => {
             this.createSlider(startPoint);
         }, 100);
@@ -204,21 +151,15 @@ class TracePathManager {
             currentNumber = window.traceGame.getCurrentNumber();
         }
         
-        console.log(`Setting up stroke completion for number ${currentNumber}, stroke ${this.currentStroke}`);
-        console.log(`Current stroke has ${this.currentStrokeCoords.length} coordinates`);
-        
         if (currentNumber !== null && this.strokeCompletionTriggers[currentNumber]) {
             const triggerCoords = this.strokeCompletionTriggers[currentNumber];
             if (triggerCoords && triggerCoords[this.currentStroke]) {
                 const targetTrigger = triggerCoords[this.currentStroke];
                 const triggerIndex = this.findCoordinateInPath(targetTrigger);
                 
-                console.log(`Found completion trigger for stroke ${this.currentStroke}: [${targetTrigger[0]}, ${targetTrigger[1]}] at index ${triggerIndex}`);
-                
                 if (triggerIndex !== -1) {
                     this.strokeCompletionCoordIndex = triggerIndex;
                     this.strokeCompletionCoord = this.currentStrokeCoords[triggerIndex];
-                    console.log(`Stroke completion set to coordinate index ${triggerIndex}`);
                     return;
                 }
             }
@@ -227,7 +168,6 @@ class TracePathManager {
         const totalCoords = this.currentStrokeCoords.length;
         this.strokeCompletionCoordIndex = Math.max(0, totalCoords - 3);
         this.strokeCompletionCoord = this.currentStrokeCoords[this.strokeCompletionCoordIndex];
-        console.log(`Default stroke completion set to coordinate index ${this.strokeCompletionCoordIndex} (${totalCoords - 3} from end)`);
     }
 
     findCoordinateInPath(targetCoord) {
@@ -250,7 +190,6 @@ class TracePathManager {
         return closestIndex;
     }
 
-    // NEW: Find coordinate index by original coordinate values, searching forward from current position
     findOriginalCoordinateIndex(targetCoord, searchFromIndex = 0) {
         const currentNumber = this.getCurrentNumber();
         if (currentNumber === null) return -1;
@@ -261,27 +200,21 @@ class TracePathManager {
         const originalCoords = numberConfig.strokes[this.currentStroke].coordinates;
         if (!originalCoords) return -1;
         
-        const tolerance = 1.0; // Very tight tolerance for exact matches
+        const tolerance = 1.0;
         
-        console.log(`Searching for coordinate [${targetCoord[0]}, ${targetCoord[1]}] in stroke ${this.currentStroke} starting from index ${searchFromIndex}`);
-        
-        // Search forward from the specified index to avoid finding earlier duplicates
         for (let i = searchFromIndex; i < originalCoords.length; i++) {
             const coord = originalCoords[i];
             const deltaX = Math.abs(coord.x - targetCoord[0]);
             const deltaY = Math.abs(coord.y - targetCoord[1]);
             
             if (deltaX <= tolerance && deltaY <= tolerance) {
-                console.log(`Found coordinate [${targetCoord[0]}, ${targetCoord[1]}] at index ${i} (actual: [${coord.x}, ${coord.y}])`);
                 return i;
             }
         }
         
-        console.log(`Coordinate [${targetCoord[0]}, ${targetCoord[1]}] not found in stroke ${this.currentStroke}`);
         return -1;
     }
 
-    // NEW: Check if current position triggers auto progression
     checkAutoProgression(coordIndex) {
         const currentNumber = this.getCurrentNumber();
         if (currentNumber === null) return null;
@@ -289,7 +222,6 @@ class TracePathManager {
         const triggers = this.autoProgressionTriggers[currentNumber];
         if (!triggers) return null;
         
-        // Get original coordinate for the current position
         const numberConfig = CONFIG.STROKE_DEFINITIONS[currentNumber];
         if (!numberConfig || !numberConfig.strokes[this.currentStroke]) return null;
         
@@ -298,39 +230,24 @@ class TracePathManager {
         
         const currentOriginalCoord = originalCoords[coordIndex];
         
-        console.log(`Checking auto progression for number ${currentNumber}, stroke ${this.currentStroke}, coord index ${coordIndex}: [${currentOriginalCoord.x}, ${currentOriginalCoord.y}]`);
-        
-        // Check if current coordinate exactly matches any trigger
         for (const trigger of triggers) {
             const deltaX = Math.abs(currentOriginalCoord.x - trigger.trigger[0]);
             const deltaY = Math.abs(currentOriginalCoord.y - trigger.trigger[1]);
             
-            console.log(`  Comparing with trigger [${trigger.trigger[0]}, ${trigger.trigger[1]}]: delta = [${deltaX}, ${deltaY}]`);
-            
-            // Must be exact match - user has traced to this coordinate
             if (deltaX <= 1.0 && deltaY <= 1.0) {
-                console.log(`  TRIGGER MATCH! Looking for jump target [${trigger.jumpTo[0]}, ${trigger.jumpTo[1]}]`);
-                
                 if (trigger.sectionBreak) {
-                    // For section breaks, we don't need to find the target coordinate in current stroke
-                    // The target coordinate is the start of the next stroke
-                    console.log(`  Section break detected - will move to next stroke`);
                     return {
-                        targetIndex: -1, // Special value indicating section break
+                        targetIndex: -1,
                         sectionBreak: true,
-                        nextStrokeStart: trigger.jumpTo // Store the expected start coordinate
+                        nextStrokeStart: trigger.jumpTo
                     };
                 } else {
-                    // Normal case: find target coordinate in current stroke
                     const targetIndex = this.findOriginalCoordinateIndex(trigger.jumpTo, coordIndex + 1);
                     if (targetIndex !== -1) {
-                        console.log(`  Found target at index ${targetIndex}`);
                         return {
                             targetIndex: targetIndex,
                             sectionBreak: false
                         };
-                    } else {
-                        console.log(`  Target coordinate not found in current stroke`);
                     }
                 }
             }
@@ -339,7 +256,6 @@ class TracePathManager {
         return null;
     }
 
-    // NEW: Check mandatory progression for sharp corners
     checkMandatoryProgression(coordIndex, isMovingForward) {
         const currentNumber = this.getCurrentNumber();
         if (currentNumber === null) return null;
@@ -347,7 +263,6 @@ class TracePathManager {
         const progressions = this.mandatoryProgressions[currentNumber];
         if (!progressions) return null;
         
-        // Get original coordinate for the current position
         const numberConfig = CONFIG.STROKE_DEFINITIONS[currentNumber];
         if (!numberConfig || !numberConfig.strokes[this.currentStroke]) return null;
         
@@ -356,14 +271,12 @@ class TracePathManager {
         
         const currentOriginalCoord = originalCoords[coordIndex];
         
-        // Check if current coordinate matches any mandatory progression point
         for (const progression of progressions) {
             const deltaX = Math.abs(currentOriginalCoord.x - progression.coordinate[0]);
             const deltaY = Math.abs(currentOriginalCoord.y - progression.coordinate[1]);
             
             if (deltaX <= 1.0 && deltaY <= 1.0) {
                 const targetCoord = isMovingForward ? progression.forwardTo : progression.backwardTo;
-                // Search in the appropriate direction
                 const searchFromIndex = isMovingForward ? coordIndex + 1 : 0;
                 const targetIndex = this.findOriginalCoordinateIndex(targetCoord, searchFromIndex);
                 
@@ -447,26 +360,95 @@ class TracePathManager {
         this.slider.appendChild(animate);
     }
 
-    handleStart(event) {
-        event.preventDefault();
+    // Enhanced catch-up animation system
+    startCatchUpAnimation(targetPosition) {
+        this.stopCatchUpAnimation();
+        this.targetPosition = targetPosition;
+        this.isAnimatingCatchUp = true;
         
-        console.log(`handleStart called - current state: isDragging=${this.isDragging}, isTracing=${this.isTracing}`);
+        if (this.slider) {
+            this.slider.style.opacity = '0';
+            const animate = this.slider.querySelector('animate');
+            if (animate) animate.remove();
+        }
         
-        const point = this.getEventPoint(event);
-        if (!point) {
-            console.log(`handleStart: no point found`);
+        this.animateCatchUp();
+    }
+
+    animateCatchUp() {
+        if (!this.isAnimatingCatchUp || !this.slider || !this.targetPosition) {
+            return;
+        }
+
+        const currentX = parseFloat(this.slider.getAttribute('cx'));
+        const currentY = parseFloat(this.slider.getAttribute('cy'));
+        
+        const deltaX = this.targetPosition.x - currentX;
+        const deltaY = this.targetPosition.y - currentY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        // If we're close enough, snap to target and finish
+        if (distance < 2) {
+            this.slider.setAttribute('cx', this.targetPosition.x);
+            this.slider.setAttribute('cy', this.targetPosition.y);
+            this.finishCatchUpAnimation();
             return;
         }
         
-        console.log(`handleStart: point = [${point.x}, ${point.y}]`);
+        // Move towards target with easing
+        const speed = Math.min(distance * 0.2, this.catchUpSpeed);
+        const moveX = (deltaX / distance) * speed;
+        const moveY = (deltaY / distance) * speed;
+        
+        this.slider.setAttribute('cx', currentX + moveX);
+        this.slider.setAttribute('cy', currentY + moveY);
+        
+        this.animationFrameId = requestAnimationFrame(() => this.animateCatchUp());
+    }
+
+    finishCatchUpAnimation() {
+        this.stopCatchUpAnimation();
+        
+        if (this.slider) {
+            this.slider.style.transition = 'opacity 0.25s ease-in';
+            this.slider.style.opacity = '1';
+            
+            setTimeout(() => {
+                if (!this.isDragging && this.slider) {
+                    this.addSliderPulseAnimation();
+                }
+            }, 250);
+            
+            setTimeout(() => {
+                if (this.slider) {
+                    this.slider.style.transition = '';
+                }
+            }, 300);
+        }
+    }
+
+    stopCatchUpAnimation() {
+        this.isAnimatingCatchUp = false;
+        this.targetPosition = null;
+        
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+    }
+
+    handleStart(event) {
+        event.preventDefault();
+        
+        const point = this.getEventPoint(event);
+        if (!point) return;
         
         const nearSlider = this.isPointNearSlider(point);
-        console.log(`handleStart: point near slider = ${nearSlider}`);
         
         if (nearSlider) {
-            console.log(`handleStart: Setting dragging and tracing to true`);
             this.isDragging = true;
             this.isTracing = true;
+            this.stopCatchUpAnimation();
             
             if (this.slider) {
                 this.slider.style.opacity = '0';
@@ -476,43 +458,25 @@ class TracePathManager {
             
             const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
             if (currentCoord) {
-                console.log(`handleStart: Creating front marker at coord ${this.currentCoordinateIndex}: [${currentCoord.x}, ${currentCoord.y}]`);
                 this.createFrontMarker(currentCoord);
                 this.frontMarkerCoordIndex = this.currentCoordinateIndex;
                 this.frontMarkerProgress = 0;
-            } else {
-                console.log(`handleStart: No current coordinate found at index ${this.currentCoordinateIndex}`);
             }
-            
-            console.log(`handleStart: Final state: isDragging=${this.isDragging}, isTracing=${this.isTracing}`);
-        } else {
-            console.log(`handleStart: Point not near slider, ignoring`);
         }
     }
 
     handleMove(event) {
-        if (!this.isDragging || !this.isTracing) {
-            // Debug: Log why movement is ignored
-            if (!this.isDragging) console.log("Movement ignored - not dragging");
-            if (!this.isTracing) console.log("Movement ignored - not tracing");
-            return;
-        }
+        if (!this.isDragging || !this.isTracing) return;
         
         event.preventDefault();
         const point = this.getEventPoint(event);
-        if (!point) {
-            console.log("Movement ignored - no point");
-            return;
-        }
+        if (!point) return;
         
         this.lastMovementTime = Date.now();
         
         const bestPosition = this.findBestSliderPosition(point);
         if (bestPosition !== null) {
-            console.log(`Found best position at coord ${bestPosition.coordIndex} with progress ${bestPosition.progress}`);
             this.updateTracingProgress(bestPosition);
-        } else {
-            console.log(`No valid position found for point [${point.x}, ${point.y}]`);
         }
     }
 
@@ -524,6 +488,7 @@ class TracePathManager {
         this.finalFrontMarkerCoordIndex = this.frontMarkerCoordIndex;
         this.finalFrontMarkerProgress = this.frontMarkerProgress;
         
+        // Use the new catch-up animation system
         setTimeout(() => {
             if (!this.isDragging && this.slider) {
                 const finalPosition = this.getInterpolatedPosition(
@@ -532,9 +497,6 @@ class TracePathManager {
                 );
                 
                 if (finalPosition) {
-                    this.slider.setAttribute('cx', finalPosition.x);
-                    this.slider.setAttribute('cy', finalPosition.y);
-                    
                     this.currentCoordinateIndex = this.finalFrontMarkerCoordIndex;
                     if (this.finalFrontMarkerProgress >= 0.95) {
                         this.currentCoordinateIndex = Math.min(
@@ -544,30 +506,18 @@ class TracePathManager {
                     }
                     
                     this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
+                    
+                    // Start smooth catch-up animation instead of instant positioning
+                    this.startCatchUpAnimation(finalPosition);
                 }
-                
-                this.slider.style.transition = 'opacity 0.25s ease-in';
-                this.slider.style.opacity = '1';
-                
-                setTimeout(() => {
-                    if (!this.isDragging) {
-                        this.addSliderPulseAnimation();
-                    }
-                }, 250);
-                
-                setTimeout(() => {
-                    if (this.slider) {
-                        this.slider.style.transition = '';
-                    }
-                }, 300);
             }
-        }, 500);
+        }, 100); // Reduced delay for faster response
         
         setTimeout(() => {
             if (!this.isDragging) {
                 this.removeFrontMarker();
             }
-        }, 500);
+        }, 200); // Reduced delay
     }
 
     getEventPoint(event) {
@@ -603,8 +553,8 @@ class TracePathManager {
             Math.pow(point.y - sliderY, 2)
         );
         
-        const sliderRadius = CONFIG.SLIDER_SIZE / 2;
-        return distance <= sliderRadius + 5;
+        // Use the enhanced interaction radius (1.5x larger)
+        return distance <= this.sliderInteractionRadius;
     }
 
     findBestSliderPosition(dragPoint) {
@@ -681,7 +631,6 @@ class TracePathManager {
         
         this.updateFrontMarkerPosition({ x: frontMarkerX, y: frontMarkerY });
         
-        // Check for stroke completion first
         if (this.hasReachedStrokeCompletionPoint(coordIndex, progress)) {
             this.autoCompleteCurrentStroke();
             return;
@@ -689,11 +638,9 @@ class TracePathManager {
         
         let newCoordinateIndex = this.currentCoordinateIndex;
         
-        // Determine movement direction
         const isMovingForward = coordIndex > this.currentCoordinateIndex || 
                                (coordIndex === this.currentCoordinateIndex && progress >= 0.7);
         
-        // Normal progression logic
         if (coordIndex > this.currentCoordinateIndex) {
             if (progress >= 0.5) {
                 newCoordinateIndex = coordIndex;
@@ -710,40 +657,29 @@ class TracePathManager {
             newCoordinateIndex = Math.max(0, coordIndex - 1);
         }
         
-        // Update coordinate index if changed
         if (newCoordinateIndex !== this.currentCoordinateIndex) {
             this.currentCoordinateIndex = newCoordinateIndex;
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
             
-            // Check for auto progression triggers ONLY when we reach a new coordinate exactly
             const autoProgression = this.checkAutoProgression(this.currentCoordinateIndex);
             if (autoProgression) {
-                console.log(`Auto progression triggered: completing trace from coordinate ${this.currentCoordinateIndex} up to index ${autoProgression.targetIndex}`);
                 this.completeTraceUpTo(autoProgression.targetIndex, autoProgression.sectionBreak);
                 return;
             }
             
-            // Check for mandatory progression at sharp corners ONLY when we reach a new coordinate exactly
             const mandatoryTarget = this.checkMandatoryProgression(this.currentCoordinateIndex, isMovingForward);
             if (mandatoryTarget !== null) {
-                console.log(`Mandatory progression triggered: completing trace from coordinate ${this.currentCoordinateIndex} up to index ${mandatoryTarget}`);
                 this.completeTraceUpTo(mandatoryTarget, false);
                 return;
             }
         }
     }
 
-    // NEW: Complete trace up to a specific coordinate index (not jump to it)
     completeTraceUpTo(targetIndex, isSectionBreak = false) {
         if (isSectionBreak) {
-            // For section breaks, complete the current stroke and move to next stroke
-            console.log(`Section break triggered: completing current stroke ${this.currentStroke} and moving to next stroke`);
-            
-            // Complete the current stroke entirely
             this.currentCoordinateIndex = this.currentStrokeCoords.length - 1;
             this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
             
-            // Update markers to the end of current stroke
             const finalCoord = this.currentStrokeCoords[this.currentStrokeCoords.length - 1];
             if (finalCoord && this.frontMarker) {
                 this.updateFrontMarkerPosition(finalCoord);
@@ -751,7 +687,6 @@ class TracePathManager {
                 this.frontMarkerProgress = 1.0;
             }
             
-            // Complete current stroke and move to next stroke
             setTimeout(() => {
                 this.completeCurrentStroke();
             }, 300);
@@ -759,19 +694,13 @@ class TracePathManager {
             return;
         }
         
-        // Normal case: complete trace up to target coordinate within current stroke
         if (targetIndex < 0 || targetIndex >= this.currentStrokeCoords.length) {
-            console.log(`Invalid target index ${targetIndex} for current stroke with ${this.currentStrokeCoords.length} coordinates`);
             return;
         }
         
-        console.log(`Completing trace from index ${this.currentCoordinateIndex} up to index ${targetIndex}`);
-        
-        // Complete the trace up to the target coordinate
         this.currentCoordinateIndex = targetIndex;
         this.renderer.updateTracingProgress(this.currentStroke, this.currentCoordinateIndex);
         
-        // Update front marker position to the target coordinate
         const targetCoord = this.currentStrokeCoords[targetIndex];
         if (targetCoord && this.frontMarker) {
             this.updateFrontMarkerPosition(targetCoord);
@@ -779,49 +708,33 @@ class TracePathManager {
             this.frontMarkerProgress = 0;
         }
         
-        // Update slider position to the target coordinate
         if (this.slider && targetCoord) {
             this.slider.setAttribute('cx', targetCoord.x);
             this.slider.setAttribute('cy', targetCoord.y);
         }
         
-        // IMPORTANT: Check if the newly reached coordinate is itself a trigger point
         setTimeout(() => {
-            console.log(`Checking for auto progression after completing trace to index ${this.currentCoordinateIndex}`);
-            
             const autoProgression = this.checkAutoProgression(this.currentCoordinateIndex);
             if (autoProgression) {
-                console.log(`Newly reached coordinate ${this.currentCoordinateIndex} is also a trigger point!`);
-                
                 if (autoProgression.sectionBreak) {
-                    // For section breaks, complete current stroke and move to next stroke
-                    console.log(`Section break triggered from completed trace`);
-                    this.completeTraceUpTo(-1, true); // Use -1 to indicate section break
+                    this.completeTraceUpTo(-1, true);
                 } else {
-                    // Normal progression within current stroke
                     this.completeTraceUpTo(autoProgression.targetIndex, false);
                 }
                 return;
             }
             
-            // Check if this completes the stroke (reached the end)
             if (targetIndex >= this.currentStrokeCoords.length - 1) {
-                console.log(`Target index ${targetIndex} completes the stroke - calling completeCurrentStroke()`);
                 setTimeout(() => {
                     this.completeCurrentStroke();
                 }, 300);
-            } else {
-                console.log(`Target index ${targetIndex} does not complete stroke (stroke has ${this.currentStrokeCoords.length} coordinates)`);
             }
         }, 100);
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
-        console.log(`hasReachedStrokeCompletionPoint called: coordIndex=${coordIndex}, progress=${progress}, completionIndex=${this.strokeCompletionCoordIndex}`);
-        const result = coordIndex >= this.strokeCompletionCoordIndex && 
+        return coordIndex >= this.strokeCompletionCoordIndex && 
                (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5);
-        console.log(`hasReachedStrokeCompletionPoint result: ${result}`);
-        return result;
     }
 
     autoCompleteCurrentStroke() {
@@ -842,19 +755,15 @@ class TracePathManager {
     }
 
     completeCurrentStroke() {
-        console.log(`completeCurrentStroke() called for stroke ${this.currentStroke}`);
-        console.log(`Call stack:`, new Error().stack);
-        
         this.isTracing = false;
         this.isDragging = false;
+        this.stopCatchUpAnimation();
         
         if (this.slider) {
             this.slider.style.opacity = '0';
         }
         this.removeFrontMarker();
         
-        // DON'T call renderer.completeStroke() - it triggers the game controller
-        // Instead, handle completion directly here
         const coords = this.renderer.getStrokeCoordinates(this.currentStroke);
         if (coords && coords.length > 0) {
             this.renderer.createTracedPath(this.currentStroke, coords.length - 1);
@@ -863,30 +772,16 @@ class TracePathManager {
         const currentNumber = this.getCurrentNumber();
         const totalStrokes = this.renderer.getStrokeCount();
         
-        console.log(`Stroke ${this.currentStroke} completed for number ${currentNumber}`);
-        console.log(`Total strokes for number ${currentNumber}: ${totalStrokes}`);
-        console.log(`Current stroke index: ${this.currentStroke}`);
-        console.log(`Next stroke would be: ${this.currentStroke + 1}`);
-        console.log(`Valid stroke indices: 0 to ${totalStrokes - 1}`);
-        console.log(`Current number in path manager: ${this.getCurrentNumber()}`);
-        console.log(`Current number in renderer: ${this.renderer.currentNumber}`);
-        
-        // Handle stroke transitions ourselves
-        // FIXED: Proper zero-based indexing check
         if (this.currentStroke + 1 < totalStrokes) {
             const nextStrokeIndex = this.currentStroke + 1;
-            console.log(`Moving to stroke ${nextStrokeIndex} (should be valid since ${nextStrokeIndex} < ${totalStrokes})`);
             setTimeout(() => {
                 this.startNewStroke(nextStrokeIndex);
             }, 300);
         } else {
-            // This was the final stroke - complete the number
-            console.log(`All strokes complete for number ${currentNumber} (stroke ${this.currentStroke} was the last one)`);
             setTimeout(() => {
                 this.removeSlider();
             }, 300);
             
-            // Call the renderer's completeNumber directly (bypassing completeStroke)
             this.renderer.completeNumber();
         }
     }
@@ -916,7 +811,6 @@ class TracePathManager {
         };
     }
 
-    // Force move to next stroke position
     moveToNextStroke() {
         const totalStrokes = this.renderer.getStrokeCount();
         if (this.currentStroke + 1 < totalStrokes) {
@@ -927,6 +821,7 @@ class TracePathManager {
     cleanup() {
         this.removeSlider();
         this.removeFrontMarker();
+        this.stopCatchUpAnimation();
         this.isTracing = false;
         this.isDragging = false;
         this.currentCoordinateIndex = 0;
