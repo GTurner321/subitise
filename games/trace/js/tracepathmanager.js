@@ -865,18 +865,23 @@ class TracePathManager {
         
         console.log(`Stroke ${this.currentStroke} completed for number ${currentNumber}`);
         console.log(`Total strokes for number ${currentNumber}: ${totalStrokes}`);
+        console.log(`Current stroke index: ${this.currentStroke}`);
         console.log(`Next stroke would be: ${this.currentStroke + 1}`);
+        console.log(`Valid stroke indices: 0 to ${totalStrokes - 1}`);
         console.log(`Current number in path manager: ${this.getCurrentNumber()}`);
         console.log(`Current number in renderer: ${this.renderer.currentNumber}`);
         
         // Handle stroke transitions ourselves
+        // FIXED: Proper zero-based indexing check
         if (this.currentStroke + 1 < totalStrokes) {
+            const nextStrokeIndex = this.currentStroke + 1;
+            console.log(`Moving to stroke ${nextStrokeIndex} (should be valid since ${nextStrokeIndex} < ${totalStrokes})`);
             setTimeout(() => {
-                this.startNewStroke(this.currentStroke + 1);
+                this.startNewStroke(nextStrokeIndex);
             }, 300);
         } else {
             // This was the final stroke - complete the number
-            console.log(`All strokes complete for number ${currentNumber}`);
+            console.log(`All strokes complete for number ${currentNumber} (stroke ${this.currentStroke} was the last one)`);
             setTimeout(() => {
                 this.removeSlider();
             }, 300);
