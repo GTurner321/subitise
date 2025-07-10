@@ -155,12 +155,23 @@ class TracePathManager {
         
         console.log(`Stroke ${strokeIndex} has ${this.currentStrokeCoords.length} coordinates`);
         
+        // Get the original coordinates to verify start position
+        const currentNumber = this.getCurrentNumber();
+        const numberConfig = CONFIG.STROKE_DEFINITIONS[currentNumber];
+        if (numberConfig && numberConfig.strokes[strokeIndex]) {
+            const originalCoords = numberConfig.strokes[strokeIndex].coordinates;
+            if (originalCoords && originalCoords.length > 0) {
+                const startCoord = originalCoords[0];
+                console.log(`Stroke ${strokeIndex} starts at original coordinate [${startCoord.x}, ${startCoord.y}]`);
+            }
+        }
+        
         this.setupStrokeCompletion();
         this.removeSlider();
         this.removeFrontMarker();
         
         const startPoint = this.currentStrokeCoords[0];
-        console.log(`Starting stroke ${strokeIndex} at position [${startPoint.x}, ${startPoint.y}]`);
+        console.log(`Starting stroke ${strokeIndex} at scaled position [${startPoint.x}, ${startPoint.y}]`);
         
         // Reset the trace line to the start of the new stroke
         this.renderer.updateTracingProgress(this.currentStroke, 0);
@@ -277,16 +288,27 @@ class TracePathManager {
             if (deltaX <= 1.0 && deltaY <= 1.0) {
                 console.log(`  TRIGGER MATCH! Looking for jump target [${trigger.jumpTo[0]}, ${trigger.jumpTo[1]}]`);
                 
-                // Find the target coordinate index, searching AFTER the current position
-                const targetIndex = this.findOriginalCoordinateIndex(trigger.jumpTo, coordIndex + 1);
-                if (targetIndex !== -1) {
-                    console.log(`  Found target at index ${targetIndex}, section break: ${trigger.sectionBreak || false}`);
+                if (trigger.sectionBreak) {
+                    // For section breaks, we don't need to find the target coordinate in current stroke
+                    // The target coordinate is the start of the next stroke
+                    console.log(`  Section break detected - will move to next stroke`);
                     return {
-                        targetIndex: targetIndex,
-                        sectionBreak: trigger.sectionBreak || false
+                        targetIndex: -1, // Special value indicating section break
+                        sectionBreak: true,
+                        nextStrokeStart: trigger.jumpTo // Store the expected start coordinate
                     };
                 } else {
-                    console.log(`  Target coordinate not found in current stroke`);
+                    // Normal case: find target coordinate in current stroke
+                    const targetIndex = this.findOriginalCoordinateIndex(trigger.jumpTo, coordIndex + 1);
+                    if (targetIndex !== -1) {
+                        console.log(`  Found target at index ${targetIndex}`);
+                        return {
+                            targetIndex: targetIndex,
+                            sectionBreak: false
+                        };
+                    } else {
+                        console.log(`  Target coordinate not found in current stroke`);
+                    }
                 }
             }
         }
@@ -716,7 +738,15 @@ class TracePathManager {
             const autoProgression = this.checkAutoProgression(this.currentCoordinateIndex);
             if (autoProgression) {
                 console.log(`Newly reached coordinate ${this.currentCoordinateIndex} is also a trigger point!`);
-                this.completeTraceUpTo(autoProgression.targetIndex, autoProgression.sectionBreak);
+                
+                if (autoProgression.sectionBreak) {
+                    // For section breaks, complete current stroke and move to next stroke
+                    console.log(`Section break triggered from completed trace`);
+                    this.completeTraceUpTo(-1, true); // Use -1 to indicate section break
+                } else {
+                    // Normal progression within current stroke
+                    this.completeTraceUpTo(autoProgression.targetIndex, false);
+                }
                 return;
             }
             
