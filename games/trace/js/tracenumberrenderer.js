@@ -374,17 +374,21 @@ class TraceNumberRenderer {
         }
     }
 
-    areAllStrokesComplete() {
-        const totalStrokes = this.getStrokeCount();
-        // Check if all strokes have traced paths
-        for (let i = 0; i < totalStrokes; i++) {
-            const tracedPath = this.svg.querySelector(`.traced-path-${i}`);
-            if (!tracedPath) {
-                return false;
-            }
+areAllStrokesComplete() {
+    const totalStrokes = this.getStrokeCount();
+    
+    // Check if all strokes have traced paths
+    for (let i = 0; i < totalStrokes; i++) {
+        const tracedPath = this.svg.querySelector(`.traced-path-${i}`);
+        if (!tracedPath) {
+            console.log(`Stroke ${i} not complete - no traced path found`);
+            return false;
         }
-        return true;
     }
+    
+    console.log(`All ${totalStrokes} strokes are complete`);
+    return true;
+}
 
     completeNumber() {
         console.log(`Number ${this.currentNumber} fully completed!`);
