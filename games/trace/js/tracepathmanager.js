@@ -791,20 +791,31 @@ class TracePathManager {
         }
         this.removeFrontMarker();
         
-        this.renderer.completeStroke(this.currentStroke);
+        // DON'T call renderer.completeStroke() - it triggers the game controller
+        // Instead, handle completion directly here
+        const coords = this.renderer.getStrokeCoordinates(this.currentStroke);
+        if (coords && coords.length > 0) {
+            this.renderer.createTracedPath(this.currentStroke, coords.length - 1);
+        }
+        
+        console.log(`Stroke ${this.currentStroke} completed for number ${this.getCurrentNumber()}`);
         
         const totalStrokes = this.renderer.getStrokeCount();
         
-        // Only complete the number if this was the final stroke
-        // Otherwise, let the game controller handle stroke progression
-        if (this.currentStroke + 1 >= totalStrokes) {
+        // Handle stroke transitions ourselves
+        if (this.currentStroke + 1 < totalStrokes) {
+            setTimeout(() => {
+                this.startNewStroke(this.currentStroke + 1);
+            }, 300);
+        } else {
+            // This was the final stroke - complete the number
             setTimeout(() => {
                 this.removeSlider();
             }, 300);
             
+            // Call the renderer's completeNumber directly (bypassing completeStroke)
             this.renderer.completeNumber();
         }
-        // The game controller's handleStrokeCompletion will handle moving to next stroke
     }
 
     getCurrentNumber() {
