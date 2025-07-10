@@ -711,13 +711,23 @@ class TracePathManager {
             this.slider.setAttribute('cy', targetCoord.y);
         }
         
-        // Check if this completes the stroke (reached the end)
-        if (targetIndex >= this.currentStrokeCoords.length - 1) {
-            console.log(`Target index ${targetIndex} completes the stroke`);
-            setTimeout(() => {
-                this.completeCurrentStroke();
-            }, 300);
-        }
+        // IMPORTANT: Check if the newly reached coordinate is itself a trigger point
+        setTimeout(() => {
+            const autoProgression = this.checkAutoProgression(this.currentCoordinateIndex);
+            if (autoProgression) {
+                console.log(`Newly reached coordinate ${this.currentCoordinateIndex} is also a trigger point!`);
+                this.completeTraceUpTo(autoProgression.targetIndex, autoProgression.sectionBreak);
+                return;
+            }
+            
+            // Check if this completes the stroke (reached the end)
+            if (targetIndex >= this.currentStrokeCoords.length - 1) {
+                console.log(`Target index ${targetIndex} completes the stroke`);
+                setTimeout(() => {
+                    this.completeCurrentStroke();
+                }, 300);
+            }
+        }, 100);
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
