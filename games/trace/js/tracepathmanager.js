@@ -450,10 +450,21 @@ class TracePathManager {
     handleStart(event) {
         event.preventDefault();
         
-        const point = this.getEventPoint(event);
-        if (!point) return;
+        console.log(`handleStart called - current state: isDragging=${this.isDragging}, isTracing=${this.isTracing}`);
         
-        if (this.isPointNearSlider(point)) {
+        const point = this.getEventPoint(event);
+        if (!point) {
+            console.log(`handleStart: no point found`);
+            return;
+        }
+        
+        console.log(`handleStart: point = [${point.x}, ${point.y}]`);
+        
+        const nearSlider = this.isPointNearSlider(point);
+        console.log(`handleStart: point near slider = ${nearSlider}`);
+        
+        if (nearSlider) {
+            console.log(`handleStart: Setting dragging and tracing to true`);
             this.isDragging = true;
             this.isTracing = true;
             
@@ -465,10 +476,17 @@ class TracePathManager {
             
             const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
             if (currentCoord) {
+                console.log(`handleStart: Creating front marker at coord ${this.currentCoordinateIndex}: [${currentCoord.x}, ${currentCoord.y}]`);
                 this.createFrontMarker(currentCoord);
                 this.frontMarkerCoordIndex = this.currentCoordinateIndex;
                 this.frontMarkerProgress = 0;
+            } else {
+                console.log(`handleStart: No current coordinate found at index ${this.currentCoordinateIndex}`);
             }
+            
+            console.log(`handleStart: Final state: isDragging=${this.isDragging}, isTracing=${this.isTracing}`);
+        } else {
+            console.log(`handleStart: Point not near slider, ignoring`);
         }
     }
 
@@ -769,6 +787,8 @@ class TracePathManager {
         
         // IMPORTANT: Check if the newly reached coordinate is itself a trigger point
         setTimeout(() => {
+            console.log(`Checking for auto progression after completing trace to index ${this.currentCoordinateIndex}`);
+            
             const autoProgression = this.checkAutoProgression(this.currentCoordinateIndex);
             if (autoProgression) {
                 console.log(`Newly reached coordinate ${this.currentCoordinateIndex} is also a trigger point!`);
@@ -786,17 +806,22 @@ class TracePathManager {
             
             // Check if this completes the stroke (reached the end)
             if (targetIndex >= this.currentStrokeCoords.length - 1) {
-                console.log(`Target index ${targetIndex} completes the stroke`);
+                console.log(`Target index ${targetIndex} completes the stroke - calling completeCurrentStroke()`);
                 setTimeout(() => {
                     this.completeCurrentStroke();
                 }, 300);
+            } else {
+                console.log(`Target index ${targetIndex} does not complete stroke (stroke has ${this.currentStrokeCoords.length} coordinates)`);
             }
         }, 100);
     }
 
     hasReachedStrokeCompletionPoint(coordIndex, progress) {
-        return coordIndex >= this.strokeCompletionCoordIndex && 
+        console.log(`hasReachedStrokeCompletionPoint called: coordIndex=${coordIndex}, progress=${progress}, completionIndex=${this.strokeCompletionCoordIndex}`);
+        const result = coordIndex >= this.strokeCompletionCoordIndex && 
                (coordIndex > this.strokeCompletionCoordIndex || progress >= 0.5);
+        console.log(`hasReachedStrokeCompletionPoint result: ${result}`);
+        return result;
     }
 
     autoCompleteCurrentStroke() {
