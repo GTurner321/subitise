@@ -357,22 +357,26 @@ class TraceNumberRenderer {
     }
 
     // Complete a stroke by showing the full traced path
-    completeStroke(strokeIndex) {
-        const coords = this.getStrokeCoordinates(strokeIndex);
-        if (coords && coords.length > 0) {
-            this.createTracedPath(strokeIndex, coords.length - 1);
-        }
-        
-        console.log(`Stroke ${strokeIndex} completed for number ${this.currentNumber}`);
-        
-        // Check if all strokes are complete
-        if (this.areAllStrokesComplete()) {
-            this.completeNumber();
-        } else {
-            // Move to next stroke
-            this.currentStroke++;
-        }
+completeStroke(strokeIndex) {
+    const coords = this.getStrokeCoordinates(strokeIndex);
+    if (coords && coords.length > 0) {
+        this.createTracedPath(strokeIndex, coords.length - 1);
     }
+    
+    console.log(`Stroke ${strokeIndex} completed for number ${this.currentNumber}`);
+    
+    // REMOVED: Automatic completion logic
+    // Let the TracePathManager handle when the number is complete
+    // 
+    // if (this.areAllStrokesComplete()) {
+    //     this.completeNumber();
+    // } else {
+    //     this.currentStroke++;
+    // }
+    
+    // Just increment the stroke counter
+    this.currentStroke++;
+}
 
 areAllStrokesComplete() {
     const totalStrokes = this.getStrokeCount();
