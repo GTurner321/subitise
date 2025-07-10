@@ -135,6 +135,19 @@ class TracePathManager {
     startNewStroke(strokeIndex) {
         console.log(`Starting new stroke ${strokeIndex} for number ${this.getCurrentNumber()}`);
         
+        // DEBUG: Check what the renderer thinks about strokes
+        const rendererNumber = this.renderer.currentNumber;
+        const totalStrokes = this.renderer.getStrokeCount();
+        console.log(`Renderer thinks current number is: ${rendererNumber}`);
+        console.log(`Renderer says total strokes: ${totalStrokes}`);
+        
+        // DEBUG: Check the config directly
+        const currentNumber = this.getCurrentNumber();
+        if (CONFIG.STROKE_DEFINITIONS[currentNumber]) {
+            const actualStrokeCount = CONFIG.STROKE_DEFINITIONS[currentNumber].strokes.length;
+            console.log(`Config says number ${currentNumber} has ${actualStrokeCount} strokes`);
+        }
+        
         this.currentStroke = strokeIndex;
         this.currentCoordinateIndex = 0;
         this.isTracing = false;
@@ -156,7 +169,6 @@ class TracePathManager {
         console.log(`Stroke ${strokeIndex} has ${this.currentStrokeCoords.length} coordinates`);
         
         // Get the original coordinates to verify start position
-        const currentNumber = this.getCurrentNumber();
         const numberConfig = CONFIG.STROKE_DEFINITIONS[currentNumber];
         if (numberConfig && numberConfig.strokes[strokeIndex]) {
             const originalCoords = numberConfig.strokes[strokeIndex].coordinates;
