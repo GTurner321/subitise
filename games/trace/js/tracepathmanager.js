@@ -813,9 +813,14 @@ class TracePathManager {
             this.renderer.createTracedPath(this.currentStroke, coords.length - 1);
         }
         
-        console.log(`Stroke ${this.currentStroke} completed for number ${this.getCurrentNumber()}`);
-        
+        const currentNumber = this.getCurrentNumber();
         const totalStrokes = this.renderer.getStrokeCount();
+        
+        console.log(`Stroke ${this.currentStroke} completed for number ${currentNumber}`);
+        console.log(`Total strokes for number ${currentNumber}: ${totalStrokes}`);
+        console.log(`Next stroke would be: ${this.currentStroke + 1}`);
+        console.log(`Current number in path manager: ${this.getCurrentNumber()}`);
+        console.log(`Current number in renderer: ${this.renderer.currentNumber}`);
         
         // Handle stroke transitions ourselves
         if (this.currentStroke + 1 < totalStrokes) {
@@ -824,6 +829,7 @@ class TracePathManager {
             }, 300);
         } else {
             // This was the final stroke - complete the number
+            console.log(`All strokes complete for number ${currentNumber}`);
             setTimeout(() => {
                 this.removeSlider();
             }, 300);
