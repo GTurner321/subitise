@@ -133,6 +133,8 @@ class TracePathManager {
     }
 
     startNewStroke(strokeIndex) {
+        console.log(`Starting new stroke ${strokeIndex} for number ${this.getCurrentNumber()}`);
+        
         this.currentStroke = strokeIndex;
         this.currentCoordinateIndex = 0;
         this.isTracing = false;
@@ -147,14 +149,18 @@ class TracePathManager {
         this.currentStrokeCoords = this.renderer.getStrokeCoordinates(strokeIndex);
         
         if (!this.currentStrokeCoords || this.currentStrokeCoords.length === 0) {
+            console.log(`No coordinates found for stroke ${strokeIndex}`);
             return false;
         }
+        
+        console.log(`Stroke ${strokeIndex} has ${this.currentStrokeCoords.length} coordinates`);
         
         this.setupStrokeCompletion();
         this.removeSlider();
         this.removeFrontMarker();
         
         const startPoint = this.currentStrokeCoords[0];
+        console.log(`Starting stroke ${strokeIndex} at position [${startPoint.x}, ${startPoint.y}]`);
         
         // Reset the trace line to the start of the new stroke
         this.renderer.updateTracingProgress(this.currentStroke, 0);
@@ -223,6 +229,8 @@ class TracePathManager {
         
         const tolerance = 1.0; // Very tight tolerance for exact matches
         
+        console.log(`Searching for coordinate [${targetCoord[0]}, ${targetCoord[1]}] in stroke ${this.currentStroke} starting from index ${searchFromIndex}`);
+        
         // Search forward from the specified index to avoid finding earlier duplicates
         for (let i = searchFromIndex; i < originalCoords.length; i++) {
             const coord = originalCoords[i];
@@ -230,10 +238,12 @@ class TracePathManager {
             const deltaY = Math.abs(coord.y - targetCoord[1]);
             
             if (deltaX <= tolerance && deltaY <= tolerance) {
+                console.log(`Found coordinate [${targetCoord[0]}, ${targetCoord[1]}] at index ${i} (actual: [${coord.x}, ${coord.y}])`);
                 return i;
             }
         }
         
+        console.log(`Coordinate [${targetCoord[0]}, ${targetCoord[1]}] not found in stroke ${this.currentStroke}`);
         return -1;
     }
 
@@ -254,20 +264,29 @@ class TracePathManager {
         
         const currentOriginalCoord = originalCoords[coordIndex];
         
+        console.log(`Checking auto progression for number ${currentNumber}, stroke ${this.currentStroke}, coord index ${coordIndex}: [${currentOriginalCoord.x}, ${currentOriginalCoord.y}]`);
+        
         // Check if current coordinate exactly matches any trigger
         for (const trigger of triggers) {
             const deltaX = Math.abs(currentOriginalCoord.x - trigger.trigger[0]);
             const deltaY = Math.abs(currentOriginalCoord.y - trigger.trigger[1]);
             
+            console.log(`  Comparing with trigger [${trigger.trigger[0]}, ${trigger.trigger[1]}]: delta = [${deltaX}, ${deltaY}]`);
+            
             // Must be exact match - user has traced to this coordinate
             if (deltaX <= 1.0 && deltaY <= 1.0) {
+                console.log(`  TRIGGER MATCH! Looking for jump target [${trigger.jumpTo[0]}, ${trigger.jumpTo[1]}]`);
+                
                 // Find the target coordinate index, searching AFTER the current position
                 const targetIndex = this.findOriginalCoordinateIndex(trigger.jumpTo, coordIndex + 1);
                 if (targetIndex !== -1) {
+                    console.log(`  Found target at index ${targetIndex}, section break: ${trigger.sectionBreak || false}`);
                     return {
                         targetIndex: targetIndex,
                         sectionBreak: trigger.sectionBreak || false
                     };
+                } else {
+                    console.log(`  Target coordinate not found in current stroke`);
                 }
             }
         }
@@ -667,7 +686,10 @@ class TracePathManager {
         }
         
         // Normal case: complete trace up to target coordinate within current stroke
-        if (targetIndex < 0 || targetIndex >= this.currentStrokeCoords.length) return;
+        if (targetIndex < 0 || targetIndex >= this.currentStrokeCoords.length) {
+            console.log(`Invalid target index ${targetIndex} for current stroke with ${this.currentStrokeCoords.length} coordinates`);
+            return;
+        }
         
         console.log(`Completing trace from index ${this.currentCoordinateIndex} up to index ${targetIndex}`);
         
@@ -689,8 +711,9 @@ class TracePathManager {
             this.slider.setAttribute('cy', targetCoord.y);
         }
         
-        // If this completes the stroke, handle stroke completion
+        // Check if this completes the stroke (reached the end)
         if (targetIndex >= this.currentStrokeCoords.length - 1) {
+            console.log(`Target index ${targetIndex} completes the stroke`);
             setTimeout(() => {
                 this.completeCurrentStroke();
             }, 300);
