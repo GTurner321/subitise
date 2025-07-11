@@ -195,22 +195,30 @@ class TraceGameController {
                 path.style.transition = 'opacity 1s ease-in-out';
             });
             
-            // After a brief delay, start fade in of the number
-            setTimeout(() => {
-                allPaths.forEach(path => {
-                    path.style.opacity = '1';
-                });
-            }, 100);
-            
-            // After fade completes, start tracing (no audio yet)
-            setTimeout(() => {
-                this.pathManager.startNewStroke(0);
-                
-                // Remove transitions after first use
-                allPaths.forEach(path => {
-                    path.style.transition = '';
-                });
-            }, 1200);
+// After fade completes, start tracing and give instruction
+setTimeout(() => {
+    this.pathManager.startNewStroke(0);
+    
+    // Play audio instruction for first number
+    if (this.audioEnabled) {
+        // Try to resume audio context first
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume().then(() => {
+                this.speakText(`Trace the number ${this.currentNumber}`);
+            }).catch(() => {
+                // Audio context couldn't resume - might need user interaction
+                console.log('Audio context suspended - waiting for user interaction');
+            });
+        } else {
+            this.speakText(`Trace the number ${this.currentNumber}`);
+        }
+    }
+    
+    // Remove transitions after first use
+    allPaths.forEach(path => {
+        path.style.transition = '';
+    });
+}, 1200);
             
         } else {
             // Normal behavior for all other numbers
