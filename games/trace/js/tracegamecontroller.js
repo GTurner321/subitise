@@ -182,10 +182,45 @@ class TraceGameController {
         this.updateNumberWordDisplay('');
         
         if (!this.renderer.renderNumber(this.currentNumber)) return;
-        this.pathManager.startNewStroke(0);
         
-        if (this.audioEnabled) {
-            this.speakText(`Trace the number ${this.currentNumber}`);
+        // Special handling for the first number (index 0) - fade in effect
+        if (this.currentNumberIndex === 0) {
+            // Start with the number invisible
+            if (this.renderer.svg) {
+                this.renderer.svg.style.opacity = '0';
+                this.renderer.svg.style.transition = 'opacity 2s ease-in-out';
+            }
+            
+            // Don't start path manager or give instruction yet
+            
+            // After a brief delay, start fade in
+            setTimeout(() => {
+                if (this.renderer.svg) {
+                    this.renderer.svg.style.opacity = '1';
+                }
+            }, 100);
+            
+            // After fade completes (2 seconds), start tracing and give instruction
+            setTimeout(() => {
+                this.pathManager.startNewStroke(0);
+                
+                if (this.audioEnabled) {
+                    this.speakText(`Trace the number ${this.currentNumber}`);
+                }
+                
+                // Remove transition after first use
+                if (this.renderer.svg) {
+                    this.renderer.svg.style.transition = '';
+                }
+            }, 2100); // 2 seconds fade + 100ms delay
+            
+        } else {
+            // Normal behavior for all other numbers (no fade, immediate instruction)
+            this.pathManager.startNewStroke(0);
+            
+            if (this.audioEnabled) {
+                this.speakText(`Trace the number ${this.currentNumber}`);
+            }
         }
     }
 
@@ -706,7 +741,17 @@ class TraceGameController {
             // Silent failure
         }
     }
-  
+
+    playFailureSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
     playFailureSound() {
         if (!this.audioEnabled || !this.audioContext) return;
         
