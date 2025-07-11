@@ -706,17 +706,7 @@ class TraceGameController {
             // Silent failure
         }
     }
-
-    playFailureSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
+  
     playFailureSound() {
         if (!this.audioEnabled || !this.audioContext) return;
         
