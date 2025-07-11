@@ -145,6 +145,7 @@ class TraceGameController {
     }
 
     startNewGame() {
+        this.removeGoButton(); // 👈 ADD THIS LINE AT THE TOP
         this.currentNumberIndex = 0;
         this.numbersCompleted = 0;
         this.gameComplete = false;
@@ -927,6 +928,7 @@ startGameAfterGoButton() {
     }
 
     destroy() {
+        this.removeGoButton(); // 👈 ADD THIS LINE AT THE TOP
         window.removeEventListener('resize', this.handleResize);
         document.removeEventListener('visibilitychange', this.handleVisibilityChange);
         
