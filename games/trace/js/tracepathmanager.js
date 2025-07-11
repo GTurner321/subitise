@@ -387,19 +387,34 @@ class TracePathManager {
     }
 
     showDirectionArrow() {
-        if (this.isDragging || !this.slider || this.currentCoordinateIndex >= this.currentStrokeCoords.length - 1) {
-            return; // Don't show arrow if dragging or at end of stroke
+        if (this.isDragging || !this.slider) {
+            return; // Don't show arrow if dragging or no slider
         }
 
-        // Get current position and next target position
+        // Get current position
         const currentPos = this.currentStrokeCoords[this.currentCoordinateIndex];
-        const nextPos = this.currentStrokeCoords[this.currentCoordinateIndex + 1];
-        
-        if (!currentPos || !nextPos) return;
+        if (!currentPos) return;
 
-        // Calculate direction vector from current to next position
-        const deltaX = nextPos.x - currentPos.x;
-        const deltaY = nextPos.y - currentPos.y;
+        // Calculate target position - try to get 5 coordinates ahead, but use what's available
+        let targetIndex = this.currentCoordinateIndex + 5;
+        const maxIndex = this.currentStrokeCoords.length - 1;
+        
+        // If we don't have 5 coordinates left, use the last coordinate
+        if (targetIndex > maxIndex) {
+            targetIndex = maxIndex;
+        }
+        
+        // Only skip showing arrow if we're literally at the very last coordinate
+        if (this.currentCoordinateIndex >= maxIndex) {
+            return;
+        }
+
+        const targetPos = this.currentStrokeCoords[targetIndex];
+        if (!targetPos) return;
+
+        // Calculate direction vector from current to target position
+        const deltaX = targetPos.x - currentPos.x;
+        const deltaY = targetPos.y - currentPos.y;
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
         
         if (distance === 0) return; // Avoid division by zero
