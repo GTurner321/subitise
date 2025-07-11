@@ -178,128 +178,172 @@ startNewNumber() {
         return;
     }
     
+    // Special handling for the very first number (index 0) - show GO button
+    if (this.currentNumberIndex === 0) {
+        console.log('First number - showing GO button for audio activation');
+        // Add a small delay to ensure SVG is ready
+        setTimeout(() => {
+            this.createGoButton();
+        }, 500);
+        return; // Exit here - the actual game start happens in startGameAfterGoButton()
+    }
+    
+    // Normal behavior for all other numbers (1-9)
     this.currentNumber = this.numbersSequence[this.currentNumberIndex];
     this.updateNumberWordDisplay('');
     
-    // Special handling for the first number (index 0) - fade in effect
-    if (this.currentNumberIndex === 0) {
-        // Render the number but start invisible
-        if (!this.renderer.renderNumber(this.currentNumber)) return;
-        
-        // Make all number paths invisible initially
-        const allPaths = this.renderer.svg.querySelectorAll('path');
-        allPaths.forEach(path => {
-            path.style.opacity = '0';
-            path.style.transition = 'opacity 1s ease-in-out';
-        });
-        
-        // After a brief delay, start fade in of the number
-        setTimeout(() => {
-            allPaths.forEach(path => {
-                path.style.opacity = '1';
-            });
-        }, 100);
-        
-        // After fade completes, start tracing and give instruction
-        setTimeout(() => {
-            this.pathManager.startNewStroke(0);
-            
-            // FIXED: Ensure audio context is resumed and add user interaction handler
-            if (this.audioEnabled) {
-                this.ensureAudioContextReady().then(() => {
-                    console.log('Audio context ready, speaking instruction for number', this.currentNumber);
-                    this.speakText(`Trace the number ${this.currentNumber}`);
-                }).catch(error => {
-                    console.log('Audio context not ready:', error);
-                    // Fallback: add click handler to activate audio on first user interaction
-                    this.addAudioActivationHandler();
-                });
-            }
-            
-            // Remove transitions after first use
-            allPaths.forEach(path => {
-                path.style.transition = '';
-            });
-        }, 1200);
-        
-    } else {
-        // Normal behavior for all other numbers
-        if (!this.renderer.renderNumber(this.currentNumber)) return;
-        this.pathManager.startNewStroke(0);
-        
-        if (this.audioEnabled) {
-            // For subsequent numbers, audio context should already be active
-            this.speakText(`Trace the number ${this.currentNumber}`);
-        }
+    if (!this.renderer.renderNumber(this.currentNumber)) return;
+    this.pathManager.startNewStroke(0);
+    
+    if (this.audioEnabled) {
+        // For subsequent numbers, audio context should already be active
+        this.speakText(`Trace the number ${this.currentNumber}`);
     }
 }
 
-// Add this new method to your TraceGameController class
-async ensureAudioContextReady() {
-    if (!this.audioContext) {
-        throw new Error('Audio context not initialized');
-    }
-    
-    // Check if audio context is suspended and try to resume it
-    if (this.audioContext.state === 'suspended') {
-        try {
-            await this.audioContext.resume();
-            console.log('Audio context resumed successfully');
-        } catch (error) {
-            console.log('Failed to resume audio context:', error);
-            throw error;
-        }
-    }
-    
-    // Test if speech synthesis is available and ready
-    if ('speechSynthesis' in window) {
-        // Wait a bit for voices to load if they haven't already
-        if (speechSynthesis.getVoices().length === 0) {
-            return new Promise((resolve, reject) => {
-                let attempts = 0;
-                const checkVoices = () => {
-                    attempts++;
-                    if (speechSynthesis.getVoices().length > 0) {
-                        resolve();
-                    } else if (attempts < 10) {
-                        setTimeout(checkVoices, 100);
-                    } else {
-                        reject(new Error('Voices not loaded'));
-                    }
-                };
-                checkVoices();
-            });
-        }
-    }
-    
-    return Promise.resolve();
-}
+// Updated GO Button implementation that uses CSS classes
+// Add these methods to your TraceGameController class
 
-// Add this new method to your TraceGameController class
-addAudioActivationHandler() {
-    const activateAudio = async () => {
+createGoButton() {
+    // Remove any existing go button
+    this.removeGoButton();
+    
+    // Create button container with CSS class only
+    this.goButtonContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    this.goButtonContainer.setAttribute('class', 'go-button-container go-button-entrance');
+    
+    // Button background circle - CSS class only
+    const buttonBg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    buttonBg.setAttribute('class', 'go-button-bg');
+    buttonBg.setAttribute('cx', CONFIG.NUMBER_CENTER_X);
+    buttonBg.setAttribute('cy', CONFIG.NUMBER_CENTER_Y);
+    buttonBg.setAttribute('r', 80);
+    
+    // Main button circle - CSS class only
+    const buttonCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    buttonCircle.setAttribute('class', 'go-button-main');
+    buttonCircle.setAttribute('cx', CONFIG.NUMBER_CENTER_X);
+    buttonCircle.setAttribute('cy', CONFIG.NUMBER_CENTER_Y);
+    buttonCircle.setAttribute('r', 60);
+    
+    // GO text - CSS class only
+    const goText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    goText.setAttribute('class', 'go-button-text');
+    goText.setAttribute('x', CONFIG.NUMBER_CENTER_X);
+    goText.setAttribute('y', CONFIG.NUMBER_CENTER_Y + 8);
+    goText.textContent = 'GO';
+    
+    // Assemble button - no inline animations, all handled by CSS
+    this.goButtonContainer.appendChild(buttonBg);
+    this.goButtonContainer.appendChild(buttonCircle);
+    this.goButtonContainer.appendChild(goText);
+    
+    // Add click/touch handlers
+    const handleGoButtonClick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('GO button clicked - activating audio and starting game');
+        
+        // Add visual feedback with CSS class
+        this.goButtonContainer.classList.add('go-button-clicked');
+        
         try {
+            // Activate audio context
             if (this.audioContext && this.audioContext.state === 'suspended') {
                 await this.audioContext.resume();
+                console.log('Audio context activated successfully');
             }
-            // Speak the current instruction
-            this.speakText(`Trace the number ${this.currentNumber}`);
             
-            // Remove the event listeners after first activation
-            document.removeEventListener('click', activateAudio);
-            document.removeEventListener('touchstart', activateAudio);
+            // Small delay for visual feedback, then animate exit
+            setTimeout(() => {
+                this.animateGoButtonExit(() => {
+                    // Start the actual game after button disappears
+                    this.startGameAfterGoButton();
+                });
+            }, 150);
             
-            console.log('Audio activated by user interaction');
         } catch (error) {
-            console.log('Failed to activate audio:', error);
+            console.error('Failed to activate audio:', error);
+            // Still start the game even if audio fails
+            setTimeout(() => {
+                this.animateGoButtonExit(() => {
+                    this.startGameAfterGoButton();
+                });
+            }, 150);
         }
     };
     
-    // Add event listeners for user interaction
-    document.addEventListener('click', activateAudio, { once: true });
-    document.addEventListener('touchstart', activateAudio, { once: true });
+    this.goButtonContainer.addEventListener('click', handleGoButtonClick);
+    this.goButtonContainer.addEventListener('touchstart', handleGoButtonClick, { passive: false });
     
-    console.log('Audio activation handlers added - audio will work after first user interaction');
+    // Add to SVG - no inline styling
+    this.renderer.svg.appendChild(this.goButtonContainer);
+    
+    console.log('GO button created and ready for user interaction');
+}
+
+removeGoButton() {
+    if (this.goButtonContainer) {
+        this.goButtonContainer.remove();
+        this.goButtonContainer = null;
+    }
+}
+
+animateGoButtonExit(callback) {
+    if (!this.goButtonContainer) {
+        if (callback) callback();
+        return;
+    }
+    
+    // Use only CSS class for exit animation
+    this.goButtonContainer.classList.add('go-button-exit');
+    
+    setTimeout(() => {
+        this.removeGoButton();
+        if (callback) callback();
+    }, 400);
+}
+
+startGameAfterGoButton() {
+    console.log('Starting game after GO button click');
+    
+    // Now start the first number with the original logic
+    this.currentNumber = this.numbersSequence[this.currentNumberIndex];
+    this.updateNumberWordDisplay('');
+    
+    // Render the number but start invisible
+    if (!this.renderer.renderNumber(this.currentNumber)) return;
+    
+    // Make all number paths invisible initially
+    const allPaths = this.renderer.svg.querySelectorAll('path');
+    allPaths.forEach(path => {
+        path.style.opacity = '0';
+        path.style.transition = 'opacity 1s ease-in-out';
+    });
+    
+    // After a brief delay, start fade in of the number
+    setTimeout(() => {
+        allPaths.forEach(path => {
+            path.style.opacity = '1';
+        });
+    }, 300); // Slightly longer delay after button exit
+    
+    // After fade completes, start tracing and give instruction
+    setTimeout(() => {
+        this.pathManager.startNewStroke(0);
+        
+        // Audio should now work since user clicked GO button
+        if (this.audioEnabled) {
+            console.log('Speaking instruction for number', this.currentNumber);
+            this.speakText(`Trace the number ${this.currentNumber}`);
+        }
+        
+        // Remove transitions after first use
+        allPaths.forEach(path => {
+            path.style.transition = '';
+        });
+    }, 1500); // Adjusted timing for smooth flow
 }
     
     startCurrentNumberOver() {
