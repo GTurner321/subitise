@@ -174,63 +174,70 @@ class TraceGameController {
         this.startNewNumber();
     }
 
-    startNewNumber() {
-        if (this.currentNumberIndex >= this.numbersSequence.length) {
-            this.completeGame();
-            return;
-        }
-        
-        this.currentNumber = this.numbersSequence[this.currentNumberIndex];
-        this.updateNumberWordDisplay('');
-        
-        // Special handling for the first number (index 0) - fade in effect
-        if (this.currentNumberIndex === 0) {
-            // Render the number but start invisible
-            if (!this.renderer.renderNumber(this.currentNumber)) return;
-            
-            // Make all number paths invisible initially
-            const allPaths = this.renderer.svg.querySelectorAll('path');
-            allPaths.forEach(path => {
-                path.style.opacity = '0';
-                path.style.transition = 'opacity 1s ease-in-out';
-            });
-            
-// After fade completes, start tracing and give instruction
-setTimeout(() => {
-    this.pathManager.startNewStroke(0);
+  startNewNumber() {
+    if (this.currentNumberIndex >= this.numbersSequence.length) {
+        this.completeGame();
+        return;
+    }
     
-    // Play audio instruction for first number
-    if (this.audioEnabled) {
-        // Try to resume audio context first
-        if (this.audioContext && this.audioContext.state === 'suspended') {
-            this.audioContext.resume().then(() => {
-                this.speakText(`Trace the number ${this.currentNumber}`);
-            }).catch(() => {
-                // Audio context couldn't resume - might need user interaction
-                console.log('Audio context suspended - waiting for user interaction');
+    this.currentNumber = this.numbersSequence[this.currentNumberIndex];
+    this.updateNumberWordDisplay('');
+    
+    // Special handling for the first number (index 0) - fade in effect
+    if (this.currentNumberIndex === 0) {
+        // Render the number but start invisible
+        if (!this.renderer.renderNumber(this.currentNumber)) return;
+        
+        // Make all number paths invisible initially
+        const allPaths = this.renderer.svg.querySelectorAll('path');
+        allPaths.forEach(path => {
+            path.style.opacity = '0';
+            path.style.transition = 'opacity 1s ease-in-out';
+        });
+        
+        // Start fade-in effect immediately
+        setTimeout(() => {
+            allPaths.forEach(path => {
+                path.style.opacity = '1';
             });
-        } else {
+        }, 100);
+        
+        // After fade completes, start tracing and give instruction
+        setTimeout(() => {
+            this.pathManager.startNewStroke(0);
+            
+            // Play audio instruction for first number
+            if (this.audioEnabled) {
+                // Try to resume audio context first
+                if (this.audioContext && this.audioContext.state === 'suspended') {
+                    this.audioContext.resume().then(() => {
+                        this.speakText(`Trace the number ${this.currentNumber}`);
+                    }).catch(() => {
+                        // Audio context couldn't resume - might need user interaction
+                        console.log('Audio context suspended - waiting for user interaction');
+                    });
+                } else {
+                    this.speakText(`Trace the number ${this.currentNumber}`);
+                }
+            }
+            
+            // Remove transitions after first use
+            allPaths.forEach(path => {
+                path.style.transition = '';
+            });
+        }, 1200);
+        
+    } else {
+        // Normal behavior for all other numbers
+        if (!this.renderer.renderNumber(this.currentNumber)) return;
+        this.pathManager.startNewStroke(0);
+        
+        if (this.audioEnabled) {
             this.speakText(`Trace the number ${this.currentNumber}`);
         }
     }
+}
     
-    // Remove transitions after first use
-    allPaths.forEach(path => {
-        path.style.transition = '';
-    });
-}, 1200);
-            
-        } else {
-            // Normal behavior for all other numbers
-            if (!this.renderer.renderNumber(this.currentNumber)) return;
-            this.pathManager.startNewStroke(0);
-            
-            if (this.audioEnabled) {
-                this.speakText(`Trace the number ${this.currentNumber}`);
-            }
-        }
-    }
-
     // Method to handle first touch on slider - activates audio
     handleFirstTouch() {
         if (!this.hasPlayedFirstAudio && this.currentNumberIndex === 0 && this.audioEnabled) {
