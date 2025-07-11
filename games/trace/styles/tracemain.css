@@ -473,3 +473,184 @@ body {
         border: 2px solid #000;
     }
 }
+
+/* GO Button Styles - Add this to your tracemain.css file */
+
+/* GO Button Container */
+.go-button-container {
+    cursor: pointer;
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));
+}
+
+.go-button-container:hover {
+    transform: scale(1.05);
+}
+
+.go-button-container:active {
+    transform: scale(0.95);
+}
+
+/* GO Button Background Circle */
+.go-button-bg {
+    fill: rgba(76, 175, 80, 0.2);
+    stroke: #4CAF50;
+    stroke-width: 3;
+    filter: drop-shadow(0 4px 8px rgba(76, 175, 80, 0.3));
+}
+
+/* GO Button Main Circle */
+.go-button-main {
+    fill: #4CAF50;
+    stroke: white;
+    stroke-width: 4;
+    filter: drop-shadow(0 6px 12px rgba(76, 175, 80, 0.4));
+}
+
+/* GO Button Text */
+.go-button-text {
+    fill: white;
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    font-size: 32px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    pointer-events: none;
+}
+
+/* Pulsing Animation for GO Button */
+@keyframes goButtonPulse {
+    0%, 100% {
+        r: 60;
+        stroke-width: 4;
+    }
+    50% {
+        r: 70;
+        stroke-width: 5;
+    }
+}
+
+@keyframes goButtonBgPulse {
+    0%, 100% {
+        r: 80;
+        fill-opacity: 0.2;
+    }
+    50% {
+        r: 85;
+        fill-opacity: 0.4;
+    }
+}
+
+/* Glow effect animation */
+@keyframes goButtonGlow {
+    0%, 100% {
+        filter: drop-shadow(0 6px 12px rgba(76, 175, 80, 0.4));
+    }
+    50% {
+        filter: drop-shadow(0 8px 20px rgba(76, 175, 80, 0.6));
+    }
+}
+
+/* Exit animation classes */
+.go-button-exit {
+    animation: goButtonExit 0.3s ease-out forwards;
+}
+
+@keyframes goButtonExit {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.3);
+        opacity: 0;
+    }
+}
+
+/* Enhanced hover effects for desktop */
+@media (hover: hover) {
+    .go-button-container:hover .go-button-main {
+        fill: #45a049;
+        animation: goButtonGlow 1s ease-in-out infinite;
+    }
+    
+    .go-button-container:hover .go-button-bg {
+        stroke: #45a049;
+        fill: rgba(69, 160, 73, 0.3);
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) {
+    .go-button-container {
+        transform: none;
+    }
+    
+    .go-button-container:active {
+        transform: scale(0.9);
+    }
+}
+
+/* Accessibility - High contrast mode */
+@media (prefers-contrast: high) {
+    .go-button-main {
+        stroke: #000;
+        stroke-width: 6;
+    }
+    
+    .go-button-bg {
+        stroke: #000;
+        stroke-width: 4;
+    }
+    
+    .go-button-text {
+        text-shadow: 2px 2px 0 #000;
+    }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .go-button-container {
+        transition: none;
+    }
+    
+    @keyframes goButtonPulse {
+        0%, 100% { r: 65; }
+    }
+    
+    @keyframes goButtonBgPulse {
+        0%, 100% { r: 82.5; }
+    }
+    
+    @keyframes goButtonGlow {
+        0%, 100% {
+            filter: drop-shadow(0 6px 12px rgba(76, 175, 80, 0.4));
+        }
+    }
+}
+
+/* Responsive sizing */
+@media (max-width: 768px) {
+    .go-button-text {
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .go-button-text {
+        font-size: 24px;
+    }
+    
+    .go-button-main {
+        stroke-width: 3;
+    }
+    
+    .go-button-bg {
+        stroke-width: 2;
+    }
+}
