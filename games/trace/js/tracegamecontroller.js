@@ -239,8 +239,18 @@ createGoButton() {
     this.goButtonContainer.appendChild(buttonCircle);
     this.goButtonContainer.appendChild(goText);
     
-    // Add click/touch handlers
+    // Flag to prevent multiple clicks
+    let isButtonClicked = false;
+    
+    // Single unified click handler
     const handleGoButtonClick = async (e) => {
+        // Prevent multiple clicks
+        if (isButtonClicked) {
+            console.log('GO button already clicked, ignoring');
+            return;
+        }
+        
+        isButtonClicked = true;
         e.preventDefault();
         e.stopPropagation();
         
@@ -248,6 +258,11 @@ createGoButton() {
         
         // Add visual feedback with CSS class
         this.goButtonContainer.classList.add('go-button-clicked');
+        
+        // Remove event listeners immediately to prevent double-clicks
+        this.goButtonContainer.removeEventListener('click', handleGoButtonClick);
+        this.goButtonContainer.removeEventListener('touchstart', handleGoButtonClick);
+        this.goButtonContainer.removeEventListener('pointerdown', handleGoButtonClick);
         
         try {
             // Activate audio context
@@ -275,15 +290,25 @@ createGoButton() {
         }
     };
     
-    this.goButtonContainer.addEventListener('click', handleGoButtonClick);
-    this.goButtonContainer.addEventListener('touchstart', handleGoButtonClick, { passive: false });
-    
-    // Add to SVG - no inline styling
+    // Add to SVG first
     this.renderer.svg.appendChild(this.goButtonContainer);
+    
+    // Add event listeners after a small delay to ensure button is ready
+    setTimeout(() => {
+        if (this.goButtonContainer) {
+            // Use modern pointer events for better touch/mouse compatibility
+            this.goButtonContainer.addEventListener('pointerdown', handleGoButtonClick, { passive: false });
+            
+            // Fallback for older browsers
+            this.goButtonContainer.addEventListener('click', handleGoButtonClick, { passive: false });
+            this.goButtonContainer.addEventListener('touchstart', handleGoButtonClick, { passive: false });
+            
+            console.log('GO button event listeners added');
+        }
+    }, 100);
     
     console.log('GO button created and ready for user interaction');
 }
-
 removeGoButton() {
     if (this.goButtonContainer) {
         this.goButtonContainer.remove();
