@@ -190,7 +190,7 @@ class TraceGameController {
             const allPaths = this.renderer.svg.querySelectorAll('path');
             allPaths.forEach(path => {
                 path.style.opacity = '0';
-                path.style.transition = 'opacity 2s ease-in-out';
+                path.style.transition = 'opacity 1s ease-in-out'; // Changed to 1 second
             });
             
             // After a brief delay, start fade in of the number
@@ -200,33 +200,24 @@ class TraceGameController {
                 });
             }, 100);
             
-            // After fade completes, start tracing and give instruction with extra delay for speech synthesis
+            // After fade completes, start tracing and give instruction
             setTimeout(() => {
                 this.pathManager.startNewStroke(0);
                 
-                // Extra delay and force speech synthesis to be ready
-                setTimeout(() => {
-                    if (this.audioEnabled) {
-                        if ('speechSynthesis' in window) {
-                            // Ensure speech synthesis is ready
-                            const voices = speechSynthesis.getVoices();
-                            if (voices.length === 0) {
-                                // Wait for voices to load
-                                speechSynthesis.addEventListener('voiceschanged', () => {
-                                    this.speakText(`Trace the number ${this.currentNumber}`);
-                                }, { once: true });
-                            } else {
-                                this.speakText(`Trace the number ${this.currentNumber}`);
-                            }
-                        }
-                    }
-                }, 500); // Extra 500ms delay for speech synthesis
+                // Give audio instruction - simplified approach
+                if (this.audioEnabled) {
+                    // Force a small delay and direct call
+                    setTimeout(() => {
+                        console.log('Attempting to speak: Trace the number', this.currentNumber); // Debug log
+                        this.speakText(`Trace the number ${this.currentNumber}`);
+                    }, 200);
+                }
                 
                 // Remove transitions after first use
                 allPaths.forEach(path => {
                     path.style.transition = '';
                 });
-            }, 2100); // 2 seconds fade + 100ms delay
+            }, 1200); // 1 second fade + 200ms delay
             
         } else {
             // Normal behavior for all other numbers
