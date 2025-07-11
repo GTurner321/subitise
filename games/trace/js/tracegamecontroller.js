@@ -25,6 +25,7 @@ class TraceGameController {
         
         this.audioContext = null;
         this.audioEnabled = CONFIG.AUDIO_ENABLED;
+        this.hasPlayedFirstAudio = false; // Track if first audio has been played
         
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
@@ -145,12 +146,12 @@ class TraceGameController {
     }
 
     startNewGame() {
-        this.removeGoButton(); // 👈 ADD THIS LINE AT THE TOP
         this.currentNumberIndex = 0;
         this.numbersCompleted = 0;
         this.gameComplete = false;
         this.isProcessingCompletion = false;
         this.playingBalloonGame = false;
+        this.hasPlayedFirstAudio = false; // Reset first audio flag
         
         this.balloons = [];
         this.fallingNumbers = [];
@@ -173,205 +174,74 @@ class TraceGameController {
         this.startNewNumber();
     }
 
-startNewNumber() {
-    if (this.currentNumberIndex >= this.numbersSequence.length) {
-        this.completeGame();
-        return;
-    }
-    
-    // Special handling for the very first number (index 0) - show GO button
-    if (this.currentNumberIndex === 0) {
-        console.log('First number - showing GO button for audio activation');
-        // Add a small delay to ensure SVG is ready
-        setTimeout(() => {
-            this.createGoButton();
-        }, 500);
-        return; // Exit here - the actual game start happens in startGameAfterGoButton()
-    }
-    
-    // Normal behavior for all other numbers (1-9)
-    this.currentNumber = this.numbersSequence[this.currentNumberIndex];
-    this.updateNumberWordDisplay('');
-    
-    if (!this.renderer.renderNumber(this.currentNumber)) return;
-    this.pathManager.startNewStroke(0);
-    
-    if (this.audioEnabled) {
-        // For subsequent numbers, audio context should already be active
-        this.speakText(`Trace the number ${this.currentNumber}`);
-    }
-}
-
-// Updated GO Button implementation that uses CSS classes
-// Add these methods to your TraceGameController class
-
-createGoButton() {
-    // Remove any existing go button
-    this.removeGoButton();
-    
-    // Create button container with CSS class only
-    this.goButtonContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    this.goButtonContainer.setAttribute('class', 'go-button-container go-button-entrance');
-    
-    // Button background circle - CSS class only
-    const buttonBg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    buttonBg.setAttribute('class', 'go-button-bg');
-    buttonBg.setAttribute('cx', CONFIG.NUMBER_CENTER_X);
-    buttonBg.setAttribute('cy', CONFIG.NUMBER_CENTER_Y);
-    buttonBg.setAttribute('r', 80);
-    
-    // Main button circle - CSS class only
-    const buttonCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    buttonCircle.setAttribute('class', 'go-button-main');
-    buttonCircle.setAttribute('cx', CONFIG.NUMBER_CENTER_X);
-    buttonCircle.setAttribute('cy', CONFIG.NUMBER_CENTER_Y);
-    buttonCircle.setAttribute('r', 60);
-    
-    // GO text - CSS class only
-    const goText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    goText.setAttribute('class', 'go-button-text');
-    goText.setAttribute('x', CONFIG.NUMBER_CENTER_X);
-    goText.setAttribute('y', CONFIG.NUMBER_CENTER_Y + 8);
-    goText.textContent = 'GO';
-    
-    // Assemble button - no inline animations, all handled by CSS
-    this.goButtonContainer.appendChild(buttonBg);
-    this.goButtonContainer.appendChild(buttonCircle);
-    this.goButtonContainer.appendChild(goText);
-    
-    // Flag to prevent multiple clicks
-    let isButtonClicked = false;
-    
-    // Single unified click handler
-    const handleGoButtonClick = async (e) => {
-        // Prevent multiple clicks
-        if (isButtonClicked) {
-            console.log('GO button already clicked, ignoring');
+    startNewNumber() {
+        if (this.currentNumberIndex >= this.numbersSequence.length) {
+            this.completeGame();
             return;
         }
         
-        isButtonClicked = true;
-        e.preventDefault();
-        e.stopPropagation();
+        this.currentNumber = this.numbersSequence[this.currentNumberIndex];
+        this.updateNumberWordDisplay('');
         
-        console.log('GO button clicked - activating audio and starting game');
-        
-        // Add visual feedback with CSS class
-        this.goButtonContainer.classList.add('go-button-clicked');
-        
-        // Remove event listeners immediately to prevent double-clicks
-        this.goButtonContainer.removeEventListener('click', handleGoButtonClick);
-        this.goButtonContainer.removeEventListener('touchstart', handleGoButtonClick);
-        this.goButtonContainer.removeEventListener('pointerdown', handleGoButtonClick);
-        
-        try {
-            // Activate audio context
-            if (this.audioContext && this.audioContext.state === 'suspended') {
-                await this.audioContext.resume();
-                console.log('Audio context activated successfully');
+        // Special handling for the first number (index 0) - fade in effect
+        if (this.currentNumberIndex === 0) {
+            // Render the number but start invisible
+            if (!this.renderer.renderNumber(this.currentNumber)) return;
+            
+            // Make all number paths invisible initially
+            const allPaths = this.renderer.svg.querySelectorAll('path');
+            allPaths.forEach(path => {
+                path.style.opacity = '0';
+                path.style.transition = 'opacity 1s ease-in-out';
+            });
+            
+            // After a brief delay, start fade in of the number
+            setTimeout(() => {
+                allPaths.forEach(path => {
+                    path.style.opacity = '1';
+                });
+            }, 100);
+            
+            // After fade completes, start tracing (no audio yet)
+            setTimeout(() => {
+                this.pathManager.startNewStroke(0);
+                
+                // Remove transitions after first use
+                allPaths.forEach(path => {
+                    path.style.transition = '';
+                });
+            }, 1200);
+            
+        } else {
+            // Normal behavior for all other numbers
+            if (!this.renderer.renderNumber(this.currentNumber)) return;
+            this.pathManager.startNewStroke(0);
+            
+            if (this.audioEnabled) {
+                this.speakText(`Trace the number ${this.currentNumber}`);
             }
-            
-            // Small delay for visual feedback, then animate exit
-            setTimeout(() => {
-                this.animateGoButtonExit(() => {
-                    // Start the actual game after button disappears
-                    this.startGameAfterGoButton();
-                });
-            }, 150);
-            
-        } catch (error) {
-            console.error('Failed to activate audio:', error);
-            // Still start the game even if audio fails
-            setTimeout(() => {
-                this.animateGoButtonExit(() => {
-                    this.startGameAfterGoButton();
-                });
-            }, 150);
         }
-    };
-    
-    // Add to SVG first
-    this.renderer.svg.appendChild(this.goButtonContainer);
-    
-    // Add event listeners after a small delay to ensure button is ready
-    setTimeout(() => {
-        if (this.goButtonContainer) {
-            // Use modern pointer events for better touch/mouse compatibility
-            this.goButtonContainer.addEventListener('pointerdown', handleGoButtonClick, { passive: false });
-            
-            // Fallback for older browsers
-            this.goButtonContainer.addEventListener('click', handleGoButtonClick, { passive: false });
-            this.goButtonContainer.addEventListener('touchstart', handleGoButtonClick, { passive: false });
-            
-            console.log('GO button event listeners added');
-        }
-    }, 100);
-    
-    console.log('GO button created and ready for user interaction');
-}
-removeGoButton() {
-    if (this.goButtonContainer) {
-        this.goButtonContainer.remove();
-        this.goButtonContainer = null;
     }
-}
 
-animateGoButtonExit(callback) {
-    if (!this.goButtonContainer) {
-        if (callback) callback();
-        return;
-    }
-    
-    // Use only CSS class for exit animation
-    this.goButtonContainer.classList.add('go-button-exit');
-    
-    setTimeout(() => {
-        this.removeGoButton();
-        if (callback) callback();
-    }, 400);
-}
-
-startGameAfterGoButton() {
-    console.log('Starting game after GO button click');
-    
-    // Now start the first number with the original logic
-    this.currentNumber = this.numbersSequence[this.currentNumberIndex];
-    this.updateNumberWordDisplay('');
-    
-    // Render the number but start invisible
-    if (!this.renderer.renderNumber(this.currentNumber)) return;
-    
-    // Make all number paths invisible initially
-    const allPaths = this.renderer.svg.querySelectorAll('path');
-    allPaths.forEach(path => {
-        path.style.opacity = '0';
-        path.style.transition = 'opacity 1s ease-in-out';
-    });
-    
-    // After a brief delay, start fade in of the number
-    setTimeout(() => {
-        allPaths.forEach(path => {
-            path.style.opacity = '1';
-        });
-    }, 300); // Slightly longer delay after button exit
-    
-    // After fade completes, start tracing and give instruction
-    setTimeout(() => {
-        this.pathManager.startNewStroke(0);
-        
-        // Audio should now work since user clicked GO button
-        if (this.audioEnabled) {
-            console.log('Speaking instruction for number', this.currentNumber);
-            this.speakText(`Trace the number ${this.currentNumber}`);
+    // Method to handle first touch on slider - activates audio
+    handleFirstTouch() {
+        if (!this.hasPlayedFirstAudio && this.currentNumberIndex === 0 && this.audioEnabled) {
+            this.hasPlayedFirstAudio = true;
+            
+            // Activate audio context if needed
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                this.audioContext.resume().then(() => {
+                    console.log('Audio context activated on first touch');
+                    this.speakText(`Continue to trace the number ${this.currentNumber}`);
+                }).catch(error => {
+                    console.log('Failed to resume audio context:', error);
+                });
+            } else {
+                this.speakText(`Continue to trace the number ${this.currentNumber}`);
+            }
         }
-        
-        // Remove transitions after first use
-        allPaths.forEach(path => {
-            path.style.transition = '';
-        });
-    }, 1500); // Adjusted timing for smooth flow
-}
-    
+    }
+
     startCurrentNumberOver() {
         this.renderer.renderNumber(this.currentNumber);
         this.pathManager.startNewStroke(0);
@@ -866,29 +736,29 @@ startGameAfterGoButton() {
         }
     }
 
-    playCompletionSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
+playCompletionSound() {
+    if (!this.audioEnabled || !this.audioContext) return;
+    
+    try {
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
         
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
-            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
-            
-            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.5);
-        } catch (error) {
-            // Silent failure
-        }
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
+        oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
+        
+        gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+        
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + 0.5);
+    } catch (error) {
+        // Silent failure
     }
+}
 
     playFailureSound() {
         if (!this.audioEnabled || !this.audioContext) return;
@@ -953,7 +823,6 @@ startGameAfterGoButton() {
     }
 
     destroy() {
-        this.removeGoButton(); // 👈 ADD THIS LINE AT THE TOP
         window.removeEventListener('resize', this.handleResize);
         document.removeEventListener('visibilitychange', this.handleVisibilityChange);
         
@@ -978,14 +847,22 @@ startGameAfterGoButton() {
     }
 }
 
+// Game initialization and cleanup
 document.addEventListener('DOMContentLoaded', () => {
+    // Handle page visibility changes (tab switching, minimizing, etc.)
     document.addEventListener('visibilitychange', () => {
-        if (window.traceGame) window.traceGame.handleVisibilityChange();
+        if (window.traceGame) {
+            window.traceGame.handleVisibilityChange();
+        }
     });
     
+    // Initialize the trace game
     window.traceGame = new TraceGameController();
 });
 
+// Clean up resources when page is about to unload
 window.addEventListener('beforeunload', () => {
-    if (window.traceGame) window.traceGame.destroy();
+    if (window.traceGame) {
+        window.traceGame.destroy();
+    }
 });
