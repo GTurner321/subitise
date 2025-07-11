@@ -635,36 +635,40 @@ class TracePathManager {
         }
     }
 
-    handleStart(event) {
-        event.preventDefault();
-        
-        const point = this.getEventPoint(event);
-        if (!point) return;
-        
-        const nearSlider = this.isPointNearSlider(point);
+handleStart(event) {
+    event.preventDefault();
+    
+    const point = this.getEventPoint(event);
+    if (!point) return;
+    
+    const nearSlider = this.isPointNearSlider(point);
 
     if (nearSlider) {
+        // Call the game controller's handleFirstTouch method for audio activation
+        if (window.traceGame && typeof window.traceGame.handleFirstTouch === 'function') {
+            window.traceGame.handleFirstTouch();
+        }
         
-            this.isDragging = true;
-            this.isTracing = true;
-            this.stopCatchUpAnimation();
-            this.clearArrowTimer(); // Hide arrow when starting to drag
-            
-            if (this.slider) {
-                this.slider.style.opacity = '0';
-                const animate = this.slider.querySelector('animate');
-                if (animate) animate.remove();
-            }
-            
-            const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
-            if (currentCoord) {
-                this.createFrontMarker(currentCoord);
-                this.frontMarkerCoordIndex = this.currentCoordinateIndex;
-                this.frontMarkerProgress = 0;
-            }
+        this.isDragging = true;
+        this.isTracing = true;
+        this.stopCatchUpAnimation();
+        this.clearArrowTimer(); // Hide arrow when starting to drag
+        
+        if (this.slider) {
+            this.slider.style.opacity = '0';
+            const animate = this.slider.querySelector('animate');
+            if (animate) animate.remove();
+        }
+        
+        const currentCoord = this.currentStrokeCoords[this.currentCoordinateIndex];
+        if (currentCoord) {
+            this.createFrontMarker(currentCoord);
+            this.frontMarkerCoordIndex = this.currentCoordinateIndex;
+            this.frontMarkerProgress = 0;
         }
     }
-
+}
+    
     handleMove(event) {
         if (!this.isDragging || !this.isTracing) return;
         
