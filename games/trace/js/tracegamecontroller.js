@@ -181,41 +181,56 @@ class TraceGameController {
         this.currentNumber = this.numbersSequence[this.currentNumberIndex];
         this.updateNumberWordDisplay('');
         
-        if (!this.renderer.renderNumber(this.currentNumber)) return;
-        
         // Special handling for the first number (index 0) - fade in effect
         if (this.currentNumberIndex === 0) {
-            // Start with the number invisible
-            if (this.renderer.svg) {
-                this.renderer.svg.style.opacity = '0';
-                this.renderer.svg.style.transition = 'opacity 2s ease-in-out';
-            }
+            // Render the number but start invisible
+            if (!this.renderer.renderNumber(this.currentNumber)) return;
             
-            // Don't start path manager or give instruction yet
+            // Make all number paths invisible initially
+            const allPaths = this.renderer.svg.querySelectorAll('path');
+            allPaths.forEach(path => {
+                path.style.opacity = '0';
+                path.style.transition = 'opacity 2s ease-in-out';
+            });
             
-            // After a brief delay, start fade in
+            // After a brief delay, start fade in of the number
             setTimeout(() => {
-                if (this.renderer.svg) {
-                    this.renderer.svg.style.opacity = '1';
-                }
+                allPaths.forEach(path => {
+                    path.style.opacity = '1';
+                });
             }, 100);
             
-            // After fade completes (2 seconds), start tracing and give instruction
+            // After fade completes, start tracing and give instruction with extra delay for speech synthesis
             setTimeout(() => {
                 this.pathManager.startNewStroke(0);
                 
-                if (this.audioEnabled) {
-                    this.speakText(`Trace the number ${this.currentNumber}`);
-                }
+                // Extra delay and force speech synthesis to be ready
+                setTimeout(() => {
+                    if (this.audioEnabled) {
+                        if ('speechSynthesis' in window) {
+                            // Ensure speech synthesis is ready
+                            const voices = speechSynthesis.getVoices();
+                            if (voices.length === 0) {
+                                // Wait for voices to load
+                                speechSynthesis.addEventListener('voiceschanged', () => {
+                                    this.speakText(`Trace the number ${this.currentNumber}`);
+                                }, { once: true });
+                            } else {
+                                this.speakText(`Trace the number ${this.currentNumber}`);
+                            }
+                        }
+                    }
+                }, 500); // Extra 500ms delay for speech synthesis
                 
-                // Remove transition after first use
-                if (this.renderer.svg) {
-                    this.renderer.svg.style.transition = '';
-                }
+                // Remove transitions after first use
+                allPaths.forEach(path => {
+                    path.style.transition = '';
+                });
             }, 2100); // 2 seconds fade + 100ms delay
             
         } else {
-            // Normal behavior for all other numbers (no fade, immediate instruction)
+            // Normal behavior for all other numbers
+            if (!this.renderer.renderNumber(this.currentNumber)) return;
             this.pathManager.startNewStroke(0);
             
             if (this.audioEnabled) {
@@ -742,6 +757,16 @@ class TraceGameController {
         }
     }
 
+    playFailureSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
     playFailureSound() {
         if (!this.audioEnabled || !this.audioContext) return;
         
