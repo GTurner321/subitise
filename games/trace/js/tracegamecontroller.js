@@ -752,16 +752,6 @@ class TraceGameController {
             oscillator.connect(gainNode);
             gainNode.connect(this.audioContext.destination);
             
-    playFailureSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
             oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
             
