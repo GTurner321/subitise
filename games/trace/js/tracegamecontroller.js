@@ -172,64 +172,136 @@ class TraceGameController {
         this.startNewNumber();
     }
 
-    startNewNumber() {
-        if (this.currentNumberIndex >= this.numbersSequence.length) {
-            this.completeGame();
-            return;
-        }
+startNewNumber() {
+    if (this.currentNumberIndex >= this.numbersSequence.length) {
+        this.completeGame();
+        return;
+    }
+    
+    this.currentNumber = this.numbersSequence[this.currentNumberIndex];
+    this.updateNumberWordDisplay('');
+    
+    // Special handling for the first number (index 0) - fade in effect
+    if (this.currentNumberIndex === 0) {
+        // Render the number but start invisible
+        if (!this.renderer.renderNumber(this.currentNumber)) return;
         
-        this.currentNumber = this.numbersSequence[this.currentNumberIndex];
-        this.updateNumberWordDisplay('');
+        // Make all number paths invisible initially
+        const allPaths = this.renderer.svg.querySelectorAll('path');
+        allPaths.forEach(path => {
+            path.style.opacity = '0';
+            path.style.transition = 'opacity 1s ease-in-out';
+        });
         
-        // Special handling for the first number (index 0) - fade in effect
-        if (this.currentNumberIndex === 0) {
-            // Render the number but start invisible
-            if (!this.renderer.renderNumber(this.currentNumber)) return;
-            
-            // Make all number paths invisible initially
-            const allPaths = this.renderer.svg.querySelectorAll('path');
+        // After a brief delay, start fade in of the number
+        setTimeout(() => {
             allPaths.forEach(path => {
-                path.style.opacity = '0';
-                path.style.transition = 'opacity 1s ease-in-out'; // Changed to 1 second
+                path.style.opacity = '1';
             });
-            
-            // After a brief delay, start fade in of the number
-            setTimeout(() => {
-                allPaths.forEach(path => {
-                    path.style.opacity = '1';
-                });
-            }, 100);
-            
-            // After fade completes, start tracing and give instruction
-            setTimeout(() => {
-                this.pathManager.startNewStroke(0);
-                
-                // Give audio instruction - simplified approach
-                if (this.audioEnabled) {
-                    // Force a small delay and direct call
-                    setTimeout(() => {
-                        console.log('Attempting to speak: Trace the number', this.currentNumber); // Debug log
-                        this.speakText(`Trace the number ${this.currentNumber}`);
-                    }, 200);
-                }
-                
-                // Remove transitions after first use
-                allPaths.forEach(path => {
-                    path.style.transition = '';
-                });
-            }, 1200); // 1 second fade + 200ms delay
-            
-        } else {
-            // Normal behavior for all other numbers
-            if (!this.renderer.renderNumber(this.currentNumber)) return;
+        }, 100);
+        
+        // After fade completes, start tracing and give instruction
+        setTimeout(() => {
             this.pathManager.startNewStroke(0);
             
+            // FIXED: Ensure audio context is resumed and add user interaction handler
             if (this.audioEnabled) {
-                this.speakText(`Trace the number ${this.currentNumber}`);
+                this.ensureAudioContextReady().then(() => {
+                    console.log('Audio context ready, speaking instruction for number', this.currentNumber);
+                    this.speakText(`Trace the number ${this.currentNumber}`);
+                }).catch(error => {
+                    console.log('Audio context not ready:', error);
+                    // Fallback: add click handler to activate audio on first user interaction
+                    this.addAudioActivationHandler();
+                });
             }
+            
+            // Remove transitions after first use
+            allPaths.forEach(path => {
+                path.style.transition = '';
+            });
+        }, 1200);
+        
+    } else {
+        // Normal behavior for all other numbers
+        if (!this.renderer.renderNumber(this.currentNumber)) return;
+        this.pathManager.startNewStroke(0);
+        
+        if (this.audioEnabled) {
+            // For subsequent numbers, audio context should already be active
+            this.speakText(`Trace the number ${this.currentNumber}`);
         }
     }
+}
 
+// Add this new method to your TraceGameController class
+async ensureAudioContextReady() {
+    if (!this.audioContext) {
+        throw new Error('Audio context not initialized');
+    }
+    
+    // Check if audio context is suspended and try to resume it
+    if (this.audioContext.state === 'suspended') {
+        try {
+            await this.audioContext.resume();
+            console.log('Audio context resumed successfully');
+        } catch (error) {
+            console.log('Failed to resume audio context:', error);
+            throw error;
+        }
+    }
+    
+    // Test if speech synthesis is available and ready
+    if ('speechSynthesis' in window) {
+        // Wait a bit for voices to load if they haven't already
+        if (speechSynthesis.getVoices().length === 0) {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const checkVoices = () => {
+                    attempts++;
+                    if (speechSynthesis.getVoices().length > 0) {
+                        resolve();
+                    } else if (attempts < 10) {
+                        setTimeout(checkVoices, 100);
+                    } else {
+                        reject(new Error('Voices not loaded'));
+                    }
+                };
+                checkVoices();
+            });
+        }
+    }
+    
+    return Promise.resolve();
+}
+
+// Add this new method to your TraceGameController class
+addAudioActivationHandler() {
+    const activateAudio = async () => {
+        try {
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+            }
+            // Speak the current instruction
+            this.speakText(`Trace the number ${this.currentNumber}`);
+            
+            // Remove the event listeners after first activation
+            document.removeEventListener('click', activateAudio);
+            document.removeEventListener('touchstart', activateAudio);
+            
+            console.log('Audio activated by user interaction');
+        } catch (error) {
+            console.log('Failed to activate audio:', error);
+        }
+    };
+    
+    // Add event listeners for user interaction
+    document.addEventListener('click', activateAudio, { once: true });
+    document.addEventListener('touchstart', activateAudio, { once: true });
+    
+    console.log('Audio activation handlers added - audio will work after first user interaction');
+}
+    
     startCurrentNumberOver() {
         this.renderer.renderNumber(this.currentNumber);
         this.pathManager.startNewStroke(0);
