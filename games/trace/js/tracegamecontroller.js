@@ -717,6 +717,16 @@ class TraceGameController {
             oscillator.connect(gainNode);
             gainNode.connect(this.audioContext.destination);
             
+    playFailureSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
             oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
             
@@ -748,13 +758,7 @@ class TraceGameController {
             currentIndex: this.currentNumberIndex,
             totalNumbers: this.numbersSequence.length,
             completed: this.numbersCompleted,
-    getCurrentProgress() {
-        return {
-            currentNumber: this.currentNumber,
-            currentIndex: this.currentNumberIndex,
-            totalNumbers: this.numbersSequence.length,
-            completed: this.numbersCompleted,
-            progress: this.numbersCompleted / 10 // Using 10 instead of CONFIG.NUMBERS_TO_COMPLETE to avoid potential undefined reference
+            progress: this.numbersCompleted / 10
         };
     }
 
