@@ -483,11 +483,28 @@ body {
     filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));
 }
 
+/* Entrance animation */
+.go-button-entrance {
+    animation: goButtonEntrance 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+@keyframes goButtonEntrance {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 .go-button-container:hover {
     transform: scale(1.05);
 }
 
-.go-button-container:active {
+.go-button-container:active,
+.go-button-clicked {
     transform: scale(0.95);
 }
 
@@ -497,6 +514,7 @@ body {
     stroke: #4CAF50;
     stroke-width: 3;
     filter: drop-shadow(0 4px 8px rgba(76, 175, 80, 0.3));
+    animation: goButtonBgPulse 1.5s ease-in-out infinite;
 }
 
 /* GO Button Main Circle */
@@ -505,6 +523,7 @@ body {
     stroke: white;
     stroke-width: 4;
     filter: drop-shadow(0 6px 12px rgba(76, 175, 80, 0.4));
+    animation: goButtonPulse 1.5s ease-in-out infinite;
 }
 
 /* GO Button Text */
@@ -515,7 +534,6 @@ body {
     font-size: 32px;
     text-anchor: middle;
     dominant-baseline: middle;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     pointer-events: none;
 }
 
