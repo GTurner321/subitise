@@ -656,7 +656,7 @@ class TraceGameController {
         }
     }
 
-    speakTextWithCallback(text, callback = null) {
+    speakTextWithCallback(text, callback) {
         if (!this.audioEnabled) {
             if (callback) callback();
             return;
