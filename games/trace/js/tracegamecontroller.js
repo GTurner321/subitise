@@ -754,7 +754,7 @@ class TraceGameController {
             currentIndex: this.currentNumberIndex,
             totalNumbers: this.numbersSequence.length,
             completed: this.numbersCompleted,
-            progress: this.numbersCompleted / CONFIG.NUMBERS_TO_COMPLETE
+            progress: this.numbersCompleted / 10 // Using 10 instead of CONFIG.NUMBERS_TO_COMPLETE to avoid potential undefined reference
         };
     }
 
