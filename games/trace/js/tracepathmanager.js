@@ -642,8 +642,13 @@ class TracePathManager {
         if (!point) return;
         
         const nearSlider = this.isPointNearSlider(point);
-        
-        if (nearSlider) {
+
+    if (nearSlider) {
+        // ADD THIS LINE:
+        if (window.traceGame && typeof window.traceGame.handleFirstTouch === 'function') {
+            window.traceGame.handleFirstTouch();
+        }
+    
             this.isDragging = true;
             this.isTracing = true;
             this.stopCatchUpAnimation();
