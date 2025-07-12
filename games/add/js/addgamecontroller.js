@@ -32,7 +32,7 @@ class AddGameController {
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
-        this.inactivityDuration = 10000; // 10 seconds
+        this.inactivityDuration = 15000; // 15 seconds
         
         // Keyboard two-digit handling for "10"
         this.keyboardBuffer = '';
@@ -511,7 +511,7 @@ class AddGameController {
         setTimeout(() => {
             if (this.sumsCompleted === 0) {
                 // First sum
-                this.speakText('Complete the three numbers in the addition sum. How many pictures are on the left side? How many pictures are on the right side? What is the total?');
+                this.speakText('Complete the three numbers in the addition sum.');
             } else if (this.sumsCompleted === 1) {
                 // Second sum
                 this.speakText('Try again and complete the sum');
