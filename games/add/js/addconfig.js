@@ -32,8 +32,6 @@ ICONS: [
     'fas fa-bug',
     'fas fa-horse',
     'fas fa-hippo',
-    'fas fa-kiwi-bird',
-    'fas fa-dragon',
     
     // Home & Furniture
     'fas fa-home',
@@ -81,7 +79,6 @@ ICONS: [
     'fas fa-glasses',
     'fas fa-binoculars',
     'fas fa-tshirt',
-    'fas fa-stopwatch',
     
     // Fantasy & Fun
     'fas fa-ghost',
