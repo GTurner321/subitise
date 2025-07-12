@@ -33,10 +33,10 @@ class Bear {
         this.isActive = true;
         this.bearCount = 0;
         
-        // Set up auto-stop timer (1 minute)
+        // Set up auto-stop timer (1 minute) - stops spawning but keeps bears
         this.autoStopTimeout = setTimeout(() => {
-            console.log('Auto-stopping bear celebration after 1 minute');
-            this.stopCelebration();
+            console.log('Auto-stopping bear spawning after 1 minute (bears remain on screen)');
+            this.stopSpawning();
         }, this.maxDuration);
         
         // First bear - right side of modal (after 3 seconds)
@@ -180,8 +180,25 @@ class Bear {
         return Math.random() * (maxRotation - minRotation) + minRotation;
     }
 
+    stopSpawning() {
+        console.log('Stopping bear spawning (bears remain on screen)');
+        this.isActive = false;
+        
+        // Clear auto-stop timeout
+        if (this.autoStopTimeout) {
+            clearTimeout(this.autoStopTimeout);
+            this.autoStopTimeout = null;
+        }
+        
+        // Clear all timeouts to stop spawning new bears
+        this.timeouts.forEach(timeout => clearTimeout(timeout));
+        this.timeouts = [];
+        
+        // Bears remain on screen - no removal code here
+    }
+
     stopCelebration() {
-        console.log('Stopping bear celebration');
+        console.log('Stopping bear celebration and clearing all bears');
         this.isActive = false;
         
         // Clear auto-stop timeout
