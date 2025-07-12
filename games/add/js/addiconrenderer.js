@@ -50,21 +50,33 @@ class AddIconRenderer {
     generateGridPositions(count, container) {
         const containerRect = container.getBoundingClientRect();
         
-        // Calculate usable area (90% of width and height)
-        const usableWidth = containerRect.width * 0.9;
-        const usableHeight = (containerRect.height - 120) * 0.9; // Subtract sum row space
+        // Increased margins: 15% left/right, 12% top/bottom
+        const marginHorizontal = 0.15;
+        const marginVertical = 0.12;
         
-        // Calculate cell dimensions for 5x5 grid
-        const cellWidth = usableWidth / 5;
-        const cellHeight = usableHeight / 5;
+        // Calculate usable area with larger margins
+        const usableWidth = containerRect.width * (1 - 2 * marginHorizontal);
+        const usableHeight = (containerRect.height - 120) * (1 - 2 * marginVertical); // Subtract sum row space
         
-        // Calculate starting position (5% margin)
-        const startX = containerRect.width * 0.05;
-        const startY = containerRect.height * 0.05;
+        // Calculate cell dimensions for 4x4 grid with buffers
+        const gridSize = 4;
+        const bufferRatio = 0.15; // 15% buffer between cells
         
-        // Create array of all 25 grid positions (0-24)
+        // Cell size includes the buffer space
+        const cellWidth = usableWidth / gridSize;
+        const cellHeight = usableHeight / gridSize;
+        
+        // Actual icon placement area within each cell (excluding buffer)
+        const iconAreaWidth = cellWidth * (1 - bufferRatio);
+        const iconAreaHeight = cellHeight * (1 - bufferRatio);
+        
+        // Calculate starting position with larger margins
+        const startX = containerRect.width * marginHorizontal;
+        const startY = containerRect.height * marginVertical;
+        
+        // Create array of all 16 grid positions (0-15) for 4x4 grid
         const allPositions = [];
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < 16; i++) {
             allPositions.push(i);
         }
         
@@ -77,83 +89,74 @@ class AddIconRenderer {
         
         // Convert grid numbers to actual coordinates
         const positions = selectedPositions.map(gridPos => {
-            const row = Math.floor(gridPos / 5);
-            const col = gridPos % 5;
+            const row = Math.floor(gridPos / gridSize);
+            const col = gridPos % gridSize;
             
             // Calculate center of grid cell
-            const centerX = startX + (col * cellWidth) + (cellWidth / 2);
-            const centerY = startY + (row * cellHeight) + (cellHeight / 2);
+            const cellCenterX = startX + (col * cellWidth) + (cellWidth / 2);
+            const cellCenterY = startY + (row * cellHeight) + (cellHeight / 2);
             
-            // Choose random offset magnitude (10%, 20%, 30%, or 40%)
-            const offsetMagnitudes = [0.1, 0.2, 0.3, 0.4];
-            const offsetPercent = offsetMagnitudes[Math.floor(Math.random() * offsetMagnitudes.length)];
+            // More generous random offset - up to 60% of the icon area
+            const maxOffsetPercent = 0.6;
+            const maxOffsetX = iconAreaWidth * maxOffsetPercent / 2;
+            const maxOffsetY = iconAreaHeight * maxOffsetPercent / 2;
             
-            // Calculate actual offset distances
-            const maxOffsetX = cellWidth * offsetPercent;
-            const maxOffsetY = cellHeight * offsetPercent;
+            // Generate random offset in any direction
+            const offsetX = (Math.random() - 0.5) * 2 * maxOffsetX;
+            const offsetY = (Math.random() - 0.5) * 2 * maxOffsetY;
             
-            // Try to apply random offset, checking adjacent cells
-            let finalOffsetX = 0;
-            let finalOffsetY = 0;
-            
-            // Generate random offset direction
-            const offsetX = (Math.random() - 0.5) * maxOffsetX;
-            const offsetY = (Math.random() - 0.5) * maxOffsetY;
-            
-            // Check if this offset would bring us closer to an occupied adjacent cell
-            const canOffsetX = this.canOffsetInDirection(gridPos, offsetX > 0 ? 'right' : 'left', occupiedPositions);
-            const canOffsetY = this.canOffsetInDirection(gridPos, offsetY > 0 ? 'down' : 'up', occupiedPositions);
-            
-            // Apply offsets only if safe
-            if (canOffsetX) {
-                finalOffsetX = offsetX;
-            }
-            if (canOffsetY) {
-                finalOffsetY = offsetY;
-            }
+            // Check if offset would move icon too close to adjacent occupied cells
+            const finalOffsetX = this.constrainOffset(gridPos, offsetX, 'horizontal', occupiedPositions, maxOffsetX);
+            const finalOffsetY = this.constrainOffset(gridPos, offsetY, 'vertical', occupiedPositions, maxOffsetY);
             
             // Convert from center position to top-left for CSS positioning
             const iconSize = 100; // 5rem ≈ 80px, but we use 100px for safety
             const iconRadius = iconSize / 2;
             
             return {
-                x: centerX + finalOffsetX - iconRadius,
-                y: centerY + finalOffsetY - iconRadius
+                x: cellCenterX + finalOffsetX - iconRadius,
+                y: cellCenterY + finalOffsetY - iconRadius
             };
         });
         
         return positions;
     }
 
-    canOffsetInDirection(gridPos, direction, occupiedPositions) {
-        const row = Math.floor(gridPos / 5);
-        const col = gridPos % 5;
+    constrainOffset(gridPos, offset, direction, occupiedPositions, maxOffset) {
+        const gridSize = 4;
+        const row = Math.floor(gridPos / gridSize);
+        const col = gridPos % gridSize;
         
-        let adjacentPos;
+        let adjacentPositions = [];
         
-        switch (direction) {
-            case 'left':
-                if (col === 0) return true; // Edge of grid, safe to offset
-                adjacentPos = row * 5 + (col - 1);
-                break;
-            case 'right':
-                if (col === 4) return true; // Edge of grid, safe to offset
-                adjacentPos = row * 5 + (col + 1);
-                break;
-            case 'up':
-                if (row === 0) return true; // Edge of grid, safe to offset
-                adjacentPos = (row - 1) * 5 + col;
-                break;
-            case 'down':
-                if (row === 4) return true; // Edge of grid, safe to offset
-                adjacentPos = (row + 1) * 5 + col;
-                break;
-            default:
-                return false;
+        if (direction === 'horizontal') {
+            // Check left and right neighbors
+            if (offset < 0 && col > 0) { // Moving left
+                adjacentPositions.push(row * gridSize + (col - 1));
+            }
+            if (offset > 0 && col < gridSize - 1) { // Moving right
+                adjacentPositions.push(row * gridSize + (col + 1));
+            }
+        } else { // vertical
+            // Check up and down neighbors
+            if (offset < 0 && row > 0) { // Moving up
+                adjacentPositions.push((row - 1) * gridSize + col);
+            }
+            if (offset > 0 && row < gridSize - 1) { // Moving down
+                adjacentPositions.push((row + 1) * gridSize + col);
+            }
         }
         
-        // Return true if adjacent cell is empty (safe to offset toward it)
-        return !occupiedPositions.has(adjacentPos);
+        // Check if any adjacent positions are occupied
+        const hasOccupiedAdjacent = adjacentPositions.some(pos => occupiedPositions.has(pos));
+        
+        if (hasOccupiedAdjacent) {
+            // Reduce offset to prevent icons from getting too close
+            return offset * 0.3; // Reduce to 30% of original offset
+        }
+        
+        // If at edge of grid or no occupied adjacent cells, allow full offset
+        return offset;
     }
 
     renderIcons(leftCount, rightCount) {
@@ -165,7 +168,7 @@ class AddIconRenderer {
         
         console.log(`Rendering ${leftCount} left icons and ${rightCount} right icons`);
         
-        // Generate positions for left side using 5x5 grid
+        // Generate positions for left side using 4x4 grid
         if (leftCount > 0) {
             const leftPositions = this.generateGridPositions(leftCount, this.leftSide);
             
@@ -184,7 +187,7 @@ class AddIconRenderer {
             }
         }
         
-        // Generate positions for right side using 5x5 grid
+        // Generate positions for right side using 4x4 grid
         if (rightCount > 0) {
             const rightPositions = this.generateGridPositions(rightCount, this.rightSide);
             
