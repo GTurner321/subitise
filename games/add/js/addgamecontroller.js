@@ -452,11 +452,21 @@ class AddGameController {
         // Clear any existing keyboard timer
         this.clearKeyboardTimer();
         
-        // If digit is 1 and no 1 is currently needed as answer
-        if (digit === 1 && !this.isDigitValidAnswer(1)) {
-            // Check if 10 could be a valid answer
+        // If digit is 1, check if it's a valid answer first
+        if (digit === 1) {
+            // If 1 is a valid answer, process it immediately
+            if (this.isDigitValidAnswer(1)) {
+                const button = Array.from(this.numberButtons).find(btn => 
+                    parseInt(btn.dataset.number) === 1
+                );
+                if (button) {
+                    this.handleNumberClick(1, button);
+                }
+                return;
+            }
+            
+            // If 1 is NOT valid but 10 could be valid, wait for potential "0"
             if (this.isDigitValidAnswer(10)) {
-                // Start waiting for potential "0" to complete "10"
                 this.keyboardBuffer = '1';
                 this.keyboardTimer = setTimeout(() => {
                     // Timeout - treat the "1" as an incorrect answer
@@ -472,13 +482,27 @@ class AddGameController {
             }
         }
         
-        // Handle normal single digit input
+        // Handle normal single digit input for all other digits
         const button = Array.from(this.numberButtons).find(btn => 
             parseInt(btn.dataset.number) === digit
         );
         if (button) {
             this.handleNumberClick(digit, button);
         }
+    }
+
+    // Check if a digit would be a valid answer for any current empty box
+    isDigitValidAnswer(number) {
+        if (!this.leftFilled && number === this.currentLeftCount) {
+            return true;
+        }
+        if (!this.rightFilled && number === this.currentRightCount) {
+            return true;
+        }
+        if (!this.totalFilled && number === this.currentAnswer) {
+            return true;
+        }
+        return false;
     }
 
     giveStartingSumInstruction() {
