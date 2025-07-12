@@ -740,20 +740,20 @@ class TraceGameController {
         }
     }
 
-    completeGame() {
-        if (this.gameComplete) return;
-        this.gameComplete = true;
-        this.pathManager.cleanup();
-        
-        if (this.modal) this.modal.classList.remove('hidden');
-        this.bear.startCelebration();
-        
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText('Well done!');
-            }, 1000);
-        }
+completeGame() {
+    if (this.gameComplete) return;
+    this.gameComplete = true;
+    this.pathManager.cleanup();
+    
+    if (this.modal) this.modal.classList.remove('hidden');
+    this.bear.startCelebration();
+    
+    if (this.audioEnabled) {
+        setTimeout(() => {
+            this.speakText('Well done! You traced all the numbers!'); // Simplified message
+        }, 1000);
     }
+}
 
     speakText(text) {
         if (!this.audioEnabled) return;
