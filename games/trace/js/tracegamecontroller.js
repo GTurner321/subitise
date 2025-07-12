@@ -750,7 +750,7 @@ class TraceGameController {
         
         if (this.audioEnabled) {
             setTimeout(() => {
-                this.speakText('Excellent work! You traced all the numbers!');
+                this.speakText('Well done!');
             }, 1000);
         }
     }
