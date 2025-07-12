@@ -644,10 +644,7 @@ handleStart(event) {
     const nearSlider = this.isPointNearSlider(point);
 
     if (nearSlider) {
-        // Call the game controller's handleFirstTouch method for audio activation
-        if (window.traceGame && typeof window.traceGame.handleFirstTouch === 'function') {
-            window.traceGame.handleFirstTouch();
-        }
+        // REMOVED: handleFirstTouch call - no longer needed
         
         this.isDragging = true;
         this.isTracing = true;
