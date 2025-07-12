@@ -17,6 +17,10 @@ class Bear {
         this.initialSize = 30; // 30% of screen height
         this.sizeIncrement = 5; // 5% increase each time
         
+        // Auto-stop timer
+        this.maxDuration = 60000; // 1 minute in milliseconds
+        this.autoStopTimeout = null;
+        
         this.bearImage = '/subitise/assets/bear.png';
     }
 
@@ -28,6 +32,12 @@ class Bear {
         
         this.isActive = true;
         this.bearCount = 0;
+        
+        // Set up auto-stop timer (1 minute)
+        this.autoStopTimeout = setTimeout(() => {
+            console.log('Auto-stopping bear celebration after 1 minute');
+            this.stopCelebration();
+        }, this.maxDuration);
         
         // First bear - right side of modal (after 3 seconds)
         const firstTimeout = setTimeout(() => {
@@ -173,6 +183,12 @@ class Bear {
     stopCelebration() {
         console.log('Stopping bear celebration');
         this.isActive = false;
+        
+        // Clear auto-stop timeout
+        if (this.autoStopTimeout) {
+            clearTimeout(this.autoStopTimeout);
+            this.autoStopTimeout = null;
+        }
         
         // Clear all timeouts
         this.timeouts.forEach(timeout => clearTimeout(timeout));
