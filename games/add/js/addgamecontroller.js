@@ -18,9 +18,26 @@ class AddGameController {
         this.hasSeenHigherNumbers = false;
         this.buttonsDisabled = false;
         
-        // NEW: Track if 1+? format has been used and answered correctly in current level
+        // Track if 1+? format has been used and answered correctly in current level
         this.hasUsedOnePlusFormat = false;
-        this.currentLevelTurn = 0; // Track which "turn" of this level we're on
+        this.currentLevelTurn = 0;
+        
+        // Track completed sums to avoid repetition
+        this.correctlyCompletedSums = new Set(); // Store canonical addition strings (e.g., "2+3")
+        
+        // Audio functionality
+        this.audioContext = null;
+        this.audioEnabled = CONFIG.AUDIO_ENABLED || true;
+        this.sumsCompleted = 0; // Track total sums completed for audio logic
+        
+        // Inactivity timer for audio hints
+        this.inactivityTimer = null;
+        this.inactivityDuration = 10000; // 10 seconds
+        
+        // Keyboard two-digit handling for "10"
+        this.keyboardBuffer = '';
+        this.keyboardTimer = null;
+        this.keyboardWaitDuration = 4000; // 4 seconds to wait for second digit
         
         // Simplified box state - track which boxes are filled
         this.leftFilled = false;
@@ -43,8 +60,181 @@ class AddGameController {
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
         
+        // Mute button references
+        this.muteButton = null;
+        this.muteContainer = null;
+        
         this.initializeEventListeners();
+        this.initializeAudio();
+        this.createMuteButton();
         this.startNewQuestion();
+    }
+
+    async initializeAudio() {
+        if (!this.audioEnabled) return;
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (error) {
+            this.audioEnabled = false;
+        }
+    }
+
+    createMuteButton() {
+        // Create mute button container
+        const muteContainer = document.createElement('div');
+        muteContainer.style.position = 'fixed';
+        muteContainer.style.top = '20px';
+        muteContainer.style.right = '20px';
+        muteContainer.style.zIndex = '1000';
+        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        muteContainer.style.borderRadius = '50%';
+        muteContainer.style.width = '60px';
+        muteContainer.style.height = '60px';
+        muteContainer.style.display = 'flex';
+        muteContainer.style.alignItems = 'center';
+        muteContainer.style.justifyContent = 'center';
+        muteContainer.style.cursor = 'pointer';
+        muteContainer.style.transition = 'all 0.3s ease';
+        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        
+        // Create button
+        this.muteButton = document.createElement('button');
+        this.muteButton.style.background = 'none';
+        this.muteButton.style.border = 'none';
+        this.muteButton.style.color = 'white';
+        this.muteButton.style.fontSize = '24px';
+        this.muteButton.style.cursor = 'pointer';
+        this.muteButton.style.width = '100%';
+        this.muteButton.style.height = '100%';
+        this.muteButton.style.display = 'flex';
+        this.muteButton.style.alignItems = 'center';
+        this.muteButton.style.justifyContent = 'center';
+        
+        // Set initial icon
+        this.updateMuteButtonIcon();
+        
+        // Add event listeners
+        this.muteButton.addEventListener('click', () => this.toggleAudio());
+        this.muteButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.toggleAudio();
+        });
+        
+        // Hover effects
+        muteContainer.addEventListener('mouseenter', () => {
+            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            muteContainer.style.transform = 'scale(1.1)';
+        });
+        
+        muteContainer.addEventListener('mouseleave', () => {
+            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            muteContainer.style.transform = 'scale(1)';
+        });
+        
+        muteContainer.appendChild(this.muteButton);
+        document.body.appendChild(muteContainer);
+        
+        this.muteContainer = muteContainer;
+    }
+
+    updateMuteButtonIcon() {
+        if (this.muteButton) {
+            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
+            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
+        }
+    }
+
+    toggleAudio() {
+        this.audioEnabled = !this.audioEnabled;
+        this.updateMuteButtonIcon();
+        
+        // Stop any current speech
+        if ('speechSynthesis' in window) {
+            speechSynthesis.cancel();
+        }
+        
+        // Provide feedback
+        if (this.audioEnabled) {
+            setTimeout(() => {
+                this.speakText('Audio enabled');
+            }, 100);
+        }
+    }
+
+    speakText(text) {
+        if (!this.audioEnabled) return;
+        
+        try {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.3;
+                utterance.volume = 0.8;
+                
+                const voices = speechSynthesis.getVoices();
+                let selectedVoice = voices.find(voice => 
+                    voice.name.toLowerCase().includes('male') ||
+                    voice.name.toLowerCase().includes('boy') ||
+                    voice.name.toLowerCase().includes('man') ||
+                    (!voice.name.toLowerCase().includes('female') && 
+                     !voice.name.toLowerCase().includes('woman') &&
+                     !voice.name.toLowerCase().includes('girl'))
+                );
+                
+                if (selectedVoice) utterance.voice = selectedVoice;
+                utterance.pitch = 1.3;
+                
+                speechSynthesis.speak(utterance);
+            }
+        } catch (error) {
+            // Silent failure
+        }
+    }
+
+    startInactivityTimer() {
+        this.clearInactivityTimer();
+        this.clearKeyboardTimer();
+        this.inactivityTimer = setTimeout(() => {
+            this.giveInactivityHint();
+        }, this.inactivityDuration);
+    }
+
+    clearInactivityTimer() {
+        if (this.inactivityTimer) {
+            clearTimeout(this.inactivityTimer);
+            this.inactivityTimer = null;
+        }
+    }
+
+    clearKeyboardTimer() {
+        if (this.keyboardTimer) {
+            clearTimeout(this.keyboardTimer);
+            this.keyboardTimer = null;
+        }
+        this.keyboardBuffer = '';
+    }
+
+    giveInactivityHint() {
+        if (!this.audioEnabled || this.buttonsDisabled || this.gameComplete) return;
+        
+        // Determine which hint to give based on current flashing box
+        let hintText = '';
+        if (!this.leftFilled) {
+            hintText = 'Try counting the number of pictures on the left side';
+        } else if (!this.rightFilled) {
+            hintText = 'Try counting the number of pictures on the right side';
+        } else if (!this.totalFilled) {
+            hintText = 'Try counting the number of pictures in total';
+        }
+        
+        if (hintText) {
+            this.speakText(hintText);
+        }
+        
+        // Restart the timer for continuous hints
+        this.startInactivityTimer();
     }
 
     initializeEventListeners() {
@@ -53,6 +243,10 @@ class AddGameController {
                 if (this.buttonsDisabled) {
                     return;
                 }
+                
+                // Clear inactivity timer on user interaction
+                this.clearInactivityTimer();
+                this.startInactivityTimer();
                 
                 const selectedNumber = parseInt(e.target.dataset.number);
                 this.handleNumberClick(selectedNumber, e.target);
@@ -69,17 +263,16 @@ class AddGameController {
                 return;
             }
             
-            // Handle number keys 1-9
-            if (e.key >= '1' && e.key <= '9') {
+            // Handle number keys 0-9
+            if (e.key >= '0' && e.key <= '9') {
                 e.preventDefault();
-                const selectedNumber = parseInt(e.key);
-                // Find the corresponding button to pass to handleNumberClick
-                const button = Array.from(this.numberButtons).find(btn => 
-                    parseInt(btn.dataset.number) === selectedNumber
-                );
-                if (button) {
-                    this.handleNumberClick(selectedNumber, button);
-                }
+                
+                // Clear inactivity timer on user interaction
+                this.clearInactivityTimer();
+                this.startInactivityTimer();
+                
+                const digit = parseInt(e.key);
+                this.handleKeyboardDigit(digit);
             }
         });
     }
@@ -95,6 +288,9 @@ class AddGameController {
         this.buttonsDisabled = false;
         this.hasUsedOnePlusFormat = false;
         this.currentLevelTurn = 0;
+        this.sumsCompleted = 0; // Reset sum counter
+        this.correctlyCompletedSums.clear(); // Reset completed sums tracking
+        this.clearInactivityTimer();
         this.resetBoxState();
         
         this.rainbow.reset();
@@ -178,7 +374,7 @@ class AddGameController {
 
         // Check if we need to force higher numbers
         let forceHigherNumbers = false;
-        if (this.correctStreak === 1 && !this.hasSeenHigherNumbers) { // Changed from 2 to 1
+        if (this.correctStreak === 1 && !this.hasSeenHigherNumbers) {
             forceHigherNumbers = true;
         }
 
@@ -206,7 +402,8 @@ class AddGameController {
             (sum === this.previousSum || 
              currentAddition === this.previousAddition ||
              this.isConsecutiveHighNumbers(sum, this.previousSum) ||
-             this.shouldAvoidOnePlusFormat(leftCount, rightCount)) && 
+             this.shouldAvoidOnePlusFormat(leftCount, rightCount) ||
+             this.shouldAvoidCompletedSum(currentAddition)) && 
             attempts < maxAttempts
         );
         
@@ -230,16 +427,117 @@ class AddGameController {
         // Reset button states and show input boxes
         this.resetButtonStates();
         this.showInputBoxes();
+        
+        // Give audio instruction based on sum number
+        this.giveStartingSumInstruction();
+        
+        // Start inactivity timer
+        this.startInactivityTimer();
     }
 
-    // NEW: Check if we should avoid 1+? format
+    handleKeyboardDigit(digit) {
+        // If we're waiting for a second digit and this is 0, check if buffer is "1"
+        if (this.keyboardBuffer === '1' && digit === 0) {
+            // Complete the "10" input
+            this.clearKeyboardTimer();
+            const button = Array.from(this.numberButtons).find(btn => 
+                parseInt(btn.dataset.number) === 10
+            );
+            if (button) {
+                this.handleNumberClick(10, button);
+            }
+            return;
+        }
+        
+        // Clear any existing keyboard timer
+        this.clearKeyboardTimer();
+        
+        // If digit is 1 and no 1 is currently needed as answer
+        if (digit === 1 && !this.isDigitValidAnswer(1)) {
+            // Check if 10 could be a valid answer
+            if (this.isDigitValidAnswer(10)) {
+                // Start waiting for potential "0" to complete "10"
+                this.keyboardBuffer = '1';
+                this.keyboardTimer = setTimeout(() => {
+                    // Timeout - treat the "1" as an incorrect answer
+                    this.clearKeyboardTimer();
+                    const button = Array.from(this.numberButtons).find(btn => 
+                        parseInt(btn.dataset.number) === 1
+                    );
+                    if (button) {
+                        this.handleNumberClick(1, button);
+                    }
+                }, this.keyboardWaitDuration);
+                return;
+            }
+        }
+        
+        // Handle normal single digit input
+        const button = Array.from(this.numberButtons).find(btn => 
+            parseInt(btn.dataset.number) === digit
+        );
+        if (button) {
+            this.handleNumberClick(digit, button);
+        }
+    }
+
+    giveStartingSumInstruction() {
+        if (!this.audioEnabled) return;
+        
+        setTimeout(() => {
+            if (this.sumsCompleted === 0) {
+                // First sum
+                this.speakText('Complete the three numbers in the addition sum. How many pictures are on the left side? How many pictures are on the right side? What is the total?');
+            } else if (this.sumsCompleted === 1) {
+                // Second sum
+                this.speakText('Try again and complete the sum');
+            }
+            // No audio for further sums
+        }, 500);
+    }
+
+    // Check if we should avoid a previously completed sum
+    shouldAvoidCompletedSum(canonicalAddition) {
+        // If this sum was completed correctly before, avoid it only if there are other options
+        if (!this.correctlyCompletedSums.has(canonicalAddition)) {
+            return false; // Haven't completed this sum before, so it's fine to use
+        }
+        
+        // Check if there are any unused sums available for current difficulty
+        const availableSums = this.getAllPossibleSumsForCurrentDifficulty();
+        const unusedSums = availableSums.filter(sum => !this.correctlyCompletedSums.has(sum));
+        
+        // If there are unused sums available, avoid the completed one
+        // If no unused sums available, allow repetition
+        return unusedSums.length > 0;
+    }
+
+    // Get all possible canonical addition combinations for current difficulty
+    getAllPossibleSumsForCurrentDifficulty() {
+        const possibleSums = [];
+        const maxTotal = this.currentDifficulty.maxTotal;
+        const minSum = 2;
+        
+        for (let sum = minSum; sum <= maxTotal; sum++) {
+            for (let left = CONFIG.MIN_ICONS_PER_SIDE; left <= CONFIG.MAX_ICONS_PER_SIDE; left++) {
+                const right = sum - left;
+                if (right >= CONFIG.MIN_ICONS_PER_SIDE && right <= CONFIG.MAX_ICONS_PER_SIDE) {
+                    const canonical = this.getCanonicalAddition(left, right);
+                    if (!possibleSums.includes(canonical)) {
+                        possibleSums.push(canonical);
+                    }
+                }
+            }
+        }
+        
+        return possibleSums;
+    }
+
+    // Check if we should avoid 1+? format
     shouldAvoidOnePlusFormat(leftCount, rightCount) {
-        // If we haven't used 1+? format yet in this level, allow it
         if (!this.hasUsedOnePlusFormat) {
             return false;
         }
-        
-        // If we have used it, avoid any 1+? or ?+1 combinations
         return (leftCount === 1 || rightCount === 1);
     }
 
@@ -270,10 +568,12 @@ class AddGameController {
     }
 
     handleNumberClick(selectedNumber, buttonElement) {
+        // Clear any pending keyboard timer since we're processing an answer
+        this.clearKeyboardTimer();
+        
         let correctAnswer = false;
         
         // Check boxes in left-to-right priority order for filling
-        // This ensures duplicates fill left box first, then right box
         if (!this.leftFilled && selectedNumber === this.currentLeftCount) {
             this.fillBox('left', selectedNumber, buttonElement);
             correctAnswer = true;
@@ -346,7 +646,8 @@ class AddGameController {
 
     checkQuestionCompletion() {
         if (this.leftFilled && this.rightFilled && this.totalFilled) {
-            // All boxes completed
+            // All boxes completed - clear inactivity timer
+            this.clearInactivityTimer();
             this.stopFlashing();
             
             // Show check mark
@@ -355,7 +656,7 @@ class AddGameController {
             // Check if this was the first attempt for the entire question
             const wasFirstAttempt = !this.hasAttemptedAnswer();
             
-            // NEW: Mark that we've used 1+? format if this question was 1+? or ?+1
+            // Mark that we've used 1+? format if this question was 1+? or ?+1
             if (wasFirstAttempt && (this.currentLeftCount === 1 || this.currentRightCount === 1)) {
                 this.hasUsedOnePlusFormat = true;
                 console.log('Marked 1+? format as used in this level');
@@ -365,13 +666,25 @@ class AddGameController {
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}`);
             
+            // Give completion audio feedback
+            if (this.audioEnabled && wasFirstAttempt) {
+                const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
+                const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+                this.speakText(randomEncouragement);
+            }
+            
             // Update streaks and difficulty progression
             if (wasFirstAttempt) {
                 this.correctStreak++;
                 this.wrongStreak = 0;
                 this.questionsInLevel++;
+                this.sumsCompleted++; // Increment completed sums counter
                 
-                // MODIFIED: Different requirements for progression
+                // Add this sum to correctly completed sums (no mistakes made)
+                const currentCanonicalAddition = this.getCanonicalAddition(this.currentLeftCount, this.currentRightCount);
+                this.correctlyCompletedSums.add(currentCanonicalAddition);
+                console.log(`Added ${currentCanonicalAddition} to completed sums. Total completed: ${this.correctlyCompletedSums.size}`);
+                
                 const progressionRequirement = this.getProgressionRequirement();
                 if (this.correctStreak >= progressionRequirement) {
                     this.progressDifficulty();
@@ -380,13 +693,15 @@ class AddGameController {
                 this.wrongStreak++;
                 this.correctStreak = 0;
                 this.questionsInLevel++;
+                this.sumsCompleted++; // Still increment even if not first attempt
+                // Don't add to completed sums since mistakes were made
                 
                 if (this.wrongStreak >= CONFIG.CONSECUTIVE_WRONG_TO_DROP) {
                     this.dropDifficulty();
                 }
             }
             
-            // Check if game is complete
+            // Check if game is complete (10 sums total)
             if (this.rainbow.isComplete()) {
                 setTimeout(() => {
                     this.completeGame();
@@ -401,7 +716,6 @@ class AddGameController {
         }
     }
 
-    // NEW: Get progression requirement based on current difficulty
     getProgressionRequirement() {
         if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
             return 2; // Easy to Medium: 2 correct
@@ -413,6 +727,27 @@ class AddGameController {
     }
 
     handleIncorrectAnswer(buttonElement) {
+        // Clear inactivity timer and give immediate hint
+        this.clearInactivityTimer();
+        
+        // Give audio hint for wrong answer
+        if (this.audioEnabled) {
+            let hintText = '';
+            if (!this.leftFilled) {
+                hintText = 'Try counting the number of pictures on the left side';
+            } else if (!this.rightFilled) {
+                hintText = 'Try counting the number of pictures on the right side';
+            } else if (!this.totalFilled) {
+                hintText = 'Try counting the number of pictures in total';
+            }
+            
+            if (hintText) {
+                setTimeout(() => {
+                    this.speakText(hintText);
+                }, 800); // Give hint after error animation
+            }
+        }
+        
         // Disable buttons during error handling
         this.buttonsDisabled = true;
         
@@ -471,11 +806,11 @@ class AddGameController {
                 }, 700);
             }, 700);
             
-            // Re-enable buttons
+            // Re-enable buttons and restart inactivity timer
             setTimeout(() => {
                 this.buttonsDisabled = false;
-                // Resume flashing
                 this.startFlashing();
+                this.startInactivityTimer();
             }, 1400);
         }, 700);
     }
@@ -604,7 +939,6 @@ class AddGameController {
         this.correctStreak = 0;
         this.questionsInLevel = 0;
         this.hasSeenHigherNumbers = false;
-        // NEW: Reset 1+? format tracking when advancing difficulty
         this.hasUsedOnePlusFormat = false;
         this.currentLevelTurn++;
         console.log(`Advanced to ${this.currentDifficulty.name}, reset 1+? tracking`);
@@ -621,7 +955,6 @@ class AddGameController {
         this.correctStreak = 0;
         this.questionsInLevel = 0;
         this.hasSeenHigherNumbers = false;
-        // NEW: Reset 1+? format tracking when dropping difficulty (new turn of this level)
         this.hasUsedOnePlusFormat = false;
         this.currentLevelTurn++;
         console.log(`Dropped to ${this.currentDifficulty.name}, reset 1+? tracking`);
@@ -629,15 +962,54 @@ class AddGameController {
 
     completeGame() {
         this.gameComplete = true;
+        this.clearInactivityTimer();
         this.stopFlashing();
         this.modal.classList.remove('hidden');
         
         // Start bear celebration when modal opens
         this.bear.startCelebration();
+        
+        // Give completion audio message
+        if (this.audioEnabled) {
+            setTimeout(() => {
+                this.speakText('Well done! You have completed all ten sums! Try again or return to the home page and try another game.');
+            }, 1000);
+        }
+    }
+
+    destroy() {
+        // Clean up audio and timers
+        this.clearInactivityTimer();
+        this.clearKeyboardTimer();
+        
+        if ('speechSynthesis' in window) {
+            speechSynthesis.cancel();
+        }
+        
+        if (this.audioContext) {
+            this.audioContext.close();
+        }
+        
+        // Clean up mute button
+        if (this.muteContainer && this.muteContainer.parentNode) {
+            this.muteContainer.parentNode.removeChild(this.muteContainer);
+        }
+        
+        // Clean up other resources
+        this.rainbow.reset();
+        this.bear.reset();
+        this.iconRenderer.reset();
     }
 }
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new AddGameController();
+    window.addGame = new AddGameController();
+});
+
+// Clean up resources when page is about to unload
+window.addEventListener('beforeunload', () => {
+    if (window.addGame) {
+        window.addGame.destroy();
+    }
 });
