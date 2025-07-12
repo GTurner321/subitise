@@ -18,6 +18,10 @@ class AddGameController {
         this.hasSeenHigherNumbers = false;
         this.buttonsDisabled = false;
         
+        // NEW: Track if 1+? format has been used and answered correctly in current level
+        this.hasUsedOnePlusFormat = false;
+        this.currentLevelTurn = 0; // Track which "turn" of this level we're on
+        
         // Simplified box state - track which boxes are filled
         this.leftFilled = false;
         this.rightFilled = false;
@@ -89,6 +93,8 @@ class AddGameController {
         this.previousAddition = null;
         this.hasSeenHigherNumbers = false;
         this.buttonsDisabled = false;
+        this.hasUsedOnePlusFormat = false;
+        this.currentLevelTurn = 0;
         this.resetBoxState();
         
         this.rainbow.reset();
@@ -172,7 +178,7 @@ class AddGameController {
 
         // Check if we need to force higher numbers
         let forceHigherNumbers = false;
-        if (this.correctStreak === 2 && !this.hasSeenHigherNumbers) {
+        if (this.correctStreak === 1 && !this.hasSeenHigherNumbers) { // Changed from 2 to 1
             forceHigherNumbers = true;
         }
 
@@ -199,7 +205,8 @@ class AddGameController {
         } while (
             (sum === this.previousSum || 
              currentAddition === this.previousAddition ||
-             this.isConsecutiveHighNumbers(sum, this.previousSum)) && 
+             this.isConsecutiveHighNumbers(sum, this.previousSum) ||
+             this.shouldAvoidOnePlusFormat(leftCount, rightCount)) && 
             attempts < maxAttempts
         );
         
@@ -215,7 +222,7 @@ class AddGameController {
         this.currentRightCount = rightCount;
         this.currentAnswer = sum;
         
-        console.log(`Question: ${leftCount} + ${rightCount} = ${sum}, Level: ${this.currentDifficulty.name}`);
+        console.log(`Question: ${leftCount} + ${rightCount} = ${sum}, Level: ${this.currentDifficulty.name}, HasUsedOnePlus: ${this.hasUsedOnePlusFormat}`);
         
         // Render the icons
         this.iconRenderer.renderIcons(leftCount, rightCount);
@@ -223,6 +230,17 @@ class AddGameController {
         // Reset button states and show input boxes
         this.resetButtonStates();
         this.showInputBoxes();
+    }
+
+    // NEW: Check if we should avoid 1+? format
+    shouldAvoidOnePlusFormat(leftCount, rightCount) {
+        // If we haven't used 1+? format yet in this level, allow it
+        if (!this.hasUsedOnePlusFormat) {
+            return false;
+        }
+        
+        // If we have used it, avoid any 1+? or ?+1 combinations
+        return (leftCount === 1 || rightCount === 1);
     }
 
     hideAllInputBoxes() {
@@ -337,6 +355,12 @@ class AddGameController {
             // Check if this was the first attempt for the entire question
             const wasFirstAttempt = !this.hasAttemptedAnswer();
             
+            // NEW: Mark that we've used 1+? format if this question was 1+? or ?+1
+            if (wasFirstAttempt && (this.currentLeftCount === 1 || this.currentRightCount === 1)) {
+                this.hasUsedOnePlusFormat = true;
+                console.log('Marked 1+? format as used in this level');
+            }
+            
             // Add rainbow piece
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}`);
@@ -347,7 +371,9 @@ class AddGameController {
                 this.wrongStreak = 0;
                 this.questionsInLevel++;
                 
-                if (this.correctStreak >= CONFIG.QUESTIONS_PER_LEVEL) {
+                // MODIFIED: Different requirements for progression
+                const progressionRequirement = this.getProgressionRequirement();
+                if (this.correctStreak >= progressionRequirement) {
                     this.progressDifficulty();
                 }
             } else {
@@ -372,6 +398,17 @@ class AddGameController {
             setTimeout(() => {
                 this.fadeOutQuestion();
             }, 2000);
+        }
+    }
+
+    // NEW: Get progression requirement based on current difficulty
+    getProgressionRequirement() {
+        if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
+            return 2; // Easy to Medium: 2 correct
+        } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
+            return 3; // Medium to Hard: 3 correct (unchanged)
+        } else {
+            return 2; // Hard level: 2 correct (for potential future levels)
         }
     }
 
@@ -567,6 +604,10 @@ class AddGameController {
         this.correctStreak = 0;
         this.questionsInLevel = 0;
         this.hasSeenHigherNumbers = false;
+        // NEW: Reset 1+? format tracking when advancing difficulty
+        this.hasUsedOnePlusFormat = false;
+        this.currentLevelTurn++;
+        console.log(`Advanced to ${this.currentDifficulty.name}, reset 1+? tracking`);
     }
 
     dropDifficulty() {
@@ -580,6 +621,10 @@ class AddGameController {
         this.correctStreak = 0;
         this.questionsInLevel = 0;
         this.hasSeenHigherNumbers = false;
+        // NEW: Reset 1+? format tracking when dropping difficulty (new turn of this level)
+        this.hasUsedOnePlusFormat = false;
+        this.currentLevelTurn++;
+        console.log(`Dropped to ${this.currentDifficulty.name}, reset 1+? tracking`);
     }
 
     completeGame() {
