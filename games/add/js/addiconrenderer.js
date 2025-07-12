@@ -50,17 +50,17 @@ class AddIconRenderer {
     generateGridPositions(count, container) {
         const containerRect = container.getBoundingClientRect();
         
-        // Increased margins: 15% left/right, 12% top/bottom
-        const marginHorizontal = 0.15;
-        const marginVertical = 0.12;
+        // Reduced margins: 10% left/right, 8% top/bottom (was 15% and 12%)
+        const marginHorizontal = 0.10;
+        const marginVertical = 0.08;
         
-        // Calculate usable area with larger margins
+        // Calculate usable area with smaller margins
         const usableWidth = containerRect.width * (1 - 2 * marginHorizontal);
         const usableHeight = (containerRect.height - 120) * (1 - 2 * marginVertical); // Subtract sum row space
         
-        // Calculate cell dimensions for 4x4 grid with buffers
+        // Calculate cell dimensions for 4x4 grid with increased buffers
         const gridSize = 4;
-        const bufferRatio = 0.15; // 15% buffer between cells
+        const bufferRatio = 0.25; // Increased from 0.15 to 0.25 (25% buffer between cells)
         
         // Cell size includes the buffer space
         const cellWidth = usableWidth / gridSize;
@@ -70,7 +70,7 @@ class AddIconRenderer {
         const iconAreaWidth = cellWidth * (1 - bufferRatio);
         const iconAreaHeight = cellHeight * (1 - bufferRatio);
         
-        // Calculate starting position with larger margins
+        // Calculate starting position with smaller margins
         const startX = containerRect.width * marginHorizontal;
         const startY = containerRect.height * marginVertical;
         
