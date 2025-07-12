@@ -25,12 +25,15 @@ class TraceGameController {
         
         this.audioContext = null;
         this.audioEnabled = CONFIG.AUDIO_ENABLED;
-        this.hasPlayedFirstAudio = false; // Track if first audio has been played
         
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         this.numberWordDisplay = document.getElementById('numberWord');
         this.traceContainer = document.getElementById('traceContainer');
+        
+        // Mute button references
+        this.muteButton = null;
+        this.muteContainer = null;
         
         this.handleResize = this.handleResize.bind(this);
         this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
@@ -42,6 +45,7 @@ class TraceGameController {
         window.addEventListener('resize', this.handleResize);
         await this.initializeAudio();
         this.initializeRainbow();
+        this.createMuteButton();
         
         this.renderer = new TraceNumberRenderer();
         if (!this.renderer.initialize('traceContainer')) return;
@@ -104,6 +108,89 @@ class TraceGameController {
         }
     }
 
+    createMuteButton() {
+        // Create mute button container
+        const muteContainer = document.createElement('div');
+        muteContainer.style.position = 'fixed';
+        muteContainer.style.top = '20px';
+        muteContainer.style.right = '20px';
+        muteContainer.style.zIndex = '1000';
+        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        muteContainer.style.borderRadius = '50%';
+        muteContainer.style.width = '60px';
+        muteContainer.style.height = '60px';
+        muteContainer.style.display = 'flex';
+        muteContainer.style.alignItems = 'center';
+        muteContainer.style.justifyContent = 'center';
+        muteContainer.style.cursor = 'pointer';
+        muteContainer.style.transition = 'all 0.3s ease';
+        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        
+        // Create button
+        this.muteButton = document.createElement('button');
+        this.muteButton.style.background = 'none';
+        this.muteButton.style.border = 'none';
+        this.muteButton.style.color = 'white';
+        this.muteButton.style.fontSize = '24px';
+        this.muteButton.style.cursor = 'pointer';
+        this.muteButton.style.width = '100%';
+        this.muteButton.style.height = '100%';
+        this.muteButton.style.display = 'flex';
+        this.muteButton.style.alignItems = 'center';
+        this.muteButton.style.justifyContent = 'center';
+        
+        // Set initial icon
+        this.updateMuteButtonIcon();
+        
+        // Add event listeners
+        this.muteButton.addEventListener('click', () => this.toggleAudio());
+        this.muteButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.toggleAudio();
+        });
+        
+        // Hover effects
+        muteContainer.addEventListener('mouseenter', () => {
+            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            muteContainer.style.transform = 'scale(1.1)';
+        });
+        
+        muteContainer.addEventListener('mouseleave', () => {
+            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            muteContainer.style.transform = 'scale(1)';
+        });
+        
+        muteContainer.appendChild(this.muteButton);
+        document.body.appendChild(muteContainer);
+        
+        this.muteContainer = muteContainer;
+    }
+
+    updateMuteButtonIcon() {
+        if (this.muteButton) {
+            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
+            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
+        }
+    }
+
+    toggleAudio() {
+        this.audioEnabled = !this.audioEnabled;
+        this.updateMuteButtonIcon();
+        
+        // Stop any current speech
+        if ('speechSynthesis' in window) {
+            speechSynthesis.cancel();
+        }
+        
+        // Provide feedback
+        if (this.audioEnabled) {
+            // Brief delay to ensure speech synthesis is ready
+            setTimeout(() => {
+                this.speakText('Audio enabled');
+            }, 100);
+        }
+    }
+
     setupEventListeners() {
         if (this.playAgainBtn) {
             this.playAgainBtn.addEventListener('click', () => this.startNewGame());
@@ -151,7 +238,6 @@ class TraceGameController {
         this.gameComplete = false;
         this.isProcessingCompletion = false;
         this.playingBalloonGame = false;
-        this.hasPlayedFirstAudio = false; // Reset first audio flag
         
         this.balloons = [];
         this.fallingNumbers = [];
@@ -174,85 +260,56 @@ class TraceGameController {
         this.startNewNumber();
     }
 
-  startNewNumber() {
-    if (this.currentNumberIndex >= this.numbersSequence.length) {
-        this.completeGame();
-        return;
-    }
-    
-    this.currentNumber = this.numbersSequence[this.currentNumberIndex];
-    this.updateNumberWordDisplay('');
-    
-    // Special handling for the first number (index 0) - fade in effect
-    if (this.currentNumberIndex === 0) {
-        // Render the number but start invisible
-        if (!this.renderer.renderNumber(this.currentNumber)) return;
+    startNewNumber() {
+        if (this.currentNumberIndex >= this.numbersSequence.length) {
+            this.completeGame();
+            return;
+        }
         
-        // Make all number paths invisible initially
-        const allPaths = this.renderer.svg.querySelectorAll('path');
-        allPaths.forEach(path => {
-            path.style.opacity = '0';
-            path.style.transition = 'opacity 1s ease-in-out';
-        });
+        this.currentNumber = this.numbersSequence[this.currentNumberIndex];
+        this.updateNumberWordDisplay('');
         
-        // Start fade-in effect immediately
-        setTimeout(() => {
-            allPaths.forEach(path => {
-                path.style.opacity = '1';
-            });
-        }, 100);
-        
-        // After fade completes, start tracing and give instruction
-        setTimeout(() => {
-            this.pathManager.startNewStroke(0);
+        // Special handling for the first number (index 0) - fade in effect
+        if (this.currentNumberIndex === 0) {
+            // Render the number but start invisible
+            if (!this.renderer.renderNumber(this.currentNumber)) return;
             
-            // Play audio instruction for first number
-            if (this.audioEnabled) {
-                // Try to resume audio context first
-                if (this.audioContext && this.audioContext.state === 'suspended') {
-                    this.audioContext.resume().then(() => {
-                        this.speakText(`Trace the number ${this.currentNumber}`);
-                    }).catch(() => {
-                        // Audio context couldn't resume - might need user interaction
-                        console.log('Audio context suspended - waiting for user interaction');
-                    });
-                } else {
+            // Make all number paths invisible initially
+            const allPaths = this.renderer.svg.querySelectorAll('path');
+            allPaths.forEach(path => {
+                path.style.opacity = '0';
+                path.style.transition = 'opacity 1s ease-in-out';
+            });
+            
+            // Start fade-in effect immediately
+            setTimeout(() => {
+                allPaths.forEach(path => {
+                    path.style.opacity = '1';
+                });
+            }, 100);
+            
+            // After fade completes, start tracing and give instruction
+            setTimeout(() => {
+                this.pathManager.startNewStroke(0);
+                
+                // Play audio instruction for first number (users should come from main page)
+                if (this.audioEnabled) {
                     this.speakText(`Trace the number ${this.currentNumber}`);
                 }
-            }
-            
-            // Remove transitions after first use
-            allPaths.forEach(path => {
-                path.style.transition = '';
-            });
-        }, 1200);
-        
-    } else {
-        // Normal behavior for all other numbers
-        if (!this.renderer.renderNumber(this.currentNumber)) return;
-        this.pathManager.startNewStroke(0);
-        
-        if (this.audioEnabled) {
-            this.speakText(`Trace the number ${this.currentNumber}`);
-        }
-    }
-}
-    
-    // Method to handle first touch on slider - activates audio
-    handleFirstTouch() {
-        if (!this.hasPlayedFirstAudio && this.currentNumberIndex === 0 && this.audioEnabled) {
-            this.hasPlayedFirstAudio = true;
-            
-            // Activate audio context if needed
-            if (this.audioContext && this.audioContext.state === 'suspended') {
-                this.audioContext.resume().then(() => {
-                    console.log('Audio context activated on first touch');
-                    this.speakText(`Continue to trace the number ${this.currentNumber}`);
-                }).catch(error => {
-                    console.log('Failed to resume audio context:', error);
+                
+                // Remove transitions after first use
+                allPaths.forEach(path => {
+                    path.style.transition = '';
                 });
-            } else {
-                this.speakText(`Continue to trace the number ${this.currentNumber}`);
+            }, 1200);
+            
+        } else {
+            // Normal behavior for all other numbers
+            if (!this.renderer.renderNumber(this.currentNumber)) return;
+            this.pathManager.startNewStroke(0);
+            
+            if (this.audioEnabled) {
+                this.speakText(`Trace the number ${this.currentNumber}`);
             }
         }
     }
@@ -407,8 +464,12 @@ class TraceGameController {
         balloonGroup.appendChild(highlight);
         balloonGroup.appendChild(numberText);
         
-        balloonGroup.addEventListener('click', () => this.popBalloon(balloon));
-        balloonGroup.addEventListener('touchstart', (e) => { e.preventDefault(); this.popBalloon(balloon); });
+        // Updated event listeners with poppedByUser parameter
+        balloonGroup.addEventListener('click', () => this.popBalloon(balloon, true));
+        balloonGroup.addEventListener('touchstart', (e) => { 
+            e.preventDefault(); 
+            this.popBalloon(balloon, true); 
+        });
         
         balloon.group = balloonGroup;
         balloon.string = string;
@@ -446,7 +507,7 @@ class TraceGameController {
         return string;
     }
 
-    popBalloon(balloon) {
+    popBalloon(balloon, poppedByUser = true) {
         if (balloon.popped || !this.playingBalloonGame) return;
         balloon.popped = true;
         
@@ -457,7 +518,8 @@ class TraceGameController {
             
             if (this.audioEnabled) this.playCompletionSound();
             
-            if (this.audioEnabled) {
+            // Only give congratulatory message if popped by user
+            if (poppedByUser && this.audioEnabled) {
                 const encouragements = ['Great job!', 'Well done!', 'Excellent!', 'Perfect!'];
                 setTimeout(() => {
                     this.speakText(encouragements[Math.floor(Math.random() * encouragements.length)]);
@@ -548,7 +610,8 @@ class TraceGameController {
                 
                 if (balloon.y <= 0) {
                     if (balloon.isCorrect) {
-                        this.popBalloon(balloon);
+                        // Balloon reached top - popped automatically (not by user)
+                        this.popBalloon(balloon, false);
                     } else {
                         balloon.popped = true;
                         if (balloon.group) balloon.group.remove();
@@ -751,29 +814,29 @@ class TraceGameController {
         }
     }
 
-playCompletionSound() {
-    if (!this.audioEnabled || !this.audioContext) return;
-    
-    try {
-        const oscillator = this.audioContext.createOscillator();
-        const gainNode = this.audioContext.createGain();
+    playCompletionSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
         
-        oscillator.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
-        oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
-        oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
-        
-        gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-        
-        oscillator.start(this.audioContext.currentTime);
-        oscillator.stop(this.audioContext.currentTime + 0.5);
-    } catch (error) {
-        // Silent failure
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
+            
+            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.5);
+        } catch (error) {
+            // Silent failure
+        }
     }
-}
 
     playFailureSound() {
         if (!this.audioEnabled || !this.audioContext) return;
@@ -833,10 +896,6 @@ playCompletionSound() {
         }
     }
 
-    toggleAudio() {
-        this.audioEnabled = !this.audioEnabled;
-    }
-
     destroy() {
         window.removeEventListener('resize', this.handleResize);
         document.removeEventListener('visibilitychange', this.handleVisibilityChange);
@@ -859,6 +918,11 @@ playCompletionSound() {
         
         if ('speechSynthesis' in window) speechSynthesis.cancel();
         if (this.audioContext) this.audioContext.close();
+        
+        // Clean up mute button
+        if (this.muteContainer && this.muteContainer.parentNode) {
+            this.muteContainer.parentNode.removeChild(this.muteContainer);
+        }
     }
 }
 
