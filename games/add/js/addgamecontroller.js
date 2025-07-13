@@ -19,7 +19,7 @@ class AddGameController {
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
-        this.inactivityDuration = 10000; // 10 seconds
+        this.inactivityDuration = 20000; // 20 seconds
         
         // Keyboard two-digit handling for "10"
         this.keyboardBuffer = '';
@@ -159,7 +159,7 @@ class AddGameController {
         // Provide feedback
         if (this.audioEnabled) {
             setTimeout(() => {
-                this.speakText('Audio enabled');
+                this.speakText('Sound on');
             }, 100);
         }
     }
