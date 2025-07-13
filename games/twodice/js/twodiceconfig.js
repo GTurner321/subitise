@@ -19,9 +19,12 @@ const CONFIG = {
     
     // Dice settings
     DICE_SIZE: 120, // Size of each dice in pixels
-    DICE_ROLL_MIN_DURATION: 2500, // Minimum roll duration in ms
-    DICE_ROLL_MAX_DURATION: 5000, // Maximum roll duration in ms
+    DICE_ROLL_MIN_DURATION: 2000, // Minimum roll duration in ms (2.0 seconds)
+    DICE_ROLL_MAX_DURATION: 5000, // Maximum roll duration in ms (5.0 seconds)
     DICE_CHANGE_SPEED: 150, // How fast numbers change during roll (ms between changes)
+    DICE_FADE_IN_DURATION: 1000, // Time for dice to fade in and grow (1 second)
+    DICE_MIN_SCALE: 0.3, // Starting scale (30% of final size - appears distant)
+    DICE_MAX_SCALE: 1.0, // Final scale (100% of final size)
     
     // Animation timings
     FLASH_DURATION: 800,
