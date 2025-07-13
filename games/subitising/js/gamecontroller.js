@@ -111,47 +111,44 @@ class GameController {
         starContainer.style.pointerEvents = 'none';
         starContainer.style.zIndex = '1000';
         
-        // Create 8 stars in a circle around the button
-        const numberOfStars = 8;
-        const radius = 60; // Distance from button center
+        // Use the exact same star positions as trace game (scaled for button size)
+        const starPositions = [
+            { x: centerX - 60, y: centerY - 60 },  // top-left
+            { x: centerX + 60, y: centerY - 60 },  // top-right
+            { x: centerX + 72, y: centerY },       // right
+            { x: centerX + 60, y: centerY + 60 },  // bottom-right
+            { x: centerX - 60, y: centerY + 60 },  // bottom-left
+            { x: centerX - 72, y: centerY }        // left
+        ];
         
-        for (let i = 0; i < numberOfStars; i++) {
-            const angle = (i / numberOfStars) * 2 * Math.PI;
-            const star = this.createStar(centerX, centerY, radius, angle, i);
+        starPositions.forEach((pos, index) => {
+            const star = this.createStar(pos.x, pos.y);
+            star.style.animationDelay = `${index * 0.1}s`;
             starContainer.appendChild(star);
-        }
+        });
         
         document.body.appendChild(starContainer);
         
-        // Remove stars after animation completes (1.5s + delays)
+        // Remove stars after animation completes (same as trace game)
         setTimeout(() => {
             if (starContainer.parentNode) {
                 starContainer.parentNode.removeChild(starContainer);
             }
-        }, 2500); // Increased to account for delays and 1.5s animation
+        }, 2000);
     }
 
-    createStar(centerX, centerY, radius, angle, index) {
+    createStar(x, y) {
         const star = document.createElement('div');
-        star.className = 'completion-star'; // Use the CSS class from trace game
-        star.innerHTML = '⭐';
+        star.className = 'completion-star';
+        star.innerHTML = '✨'; // Use sparkle emoji like trace game
         star.style.position = 'fixed';
-        star.style.fontSize = '24px';
+        star.style.left = (x - 15) + 'px'; // Center the star (30px / 2)
+        star.style.top = (y - 15) + 'px';
+        star.style.fontSize = '30px';
         star.style.color = '#FFD700';
-        star.style.textShadow = '0 0 10px #FFD700';
+        star.style.textAlign = 'center';
         star.style.pointerEvents = 'none';
         star.style.zIndex = '1000';
-        
-        // Calculate position around the button
-        const finalX = centerX + Math.cos(angle) * radius;
-        const finalY = centerY + Math.sin(angle) * radius;
-        
-        // Set final position
-        star.style.left = (finalX - 12) + 'px'; // Center the star (24px / 2)
-        star.style.top = (finalY - 12) + 'px';
-        
-        // Add slight delay for each star to create wave effect
-        star.style.animationDelay = (index * 0.1) + 's';
         
         return star;
     }
