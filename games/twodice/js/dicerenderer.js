@@ -24,7 +24,7 @@ class DiceRenderer {
         const dice = document.createElement('div');
         dice.className = 'dice';
         
-        // Start dice as small and invisible
+        // Start invisible to prevent initial (6,6) flash
         dice.style.opacity = '0';
         dice.style.transform = `scale(${CONFIG.DICE_MIN_SCALE})`;
         
@@ -40,8 +40,9 @@ class DiceRenderer {
             const colorIndex = Math.floor(Math.random() * CONFIG.DICE_COLORS.length);
             face.style.backgroundColor = CONFIG.DICE_COLORS[colorIndex];
             
-            // Create dots for this face
-            this.createDots(face, faceValues[index]);
+            // Create dots for this face with random initial value to avoid (6,6) flash
+            const randomInitialValue = Math.floor(Math.random() * 6) + 1;
+            this.createDots(face, randomInitialValue);
             dice.appendChild(face);
         });
         
@@ -82,7 +83,7 @@ class DiceRenderer {
     async rollDice(leftValue, rightValue) {
         this.clearDice();
         
-        // Create two dice
+        // Create two dice (they start invisible)
         const leftDice = this.createDice();
         const rightDice = this.createDice();
         
@@ -92,11 +93,9 @@ class DiceRenderer {
         
         this.currentDice = [leftDice, rightDice];
         
-        // Fade in dice over 1 second
-        setTimeout(() => {
-            leftDice.classList.add('fade-in');
-            rightDice.classList.add('fade-in');
-        }, 100);
+        // Start with fade-in animation (this makes them visible)
+        leftDice.classList.add('fade-in');
+        rightDice.classList.add('fade-in');
         
         // Wait for fade-in to complete, then start rolling
         await new Promise(resolve => setTimeout(resolve, CONFIG.DICE_FADE_IN_DURATION));
@@ -113,7 +112,7 @@ class DiceRenderer {
         leftDice.style.setProperty('--current-scale', CONFIG.DICE_MIN_SCALE);
         rightDice.style.setProperty('--current-scale', CONFIG.DICE_MIN_SCALE);
         
-        // Start rolling animation with scaling
+        // Remove fade-in and start rolling (dice remain visible)
         leftDice.classList.remove('fade-in');
         rightDice.classList.remove('fade-in');
         leftDice.classList.add('rolling');
