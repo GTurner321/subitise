@@ -48,86 +48,89 @@ class IconRenderer {
         return selectedColor;
     }
 
-    generateNonOverlappingPositions(count) {
-        const positions = [];
-        const gameArea = this.gameArea.getBoundingClientRect();
-        const margin = CONFIG.ICON_MARGIN;
-        const minDistance = CONFIG.MIN_ICON_DISTANCE;
+generateNonOverlappingPositions(count) {
+    const positions = [];
+    const gameArea = this.gameArea.getBoundingClientRect();
+    const margin = CONFIG.ICON_MARGIN;
+    const minDistance = CONFIG.MIN_ICON_DISTANCE;
+    
+    // Reduce usable width to 70% of game area (centered)
+    const widthReduction = 0.7; // Use 70% of available width
+    const fullUsableWidth = gameArea.width - 2 * margin;
+    const reducedUsableWidth = fullUsableWidth * widthReduction;
+    const horizontalOffset = (fullUsableWidth - reducedUsableWidth) / 2;
+    
+    // Calculate usable area for positioning
+    const usableWidth = reducedUsableWidth;
+    const usableHeight = gameArea.height - 2 * margin;
+    
+    const maxAttempts = 200; // Increased attempts for better placement
+    
+    for (let i = 0; i < count; i++) {
+        let attempts = 0;
+        let validPosition = false;
+        let x, y;
         
-        // Calculate usable area for positioning
-        const usableWidth = gameArea.width - 2 * margin;
-        const usableHeight = gameArea.height - 2 * margin;
-        
-        const maxAttempts = 200; // Increased attempts for better placement
-        
-        for (let i = 0; i < count; i++) {
-            let attempts = 0;
-            let validPosition = false;
-            let x, y;
+        while (!validPosition && attempts < maxAttempts) {
+            // Generate random position within reduced usable bounds
+            x = margin + horizontalOffset + Math.random() * usableWidth;
+            y = margin + Math.random() * usableHeight;
             
-            while (!validPosition && attempts < maxAttempts) {
-                // Generate random position within usable bounds
-                x = margin + Math.random() * usableWidth;
-                y = margin + Math.random() * usableHeight;
-                
-                // Check if position is far enough from existing positions
-                validPosition = true;
-                for (let pos of positions) {
-                    const distance = Math.sqrt(
-                        Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2)
-                    );
-                    if (distance < minDistance) {
-                        validPosition = false;
-                        break;
-                    }
+            // Check if position is far enough from existing positions
+            validPosition = true;
+            for (let pos of positions) {
+                const distance = Math.sqrt(
+                    Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2)
+                );
+                if (distance < minDistance) {
+                    validPosition = false;
+                    break;
                 }
-                
-                attempts++;
             }
             
-            // If we couldn't find a non-overlapping position after many attempts,
-            // use a grid-based fallback to ensure distinct placement
-            if (!validPosition) {
-                const fallbackPos = this.getFallbackPosition(i, count, gameArea, margin);
-                x = fallbackPos.x;
-                y = fallbackPos.y;
-            }
-            
-            positions.push({ x, y });
+            attempts++;
         }
         
-        return positions;
+        // If we couldn't find a non-overlapping position after many attempts,
+        // use a grid-based fallback to ensure distinct placement
+        if (!validPosition) {
+            const fallbackPos = this.getFallbackPosition(i, count, gameArea, margin, horizontalOffset, usableWidth, usableHeight);
+            x = fallbackPos.x;
+            y = fallbackPos.y;
+        }
+        
+        positions.push({ x, y });
     }
+    
+    return positions;
+}
 
-    // Fallback grid-based positioning to ensure icons never overlap
-    getFallbackPosition(index, totalCount, gameArea, margin) {
-        const usableWidth = gameArea.width - 2 * margin;
-        const usableHeight = gameArea.height - 2 * margin;
-        
-        // Create a simple grid based on the number of icons
-        const cols = Math.ceil(Math.sqrt(totalCount));
-        const rows = Math.ceil(totalCount / cols);
-        
-        const cellWidth = usableWidth / cols;
-        const cellHeight = usableHeight / rows;
-        
-        const row = Math.floor(index / cols);
-        const col = index % cols;
-        
-        // Position icon in center of its grid cell with some randomness
-        const cellCenterX = margin + col * cellWidth + cellWidth / 2;
-        const cellCenterY = margin + row * cellHeight + cellHeight / 2;
-        
-        // Add small random offset within the cell (but not too close to edges)
-        const offsetRange = Math.min(cellWidth, cellHeight) * 0.3;
-        const offsetX = (Math.random() - 0.5) * offsetRange;
-        const offsetY = (Math.random() - 0.5) * offsetRange;
-        
-        return {
-            x: cellCenterX + offsetX,
-            y: cellCenterY + offsetY
-        };
-    }
+// Updated fallback grid-based positioning to work with reduced width
+getFallbackPosition(index, totalCount, gameArea, margin, horizontalOffset, usableWidth, usableHeight) {
+    // Create a simple grid based on the number of icons
+    const cols = Math.ceil(Math.sqrt(totalCount));
+    const rows = Math.ceil(totalCount / cols);
+    
+    const cellWidth = usableWidth / cols;
+    const cellHeight = usableHeight / rows;
+    
+    const row = Math.floor(index / cols);
+    const col = index % cols;
+    
+    // Position icon in center of its grid cell with some randomness
+    const cellCenterX = margin + horizontalOffset + col * cellWidth + cellWidth / 2;
+    const cellCenterY = margin + row * cellHeight + cellHeight / 2;
+    
+    // Add small random offset within the cell (but not too close to edges)
+    const offsetRange = Math.min(cellWidth, cellHeight) * 0.3;
+    const offsetX = (Math.random() - 0.5) * offsetRange;
+    const offsetY = (Math.random() - 0.5) * offsetRange;
+    
+    return {
+        x: cellCenterX + offsetX,
+        y: cellCenterY + offsetY
+    };
+}
 
     renderIcons(count) {
         this.clearIcons();
