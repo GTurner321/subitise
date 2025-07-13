@@ -86,6 +86,54 @@
                 </button>
             </div>
 
+            <!-- Two Dice Game -->
+            <div class="game-card" data-game="twodice">
+                <div class="game-preview">
+                    <div class="preview-icons dice-preview">
+                        <div class="preview-dice left-dice">
+                            <div class="dice-face-preview">
+                                <div class="dot dot-1"></div>
+                                <div class="dot dot-2"></div>
+                                <div class="dot dot-3"></div>
+                                <div class="dot dot-4"></div>
+                                <div class="dot dot-5"></div>
+                                <div class="dot dot-6"></div>
+                            </div>
+                        </div>
+                        <div class="preview-plus dice-plus">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="preview-dice right-dice">
+                            <div class="dice-face-preview">
+                                <div class="dot dot-1"></div>
+                                <div class="dot dot-2"></div>
+                                <div class="dot dot-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>Two Dice</h2>
+                    <p>Roll the dice and add them together to build a rainbow!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Dice</span>
+                        <span class="feature-tag">Numbers 2-12</span>
+                        <span class="feature-tag">Ages 4-8</span>
+                    </div>
+                </div>
+                <button class="play-button">
+                    <i class="fas fa-play"></i>
+                    Play Now
+                </button>
+            </div>
+
             <!-- Number Tracing Game -->
             <div class="game-card" data-game="trace">
                 <div class="game-preview">
@@ -154,11 +202,57 @@
                     card.classList.remove('hover');
                 });
             });
+
+            // Add dice rolling animation
+            animateDicePreview();
         });
         
         function navigateToGame(gameName) {
             // Navigate to the specific game
             window.location.href = `games/${gameName}/index.html`;
+        }
+        
+        // Animate dice preview
+        function animateDicePreview() {
+            const diceCards = document.querySelectorAll('[data-game="twodice"]');
+            
+            diceCards.forEach(card => {
+                const leftDice = card.querySelector('.left-dice .dice-face-preview');
+                const rightDice = card.querySelector('.right-dice .dice-face-preview');
+                
+                if (leftDice && rightDice) {
+                    setInterval(() => {
+                        // Randomly show different dice faces
+                        showDiceFace(leftDice, Math.floor(Math.random() * 6) + 1);
+                        showDiceFace(rightDice, Math.floor(Math.random() * 6) + 1);
+                    }, 2000);
+                }
+            });
+        }
+        
+        function showDiceFace(diceElement, value) {
+            const dots = diceElement.querySelectorAll('.dot');
+            
+            // Hide all dots first
+            dots.forEach(dot => dot.style.opacity = '0');
+            
+            // Show dots based on value
+            const patterns = {
+                1: [5], // center
+                2: [1, 9], // corners
+                3: [1, 5, 9], // diagonal
+                4: [1, 3, 7, 9], // four corners
+                5: [1, 3, 5, 7, 9], // four corners + center
+                6: [1, 3, 4, 6, 7, 9] // six dots
+            };
+            
+            if (patterns[value]) {
+                patterns[value].forEach(dotIndex => {
+                    if (dots[dotIndex - 1]) {
+                        dots[dotIndex - 1].style.opacity = '1';
+                    }
+                });
+            }
         }
         
         // Add some sparkle animation
@@ -186,7 +280,5 @@
         // Create sparkles periodically
         setInterval(createSparkle, 2000);
     </script>
-    
-
 </body>
 </html>
