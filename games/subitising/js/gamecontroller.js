@@ -95,6 +95,67 @@ class GameController {
         }
     }
 
+    createStarCelebration(buttonElement) {
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const centerX = buttonRect.left + buttonRect.width / 2;
+        const centerY = buttonRect.top + buttonRect.height / 2;
+        
+        // Create container for stars with completion-effect class
+        const starContainer = document.createElement('div');
+        starContainer.className = 'star-celebration-container completion-effect';
+        starContainer.style.position = 'fixed';
+        starContainer.style.top = '0';
+        starContainer.style.left = '0';
+        starContainer.style.width = '100%';
+        starContainer.style.height = '100%';
+        starContainer.style.pointerEvents = 'none';
+        starContainer.style.zIndex = '1000';
+        
+        // Create 8 stars in a circle around the button
+        const numberOfStars = 8;
+        const radius = 60; // Distance from button center
+        
+        for (let i = 0; i < numberOfStars; i++) {
+            const angle = (i / numberOfStars) * 2 * Math.PI;
+            const star = this.createStar(centerX, centerY, radius, angle, i);
+            starContainer.appendChild(star);
+        }
+        
+        document.body.appendChild(starContainer);
+        
+        // Remove stars after animation completes (1.5s + delays)
+        setTimeout(() => {
+            if (starContainer.parentNode) {
+                starContainer.parentNode.removeChild(starContainer);
+            }
+        }, 2500); // Increased to account for delays and 1.5s animation
+    }
+
+    createStar(centerX, centerY, radius, angle, index) {
+        const star = document.createElement('div');
+        star.className = 'completion-star'; // Use the CSS class from trace game
+        star.innerHTML = '⭐';
+        star.style.position = 'fixed';
+        star.style.fontSize = '24px';
+        star.style.color = '#FFD700';
+        star.style.textShadow = '0 0 10px #FFD700';
+        star.style.pointerEvents = 'none';
+        star.style.zIndex = '1000';
+        
+        // Calculate position around the button
+        const finalX = centerX + Math.cos(angle) * radius;
+        const finalY = centerY + Math.sin(angle) * radius;
+        
+        // Set final position
+        star.style.left = (finalX - 12) + 'px'; // Center the star (24px / 2)
+        star.style.top = (finalY - 12) + 'px';
+        
+        // Add slight delay for each star to create wave effect
+        star.style.animationDelay = (index * 0.1) + 's';
+        
+        return star;
+    }
+
     async initializeAudio() {
         if (!this.audioEnabled) return;
         try {
@@ -559,6 +620,9 @@ class GameController {
         setTimeout(() => {
             buttonElement.classList.remove('correct');
         }, CONFIG.FLASH_DURATION);
+
+        // Create star celebration around the button
+        this.createStarCelebration(buttonElement);
 
         // Play completion sound
         if (this.audioEnabled) {
