@@ -56,9 +56,12 @@ class AddIconRenderer {
         const marginBottom = 0.02; // Further reduced from 0.04 to 0.02 (50% less bottom buffer)
         
         // Calculate which side we're on to adjust inside margins
-        const isLeftSide = container.id === 'leftSide';
+        // Check both id and class to be more robust
+        const isLeftSide = container.id === 'leftSide' || container.classList.contains('left-side');
         const marginLeft = isLeftSide ? marginHorizontal : 0.03; // Further reduced inside margin from 0.06 to 0.03
         const marginRight = isLeftSide ? 0.03 : marginHorizontal; // Further reduced inside margin from 0.06 to 0.03
+        
+        console.log(`Rendering for container: ${container.id}, isLeftSide: ${isLeftSide}, count: ${count}`);
         
         // Calculate usable area with further reduced margins
         const usableWidth = containerRect.width * (1 - marginLeft - marginRight);
