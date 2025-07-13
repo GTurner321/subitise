@@ -284,7 +284,7 @@ class TwoDiceGameController {
     }
 
     handleKeyboardDigit(digit) {
-        // Handle keyboard input for numbers 2-12
+        // Handle keyboard input for numbers 1-12
         if (this.keyboardBuffer === '1' && (digit === 0 || digit === 1 || digit === 2)) {
             // Complete two-digit numbers: 10, 11, 12
             this.clearKeyboardTimer();
@@ -303,24 +303,48 @@ class TwoDiceGameController {
         this.clearKeyboardTimer();
         
         if (digit === 1) {
-            // Check if 1 alone is valid (it's not in our 2-12 range)
-            // Wait for potential second digit
-            this.keyboardBuffer = '1';
-            this.keyboardTimer = setTimeout(() => {
-                // Timeout - ignore the standalone 1
-                this.clearKeyboardTimer();
-            }, this.keyboardWaitDuration);
-            return;
+            // Check if 1 alone is valid first
+            if (this.isDigitValidAnswer(1)) {
+                const button = Array.from(this.numberButtons).find(btn => 
+                    parseInt(btn.dataset.number) === 1
+                );
+                if (button) {
+                    this.handleNumberClick(1, button);
+                }
+                return;
+            }
+            
+            // If 1 is not valid but 10, 11, or 12 could be valid, wait for potential second digit
+            if (this.isDigitValidAnswer(10) || this.isDigitValidAnswer(11) || this.isDigitValidAnswer(12)) {
+                this.keyboardBuffer = '1';
+                this.keyboardTimer = setTimeout(() => {
+                    // Timeout - treat the "1" as an incorrect answer
+                    this.clearKeyboardTimer();
+                    const button = Array.from(this.numberButtons).find(btn => 
+                        parseInt(btn.dataset.number) === 1
+                    );
+                    if (button) {
+                        this.handleNumberClick(1, button);
+                    }
+                }, this.keyboardWaitDuration);
+                return;
+            }
         }
         
-        // Handle single digits 2-9
-        if (digit >= 2 && digit <= 9) {
+        // Handle single digits 1-9
+        if (digit >= 1 && digit <= 9) {
             const button = Array.from(this.numberButtons).find(btn => 
                 parseInt(btn.dataset.number) === digit
             );
             if (button) {
                 this.handleNumberClick(digit, button);
             }
+        }
+        
+        // Handle 0 (only valid as part of 10)
+        if (digit === 0) {
+            // 0 alone is not valid in our game (no 0 on dice), so ignore
+            return;
         }
     }
 
