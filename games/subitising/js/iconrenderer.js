@@ -54,8 +54,8 @@ generateNonOverlappingPositions(count) {
     const margin = CONFIG.ICON_MARGIN;
     const minDistance = CONFIG.MIN_ICON_DISTANCE;
     
-    // Reduce usable width to 70% of game area (centered)
-    const widthReduction = 0.7; // Use 70% of available width
+    // Reduce usable width to 90% of game area (centered)
+    const widthReduction = 0.9; // Use 90% of available width
     const fullUsableWidth = gameArea.width - 2 * margin;
     const reducedUsableWidth = fullUsableWidth * widthReduction;
     const horizontalOffset = (fullUsableWidth - reducedUsableWidth) / 2;
@@ -131,7 +131,7 @@ getFallbackPosition(index, totalCount, gameArea, margin, horizontalOffset, usabl
         y: cellCenterY + offsetY
     };
 }
-
+    
     renderIcons(count) {
         this.clearIcons();
         
