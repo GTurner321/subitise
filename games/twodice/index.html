@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two Dice Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="styles/twodicemain.css">
+</head>
+<body>
+    <!-- Back to games navigation -->
+    <a href="../../index.html" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Back to Games
+    </a>
+    
+    <!-- Main game area -->
+    <div class="game-area">
+        <div class="rainbow-container" id="rainbowContainer">
+            <!-- Rainbow arcs will be added here by JavaScript -->
+        </div>
+        
+        <!-- Left side for dice -->
+        <div class="left-side" id="leftSide">
+            <!-- Left dice will be added here by JavaScript -->
+        </div>
+        
+        <!-- Middle section with plus sign -->
+        <div class="middle-section">
+            <div class="plus-sign">
+                <i class="fas fa-plus"></i>
+            </div>
+        </div>
+        
+        <!-- Right side for dice -->
+        <div class="right-side" id="rightSide">
+            <!-- Right dice will be added here by JavaScript -->
+        </div>
+        
+        <!-- Sum row at bottom -->
+        <div class="sum-row" id="sumRow">
+            <div class="input-box left-sum-box" id="leftInputBox"></div>
+            <div class="sum-plus-sign">+</div>
+            <div class="input-box right-sum-box" id="rightInputBox"></div>
+            <div class="sum-equals-sign">=</div>
+            <div class="input-box total-sum-box" id="totalInputBox"></div>
+            <div class="check-mark" id="checkMark">
+                <i class="fas fa-check"></i>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Number selection buttons for 2-12 -->
+    <div class="number-buttons">
+        <button class="number-btn" data-number="2">2</button>
+        <button class="number-btn" data-number="3">3</button>
+        <button class="number-btn" data-number="4">4</button>
+        <button class="number-btn" data-number="5">5</button>
+        <button class="number-btn" data-number="6">6</button>
+        <button class="number-btn" data-number="7">7</button>
+        <button class="number-btn" data-number="8">8</button>
+        <button class="number-btn" data-number="9">9</button>
+        <button class="number-btn" data-number="10">10</button>
+        <button class="number-btn" data-number="11">11</button>
+        <button class="number-btn" data-number="12">12</button>
+    </div>
+    
+    <!-- Game completion modal -->
+    <div class="modal hidden" id="gameModal">
+        <div class="modal-content">
+            <h2>🌈 Well Done! 🌈</h2>
+            <button class="play-again-btn" id="playAgainBtn">PLAY AGAIN</button>
+        </div>
+    </div>
+    
+    <!-- JavaScript files -->
+    <script src="js/twodiceconfig.js"></script>
+    <script src="../../js/shared/rainbow.js"></script>
+    <script src="../../js/shared/Bear.js"></script>
+    <script src="js/dicerenderer.js"></script>
+    <script src="js/twodicegamecontroller.js"></script>
+</body>
+</html>
