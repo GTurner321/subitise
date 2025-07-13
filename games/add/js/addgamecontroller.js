@@ -19,7 +19,7 @@ class AddGameController {
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
-        this.inactivityDuration = 15000; // 15 seconds
+        this.inactivityDuration = 10000; // 10 seconds
         
         // Keyboard two-digit handling for "10"
         this.keyboardBuffer = '';
@@ -637,9 +637,12 @@ class AddGameController {
             // Check if this was the first attempt for the entire question
             const wasFirstAttempt = !this.hasAttemptedAnswer();
             
+            // Handle level progression BEFORE incrementing sumsCompleted
+            this.handleLevelProgression(wasFirstAttempt);
+            
             // Add rainbow piece
             const pieces = this.rainbow.addPiece();
-            console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}`);
+            console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}, new level: ${this.currentLevel}`);
             
             // Give completion audio feedback
             if (this.audioEnabled && wasFirstAttempt) {
@@ -647,9 +650,6 @@ class AddGameController {
                 const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
                 this.speakText(randomEncouragement);
             }
-            
-            // Handle level progression
-            this.handleLevelProgression(wasFirstAttempt);
             
             this.sumsCompleted++;
             
