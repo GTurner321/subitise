@@ -50,19 +50,25 @@ class AddIconRenderer {
     generateGridPositions(count, container) {
         const containerRect = container.getBoundingClientRect();
         
-        // Reduced margins: 10% left/right, 8% top/bottom (was 15% and 12%)
+        // Asymmetric margins to reduce inside and bottom buffers
         const marginHorizontal = 0.10;
-        const marginVertical = 0.08;
+        const marginTop = 0.08;
+        const marginBottom = 0.04; // Reduced from 0.08 to 0.04 (50% less bottom buffer)
         
-        // Calculate usable area with smaller margins
-        const usableWidth = containerRect.width * (1 - 2 * marginHorizontal);
-        const usableHeight = (containerRect.height - 120) * (1 - 2 * marginVertical); // Subtract sum row space
+        // Calculate which side we're on to adjust inside margins
+        const isLeftSide = container.id === 'leftSide';
+        const marginLeft = isLeftSide ? marginHorizontal : 0.06; // Reduced inside margin from 0.10 to 0.06
+        const marginRight = isLeftSide ? 0.06 : marginHorizontal; // Reduced inside margin from 0.10 to 0.06
         
-        // Calculate cell dimensions for 4x4 grid with increased buffers
+        // Calculate usable area with asymmetric margins
+        const usableWidth = containerRect.width * (1 - marginLeft - marginRight);
+        const usableHeight = (containerRect.height - 120) * (1 - marginTop - marginBottom); // Subtract sum row space
+        
+        // Calculate cell dimensions for 4x4 grid with buffers
         const gridSize = 4;
-        const bufferRatio = 0.25; // Increased from 0.15 to 0.25 (25% buffer between cells)
+        const bufferRatio = 0.25; // Keep same buffer between cells
         
-        // Cell size includes the buffer space
+        // Cell size includes the buffer space - now larger due to reduced margins
         const cellWidth = usableWidth / gridSize;
         const cellHeight = usableHeight / gridSize;
         
@@ -70,9 +76,9 @@ class AddIconRenderer {
         const iconAreaWidth = cellWidth * (1 - bufferRatio);
         const iconAreaHeight = cellHeight * (1 - bufferRatio);
         
-        // Calculate starting position with smaller margins
-        const startX = containerRect.width * marginHorizontal;
-        const startY = containerRect.height * marginVertical;
+        // Calculate starting position with asymmetric margins
+        const startX = containerRect.width * marginLeft;
+        const startY = containerRect.height * marginTop;
         
         // Create array of all 16 grid positions (0-15) for 4x4 grid
         const allPositions = [];
