@@ -50,25 +50,25 @@ class AddIconRenderer {
     generateGridPositions(count, container) {
         const containerRect = container.getBoundingClientRect();
         
-        // Asymmetric margins to reduce inside and bottom buffers
+        // Further reduced margins - bottom and inside margins
         const marginHorizontal = 0.10;
         const marginTop = 0.08;
-        const marginBottom = 0.04; // Reduced from 0.08 to 0.04 (50% less bottom buffer)
+        const marginBottom = 0.02; // Further reduced from 0.04 to 0.02 (50% less bottom buffer)
         
         // Calculate which side we're on to adjust inside margins
         const isLeftSide = container.id === 'leftSide';
-        const marginLeft = isLeftSide ? marginHorizontal : 0.06; // Reduced inside margin from 0.10 to 0.06
-        const marginRight = isLeftSide ? 0.06 : marginHorizontal; // Reduced inside margin from 0.10 to 0.06
+        const marginLeft = isLeftSide ? marginHorizontal : 0.03; // Further reduced inside margin from 0.06 to 0.03
+        const marginRight = isLeftSide ? 0.03 : marginHorizontal; // Further reduced inside margin from 0.06 to 0.03
         
-        // Calculate usable area with asymmetric margins
+        // Calculate usable area with further reduced margins
         const usableWidth = containerRect.width * (1 - marginLeft - marginRight);
         const usableHeight = (containerRect.height - 120) * (1 - marginTop - marginBottom); // Subtract sum row space
         
         // Calculate cell dimensions for 4x4 grid with buffers
         const gridSize = 4;
-        const bufferRatio = 0.25; // Keep same buffer between cells
+        const bufferRatio = 0.25; // Keep same buffer between cells (no change to grid spacing)
         
-        // Cell size includes the buffer space - now larger due to reduced margins
+        // Cell size includes the buffer space - now even larger due to further reduced margins
         const cellWidth = usableWidth / gridSize;
         const cellHeight = usableHeight / gridSize;
         
@@ -76,7 +76,7 @@ class AddIconRenderer {
         const iconAreaWidth = cellWidth * (1 - bufferRatio);
         const iconAreaHeight = cellHeight * (1 - bufferRatio);
         
-        // Calculate starting position with asymmetric margins
+        // Calculate starting position with further reduced margins
         const startX = containerRect.width * marginLeft;
         const startY = containerRect.height * marginTop;
         
