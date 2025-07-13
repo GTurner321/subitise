@@ -169,6 +169,8 @@ class AddGameController {
             }
         });
     }
+
+    toggleAudio() {
         this.audioEnabled = !this.audioEnabled;
         this.updateMuteButtonIcon();
         
@@ -180,7 +182,7 @@ class AddGameController {
         // Provide feedback
         if (this.audioEnabled) {
             setTimeout(() => {
-                this.speakText('Audio enabled');
+                this.speakText('Sound on'); // Changed from "Audio enabled"
             }, 100);
         }
     }
@@ -613,6 +615,11 @@ class AddGameController {
             buttonElement.classList.remove('correct');
         }, CONFIG.FLASH_DURATION);
 
+        // Play completion sound
+        if (this.audioEnabled) {
+            this.playCompletionSound();
+        }
+
         // Fill the appropriate box
         switch (boxType) {
             case 'left':
@@ -739,6 +746,11 @@ class AddGameController {
     handleIncorrectAnswer(buttonElement) {
         // Clear inactivity timer and give immediate hint
         this.clearInactivityTimer();
+        
+        // Play failure sound
+        if (this.audioEnabled) {
+            this.playFailureSound();
+        }
         
         // Give immediate "Try again" message for wrong answer
         if (this.audioEnabled && this.isTabVisible) {
@@ -888,6 +900,53 @@ class AddGameController {
             setTimeout(() => {
                 this.speakText('Well done! You have completed all ten sums! Try again or return to the home page.'); // Simplified message
             }, 1000);
+        }
+    }
+
+    playCompletionSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
+            
+            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.5);
+        } catch (error) {
+            // Silent failure
+        }
+    }
+
+    playFailureSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
+            
+            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.3);
+        } catch (error) {
+            // Silent failure
         }
     }
 
