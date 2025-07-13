@@ -4,31 +4,18 @@ class AddGameController {
         this.rainbow = new Rainbow();
         this.bear = new Bear();
         
-        // Game state
-        this.currentDifficulty = CONFIG.DIFFICULTY.EASY;
-        this.currentAnswer = 0;
-        this.currentLeftCount = 0;
-        this.currentRightCount = 0;
-        this.previousSum = 0;
-        this.previousAddition = null;
-        this.correctStreak = 0;
-        this.wrongStreak = 0;
-        this.questionsInLevel = 0;
+        // Simplified level-based progression
+        this.currentLevel = 1;
+        this.highestLevelReached = 1;
+        this.sumsCompleted = 0;
         this.gameComplete = false;
-        this.hasSeenHigherNumbers = false;
-        this.buttonsDisabled = false;
         
-        // Track if 1+? format has been used and answered correctly in current level
-        this.hasUsedOnePlusFormat = false;
-        this.currentLevelTurn = 0;
-        
-        // Track completed sums to avoid repetition
-        this.correctlyCompletedSums = new Set(); // Store canonical addition strings (e.g., "2+3")
+        // Track used sums for level 6 avoidance
+        this.usedSumsInSession = new Set(); // Stores canonical addition strings
         
         // Audio functionality
         this.audioContext = null;
         this.audioEnabled = CONFIG.AUDIO_ENABLED || true;
-        this.sumsCompleted = 0; // Track total sums completed for audio logic
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
@@ -38,6 +25,12 @@ class AddGameController {
         this.keyboardBuffer = '';
         this.keyboardTimer = null;
         this.keyboardWaitDuration = 4000; // 4 seconds to wait for second digit
+        
+        // Game state
+        this.currentLeftCount = 0;
+        this.currentRightCount = 0;
+        this.currentAnswer = 0;
+        this.buttonsDisabled = false;
         
         // Simplified box state - track which boxes are filled
         this.leftFilled = false;
@@ -63,6 +56,16 @@ class AddGameController {
         // Mute button references
         this.muteButton = null;
         this.muteContainer = null;
+        
+        // Level definitions
+        this.levels = {
+            1: [[1,1], [1,2], [1,3], [2,2], [2,3], [2,1], [3,1], [3,2]],
+            2: [[3,3], [1,4], [1,5], [2,4], [4,1], [5,1], [4,2]],
+            3: [[3,4], [2,5], [1,6], [1,7], [4,3], [5,2], [6,1], [7,1]],
+            4: [[1,9], [4,4], [2,6], [2,7], [3,5], [1,8], [9,1], [6,2], [7,2], [5,3], [8,1]],
+            5: [[3,6], [4,5], [4,6], [3,7], [5,5], [2,8], [6,3], [5,4], [6,4], [7,3], [8,2]],
+            6: [[2,3], [3,2], [3,3], [1,4], [1,5], [2,4], [3,4], [2,5], [1,6], [1,7], [1,8], [1,9], [4,4], [2,6], [2,7], [3,5], [2,8], [3,6], [4,5], [4,6], [3,7], [5,5], [4,1], [5,1], [4,2], [4,3], [5,2], [6,1], [7,1], [8,1], [9,1], [6,2], [7,2], [5,3], [8,2], [6,3], [5,4], [6,4], [7,3]]
+        };
         
         this.initializeEventListeners();
         this.initializeAudio();
@@ -195,7 +198,6 @@ class AddGameController {
 
     startInactivityTimer() {
         this.clearInactivityTimer();
-        this.clearKeyboardTimer();
         this.inactivityTimer = setTimeout(() => {
             this.giveInactivityHint();
         }, this.inactivityDuration);
@@ -277,20 +279,84 @@ class AddGameController {
         });
     }
 
+    handleKeyboardDigit(digit) {
+        // If we're waiting for a second digit and this is 0, check if buffer is "1"
+        if (this.keyboardBuffer === '1' && digit === 0) {
+            // Complete the "10" input
+            this.clearKeyboardTimer();
+            const button = Array.from(this.numberButtons).find(btn => 
+                parseInt(btn.dataset.number) === 10
+            );
+            if (button) {
+                this.handleNumberClick(10, button);
+            }
+            return;
+        }
+        
+        // Clear any existing keyboard timer
+        this.clearKeyboardTimer();
+        
+        // If digit is 1, check if it's a valid answer first
+        if (digit === 1) {
+            // If 1 is a valid answer, process it immediately
+            if (this.isDigitValidAnswer(1)) {
+                const button = Array.from(this.numberButtons).find(btn => 
+                    parseInt(btn.dataset.number) === 1
+                );
+                if (button) {
+                    this.handleNumberClick(1, button);
+                }
+                return;
+            }
+            
+            // If 1 is NOT valid but 10 could be valid, wait for potential "0"
+            if (this.isDigitValidAnswer(10)) {
+                this.keyboardBuffer = '1';
+                this.keyboardTimer = setTimeout(() => {
+                    // Timeout - treat the "1" as an incorrect answer
+                    this.clearKeyboardTimer();
+                    const button = Array.from(this.numberButtons).find(btn => 
+                        parseInt(btn.dataset.number) === 1
+                    );
+                    if (button) {
+                        this.handleNumberClick(1, button);
+                    }
+                }, this.keyboardWaitDuration);
+                return;
+            }
+        }
+        
+        // Handle normal single digit input for all other digits
+        const button = Array.from(this.numberButtons).find(btn => 
+            parseInt(btn.dataset.number) === digit
+        );
+        if (button) {
+            this.handleNumberClick(digit, button);
+        }
+    }
+
+    // Check if a digit would be a valid answer for any current empty box
+    isDigitValidAnswer(number) {
+        if (!this.leftFilled && number === this.currentLeftCount) {
+            return true;
+        }
+        if (!this.rightFilled && number === this.currentRightCount) {
+            return true;
+        }
+        if (!this.totalFilled && number === this.currentAnswer) {
+            return true;
+        }
+        return false;
+    }
+
     startNewGame() {
-        this.correctStreak = 0;
-        this.wrongStreak = 0;
-        this.questionsInLevel = 0;
+        // Start at highest reached level, but clear used sums cache
+        this.currentLevel = this.highestLevelReached;
+        this.sumsCompleted = 0;
         this.gameComplete = false;
-        this.previousSum = 0;
-        this.previousAddition = null;
-        this.hasSeenHigherNumbers = false;
-        this.buttonsDisabled = false;
-        this.hasUsedOnePlusFormat = false;
-        this.currentLevelTurn = 0;
-        this.sumsCompleted = 0; // Reset sum counter
-        this.correctlyCompletedSums.clear(); // Reset completed sums tracking
+        this.usedSumsInSession.clear();
         this.clearInactivityTimer();
+        this.clearKeyboardTimer();
         this.resetBoxState();
         
         this.rainbow.reset();
@@ -372,57 +438,18 @@ class AddGameController {
         this.resetBoxState();
         this.hideAllInputBoxes();
 
-        // Check if we need to force higher numbers
-        let forceHigherNumbers = false;
-        if (this.correctStreak === 1 && !this.hasSeenHigherNumbers) {
-            forceHigherNumbers = true;
-        }
-
-        let leftCount, rightCount, sum, currentAddition;
-        let attempts = 0;
-        const maxAttempts = 100;
-        
-        do {
-            if (forceHigherNumbers) {
-                const addition = this.generateForcedHigherAddition();
-                leftCount = addition.left;
-                rightCount = addition.right;
-                sum = addition.sum;
-            } else {
-                const addition = this.generateAdditionForDifficulty();
-                leftCount = addition.left;
-                rightCount = addition.right;
-                sum = addition.sum;
-            }
-            
-            currentAddition = this.getCanonicalAddition(leftCount, rightCount);
-            attempts++;
-            
-        } while (
-            (sum === this.previousSum || 
-             currentAddition === this.previousAddition ||
-             this.isConsecutiveHighNumbers(sum, this.previousSum) ||
-             this.shouldAvoidOnePlusFormat(leftCount, rightCount) ||
-             this.shouldAvoidCompletedSum(currentAddition)) && 
-            attempts < maxAttempts
-        );
-        
-        // Update tracking variables
-        this.previousSum = sum;
-        this.previousAddition = currentAddition;
-        
-        // Check if this question contains higher numbers for current level
-        this.checkForHigherNumbers(sum);
+        // Generate a sum based on current level
+        const addition = this.generateAdditionForCurrentLevel();
         
         // Set current game state
-        this.currentLeftCount = leftCount;
-        this.currentRightCount = rightCount;
-        this.currentAnswer = sum;
+        this.currentLeftCount = addition.left;
+        this.currentRightCount = addition.right;
+        this.currentAnswer = addition.sum;
         
-        console.log(`Question: ${leftCount} + ${rightCount} = ${sum}, Level: ${this.currentDifficulty.name}, HasUsedOnePlus: ${this.hasUsedOnePlusFormat}`);
+        console.log(`Question: ${addition.left} + ${addition.right} = ${addition.sum}, Level: ${this.currentLevel}`);
         
         // Render the icons
-        this.iconRenderer.renderIcons(leftCount, rightCount);
+        this.iconRenderer.renderIcons(addition.left, addition.right);
         
         // Reset button states and show input boxes
         this.resetButtonStates();
@@ -435,74 +462,49 @@ class AddGameController {
         this.startInactivityTimer();
     }
 
-    handleKeyboardDigit(digit) {
-        // If we're waiting for a second digit and this is 0, check if buffer is "1"
-        if (this.keyboardBuffer === '1' && digit === 0) {
-            // Complete the "10" input
-            this.clearKeyboardTimer();
-            const button = Array.from(this.numberButtons).find(btn => 
-                parseInt(btn.dataset.number) === 10
-            );
-            if (button) {
-                this.handleNumberClick(10, button);
-            }
-            return;
-        }
+    generateAdditionForCurrentLevel() {
+        const levelSums = this.levels[this.currentLevel];
+        let selectedSum;
+        let attempts = 0;
+        const maxAttempts = 100;
         
-        // Clear any existing keyboard timer
-        this.clearKeyboardTimer();
-        
-        // If digit is 1, check if it's a valid answer first
-        if (digit === 1) {
-            // If 1 is a valid answer, process it immediately
-            if (this.isDigitValidAnswer(1)) {
-                const button = Array.from(this.numberButtons).find(btn => 
-                    parseInt(btn.dataset.number) === 1
-                );
-                if (button) {
-                    this.handleNumberClick(1, button);
-                }
-                return;
-            }
+        do {
+            // Randomly select from current level's sums
+            selectedSum = levelSums[Math.floor(Math.random() * levelSums.length)];
+            attempts++;
             
-            // If 1 is NOT valid but 10 could be valid, wait for potential "0"
-            if (this.isDigitValidAnswer(10)) {
-                this.keyboardBuffer = '1';
-                this.keyboardTimer = setTimeout(() => {
-                    // Timeout - treat the "1" as an incorrect answer
-                    this.clearKeyboardTimer();
-                    const button = Array.from(this.numberButtons).find(btn => 
-                        parseInt(btn.dataset.number) === 1
-                    );
-                    if (button) {
-                        this.handleNumberClick(1, button);
-                    }
-                }, this.keyboardWaitDuration);
-                return;
+            // For level 6, check if this sum has been used before
+            if (this.currentLevel === 6) {
+                const canonical = this.getCanonicalAddition(selectedSum[0], selectedSum[1]);
+                if (!this.usedSumsInSession.has(canonical)) {
+                    break; // Found an unused sum
+                }
+                // If all sums have been used, allow repetition (break the loop)
+                if (attempts >= maxAttempts) {
+                    break;
+                }
+            } else {
+                break; // For levels 1-5, any random selection is fine
             }
+        } while (attempts < maxAttempts);
+        
+        // Add to used sums if level 6
+        if (this.currentLevel === 6) {
+            const canonical = this.getCanonicalAddition(selectedSum[0], selectedSum[1]);
+            this.usedSumsInSession.add(canonical);
         }
         
-        // Handle normal single digit input for all other digits
-        const button = Array.from(this.numberButtons).find(btn => 
-            parseInt(btn.dataset.number) === digit
-        );
-        if (button) {
-            this.handleNumberClick(digit, button);
-        }
+        return {
+            left: selectedSum[0],
+            right: selectedSum[1],
+            sum: selectedSum[0] + selectedSum[1]
+        };
     }
 
-    // Check if a digit would be a valid answer for any current empty box
-    isDigitValidAnswer(number) {
-        if (!this.leftFilled && number === this.currentLeftCount) {
-            return true;
-        }
-        if (!this.rightFilled && number === this.currentRightCount) {
-            return true;
-        }
-        if (!this.totalFilled && number === this.currentAnswer) {
-            return true;
-        }
-        return false;
+    getCanonicalAddition(left, right) {
+        const smaller = Math.min(left, right);
+        const larger = Math.max(left, right);
+        return `${smaller}+${larger}`;
     }
 
     giveStartingSumInstruction() {
@@ -511,58 +513,13 @@ class AddGameController {
         setTimeout(() => {
             if (this.sumsCompleted === 0) {
                 // First sum
-                this.speakText('Complete the three numbers in the addition sum.');
+                this.speakText('Complete the three numbers in the addition sum. How many pictures are on the left side? How many pictures are on the right side? What is the total?');
             } else if (this.sumsCompleted === 1) {
                 // Second sum
                 this.speakText('Try again and complete the sum');
             }
             // No audio for further sums
         }, 500);
-    }
-
-    // Check if we should avoid a previously completed sum
-    shouldAvoidCompletedSum(canonicalAddition) {
-        // If this sum was completed correctly before, avoid it only if there are other options
-        if (!this.correctlyCompletedSums.has(canonicalAddition)) {
-            return false; // Haven't completed this sum before, so it's fine to use
-        }
-        
-        // Check if there are any unused sums available for current difficulty
-        const availableSums = this.getAllPossibleSumsForCurrentDifficulty();
-        const unusedSums = availableSums.filter(sum => !this.correctlyCompletedSums.has(sum));
-        
-        // If there are unused sums available, avoid the completed one
-        // If no unused sums available, allow repetition
-        return unusedSums.length > 0;
-    }
-
-    // Get all possible canonical addition combinations for current difficulty
-    getAllPossibleSumsForCurrentDifficulty() {
-        const possibleSums = [];
-        const maxTotal = this.currentDifficulty.maxTotal;
-        const minSum = 2;
-        
-        for (let sum = minSum; sum <= maxTotal; sum++) {
-            for (let left = CONFIG.MIN_ICONS_PER_SIDE; left <= CONFIG.MAX_ICONS_PER_SIDE; left++) {
-                const right = sum - left;
-                if (right >= CONFIG.MIN_ICONS_PER_SIDE && right <= CONFIG.MAX_ICONS_PER_SIDE) {
-                    const canonical = this.getCanonicalAddition(left, right);
-                    if (!possibleSums.includes(canonical)) {
-                        possibleSums.push(canonical);
-                    }
-                }
-            }
-        }
-        
-        return possibleSums;
-    }
-
-    // Check if we should avoid 1+? format
-    shouldAvoidOnePlusFormat(leftCount, rightCount) {
-        if (!this.hasUsedOnePlusFormat) {
-            return false;
-        }
-        return (leftCount === 1 || rightCount === 1);
     }
 
     hideAllInputBoxes() {
@@ -680,12 +637,6 @@ class AddGameController {
             // Check if this was the first attempt for the entire question
             const wasFirstAttempt = !this.hasAttemptedAnswer();
             
-            // Mark that we've used 1+? format if this question was 1+? or ?+1
-            if (wasFirstAttempt && (this.currentLeftCount === 1 || this.currentRightCount === 1)) {
-                this.hasUsedOnePlusFormat = true;
-                console.log('Marked 1+? format as used in this level');
-            }
-            
             // Add rainbow piece
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}`);
@@ -697,33 +648,10 @@ class AddGameController {
                 this.speakText(randomEncouragement);
             }
             
-            // Update streaks and difficulty progression
-            if (wasFirstAttempt) {
-                this.correctStreak++;
-                this.wrongStreak = 0;
-                this.questionsInLevel++;
-                this.sumsCompleted++; // Increment completed sums counter
-                
-                // Add this sum to correctly completed sums (no mistakes made)
-                const currentCanonicalAddition = this.getCanonicalAddition(this.currentLeftCount, this.currentRightCount);
-                this.correctlyCompletedSums.add(currentCanonicalAddition);
-                console.log(`Added ${currentCanonicalAddition} to completed sums. Total completed: ${this.correctlyCompletedSums.size}`);
-                
-                const progressionRequirement = this.getProgressionRequirement();
-                if (this.correctStreak >= progressionRequirement) {
-                    this.progressDifficulty();
-                }
-            } else {
-                this.wrongStreak++;
-                this.correctStreak = 0;
-                this.questionsInLevel++;
-                this.sumsCompleted++; // Still increment even if not first attempt
-                // Don't add to completed sums since mistakes were made
-                
-                if (this.wrongStreak >= CONFIG.CONSECUTIVE_WRONG_TO_DROP) {
-                    this.dropDifficulty();
-                }
-            }
+            // Handle level progression
+            this.handleLevelProgression(wasFirstAttempt);
+            
+            this.sumsCompleted++;
             
             // Check if game is complete (10 sums total)
             if (this.rainbow.isComplete()) {
@@ -740,13 +668,38 @@ class AddGameController {
         }
     }
 
-    getProgressionRequirement() {
-        if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
-            return 2; // Easy to Medium: 2 correct
-        } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
-            return 3; // Medium to Hard: 3 correct (unchanged)
+    handleLevelProgression(wasFirstAttempt) {
+        if (wasFirstAttempt) {
+            // Success - advance to next level (unless already at level 6)
+            if (this.currentLevel < 6) {
+                this.currentLevel++;
+                console.log(`Advanced to level ${this.currentLevel}`);
+            }
+            // Update highest level reached
+            if (this.currentLevel > this.highestLevelReached) {
+                this.highestLevelReached = this.currentLevel;
+            }
         } else {
-            return 2; // Hard level: 2 correct (for potential future levels)
+            // Failure - handle level regression
+            if (this.currentLevel <= 3) {
+                // Levels 1-3: Special rules
+                if (this.currentLevel === 1) {
+                    // Stay at level 1
+                    console.log('Failed at level 1, staying at level 1');
+                } else if (this.currentLevel === 2) {
+                    // Return to level 1
+                    this.currentLevel = 1;
+                    console.log('Failed at level 2, returning to level 1');
+                } else if (this.currentLevel === 3) {
+                    // Return to level 2
+                    this.currentLevel = 2;
+                    console.log('Failed at level 3, returning to level 2');
+                }
+            } else {
+                // Levels 4-6: Return to level 3
+                this.currentLevel = 3;
+                console.log('Failed at level 4+, returning to level 3');
+            }
         }
     }
 
@@ -898,95 +851,10 @@ class AddGameController {
         });
     }
 
-    // Addition generation methods (unchanged)
-    generateForcedHigherAddition() {
-        const higherNumbers = this.currentDifficulty.higherNumbers;
-        if (!higherNumbers) return this.generateAdditionForDifficulty();
-        
-        const targetSum = higherNumbers[Math.floor(Math.random() * higherNumbers.length)];
-        return this.generateAdditionForSum(targetSum);
-    }
-
-    generateAdditionForDifficulty() {
-        const maxTotal = this.currentDifficulty.maxTotal;
-        const minSum = 2;
-        
-        const sum = Math.floor(Math.random() * (maxTotal - minSum + 1)) + minSum;
-        return this.generateAdditionForSum(sum);
-    }
-
-    generateAdditionForSum(targetSum) {
-        const combinations = [];
-        
-        for (let left = CONFIG.MIN_ICONS_PER_SIDE; left <= CONFIG.MAX_ICONS_PER_SIDE; left++) {
-            const right = targetSum - left;
-            if (right >= CONFIG.MIN_ICONS_PER_SIDE && right <= CONFIG.MAX_ICONS_PER_SIDE) {
-                combinations.push({ left, right, sum: targetSum });
-            }
-        }
-        
-        if (combinations.length === 0) {
-            return { left: 1, right: 1, sum: 2 };
-        }
-        
-        return combinations[Math.floor(Math.random() * combinations.length)];
-    }
-
-    getCanonicalAddition(left, right) {
-        const smaller = Math.min(left, right);
-        const larger = Math.max(left, right);
-        return `${smaller}+${larger}`;
-    }
-
-    isConsecutiveHighNumbers(currentSum, previousSum) {
-        if (this.currentDifficulty.name === 'hard') {
-            const highNumbers = [8, 9, 10];
-            return highNumbers.includes(currentSum) && highNumbers.includes(previousSum);
-        }
-        return false;
-    }
-
-    checkForHigherNumbers(sum) {
-        const higherNumbers = this.currentDifficulty.higherNumbers;
-        if (higherNumbers && higherNumbers.includes(sum)) {
-            this.hasSeenHigherNumbers = true;
-        }
-    }
-
-    progressDifficulty() {
-        if (this.currentDifficulty === CONFIG.DIFFICULTY.EASY) {
-            this.currentDifficulty = CONFIG.DIFFICULTY.MEDIUM;
-        } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
-            this.currentDifficulty = CONFIG.DIFFICULTY.HARD;
-        }
-        
-        this.correctStreak = 0;
-        this.questionsInLevel = 0;
-        this.hasSeenHigherNumbers = false;
-        this.hasUsedOnePlusFormat = false;
-        this.currentLevelTurn++;
-        console.log(`Advanced to ${this.currentDifficulty.name}, reset 1+? tracking`);
-    }
-
-    dropDifficulty() {
-        if (this.currentDifficulty === CONFIG.DIFFICULTY.HARD) {
-            this.currentDifficulty = CONFIG.DIFFICULTY.MEDIUM;
-        } else if (this.currentDifficulty === CONFIG.DIFFICULTY.MEDIUM) {
-            this.currentDifficulty = CONFIG.DIFFICULTY.EASY;
-        }
-        
-        this.wrongStreak = 0;
-        this.correctStreak = 0;
-        this.questionsInLevel = 0;
-        this.hasSeenHigherNumbers = false;
-        this.hasUsedOnePlusFormat = false;
-        this.currentLevelTurn++;
-        console.log(`Dropped to ${this.currentDifficulty.name}, reset 1+? tracking`);
-    }
-
     completeGame() {
         this.gameComplete = true;
         this.clearInactivityTimer();
+        this.clearKeyboardTimer();
         this.stopFlashing();
         this.modal.classList.remove('hidden');
         
