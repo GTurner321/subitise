@@ -620,6 +620,9 @@ class AddGameController {
             this.playCompletionSound();
         }
 
+        // Create celebration stars around the button
+        this.createCelebrationStars(buttonElement);
+
         // Fill the appropriate box
         switch (boxType) {
             case 'left':
@@ -947,6 +950,42 @@ class AddGameController {
             oscillator.stop(this.audioContext.currentTime + 0.3);
         } catch (error) {
             // Silent failure
+        }
+    }
+
+    createCelebrationStars(buttonElement) {
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const centerX = buttonRect.left + buttonRect.width / 2;
+        const centerY = buttonRect.top + buttonRect.height / 2;
+        
+        const starCount = 5; // Number of stars to create
+        const radius = 60; // Distance from button center
+        
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            star.innerHTML = '⭐'; // Star emoji
+            star.className = 'completion-star';
+            star.style.fontSize = '20px';
+            
+            // Calculate position around the button in a circle
+            const angle = (i / starCount) * 2 * Math.PI;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            
+            star.style.left = x + 'px';
+            star.style.top = y + 'px';
+            
+            // Add random delay to make stars appear slightly staggered
+            star.style.animationDelay = (i * 0.1) + 's';
+            
+            document.body.appendChild(star);
+            
+            // Remove star after animation completes
+            setTimeout(() => {
+                if (star.parentNode) {
+                    star.parentNode.removeChild(star);
+                }
+            }, 1500 + (i * 100)); // 1.5s animation + stagger delay
         }
     }
 
