@@ -259,3 +259,33 @@ body {
 .number-btn {
     position: relative;
 }
+
+/* Star celebration animation from trace game */
+.completion-star {
+    animation: starSparkle 1.5s ease-out forwards;
+    transform-origin: center;
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes starSparkle {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8) rotate(360deg);
+    }
+}
+
+/* Enhanced completion effects */
+.completion-effect {
+    pointer-events: none;
+}
