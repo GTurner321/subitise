@@ -24,6 +24,10 @@ class DiceRenderer {
         const dice = document.createElement('div');
         dice.className = 'dice';
         
+        // Start dice as small and invisible
+        dice.style.opacity = '0';
+        dice.style.transform = `scale(${CONFIG.DICE_MIN_SCALE})`;
+        
         // Create all 6 faces of the dice
         const faces = ['front', 'back', 'right', 'left', 'top', 'bottom'];
         const faceValues = [1, 6, 2, 5, 3, 4]; // Opposite faces add to 7
@@ -88,15 +92,32 @@ class DiceRenderer {
         
         this.currentDice = [leftDice, rightDice];
         
-        // Start rolling animation
-        leftDice.classList.add('rolling');
-        rightDice.classList.add('rolling');
+        // Fade in dice over 1 second
+        setTimeout(() => {
+            leftDice.classList.add('fade-in');
+            rightDice.classList.add('fade-in');
+        }, 100);
         
-        // Random roll durations for each dice
-        const leftDuration = Math.random() * (CONFIG.DICE_ROLL_MAX_DURATION - CONFIG.DICE_ROLL_MIN_DURATION) + CONFIG.DICE_ROLL_MIN_DURATION;
-        const rightDuration = Math.random() * (CONFIG.DICE_ROLL_MAX_DURATION - CONFIG.DICE_ROLL_MIN_DURATION) + CONFIG.DICE_ROLL_MIN_DURATION;
+        // Wait for fade-in to complete, then start rolling
+        await new Promise(resolve => setTimeout(resolve, CONFIG.DICE_FADE_IN_DURATION));
+        
+        // Generate random roll durations (to nearest tenth of a second)
+        const leftDuration = Math.round((Math.random() * (CONFIG.DICE_ROLL_MAX_DURATION - CONFIG.DICE_ROLL_MIN_DURATION) + CONFIG.DICE_ROLL_MIN_DURATION) / 100) * 100;
+        const rightDuration = Math.round((Math.random() * (CONFIG.DICE_ROLL_MAX_DURATION - CONFIG.DICE_ROLL_MIN_DURATION) + CONFIG.DICE_ROLL_MIN_DURATION) / 100) * 100;
         
         console.log(`Rolling dice: Left for ${leftDuration}ms, Right for ${rightDuration}ms`);
+        
+        // Set up CSS custom properties for scaling animation
+        leftDice.style.setProperty('--grow-duration', `${leftDuration}ms`);
+        rightDice.style.setProperty('--grow-duration', `${rightDuration}ms`);
+        leftDice.style.setProperty('--current-scale', CONFIG.DICE_MIN_SCALE);
+        rightDice.style.setProperty('--current-scale', CONFIG.DICE_MIN_SCALE);
+        
+        // Start rolling animation with scaling
+        leftDice.classList.remove('fade-in');
+        rightDice.classList.remove('fade-in');
+        leftDice.classList.add('rolling');
+        rightDice.classList.add('rolling');
         
         // Change faces rapidly during roll
         const changeIntervals = [];
@@ -120,6 +141,7 @@ class DiceRenderer {
             clearInterval(leftInterval);
             leftDice.classList.remove('rolling');
             leftDice.classList.add('final');
+            leftDice.style.transform = 'rotateX(-90deg) scale(1)';
             this.updateDiceFace(leftDice, leftValue);
             console.log(`Left dice stopped with value: ${leftValue}`);
         }, leftDuration);
@@ -130,6 +152,7 @@ class DiceRenderer {
             clearInterval(rightInterval);
             rightDice.classList.remove('rolling');
             rightDice.classList.add('final');
+            rightDice.style.transform = 'rotateX(-90deg) scale(1)';
             this.updateDiceFace(rightDice, rightValue);
             console.log(`Right dice stopped with value: ${rightValue}`);
         }, rightDuration);
