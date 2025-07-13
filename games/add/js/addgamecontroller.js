@@ -19,7 +19,9 @@ class AddGameController {
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
-        this.inactivityDuration = 20000; // 20 seconds
+        this.inactivityDuration = 20000; // 20 seconds (changed from 10 seconds)
+        this.hintGiven = false; // Track if hint has been given for current question
+        this.isTabVisible = true; // Track tab visibility
         
         // Keyboard two-digit handling for "10"
         this.keyboardBuffer = '';
@@ -70,6 +72,7 @@ class AddGameController {
         this.initializeEventListeners();
         this.initializeAudio();
         this.createMuteButton();
+        this.setupVisibilityHandling();
         this.startNewQuestion();
     }
 
@@ -147,7 +150,25 @@ class AddGameController {
         }
     }
 
-    toggleAudio() {
+    setupVisibilityHandling() {
+        // Handle tab visibility changes
+        document.addEventListener('visibilitychange', () => {
+            this.isTabVisible = !document.hidden;
+            
+            if (!this.isTabVisible) {
+                // Tab is hidden - stop all audio and clear timers
+                this.clearInactivityTimer();
+                if ('speechSynthesis' in window) {
+                    speechSynthesis.cancel();
+                }
+            } else {
+                // Tab is visible again - restart inactivity timer if game is active
+                if (!this.gameComplete && !this.buttonsDisabled) {
+                    this.startInactivityTimer();
+                }
+            }
+        });
+    }
         this.audioEnabled = !this.audioEnabled;
         this.updateMuteButtonIcon();
         
@@ -159,7 +180,7 @@ class AddGameController {
         // Provide feedback
         if (this.audioEnabled) {
             setTimeout(() => {
-                this.speakText('Sound on');
+                this.speakText('Audio enabled');
             }, 100);
         }
     }
@@ -197,6 +218,11 @@ class AddGameController {
     }
 
     startInactivityTimer() {
+        // Only start timer if tab is visible and hint hasn't been given
+        if (!this.isTabVisible || this.hintGiven) {
+            return;
+        }
+        
         this.clearInactivityTimer();
         this.inactivityTimer = setTimeout(() => {
             this.giveInactivityHint();
@@ -219,24 +245,26 @@ class AddGameController {
     }
 
     giveInactivityHint() {
-        if (!this.audioEnabled || this.buttonsDisabled || this.gameComplete) return;
+        if (!this.audioEnabled || this.buttonsDisabled || this.gameComplete || !this.isTabVisible) return;
+        
+        // Mark that hint has been given for this question
+        this.hintGiven = true;
         
         // Determine which hint to give based on current flashing box
         let hintText = '';
         if (!this.leftFilled) {
-            hintText = 'Try counting the number of pictures on the left side';
+            hintText = 'Count the number of pictures on the left side'; // Changed from "Try counting..."
         } else if (!this.rightFilled) {
-            hintText = 'Try counting the number of pictures on the right side';
+            hintText = 'Count the number of pictures on the right side'; // Changed from "Try counting..."
         } else if (!this.totalFilled) {
-            hintText = 'Try counting the number of pictures in total';
+            hintText = 'Count the number of pictures in total'; // Changed from "Try counting..."
         }
         
         if (hintText) {
             this.speakText(hintText);
         }
         
-        // Restart the timer for continuous hints
-        this.startInactivityTimer();
+        // Don't restart the timer - hint is only given once per question
     }
 
     initializeEventListeners() {
@@ -438,6 +466,9 @@ class AddGameController {
         this.resetBoxState();
         this.hideAllInputBoxes();
 
+        // Reset hint tracking for new question
+        this.hintGiven = false;
+
         // Generate a sum based on current level
         const addition = this.generateAdditionForCurrentLevel();
         
@@ -508,17 +539,19 @@ class AddGameController {
     }
 
     giveStartingSumInstruction() {
-        if (!this.audioEnabled) return;
+        if (!this.audioEnabled || !this.isTabVisible) return;
         
         setTimeout(() => {
             if (this.sumsCompleted === 0) {
                 // First sum
-                this.speakText('Complete the three numbers in the addition sum. How many pictures are on the left side? How many pictures are on the right side? What is the total?');
+                this.speakText('Complete the three numbers in the addition sum.'); // Simplified message
             } else if (this.sumsCompleted === 1) {
                 // Second sum
                 this.speakText('Try again and complete the sum');
+            } else {
+                // Third sum onwards
+                this.speakText('Complete the sum'); // New message for 3rd+ sums
             }
-            // No audio for further sums
         }, 500);
     }
 
@@ -707,22 +740,11 @@ class AddGameController {
         // Clear inactivity timer and give immediate hint
         this.clearInactivityTimer();
         
-        // Give audio hint for wrong answer
-        if (this.audioEnabled) {
-            let hintText = '';
-            if (!this.leftFilled) {
-                hintText = 'Try counting the number of pictures on the left side';
-            } else if (!this.rightFilled) {
-                hintText = 'Try counting the number of pictures on the right side';
-            } else if (!this.totalFilled) {
-                hintText = 'Try counting the number of pictures in total';
-            }
-            
-            if (hintText) {
-                setTimeout(() => {
-                    this.speakText(hintText);
-                }, 800); // Give hint after error animation
-            }
+        // Give immediate "Try again" message for wrong answer
+        if (this.audioEnabled && this.isTabVisible) {
+            setTimeout(() => {
+                this.speakText('Try again'); // Simple "Try again" message
+            }, 800); // Give hint after error animation
         }
         
         // Disable buttons during error handling
@@ -862,9 +884,9 @@ class AddGameController {
         this.bear.startCelebration();
         
         // Give completion audio message
-        if (this.audioEnabled) {
+        if (this.audioEnabled && this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Well done! You have completed all ten sums! Try again or return to the home page and try another game.');
+                this.speakText('Well done! You have completed all ten sums! Try again or return to the home page.'); // Simplified message
             }, 1000);
         }
     }
