@@ -93,30 +93,40 @@ class DiceRenderer {
         
         this.currentDice = [leftDice, rightDice];
         
-        // Start with fade-in animation (this makes them visible)
-        leftDice.classList.add('fade-in');
-        rightDice.classList.add('fade-in');
+        // Force immediate visibility for debugging
+        console.log('Dice created and added to DOM');
+        
+        // Small delay then start fade-in
+        setTimeout(() => {
+            console.log('Starting fade-in animation');
+            leftDice.classList.add('fade-in');
+            rightDice.classList.add('fade-in');
+            
+            // Force style update
+            leftDice.style.opacity = '1';
+            rightDice.style.opacity = '1';
+            leftDice.style.transform = 'scale(1)';
+            rightDice.style.transform = 'scale(1)';
+        }, 100);
         
         // Wait for fade-in to complete, then start rolling
-        await new Promise(resolve => setTimeout(resolve, CONFIG.DICE_FADE_IN_DURATION));
+        await new Promise(resolve => setTimeout(resolve, CONFIG.DICE_FADE_IN_DURATION + 200));
         
         // Generate random roll durations (to nearest tenth of a second)
         const leftDuration = Math.round((Math.random() * (CONFIG.DICE_ROLL_MAX_DURATION - CONFIG.DICE_ROLL_MIN_DURATION) + CONFIG.DICE_ROLL_MIN_DURATION) / 100) * 100;
         const rightDuration = Math.round((Math.random() * (CONFIG.DICE_ROLL_MAX_DURATION - CONFIG.DICE_ROLL_MIN_DURATION) + CONFIG.DICE_ROLL_MIN_DURATION) / 100) * 100;
         
-        console.log(`Rolling dice: Left for ${leftDuration}ms, Right for ${rightDuration}ms`);
+        console.log(`Starting rolling: Left for ${leftDuration}ms, Right for ${rightDuration}ms`);
         
-        // Set up CSS custom properties for scaling animation
-        leftDice.style.setProperty('--grow-duration', `${leftDuration}ms`);
-        rightDice.style.setProperty('--grow-duration', `${rightDuration}ms`);
-        leftDice.style.setProperty('--current-scale', CONFIG.DICE_MIN_SCALE);
-        rightDice.style.setProperty('--current-scale', CONFIG.DICE_MIN_SCALE);
-        
-        // Remove fade-in and start rolling (dice remain visible)
+        // Remove fade-in and start rolling
         leftDice.classList.remove('fade-in');
         rightDice.classList.remove('fade-in');
         leftDice.classList.add('rolling');
         rightDice.classList.add('rolling');
+        
+        // Ensure visibility during rolling
+        leftDice.style.opacity = '1';
+        rightDice.style.opacity = '1';
         
         // Change faces rapidly during roll
         const changeIntervals = [];
@@ -137,23 +147,25 @@ class DiceRenderer {
         
         // Stop left dice
         const leftTimeout = setTimeout(() => {
+            console.log(`Stopping left dice with value: ${leftValue}`);
             clearInterval(leftInterval);
             leftDice.classList.remove('rolling');
             leftDice.classList.add('final');
+            leftDice.style.opacity = '1';
             leftDice.style.transform = 'rotateX(-90deg) scale(1)';
             this.updateDiceFace(leftDice, leftValue);
-            console.log(`Left dice stopped with value: ${leftValue}`);
         }, leftDuration);
         this.rollTimeouts.push(leftTimeout);
         
         // Stop right dice
         const rightTimeout = setTimeout(() => {
+            console.log(`Stopping right dice with value: ${rightValue}`);
             clearInterval(rightInterval);
             rightDice.classList.remove('rolling');
             rightDice.classList.add('final');
+            rightDice.style.opacity = '1';
             rightDice.style.transform = 'rotateX(-90deg) scale(1)';
             this.updateDiceFace(rightDice, rightValue);
-            console.log(`Right dice stopped with value: ${rightValue}`);
         }, rightDuration);
         this.rollTimeouts.push(rightTimeout);
         
@@ -161,10 +173,11 @@ class DiceRenderer {
         return new Promise((resolve) => {
             const maxDuration = Math.max(leftDuration, rightDuration);
             const finalTimeout = setTimeout(() => {
+                console.log('Both dice have stopped, resolving promise');
                 // Clean up intervals
                 changeIntervals.forEach(interval => clearInterval(interval));
                 resolve({ left: leftValue, right: rightValue, total: leftValue + rightValue });
-            }, maxDuration + 100); // Small buffer to ensure dice have stopped
+            }, maxDuration + 100);
             this.rollTimeouts.push(finalTimeout);
         });
     }
