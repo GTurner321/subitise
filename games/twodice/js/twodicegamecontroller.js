@@ -725,41 +725,15 @@ class TwoDiceGameController {
         }, 700);
     }
 
-    fadeOutDice() {
-        // Add fade out class to dice
-        const dice = [...this.diceRenderer.currentDice];
-        
-        dice.forEach(element => {
-            if (element) {
-                element.classList.add('fade-out');
-            }
-        });
-        
-        // Start new question after fade out
-        setTimeout(() => {
-            this.startNewQuestion();
-            
-            // Clean up fade classes after new dice appear
-            setTimeout(() => {
-                const newDice = [...this.diceRenderer.currentDice];
-                
-                newDice.forEach(element => {
-                    if (element) {
-                        element.classList.remove('fade-out');
-                        element.classList.add('fade-in');
-                    }
-                });
-                
-                setTimeout(() => {
-                    newDice.forEach(element => {
-                        if (element) {
-                            element.classList.remove('fade-in');
-                        }
-                    });
-                }, 1000);
-            }, 100);
-        }, 1000);
-    }
+async fadeOutDice() {
+    console.log('Starting dice transition');
+    
+    // Fade out current dice first
+    await this.diceRenderer.fadeOutCurrentDice();
+    
+    // Then start new question (which will fade in new dice)
+    this.startNewQuestion();
+}
 
     hasAttemptedAnswer() {
         return Array.from(this.numberButtons).some(btn => 
