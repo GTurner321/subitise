@@ -98,8 +98,8 @@
     margin: 20px;
     opacity: 0;
     z-index: 10; /* Ensure dice are above rainbow */
-    /* Remove any default transitions that might interfere */
-    transition: none !important;
+    /* Allow transforms to be transitioned */
+    transition: opacity 1s ease-in-out;
     /* Ensure proper 3D rendering */
     transform-origin: center center;
 }
