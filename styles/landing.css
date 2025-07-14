@@ -1,71 +1,84 @@
-/* Landing page specific styles */
+/* Compact Landing page styles - fits 12 games in 3x4 grid */
+
 .landing-container {
     min-height: 100vh;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
     flex-direction: column;
-    padding: 20px;
+    padding: 15px;
+    height: 100vh;
 }
 
 .landing-header {
     text-align: center;
     color: white;
-    margin-bottom: 40px;
-    padding: 20px 0;
+    margin-bottom: 20px;
+    padding: 10px 0;
 }
 
 .landing-header h1 {
-    font-size: 3.5rem;
-    margin-bottom: 10px;
+    font-size: 2.5rem;
+    margin-bottom: 5px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     font-weight: bold;
 }
 
 .landing-header p {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     opacity: 0.9;
     font-weight: 300;
 }
 
 .landing-header i {
-    margin-right: 15px;
+    margin-right: 10px;
     color: #ffd700;
 }
 
 .games-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 30px;
-    max-width: 1400px;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 15px;
+    max-width: 1200px;
     margin: 0 auto;
     flex: 1;
-    align-content: start;
+    padding: 0 10px;
 }
 
 .game-card {
     background: white;
-    border-radius: 20px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
     cursor: pointer;
     position: relative;
     display: flex;
     flex-direction: column;
-    height: 400px;
+    min-height: 0;
 }
 
 .game-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
 }
 
 .game-card.hover .game-preview {
-    transform: scale(1.05);
+    transform: scale(1.02);
+}
+
+.game-card.coming-soon {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.game-card.coming-soon:hover {
+    transform: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
 .game-preview {
-    height: 200px;
+    height: 60px;
     background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
     display: flex;
     align-items: center;
@@ -75,9 +88,16 @@
     transition: transform 0.3s ease;
 }
 
+.game-card.coming-soon .game-preview {
+    background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+}
+
 .preview-icons {
     display: flex;
-    gap: 20px;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -85,7 +105,7 @@
 }
 
 .preview-icons i {
-    font-size: 3rem;
+    font-size: 1.2rem;
     color: #ff6b6b;
     animation: float 3s ease-in-out infinite;
 }
@@ -105,13 +125,13 @@
         transform: translateY(0px);
     }
     50% {
-        transform: translateY(-10px);
+        transform: translateY(-3px);
     }
 }
 
 .mini-rainbow {
     position: absolute;
-    bottom: 20px;
+    bottom: 3px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -120,51 +140,54 @@
 }
 
 .mini-arc {
-    width: 80px;
-    height: 40px;
+    width: 30px;
+    height: 15px;
     border-style: solid;
     border-left: 0;
     border-right: 0;
     border-bottom: 0;
-    border-top-width: 8px;
-    border-radius: 40px 40px 0 0;
-    margin-top: -4px;
+    border-top-width: 3px;
+    border-radius: 15px 15px 0 0;
+    margin-top: -2px;
 }
 
 .game-info {
-    padding: 20px;
+    padding: 8px;
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
 .game-info h2 {
-    font-size: 2rem;
+    font-size: 1.1rem;
     color: #333;
-    margin-bottom: 10px;
+    margin-bottom: 4px;
     font-weight: bold;
+    line-height: 1.2;
 }
 
 .game-info p {
     color: #666;
-    font-size: 1.1rem;
-    margin-bottom: 15px;
-    line-height: 1.4;
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+    line-height: 1.3;
+    flex: 1;
 }
 
 .game-features {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: auto;
+    gap: 3px;
+    margin-bottom: 6px;
 }
 
 .feature-tag {
     background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
-    padding: 5px 12px;
-    border-radius: 15px;
-    font-size: 0.9rem;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.65rem;
     font-weight: 500;
 }
 
@@ -172,24 +195,23 @@
     background: linear-gradient(135deg, #4caf50, #45a049);
     color: white;
     border: none;
-    padding: 15px 20px;
-    font-size: 1.2rem;
+    padding: 6px 8px;
+    font-size: 0.85rem;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    margin: 0 20px 20px 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    gap: 4px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 .play-button:hover {
     background: linear-gradient(135deg, #45a049, #4caf50);
-    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-    transform: translateY(-2px);
+    box-shadow: 0 3px 12px rgba(76, 175, 80, 0.4);
+    transform: translateY(-1px);
 }
 
 .play-button:active {
@@ -206,42 +228,29 @@
     transform: none;
 }
 
-/* Coming soon card styles */
-.game-card.coming-soon {
-    opacity: 0.7;
-}
-
-.coming-soon .game-preview {
-    background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
-}
-
 .coming-soon-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     color: #999;
+    font-size: 0.9rem;
 }
 
 .coming-soon-content i {
-    font-size: 4rem;
-    margin-bottom: 10px;
-}
-
-.coming-soon-content span {
-    font-size: 1.2rem;
-    font-weight: bold;
+    font-size: 1.5rem;
+    margin-bottom: 2px;
 }
 
 .landing-footer {
     text-align: center;
     color: white;
-    margin-top: 40px;
-    padding: 20px 0;
+    margin-top: 15px;
+    padding: 10px 0;
     opacity: 0.8;
 }
 
 .landing-footer p {
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 300;
 }
 
@@ -267,19 +276,18 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 0 20px;
+    padding: 0 8px;
 }
 
 .preview-left,
 .preview-right {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
+    gap: 2px;
 }
 
 .preview-left i,
 .preview-right i {
-    font-size: 1.5rem !important;
+    font-size: 0.9rem !important;
     color: #ff6b6b !important;
     animation: none !important;
 }
@@ -288,16 +296,16 @@
     background: #dc3545;
     color: white;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 0.7rem;
 }
 
 .preview-plus i {
-    font-size: 1.2rem !important;
+    font-size: 0.7rem !important;
     color: white !important;
     animation: none !important;
 }
@@ -308,19 +316,19 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 0 20px;
+    padding: 0 8px;
 }
 
 .preview-dice {
-    width: 60px;
-    height: 60px;
+    width: 25px;
+    height: 25px;
     background: white;
-    border: 3px solid #333;
-    border-radius: 12px;
+    border: 2px solid #333;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     animation: diceFloat 3s ease-in-out infinite;
 }
 
@@ -337,7 +345,7 @@
         transform: translateY(0px) rotateX(0deg);
     }
     50% {
-        transform: translateY(-8px) rotateX(10deg);
+        transform: translateY(-4px) rotateX(5deg);
     }
 }
 
@@ -347,13 +355,13 @@
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr 1fr;
-    padding: 6px;
-    gap: 2px;
+    padding: 2px;
+    gap: 1px;
 }
 
 .dot {
-    width: 8px;
-    height: 8px;
+    width: 3px;
+    height: 3px;
     background-color: #333;
     border-radius: 50%;
     opacity: 0;
@@ -364,17 +372,17 @@
     background: #dc3545;
     color: white;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 0.7rem;
     animation: plusPulse 2s ease-in-out infinite;
 }
 
 .dice-plus i {
-    font-size: 1.2rem !important;
+    font-size: 0.7rem !important;
     color: white !important;
     animation: none !important;
 }
@@ -384,7 +392,7 @@
         transform: scale(1);
     }
     50% {
-        transform: scale(1.1);
+        transform: scale(1.05);
     }
 }
 
@@ -394,7 +402,7 @@
     align-items: center;
     justify-content: space-around;
     width: 100%;
-    padding: 0 20px;
+    padding: 0 8px;
     position: relative;
 }
 
@@ -406,7 +414,7 @@
 }
 
 .preview-digit {
-    font-size: 4rem !important;
+    font-size: 1.8rem !important;
     font-weight: bold;
     color: #e0e0e0 !important;
     position: relative;
@@ -415,9 +423,9 @@
 
 .preview-number i {
     position: absolute;
-    top: -10px;
-    left: -10px;
-    font-size: 1.5rem !important;
+    top: -5px;
+    left: -5px;
+    font-size: 0.8rem !important;
     color: #ff6b6b !important;
     animation: none !important;
     z-index: 3;
@@ -428,10 +436,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 60px;
-    height: 3px;
+    width: 25px;
+    height: 2px;
     background: linear-gradient(90deg, transparent 0%, #90EE90 50%, transparent 100%);
-    border-radius: 2px;
+    border-radius: 1px;
     z-index: 1;
     animation: tracePath 2s ease-in-out infinite;
 }
@@ -442,11 +450,11 @@
         opacity: 0;
     }
     50% {
-        width: 60px;
+        width: 25px;
         opacity: 1;
     }
     100% {
-        width: 60px;
+        width: 25px;
         opacity: 0;
     }
 }
@@ -456,7 +464,7 @@
 }
 
 .preview-finger i {
-    font-size: 2.5rem !important;
+    font-size: 1.2rem !important;
     color: #4ecdc4 !important;
     animation: fingerPoint 2s ease-in-out infinite !important;
 }
@@ -466,63 +474,146 @@
         transform: translateX(0) rotate(0deg);
     }
     50% {
-        transform: translateX(-10px) rotate(-10deg);
+        transform: translateX(-5px) rotate(-5deg);
+    }
+}
+
+/* Draw Numbers game preview specific styles */
+.draw-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 100%;
+    padding: 0 8px;
+}
+
+.preview-canvas {
+    position: relative;
+    width: 30px;
+    height: 20px;
+    background: white;
+    border: 2px solid #333;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.preview-canvas::before {
+    content: "5";
+    font-size: 1rem;
+    font-weight: bold;
+    color: #4ecdc4;
+    animation: drawNumber 3s ease-in-out infinite;
+}
+
+@keyframes drawNumber {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.preview-brush {
+    position: relative;
+}
+
+.preview-brush i {
+    font-size: 1.2rem !important;
+    color: #ff6b6b !important;
+    animation: brushMove 2s ease-in-out infinite !important;
+}
+
+@keyframes brushMove {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-3px) rotate(10deg);
     }
 }
 
 /* Responsive design */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .landing-header h1 {
-        font-size: 2.5rem;
-    }
-    
-    .landing-header p {
-        font-size: 1.2rem;
+        font-size: 2.2rem;
     }
     
     .games-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
-        padding: 0 10px;
+        gap: 12px;
     }
     
-    .game-card {
-        height: auto;
-        min-height: 350px;
+    .game-info h2 {
+        font-size: 1rem;
     }
     
-    .preview-icons i {
-        font-size: 2.5rem;
+    .game-info p {
+        font-size: 0.75rem;
     }
+}
 
-    /* Responsive adjustments for dice preview */
-    .preview-dice {
-        width: 50px;
+@media (max-width: 768px) {
+    .landing-container {
+        padding: 12px;
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    .games-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(6, 1fr);
+        gap: 12px;
+    }
+    
+    .landing-header h1 {
+        font-size: 2rem;
+    }
+    
+    .landing-header p {
+        font-size: 1rem;
+    }
+    
+    .game-preview {
         height: 50px;
     }
     
-    .dot {
-        width: 6px;
-        height: 6px;
+    .preview-icons i {
+        font-size: 1rem;
     }
     
-    .dice-plus {
-        width: 35px;
-        height: 35px;
-        font-size: 1rem;
+    /* Responsive adjustments for dice preview */
+    .preview-dice {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .dot {
+        width: 2px;
+        height: 2px;
+    }
+    
+    .dice-plus, .preview-plus {
+        width: 18px;
+        height: 18px;
+        font-size: 0.6rem;
     }
 
     /* Responsive adjustments for tracing preview */
     .preview-digit {
-        font-size: 3rem !important;
+        font-size: 1.5rem !important;
     }
     
     .preview-finger i {
-        font-size: 2rem !important;
+        font-size: 1rem !important;
     }
     
     .preview-path {
-        width: 40px;
+        width: 20px;
     }
     
     @keyframes tracePath {
@@ -531,13 +622,27 @@
             opacity: 0;
         }
         50% {
-            width: 40px;
+            width: 20px;
             opacity: 1;
         }
         100% {
-            width: 40px;
+            width: 20px;
             opacity: 0;
         }
+    }
+
+    /* Responsive adjustments for draw preview */
+    .preview-canvas {
+        width: 25px;
+        height: 18px;
+    }
+    
+    .preview-canvas::before {
+        font-size: 0.9rem;
+    }
+    
+    .preview-brush i {
+        font-size: 1rem !important;
     }
 }
 
@@ -546,36 +651,112 @@
         padding: 10px;
     }
     
+    .games-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(12, 1fr);
+        gap: 10px;
+    }
+    
     .landing-header h1 {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
     
     .landing-header p {
-        font-size: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .game-preview {
+        height: 45px;
     }
     
     .game-info h2 {
-        font-size: 1.5rem;
+        font-size: 1rem;
+    }
+    
+    .game-info p {
+        font-size: 0.7rem;
+    }
+    
+    .feature-tag {
+        font-size: 0.6rem;
+        padding: 1px 4px;
+    }
+    
+    .play-button {
+        font-size: 0.8rem;
+        padding: 5px 6px;
     }
     
     .preview-icons i {
-        font-size: 2rem;
+        font-size: 0.9rem;
     }
     
     /* Further responsive adjustments for dice */
     .preview-dice {
-        width: 40px;
-        height: 40px;
+        width: 18px;
+        height: 18px;
+        border-width: 1px;
     }
     
-    .dot {
-        width: 4px;
-        height: 4px;
+    .dice-plus, .preview-plus {
+        width: 16px;
+        height: 16px;
+        font-size: 0.5rem;
+    }
+
+    /* Further responsive adjustments for tracing */
+    .preview-digit {
+        font-size: 1.3rem !important;
     }
     
-    .dice-plus {
-        width: 30px;
-        height: 30px;
-        font-size: 0.9rem;
+    .preview-number i {
+        font-size: 0.7rem !important;
+    }
+    
+    .preview-finger i {
+        font-size: 0.9rem !important;
+    }
+
+    /* Further responsive adjustments for draw */
+    .preview-canvas {
+        width: 22px;
+        height: 16px;
+    }
+    
+    .preview-canvas::before {
+        font-size: 0.8rem;
+    }
+    
+    .preview-brush i {
+        font-size: 0.9rem !important;
+    }
+}
+
+/* Additional animations and effects */
+.game-card {
+    animation: cardAppear 0.6s ease-out forwards;
+}
+
+.game-card:nth-child(1) { animation-delay: 0.1s; }
+.game-card:nth-child(2) { animation-delay: 0.2s; }
+.game-card:nth-child(3) { animation-delay: 0.3s; }
+.game-card:nth-child(4) { animation-delay: 0.4s; }
+.game-card:nth-child(5) { animation-delay: 0.5s; }
+.game-card:nth-child(6) { animation-delay: 0.6s; }
+.game-card:nth-child(7) { animation-delay: 0.7s; }
+.game-card:nth-child(8) { animation-delay: 0.8s; }
+.game-card:nth-child(9) { animation-delay: 0.9s; }
+.game-card:nth-child(10) { animation-delay: 1.0s; }
+.game-card:nth-child(11) { animation-delay: 1.1s; }
+.game-card:nth-child(12) { animation-delay: 1.2s; }
+
+@keyframes cardAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
