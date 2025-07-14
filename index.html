@@ -16,6 +16,7 @@
         </header>
         
         <main class="games-grid">
+            <!-- Game 1: Subitising -->
             <div class="game-card" data-game="subitising">
                 <div class="game-preview">
                     <div class="preview-icons">
@@ -39,14 +40,14 @@
                         <span class="feature-tag">Numbers 1-10</span>
                         <span class="feature-tag">Ages 3-6</span>
                     </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
                 </div>
-                <button class="play-button">
-                    <i class="fas fa-play"></i>
-                    Play Now
-                </button>
             </div>
             
-            <!-- Addition Game -->
+            <!-- Game 2: Addition -->
             <div class="game-card" data-game="add">
                 <div class="game-preview">
                     <div class="preview-icons addition-preview">
@@ -79,14 +80,14 @@
                         <span class="feature-tag">Numbers 1-12</span>
                         <span class="feature-tag">Ages 4-7</span>
                     </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
                 </div>
-                <button class="play-button">
-                    <i class="fas fa-play"></i>
-                    Play Now
-                </button>
             </div>
 
-            <!-- Two Dice Game -->
+            <!-- Game 3: Two Dice -->
             <div class="game-card" data-game="twodice">
                 <div class="game-preview">
                     <div class="preview-icons dice-preview">
@@ -100,7 +101,7 @@
                                 <div class="dot dot-6"></div>
                             </div>
                         </div>
-                        <div class="preview-plus dice-plus">
+                        <div class="dice-plus">
                             <i class="fas fa-plus"></i>
                         </div>
                         <div class="preview-dice right-dice">
@@ -108,6 +109,9 @@
                                 <div class="dot dot-1"></div>
                                 <div class="dot dot-2"></div>
                                 <div class="dot dot-3"></div>
+                                <div class="dot dot-4"></div>
+                                <div class="dot dot-5"></div>
+                                <div class="dot dot-6"></div>
                             </div>
                         </div>
                     </div>
@@ -127,21 +131,20 @@
                         <span class="feature-tag">Numbers 2-12</span>
                         <span class="feature-tag">Ages 4-8</span>
                     </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
                 </div>
-                <button class="play-button">
-                    <i class="fas fa-play"></i>
-                    Play Now
-                </button>
             </div>
 
-            <!-- Number Tracing Game -->
+            <!-- Game 4: Number Tracing -->
             <div class="game-card" data-game="trace">
                 <div class="game-preview">
                     <div class="preview-icons tracing-preview">
                         <div class="preview-number">
                             <i class="fas fa-pencil"></i>
                             <span class="preview-digit">3</span>
-                            <div class="preview-path"></div>
                         </div>
                         <div class="preview-finger">
                             <i class="fas fa-hand-point-up"></i>
@@ -163,11 +166,184 @@
                         <span class="feature-tag">Numbers 0-9</span>
                         <span class="feature-tag">Ages 3-7</span>
                     </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
                 </div>
-                <button class="play-button">
-                    <i class="fas fa-play"></i>
-                    Play Now
-                </button>
+            </div>
+
+            <!-- Game 5: Draw Numbers -->
+            <div class="game-card" data-game="draw">
+                <div class="game-preview">
+                    <div class="preview-icons draw-preview">
+                        <div class="preview-canvas"></div>
+                        <div class="preview-brush">
+                            <i class="fas fa-paint-brush"></i>
+                        </div>
+                    </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>Draw Numbers</h2>
+                    <p>Draw the numbers on screen and build a rainbow!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Drawing</span>
+                        <span class="feature-tag">Numbers 0-9</span>
+                        <span class="feature-tag">Ages 4-8</span>
+                    </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
+                </div>
+            </div>
+
+            <!-- Coming Soon Games (7 more slots) -->
+            <div class="game-card coming-soon">
+                <div class="game-preview">
+                    <div class="coming-soon-content">
+                        <i class="fas fa-clock"></i>
+                        <span>Coming Soon</span>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>New Game</h2>
+                    <p>An exciting new learning experience is on its way!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Coming Soon</span>
+                    </div>
+                    <button class="play-button" disabled>
+                        <i class="fas fa-clock"></i>
+                        Soon
+                    </button>
+                </div>
+            </div>
+
+            <div class="game-card coming-soon">
+                <div class="game-preview">
+                    <div class="coming-soon-content">
+                        <i class="fas fa-clock"></i>
+                        <span>Coming Soon</span>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>New Game</h2>
+                    <p>An exciting new learning experience is on its way!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Coming Soon</span>
+                    </div>
+                    <button class="play-button" disabled>
+                        <i class="fas fa-clock"></i>
+                        Soon
+                    </button>
+                </div>
+            </div>
+
+            <div class="game-card coming-soon">
+                <div class="game-preview">
+                    <div class="coming-soon-content">
+                        <i class="fas fa-clock"></i>
+                        <span>Coming Soon</span>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>New Game</h2>
+                    <p>An exciting new learning experience is on its way!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Coming Soon</span>
+                    </div>
+                    <button class="play-button" disabled>
+                        <i class="fas fa-clock"></i>
+                        Soon
+                    </button>
+                </div>
+            </div>
+
+            <div class="game-card coming-soon">
+                <div class="game-preview">
+                    <div class="coming-soon-content">
+                        <i class="fas fa-clock"></i>
+                        <span>Coming Soon</span>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>New Game</h2>
+                    <p>An exciting new learning experience is on its way!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Coming Soon</span>
+                    </div>
+                    <button class="play-button" disabled>
+                        <i class="fas fa-clock"></i>
+                        Soon
+                    </button>
+                </div>
+            </div>
+
+            <div class="game-card coming-soon">
+                <div class="game-preview">
+                    <div class="coming-soon-content">
+                        <i class="fas fa-clock"></i>
+                        <span>Coming Soon</span>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>New Game</h2>
+                    <p>An exciting new learning experience is on its way!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Coming Soon</span>
+                    </div>
+                    <button class="play-button" disabled>
+                        <i class="fas fa-clock"></i>
+                        Soon
+                    </button>
+                </div>
+            </div>
+
+            <div class="game-card coming-soon">
+                <div class="game-preview">
+                    <div class="coming-soon-content">
+                        <i class="fas fa-clock"></i>
+                        <span>Coming Soon</span>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>New Game</h2>
+                    <p>An exciting new learning experience is on its way!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Coming Soon</span>
+                    </div>
+                    <button class="play-button" disabled>
+                        <i class="fas fa-clock"></i>
+                        Soon
+                    </button>
+                </div>
+            </div>
+
+            <div class="game-card coming-soon">
+                <div class="game-preview">
+                    <div class="coming-soon-content">
+                        <i class="fas fa-clock"></i>
+                        <span>Coming Soon</span>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>New Game</h2>
+                    <p>An exciting new learning experience is on its way!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Coming Soon</span>
+                    </div>
+                    <button class="play-button" disabled>
+                        <i class="fas fa-clock"></i>
+                        Soon
+                    </button>
+                </div>
             </div>
         </main>
         
@@ -264,7 +440,7 @@
             sparkle.style.left = Math.random() * window.innerWidth + 'px';
             sparkle.style.top = Math.random() * window.innerHeight + 'px';
             sparkle.style.pointerEvents = 'none';
-            sparkle.style.fontSize = '20px';
+            sparkle.style.fontSize = '15px';
             sparkle.style.zIndex = '1000';
             sparkle.style.animation = 'sparkle 3s ease-out forwards';
             
@@ -278,7 +454,7 @@
         }
         
         // Create sparkles periodically
-        setInterval(createSparkle, 2000);
+        setInterval(createSparkle, 3000);
     </script>
 </body>
 </html>
