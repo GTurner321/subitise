@@ -141,17 +141,24 @@ class DiceRenderer {
         leftDice.offsetHeight;
         rightDice.offsetHeight;
         
+        // Clear any existing transitions and set initial state
+        leftDice.style.transition = 'none';
+        rightDice.style.transition = 'none';
+        leftDice.style.opacity = '0';
+        rightDice.style.opacity = '0';
+        
         // Start fade-in for both dice with more delay
         setTimeout(() => {
             console.log('=== STARTING FADE-IN (1 second) ===');
-            leftDice.style.transition = 'opacity 1s ease-in';
+            leftDice.style.transition = 'opacity 1s ease-in !important';
             leftDice.style.opacity = '1';
-            rightDice.style.transition = 'opacity 1s ease-in';
+            rightDice.style.transition = 'opacity 1s ease-in !important';
             rightDice.style.opacity = '1';
             
             // Log opacity after setting
             setTimeout(() => {
                 console.log(`Left dice opacity: ${leftDice.style.opacity}, Right dice opacity: ${rightDice.style.opacity}`);
+                console.log(`Left dice computed opacity: ${getComputedStyle(leftDice).opacity}`);
             }, 100);
         }, 200);
         
@@ -231,17 +238,24 @@ class DiceRenderer {
     }
 
     completeDiceAnimation(dice, finalValue) {
+        console.log(`=== COMPLETING DICE ANIMATION ===`);
+        
+        // Clear any ongoing transitions first
+        dice.style.transition = 'none';
+        
         // Set the final face value
         this.updateAllFaces(dice, finalValue);
         
-        // Position dice to show the top face clearly (final diagonal flip)
-        dice.style.transition = 'transform 0.5s ease-out';
-        dice.style.transform = 'rotateX(-90deg) rotateY(0deg)';
+        // Wait a moment, then apply final positioning smoothly
+        setTimeout(() => {
+            dice.style.transition = 'transform 0.8s ease-out';
+            dice.style.transform = 'rotateX(-90deg) rotateY(0deg)';
+            
+            console.log(`Final positioning applied for value: ${finalValue}`);
+        }, 100);
         
         // Add a final class for styling
         dice.classList.add('dice-final');
-        
-        console.log(`Dice animation completed with final value: ${finalValue}`);
     }
 
     async fadeOutCurrentDice() {
@@ -256,7 +270,12 @@ class DiceRenderer {
         this.currentDice.forEach((dice, index) => {
             if (dice && dice.parentNode) {
                 console.log(`Fading out dice ${index + 1}`);
-                dice.style.transition = 'opacity 1s ease-out';
+                // Clear any existing transition first
+                dice.style.transition = 'none';
+                // Force reflow
+                dice.offsetHeight;
+                // Apply fade-out transition
+                dice.style.transition = 'opacity 1s ease-out !important';
                 dice.style.opacity = '0';
             }
         });
