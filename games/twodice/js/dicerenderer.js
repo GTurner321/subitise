@@ -4,6 +4,16 @@ class DiceRenderer {
         this.rightSide = document.getElementById('rightSide');
         this.currentDice = [];
         this.rollTimeouts = [];
+        
+        // Color mapping for each dice number
+        this.numberColors = {
+            1: '#ff6b6b',  // Red
+            2: '#4ecdc4',  // Teal
+            3: '#45b7d1',  // Blue
+            4: '#f9ca24',  // Yellow
+            5: '#f0932b',  // Orange
+            6: '#6c5ce7'   // Purple
+        };
     }
 
     clearDice() {
@@ -24,21 +34,16 @@ class DiceRenderer {
         const dice = document.createElement('div');
         dice.className = 'dice';
         
-        // Start invisible and small
+        // Start invisible, no scaling
         dice.style.opacity = '0';
-        dice.style.transform = `scale(${CONFIG.DICE_MIN_SCALE})`;
+        dice.style.transform = 'rotateX(0deg) rotateY(0deg)';
         
         // Create all 6 faces of the dice
         const faces = ['front', 'back', 'right', 'left', 'top', 'bottom'];
         
-        // Get random color for this dice
-        const colorIndex = Math.floor(Math.random() * CONFIG.DICE_COLORS.length);
-        const diceColor = CONFIG.DICE_COLORS[colorIndex];
-        
         faces.forEach((faceClass, index) => {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
-            face.style.backgroundColor = diceColor;
             
             // Create dots for this face with initial random value
             const initialValue = Math.floor(Math.random() * 6) + 1;
@@ -54,6 +59,9 @@ class DiceRenderer {
         
         // Clear existing dots
         face.innerHTML = '';
+        
+        // Set face color based on the number
+        face.style.backgroundColor = this.numberColors[value];
         
         // Create 9 dot positions in 3x3 grid
         for (let row = 0; row < 3; row++) {
@@ -72,7 +80,7 @@ class DiceRenderer {
     }
 
     updateAllFaces(dice, value) {
-        // Update all faces to show the same value (for consistency during roll)
+        // Update all faces to show the same value and color
         const faces = dice.querySelectorAll('.dice-face');
         faces.forEach(face => {
             this.createDots(face, value);
@@ -84,9 +92,18 @@ class DiceRenderer {
             { transform: 'rotateX(90deg)', name: 'down' },   // flip down
             { transform: 'rotateX(-90deg)', name: 'up' },    // flip up
             { transform: 'rotateY(90deg)', name: 'right' },  // flip right
-            { transform: 'rotateY(-90deg)', name: 'left' }   // flip left
+            { transform: 'rotateY(-90deg)', name: 'left' },  // flip left
+            { transform: 'rotateX(90deg) rotateY(90deg)', name: 'down-right' },   // diagonal
+            { transform: 'rotateX(-90deg) rotateY(90deg)', name: 'up-right' },    // diagonal
+            { transform: 'rotateX(90deg) rotateY(-90deg)', name: 'down-left' },   // diagonal
+            { transform: 'rotateX(-90deg) rotateY(-90deg)', name: 'up-left' }     // diagonal
         ];
         return directions[Math.floor(Math.random() * directions.length)];
+    }
+
+    getRandomFlipDuration() {
+        const durations = [0.35, 0.45, 0.55, 0.65];
+        return durations[Math.floor(Math.random() * durations.length)];
     }
 
     async rollDice(leftValue, rightValue) {
@@ -127,10 +144,9 @@ class DiceRenderer {
             let currentRotationX = 0;
             let currentRotationY = 0;
             
-            // Start fade-in immediately
-            dice.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+            // Start fade-in immediately (no scaling)
+            dice.style.transition = 'opacity 1s ease-out';
             dice.style.opacity = '1';
-            dice.style.transform = `scale(1)`;
             
             console.log(`Starting ${totalFlips} flips for dice`);
             
@@ -142,8 +158,9 @@ class DiceRenderer {
                     return;
                 }
                 
-                // Get random flip direction
+                // Get random flip direction and duration
                 const direction = this.getRandomFlipDirection();
+                const flipDuration = this.getRandomFlipDuration();
                 
                 // Update rotation values based on direction
                 if (direction.name === 'down') {
@@ -154,22 +171,34 @@ class DiceRenderer {
                     currentRotationY += 90;
                 } else if (direction.name === 'left') {
                     currentRotationY -= 90;
+                } else if (direction.name === 'down-right') {
+                    currentRotationX += 90;
+                    currentRotationY += 90;
+                } else if (direction.name === 'up-right') {
+                    currentRotationX -= 90;
+                    currentRotationY += 90;
+                } else if (direction.name === 'down-left') {
+                    currentRotationX += 90;
+                    currentRotationY -= 90;
+                } else if (direction.name === 'up-left') {
+                    currentRotationX -= 90;
+                    currentRotationY -= 90;
                 }
                 
-                // Apply the rotation with 0.5 second transition
-                dice.style.transition = 'transform 0.5s ease-in-out';
-                dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg) scale(1)`;
+                // Apply the rotation with random duration
+                dice.style.transition = `transform ${flipDuration}s ease-in-out`;
+                dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
                 
                 // Change the face value during flip for visual effect
                 const randomFaceValue = Math.floor(Math.random() * 6) + 1;
                 this.updateAllFaces(dice, randomFaceValue);
                 
-                console.log(`Flip ${currentFlip + 1}/${totalFlips}: ${direction.name} (X: ${currentRotationX}, Y: ${currentRotationY})`);
+                console.log(`Flip ${currentFlip + 1}/${totalFlips}: ${direction.name} (${flipDuration}s) (X: ${currentRotationX}, Y: ${currentRotationY})`);
                 
                 currentFlip++;
                 
-                // Schedule next flip after 0.5 seconds
-                const timeout = setTimeout(performFlip, 500);
+                // Schedule next flip after current flip duration
+                const timeout = setTimeout(performFlip, flipDuration * 1000);
                 this.rollTimeouts.push(timeout);
             };
             
@@ -180,17 +209,46 @@ class DiceRenderer {
     }
 
     completeDiceAnimation(dice, finalValue) {
-        // Set the final face value
+        // Set the final face value and color
         this.updateAllFaces(dice, finalValue);
         
         // Position dice to show the top face clearly (final flip down)
         dice.style.transition = 'transform 0.5s ease-out';
-        dice.style.transform = 'rotateX(-90deg) scale(1)';
+        dice.style.transform = 'rotateX(-90deg)';
         
         // Add a final class for styling
         dice.classList.add('dice-final');
         
         console.log(`Dice animation completed with final value: ${finalValue}`);
+    }
+
+    async fadeOutCurrentDice() {
+        if (this.currentDice.length === 0) return;
+        
+        console.log('Fading out current dice');
+        
+        // Start fade-out for current dice
+        this.currentDice.forEach(dice => {
+            if (dice && dice.parentNode) {
+                dice.style.transition = 'opacity 0.5s ease-out';
+                dice.style.opacity = '0';
+            }
+        });
+        
+        // Wait for fade-out to complete
+        return new Promise(resolve => {
+            const timeout = setTimeout(() => {
+                // Remove the dice after fade-out
+                this.currentDice.forEach(dice => {
+                    if (dice && dice.parentNode) {
+                        dice.parentNode.removeChild(dice);
+                    }
+                });
+                this.currentDice = [];
+                resolve();
+            }, 500);
+            this.rollTimeouts.push(timeout);
+        });
     }
 
     getCurrentValues() {
