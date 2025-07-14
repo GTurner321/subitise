@@ -117,11 +117,20 @@
     opacity: 1;
     backface-visibility: hidden; /* Important for 3D effect */
     box-sizing: border-box;
-    /* Add background to cover any gaps */
-    background-clip: padding-box;
-    border-color: transparent; /* Hide border to avoid white corners */
-    outline: 3px solid #333; /* Use outline instead of border */
-    outline-offset: -3px;
+    overflow: hidden; /* Hide any overflow that might show white */
+}
+
+/* Add a pseudo-element to ensure solid color coverage */
+.dice-face::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    background-color: inherit;
+    border-radius: 20px;
+    z-index: -1;
 }
 
 /* 3D face positioning - improved for better 3D effect */
