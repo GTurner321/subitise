@@ -46,6 +46,7 @@ class DiceRenderer {
         // Start invisible
         dice.style.opacity = '0';
         dice.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        dice.style.transformStyle = 'preserve-3d'; // Ensure 3D context
         
         // Create all 6 faces of the dice
         const faces = ['front', 'back', 'right', 'left', 'top', 'bottom'];
@@ -55,6 +56,7 @@ class DiceRenderer {
             face.className = `dice-face ${faceClass}`;
             face.style.backgroundColor = diceColor; // Fixed color for this dice
             face.style.setProperty('--face-color', diceColor); // CSS variable for inset shadow
+            face.style.opacity = '0'; // Start faces invisible too
             
             // Create dots for this face with initial random value
             const initialValue = Math.floor(Math.random() * 6) + 1;
@@ -97,10 +99,10 @@ class DiceRenderer {
 
     getDiagonalDirections() {
         return [
-            { rotX: 90, rotY: 90, name: 'down-right', opposite: 'up-left' },
-            { rotX: -90, rotY: 90, name: 'up-right', opposite: 'down-left' },
-            { rotX: 90, rotY: -90, name: 'down-left', opposite: 'up-right' },
-            { rotX: -90, rotY: -90, name: 'up-left', opposite: 'down-right' }
+            { rotX: 90, rotY: 90, name: 'down-right', opposite: 'up-left' },     // Flip down AND right
+            { rotX: -90, rotY: 90, name: 'up-right', opposite: 'down-left' },    // Flip up AND right  
+            { rotX: 90, rotY: -90, name: 'down-left', opposite: 'up-right' },    // Flip down AND left
+            { rotX: -90, rotY: -90, name: 'up-left', opposite: 'down-right' }    // Flip up AND left
         ];
     }
 
@@ -150,10 +152,21 @@ class DiceRenderer {
         // Start fade-in for both dice with more delay
         setTimeout(() => {
             console.log('=== STARTING FADE-IN (1 second) ===');
-            leftDice.style.transition = 'opacity 1s ease-in !important';
-            leftDice.style.opacity = '1';
-            rightDice.style.transition = 'opacity 1s ease-in !important';
-            rightDice.style.opacity = '1';
+            
+            // Set opacity on both container and all faces
+            [leftDice, rightDice].forEach((dice, index) => {
+                dice.style.transition = 'opacity 1s ease-in !important';
+                dice.style.opacity = '1';
+                
+                // Also ensure all faces fade in
+                const faces = dice.querySelectorAll('.dice-face');
+                faces.forEach(face => {
+                    face.style.transition = 'opacity 1s ease-in !important';
+                    face.style.opacity = '1';
+                });
+                
+                console.log(`Dice ${index + 1}: Set container and ${faces.length} faces to fade in`);
+            });
             
             // Log opacity after setting
             setTimeout(() => {
@@ -205,9 +218,12 @@ class DiceRenderer {
                 );
                 const flipDuration = this.getRandomFlipDuration();
                 
-                // Update rotation values
+                // Update rotation values based on direction
                 currentRotationX += direction.rotX;
                 currentRotationY += direction.rotY;
+                
+                console.log(`Direction: ${direction.name}, Adding rotX: ${direction.rotX}, rotY: ${direction.rotY}`);
+                console.log(`New totals: rotX: ${currentRotationX}, rotY: ${currentRotationY}`);
                 
                 // For the LAST flip, use the final value, otherwise use random
                 let newFaceValue;
@@ -225,6 +241,8 @@ class DiceRenderer {
                 // Apply the rotation
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
                 dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
+                
+                console.log(`Applied transform: rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`);
                 
                 // Update face value
                 this.updateAllFaces(dice, currentFaceValue);
@@ -278,13 +296,29 @@ class DiceRenderer {
         this.currentDice.forEach((dice, index) => {
             if (dice && dice.parentNode) {
                 console.log(`Fading out dice ${index + 1}`);
+                
                 // Clear any existing transition first
                 dice.style.transition = 'none';
+                
+                // Also clear transitions on all faces
+                const faces = dice.querySelectorAll('.dice-face');
+                faces.forEach(face => {
+                    face.style.transition = 'none';
+                });
+                
                 // Force reflow
                 dice.offsetHeight;
-                // Apply fade-out transition
+                
+                // Apply fade-out transition to container and faces
                 dice.style.transition = 'opacity 1s ease-out !important';
                 dice.style.opacity = '0';
+                
+                faces.forEach(face => {
+                    face.style.transition = 'opacity 1s ease-out !important';
+                    face.style.opacity = '0';
+                });
+                
+                console.log(`Dice ${index + 1}: Set container and ${faces.length} faces to fade out`);
             }
         });
         
