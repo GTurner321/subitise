@@ -4,7 +4,6 @@ class DiceRenderer {
         this.rightSide = document.getElementById('rightSide');
         this.currentDice = [];
         this.rollTimeouts = [];
-        this.animationFrames = [];
     }
 
     clearDice() {
@@ -16,12 +15,9 @@ class DiceRenderer {
         });
         this.currentDice = [];
         
-        // Clear any pending timeouts and animation frames
+        // Clear any pending timeouts
         this.rollTimeouts.forEach(timeout => clearTimeout(timeout));
         this.rollTimeouts = [];
-        
-        this.animationFrames.forEach(frame => cancelAnimationFrame(frame));
-        this.animationFrames = [];
     }
 
     createDice(value = 1) {
@@ -34,7 +30,6 @@ class DiceRenderer {
         
         // Create all 6 faces of the dice
         const faces = ['front', 'back', 'right', 'left', 'top', 'bottom'];
-        const faceValues = [1, 6, 2, 5, 3, 4]; // Opposite faces add to 7
         
         // Get random color for this dice
         const colorIndex = Math.floor(Math.random() * CONFIG.DICE_COLORS.length);
@@ -84,12 +79,12 @@ class DiceRenderer {
         });
     }
 
-    getRandomRotationDirection() {
+    getRandomFlipDirection() {
         const directions = [
-            { axis: 'X', direction: 1 },  // flip down
-            { axis: 'X', direction: -1 }, // flip up
-            { axis: 'Y', direction: 1 },  // flip right
-            { axis: 'Y', direction: -1 }  // flip left
+            { transform: 'rotateX(90deg)', name: 'down' },   // flip down
+            { transform: 'rotateX(-90deg)', name: 'up' },    // flip up
+            { transform: 'rotateY(90deg)', name: 'right' },  // flip right
+            { transform: 'rotateY(-90deg)', name: 'left' }   // flip left
         ];
         return directions[Math.floor(Math.random() * directions.length)];
     }
@@ -110,22 +105,14 @@ class DiceRenderer {
         this.currentDice = [leftDice, rightDice];
         
         // Generate random parameters for each dice
-        const leftRotations = 6 + Math.floor(Math.random() * 7); // 6-12 rotations
-        const rightRotations = 6 + Math.floor(Math.random() * 7); // 6-12 rotations
+        const leftFlips = 6 + Math.floor(Math.random() * 7); // 6-12 flips
+        const rightFlips = 6 + Math.floor(Math.random() * 7); // 6-12 flips
         
-        const leftDirection = this.getRandomRotationDirection();
-        const rightDirection = this.getRandomRotationDirection();
-        
-        // Calculate durations
-        const rotationDuration = 500; // Each rotation takes 0.5 seconds
-        const leftTotalDuration = leftRotations * rotationDuration;
-        const rightTotalDuration = rightRotations * rotationDuration;
-        
-        console.log(`Left: ${leftRotations} rotations (${leftTotalDuration}ms), Right: ${rightRotations} rotations (${rightTotalDuration}ms)`);
+        console.log(`Left: ${leftFlips} flips, Right: ${rightFlips} flips`);
         
         // Start both dice animations immediately
-        const leftPromise = this.animateDice(leftDice, leftValue, leftRotations, leftDirection, rotationDuration);
-        const rightPromise = this.animateDice(rightDice, rightValue, rightRotations, rightDirection, rotationDuration);
+        const leftPromise = this.animateDice(leftDice, leftValue, leftFlips);
+        const rightPromise = this.animateDice(rightDice, rightValue, rightFlips);
         
         // Wait for both dice to complete
         await Promise.all([leftPromise, rightPromise]);
@@ -134,66 +121,76 @@ class DiceRenderer {
         return { left: leftValue, right: rightValue, total: leftValue + rightValue };
     }
 
-    async animateDice(dice, finalValue, totalRotations, direction, rotationDuration) {
+    async animateDice(dice, finalValue, totalFlips) {
         return new Promise((resolve) => {
-            let currentRotation = 0;
-            let startTime = performance.now();
+            let currentFlip = 0;
+            let currentRotationX = 0;
+            let currentRotationY = 0;
             
             // Start fade-in immediately
             dice.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
             dice.style.opacity = '1';
             dice.style.transform = `scale(1)`;
             
-            const animate = (currentTime) => {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / (totalRotations * rotationDuration), 1);
-                
-                // Calculate current rotation based on progress
-                const targetRotation = progress * totalRotations * 360;
-                
-                // Update rotation smoothly
-                const rotateAxis = direction.axis === 'X' ? 'rotateX' : 'rotateY';
-                const rotateValue = targetRotation * direction.direction;
-                
-                // Apply rotation with easing
-                const easeOut = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
-                const easedRotation = easeOut * totalRotations * 360 * direction.direction;
-                
-                dice.style.transform = `${rotateAxis}(${easedRotation}deg) scale(1)`;
-                
-                // Change the face value during rotation for visual effect
-                if (progress < 1) {
-                    const currentFaceValue = Math.floor(Math.random() * 6) + 1;
-                    this.updateAllFaces(dice, currentFaceValue);
-                    
-                    this.animationFrames.push(requestAnimationFrame(animate));
-                } else {
+            console.log(`Starting ${totalFlips} flips for dice`);
+            
+            const performFlip = () => {
+                if (currentFlip >= totalFlips) {
                     // Animation complete - set final state
-                    this.completeDiceAnimation(dice, finalValue, direction);
+                    this.completeDiceAnimation(dice, finalValue);
                     resolve();
+                    return;
                 }
+                
+                // Get random flip direction
+                const direction = this.getRandomFlipDirection();
+                
+                // Update rotation values based on direction
+                if (direction.name === 'down') {
+                    currentRotationX += 90;
+                } else if (direction.name === 'up') {
+                    currentRotationX -= 90;
+                } else if (direction.name === 'right') {
+                    currentRotationY += 90;
+                } else if (direction.name === 'left') {
+                    currentRotationY -= 90;
+                }
+                
+                // Apply the rotation with 0.5 second transition
+                dice.style.transition = 'transform 0.5s ease-in-out';
+                dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg) scale(1)`;
+                
+                // Change the face value during flip for visual effect
+                const randomFaceValue = Math.floor(Math.random() * 6) + 1;
+                this.updateAllFaces(dice, randomFaceValue);
+                
+                console.log(`Flip ${currentFlip + 1}/${totalFlips}: ${direction.name} (X: ${currentRotationX}, Y: ${currentRotationY})`);
+                
+                currentFlip++;
+                
+                // Schedule next flip after 0.5 seconds
+                const timeout = setTimeout(performFlip, 500);
+                this.rollTimeouts.push(timeout);
             };
             
-            // Start the animation
-            this.animationFrames.push(requestAnimationFrame(animate));
+            // Start first flip after a short delay to let fade-in begin
+            const initialTimeout = setTimeout(performFlip, 200);
+            this.rollTimeouts.push(initialTimeout);
         });
     }
 
-    completeDiceAnimation(dice, finalValue, direction) {
+    completeDiceAnimation(dice, finalValue) {
         // Set the final face value
         this.updateAllFaces(dice, finalValue);
         
-        // Position dice to show the top face clearly
-        // The final rotation should position the dice so the top face is visible
-        const finalRotation = direction.axis === 'X' ? 'rotateX(-90deg)' : 'rotateY(0deg)';
-        
-        dice.style.transition = 'transform 0.3s ease-out';
-        dice.style.transform = `${finalRotation} scale(1)`;
+        // Position dice to show the top face clearly (final flip down)
+        dice.style.transition = 'transform 0.5s ease-out';
+        dice.style.transform = 'rotateX(-90deg) scale(1)';
         
         // Add a final class for styling
         dice.classList.add('dice-final');
         
-        console.log(`Dice animation completed with value: ${finalValue}`);
+        console.log(`Dice animation completed with final value: ${finalValue}`);
     }
 
     getCurrentValues() {
