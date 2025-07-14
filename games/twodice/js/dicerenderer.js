@@ -218,12 +218,11 @@ class DiceRenderer {
                 );
                 const flipDuration = this.getRandomFlipDuration();
                 
-                // Update rotation values based on direction
-                currentRotationX += direction.rotX;
-                currentRotationY += direction.rotY;
+                // Calculate the NEW rotation values (this is where we'll end up)
+                const newRotationX = currentRotationX + direction.rotX;
+                const newRotationY = currentRotationY + direction.rotY;
                 
-                console.log(`Direction: ${direction.name}, Adding rotX: ${direction.rotX}, rotY: ${direction.rotY}`);
-                console.log(`New totals: rotX: ${currentRotationX}, rotY: ${currentRotationY}`);
+                console.log(`Direction: ${direction.name}, From: rotX=${currentRotationX}, rotY=${currentRotationY} To: rotX=${newRotationX}, rotY=${newRotationY}`);
                 
                 // For the LAST flip, use the final value, otherwise use random
                 let newFaceValue;
@@ -236,19 +235,21 @@ class DiceRenderer {
                         newFaceValue = Math.floor(Math.random() * 6) + 1;
                     } while (newFaceValue === currentFaceValue);
                 }
-                currentFaceValue = newFaceValue;
                 
-                // Apply the rotation
+                // Update face value at the START of the flip (so it changes as we rotate)
+                this.updateAllFaces(dice, newFaceValue);
+                
+                // Apply the rotation animation - this creates the visual flip
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
+                dice.style.transform = `rotateX(${newRotationX}deg) rotateY(${newRotationY}deg)`;
                 
-                console.log(`Applied transform: rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`);
+                console.log(`Flip ${currentFlip + 1}/${totalFlips}: ${direction.name} (${flipDuration}s) - Face: ${newFaceValue}`);
+                console.log(`Applied transform: rotateX(${newRotationX}deg) rotateY(${newRotationY}deg)`);
                 
-                // Update face value
-                this.updateAllFaces(dice, currentFaceValue);
-                
-                console.log(`Flip ${currentFlip + 1}/${totalFlips}: ${direction.name} (${flipDuration}s) - Face: ${currentFaceValue}`);
-                
+                // Update our tracking variables for next flip
+                currentRotationX = newRotationX;
+                currentRotationY = newRotationY;
+                currentFaceValue = newFaceValue;
                 lastDirection = direction;
                 currentFlip++;
                 
