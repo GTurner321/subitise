@@ -191,8 +191,10 @@ class DiceRenderer {
             
             const performFlip = () => {
                 if (currentFlip >= totalFlips) {
-                    // Animation complete - set final state
-                    this.completeDiceAnimation(dice, finalValue);
+                    // Animation complete - just set the final value, no positioning change
+                    console.log(`=== DICE ANIMATION COMPLETE - Final value: ${finalValue} ===`);
+                    this.updateAllFaces(dice, finalValue);
+                    dice.classList.add('dice-final');
                     resolve();
                     return;
                 }
@@ -207,11 +209,17 @@ class DiceRenderer {
                 currentRotationX += direction.rotX;
                 currentRotationY += direction.rotY;
                 
-                // Generate new face value (different from current)
+                // For the LAST flip, use the final value, otherwise use random
                 let newFaceValue;
-                do {
-                    newFaceValue = Math.floor(Math.random() * 6) + 1;
-                } while (newFaceValue === currentFaceValue);
+                if (currentFlip === totalFlips - 1) {
+                    // This is the last flip - show the final value
+                    newFaceValue = finalValue;
+                } else {
+                    // Not the last flip - generate random value (different from current)
+                    do {
+                        newFaceValue = Math.floor(Math.random() * 6) + 1;
+                    } while (newFaceValue === currentFaceValue);
+                }
                 currentFaceValue = newFaceValue;
                 
                 // Apply the rotation
