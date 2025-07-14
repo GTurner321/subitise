@@ -137,11 +137,12 @@ class DiceRenderer {
         
         // Start fade-in for both dice immediately
         setTimeout(() => {
-            leftDice.style.transition = 'opacity 1s ease-out';
+            console.log('Starting 1-second fade-in for new dice');
+            leftDice.style.transition = 'opacity 1s ease-in';
             leftDice.style.opacity = '1';
-            rightDice.style.transition = 'opacity 1s ease-out';
+            rightDice.style.transition = 'opacity 1s ease-in';
             rightDice.style.opacity = '1';
-        }, 50);
+        }, 100);
         
         // Generate random parameters for each dice
         const leftFlips = 6 + Math.floor(Math.random() * 7); // 6-12 flips
@@ -222,9 +223,9 @@ class DiceRenderer {
         // Set the final face value
         this.updateAllFaces(dice, finalValue);
         
-        // Position dice to show the top face clearly (final flip down)
+        // Position dice to show the top face clearly (final diagonal flip)
         dice.style.transition = 'transform 0.5s ease-out';
-        dice.style.transform = 'rotateX(-90deg)';
+        dice.style.transform = 'rotateX(-90deg) rotateY(0deg)';
         
         // Add a final class for styling
         dice.classList.add('dice-final');
@@ -235,12 +236,12 @@ class DiceRenderer {
     async fadeOutCurrentDice() {
         if (this.currentDice.length === 0) return;
         
-        console.log('Fading out current dice');
+        console.log('Fading out current dice over 1 second');
         
         // Start fade-out for current dice
         this.currentDice.forEach(dice => {
             if (dice && dice.parentNode) {
-                dice.style.transition = 'opacity 0.5s ease-out';
+                dice.style.transition = 'opacity 1s ease-out';
                 dice.style.opacity = '0';
             }
         });
@@ -255,8 +256,9 @@ class DiceRenderer {
                     }
                 });
                 this.currentDice = [];
+                console.log('Fade-out complete, dice removed');
                 resolve();
-            }, 500);
+            }, 1000);
             this.rollTimeouts.push(timeout);
         });
     }
