@@ -117,20 +117,14 @@
     opacity: 1;
     backface-visibility: hidden; /* Important for 3D effect */
     box-sizing: border-box;
-    overflow: hidden; /* Hide any overflow that might show white */
-}
-
-/* Add a pseudo-element to ensure solid color coverage */
-.dice-face::before {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: -5px;
-    right: -5px;
-    bottom: -5px;
-    background-color: inherit;
-    border-radius: 20px;
-    z-index: -1;
+    /* Create a larger background to cover corners during rotation */
+    background-size: 140px 140px;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* Add a slight inset shadow to hide edge artifacts */
+    box-shadow: 
+        0 4px 8px rgba(0,0,0,0.3),
+        inset 0 0 0 20px var(--face-color, #ffffff);
 }
 
 /* 3D face positioning - improved for better 3D effect */
