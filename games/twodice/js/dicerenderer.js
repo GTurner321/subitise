@@ -4,6 +4,7 @@ class DiceRenderer {
         this.rightSide = document.getElementById('rightSide');
         this.currentDice = [];
         this.rollTimeouts = [];
+        this.animationFrames = [];
     }
 
     clearDice() {
@@ -15,16 +16,19 @@ class DiceRenderer {
         });
         this.currentDice = [];
         
-        // Clear any pending timeouts
+        // Clear any pending timeouts and animation frames
         this.rollTimeouts.forEach(timeout => clearTimeout(timeout));
         this.rollTimeouts = [];
+        
+        this.animationFrames.forEach(frame => cancelAnimationFrame(frame));
+        this.animationFrames = [];
     }
 
     createDice(value = 1) {
         const dice = document.createElement('div');
         dice.className = 'dice';
         
-        // Start invisible to prevent initial (6,6) flash
+        // Start invisible and small
         dice.style.opacity = '0';
         dice.style.transform = `scale(${CONFIG.DICE_MIN_SCALE})`;
         
@@ -32,17 +36,18 @@ class DiceRenderer {
         const faces = ['front', 'back', 'right', 'left', 'top', 'bottom'];
         const faceValues = [1, 6, 2, 5, 3, 4]; // Opposite faces add to 7
         
+        // Get random color for this dice
+        const colorIndex = Math.floor(Math.random() * CONFIG.DICE_COLORS.length);
+        const diceColor = CONFIG.DICE_COLORS[colorIndex];
+        
         faces.forEach((faceClass, index) => {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
+            face.style.backgroundColor = diceColor;
             
-            // Get random color for this dice
-            const colorIndex = Math.floor(Math.random() * CONFIG.DICE_COLORS.length);
-            face.style.backgroundColor = CONFIG.DICE_COLORS[colorIndex];
-            
-            // Create dots for this face with random initial value to avoid (6,6) flash
-            const randomInitialValue = Math.floor(Math.random() * 6) + 1;
-            this.createDots(face, randomInitialValue);
+            // Create dots for this face with initial random value
+            const initialValue = Math.floor(Math.random() * 6) + 1;
+            this.createDots(face, initialValue);
             dice.appendChild(face);
         });
         
@@ -51,6 +56,9 @@ class DiceRenderer {
 
     createDots(face, value) {
         const pattern = CONFIG.DICE_FACES[value];
+        
+        // Clear existing dots
+        face.innerHTML = '';
         
         // Create 9 dot positions in 3x3 grid
         for (let row = 0; row < 3; row++) {
@@ -68,22 +76,30 @@ class DiceRenderer {
         }
     }
 
-    updateDiceFace(dice, value) {
-        // Update the top face (which will be visible in final position)
-        const topFace = dice.querySelector('.dice-face.top');
-        if (topFace) {
-            // Clear existing dots
-            topFace.innerHTML = '';
-            
-            // Create new dots for the value
-            this.createDots(topFace, value);
-        }
+    updateAllFaces(dice, value) {
+        // Update all faces to show the same value (for consistency during roll)
+        const faces = dice.querySelectorAll('.dice-face');
+        faces.forEach(face => {
+            this.createDots(face, value);
+        });
+    }
+
+    getRandomRotationDirection() {
+        const directions = [
+            { axis: 'X', direction: 1 },  // flip down
+            { axis: 'X', direction: -1 }, // flip up
+            { axis: 'Y', direction: 1 },  // flip right
+            { axis: 'Y', direction: -1 }  // flip left
+        ];
+        return directions[Math.floor(Math.random() * directions.length)];
     }
 
     async rollDice(leftValue, rightValue) {
         this.clearDice();
         
-        // Create two dice (they start invisible)
+        console.log(`Rolling dice: Left=${leftValue}, Right=${rightValue}`);
+        
+        // Create two dice
         const leftDice = this.createDice();
         const rightDice = this.createDice();
         
@@ -93,93 +109,91 @@ class DiceRenderer {
         
         this.currentDice = [leftDice, rightDice];
         
-        // Force immediate visibility for debugging
-        console.log('Dice created and added to DOM');
+        // Generate random parameters for each dice
+        const leftRotations = 6 + Math.floor(Math.random() * 7); // 6-12 rotations
+        const rightRotations = 6 + Math.floor(Math.random() * 7); // 6-12 rotations
         
-        // Small delay then start fade-in
-        setTimeout(() => {
-            console.log('Starting fade-in animation');
-            leftDice.classList.add('fade-in');
-            rightDice.classList.add('fade-in');
-            
-            // Force style update
-            leftDice.style.opacity = '1';
-            rightDice.style.opacity = '1';
-            leftDice.style.transform = 'scale(1)';
-            rightDice.style.transform = 'scale(1)';
-        }, 100);
+        const leftDirection = this.getRandomRotationDirection();
+        const rightDirection = this.getRandomRotationDirection();
         
-        // Wait for fade-in to complete, then start rolling
-        await new Promise(resolve => setTimeout(resolve, CONFIG.DICE_FADE_IN_DURATION + 200));
+        // Calculate durations
+        const rotationDuration = 500; // Each rotation takes 0.5 seconds
+        const leftTotalDuration = leftRotations * rotationDuration;
+        const rightTotalDuration = rightRotations * rotationDuration;
         
-        // Generate random roll durations (to nearest tenth of a second)
-        const leftDuration = Math.round((Math.random() * (CONFIG.DICE_ROLL_MAX_DURATION - CONFIG.DICE_ROLL_MIN_DURATION) + CONFIG.DICE_ROLL_MIN_DURATION) / 100) * 100;
-        const rightDuration = Math.round((Math.random() * (CONFIG.DICE_ROLL_MAX_DURATION - CONFIG.DICE_ROLL_MIN_DURATION) + CONFIG.DICE_ROLL_MIN_DURATION) / 100) * 100;
+        console.log(`Left: ${leftRotations} rotations (${leftTotalDuration}ms), Right: ${rightRotations} rotations (${rightTotalDuration}ms)`);
         
-        console.log(`Starting rolling: Left for ${leftDuration}ms, Right for ${rightDuration}ms`);
+        // Start both dice animations immediately
+        const leftPromise = this.animateDice(leftDice, leftValue, leftRotations, leftDirection, rotationDuration);
+        const rightPromise = this.animateDice(rightDice, rightValue, rightRotations, rightDirection, rotationDuration);
         
-        // Remove fade-in and start rolling
-        leftDice.classList.remove('fade-in');
-        rightDice.classList.remove('fade-in');
-        leftDice.classList.add('rolling');
-        rightDice.classList.add('rolling');
+        // Wait for both dice to complete
+        await Promise.all([leftPromise, rightPromise]);
         
-        // Ensure visibility during rolling
-        leftDice.style.opacity = '1';
-        rightDice.style.opacity = '1';
-        
-        // Change faces rapidly during roll
-        const changeIntervals = [];
-        
-        // Left dice face changes
-        const leftInterval = setInterval(() => {
-            const randomValue = Math.floor(Math.random() * 6) + 1;
-            this.updateDiceFace(leftDice, randomValue);
-        }, CONFIG.DICE_CHANGE_SPEED);
-        changeIntervals.push(leftInterval);
-        
-        // Right dice face changes
-        const rightInterval = setInterval(() => {
-            const randomValue = Math.floor(Math.random() * 6) + 1;
-            this.updateDiceFace(rightDice, randomValue);
-        }, CONFIG.DICE_CHANGE_SPEED);
-        changeIntervals.push(rightInterval);
-        
-        // Stop left dice
-        const leftTimeout = setTimeout(() => {
-            console.log(`Stopping left dice with value: ${leftValue}`);
-            clearInterval(leftInterval);
-            leftDice.classList.remove('rolling');
-            leftDice.classList.add('final');
-            leftDice.style.opacity = '1';
-            leftDice.style.transform = 'rotateX(-90deg) scale(1)';
-            this.updateDiceFace(leftDice, leftValue);
-        }, leftDuration);
-        this.rollTimeouts.push(leftTimeout);
-        
-        // Stop right dice
-        const rightTimeout = setTimeout(() => {
-            console.log(`Stopping right dice with value: ${rightValue}`);
-            clearInterval(rightInterval);
-            rightDice.classList.remove('rolling');
-            rightDice.classList.add('final');
-            rightDice.style.opacity = '1';
-            rightDice.style.transform = 'rotateX(-90deg) scale(1)';
-            this.updateDiceFace(rightDice, rightValue);
-        }, rightDuration);
-        this.rollTimeouts.push(rightTimeout);
-        
-        // Return promise that resolves when both dice have stopped
+        console.log('Both dice animations completed');
+        return { left: leftValue, right: rightValue, total: leftValue + rightValue };
+    }
+
+    async animateDice(dice, finalValue, totalRotations, direction, rotationDuration) {
         return new Promise((resolve) => {
-            const maxDuration = Math.max(leftDuration, rightDuration);
-            const finalTimeout = setTimeout(() => {
-                console.log('Both dice have stopped, resolving promise');
-                // Clean up intervals
-                changeIntervals.forEach(interval => clearInterval(interval));
-                resolve({ left: leftValue, right: rightValue, total: leftValue + rightValue });
-            }, maxDuration + 100);
-            this.rollTimeouts.push(finalTimeout);
+            let currentRotation = 0;
+            let startTime = performance.now();
+            
+            // Start fade-in immediately
+            dice.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+            dice.style.opacity = '1';
+            dice.style.transform = `scale(1)`;
+            
+            const animate = (currentTime) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / (totalRotations * rotationDuration), 1);
+                
+                // Calculate current rotation based on progress
+                const targetRotation = progress * totalRotations * 360;
+                
+                // Update rotation smoothly
+                const rotateAxis = direction.axis === 'X' ? 'rotateX' : 'rotateY';
+                const rotateValue = targetRotation * direction.direction;
+                
+                // Apply rotation with easing
+                const easeOut = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
+                const easedRotation = easeOut * totalRotations * 360 * direction.direction;
+                
+                dice.style.transform = `${rotateAxis}(${easedRotation}deg) scale(1)`;
+                
+                // Change the face value during rotation for visual effect
+                if (progress < 1) {
+                    const currentFaceValue = Math.floor(Math.random() * 6) + 1;
+                    this.updateAllFaces(dice, currentFaceValue);
+                    
+                    this.animationFrames.push(requestAnimationFrame(animate));
+                } else {
+                    // Animation complete - set final state
+                    this.completeDiceAnimation(dice, finalValue, direction);
+                    resolve();
+                }
+            };
+            
+            // Start the animation
+            this.animationFrames.push(requestAnimationFrame(animate));
         });
+    }
+
+    completeDiceAnimation(dice, finalValue, direction) {
+        // Set the final face value
+        this.updateAllFaces(dice, finalValue);
+        
+        // Position dice to show the top face clearly
+        // The final rotation should position the dice so the top face is visible
+        const finalRotation = direction.axis === 'X' ? 'rotateX(-90deg)' : 'rotateY(0deg)';
+        
+        dice.style.transition = 'transform 0.3s ease-out';
+        dice.style.transform = `${finalRotation} scale(1)`;
+        
+        // Add a final class for styling
+        dice.classList.add('dice-final');
+        
+        console.log(`Dice animation completed with value: ${finalValue}`);
     }
 
     getCurrentValues() {
