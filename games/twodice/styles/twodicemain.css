@@ -97,8 +97,9 @@
     transform-style: preserve-3d;
     margin: 20px;
     opacity: 0;
-    transform: scale(0.3);
     z-index: 10; /* Ensure dice are above rainbow */
+    /* Remove any default transitions that might interfere */
+    transition: none !important;
 }
 
 /* Dice faces - improved positioning and 3D perspective */
@@ -165,11 +166,14 @@
 /* Final dice state - when animation is complete */
 .dice.dice-final {
     opacity: 1 !important;
+    /* Ensure no conflicting transitions */
+    transition: transform 0.8s ease-out !important;
 }
 
 /* Enhanced fade animations for dice transitions between questions */
+/* Remove old fade-out animation that might conflict */
 .dice.fade-out {
-    animation: diceDisappear 1s ease-out forwards;
+    /* This class is no longer used - all fading handled by JavaScript */
 }
 
 @keyframes diceDisappear {
