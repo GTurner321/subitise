@@ -54,6 +54,7 @@ class DiceRenderer {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
             face.style.backgroundColor = diceColor; // Fixed color for this dice
+            face.style.setProperty('--face-color', diceColor); // CSS variable for inset shadow
             
             // Create dots for this face with initial random value
             const initialValue = Math.floor(Math.random() * 6) + 1;
@@ -118,12 +119,12 @@ class DiceRenderer {
     }
 
     async rollDice(leftValue, rightValue) {
-        this.clearDice();
-        
-        console.log(`Rolling dice: Left=${leftValue}, Right=${rightValue}`);
+        // DON'T call clearDice() here - fadeOutCurrentDice() handles cleanup
+        console.log(`=== STARTING NEW ROLL: Left=${leftValue}, Right=${rightValue} ===`);
         
         // Get random colors for each dice (ensuring they're different)
         const colors = this.getRandomDiceColors();
+        console.log(`Dice colors: Left=${colors.left}, Right=${colors.right}`);
         
         // Create two dice with their assigned colors
         const leftDice = this.createDice(colors.left);
@@ -134,15 +135,25 @@ class DiceRenderer {
         this.rightSide.appendChild(rightDice);
         
         this.currentDice = [leftDice, rightDice];
+        console.log('Dice created and added to DOM, starting fade-in...');
         
-        // Start fade-in for both dice immediately
+        // Force a reflow to ensure dice are in DOM before animation
+        leftDice.offsetHeight;
+        rightDice.offsetHeight;
+        
+        // Start fade-in for both dice with more delay
         setTimeout(() => {
-            console.log('Starting 1-second fade-in for new dice');
+            console.log('=== STARTING FADE-IN (1 second) ===');
             leftDice.style.transition = 'opacity 1s ease-in';
             leftDice.style.opacity = '1';
             rightDice.style.transition = 'opacity 1s ease-in';
             rightDice.style.opacity = '1';
-        }, 100);
+            
+            // Log opacity after setting
+            setTimeout(() => {
+                console.log(`Left dice opacity: ${leftDice.style.opacity}, Right dice opacity: ${rightDice.style.opacity}`);
+            }, 100);
+        }, 200);
         
         // Generate random parameters for each dice
         const leftFlips = 6 + Math.floor(Math.random() * 7); // 6-12 flips
@@ -150,14 +161,14 @@ class DiceRenderer {
         
         console.log(`Left: ${leftFlips} flips, Right: ${rightFlips} flips`);
         
-        // Start both dice animations independently (no waiting for each other)
+        // Start both dice animations independently
         const leftPromise = this.animateDice(leftDice, leftValue, leftFlips);
         const rightPromise = this.animateDice(rightDice, rightValue, rightFlips);
         
         // Wait for both dice to complete
         await Promise.all([leftPromise, rightPromise]);
         
-        console.log('Both dice animations completed');
+        console.log('=== BOTH DICE ANIMATIONS COMPLETED ===');
         return { left: leftValue, right: rightValue, total: leftValue + rightValue };
     }
 
@@ -234,13 +245,17 @@ class DiceRenderer {
     }
 
     async fadeOutCurrentDice() {
-        if (this.currentDice.length === 0) return;
+        if (this.currentDice.length === 0) {
+            console.log('No dice to fade out');
+            return;
+        }
         
-        console.log('Fading out current dice over 1 second');
+        console.log('=== STARTING FADE-OUT (1 second) ===');
         
         // Start fade-out for current dice
-        this.currentDice.forEach(dice => {
+        this.currentDice.forEach((dice, index) => {
             if (dice && dice.parentNode) {
+                console.log(`Fading out dice ${index + 1}`);
                 dice.style.transition = 'opacity 1s ease-out';
                 dice.style.opacity = '0';
             }
@@ -249,14 +264,15 @@ class DiceRenderer {
         // Wait for fade-out to complete
         return new Promise(resolve => {
             const timeout = setTimeout(() => {
+                console.log('=== FADE-OUT COMPLETE, REMOVING DICE ===');
                 // Remove the dice after fade-out
-                this.currentDice.forEach(dice => {
+                this.currentDice.forEach((dice, index) => {
                     if (dice && dice.parentNode) {
+                        console.log(`Removing dice ${index + 1} from DOM`);
                         dice.parentNode.removeChild(dice);
                     }
                 });
                 this.currentDice = [];
-                console.log('Fade-out complete, dice removed');
                 resolve();
             }, 1000);
             this.rollTimeouts.push(timeout);
