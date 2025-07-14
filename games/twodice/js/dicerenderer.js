@@ -90,11 +90,15 @@ class DiceRenderer {
     }
 
     updateAllFaces(dice, value) {
-        // Update all faces to show the same value (color stays the same)
-        const faces = dice.querySelectorAll('.dice-face');
-        faces.forEach(face => {
-            this.createDots(face, value);
-        });
+        // DON'T update all faces to the same value - this kills the 3D effect!
+        // Instead, update only the currently visible face based on rotation
+        // Let the 3D rotation show different faces naturally
+        
+        // For now, just update the top face (which should be visible at rotateX(-90))
+        const topFace = dice.querySelector('.dice-face.top');
+        if (topFace) {
+            this.createDots(topFace, value);
+        }
     }
 
     getDiagonalDirections() {
@@ -236,6 +240,12 @@ class DiceRenderer {
                     } while (newFaceValue === currentFaceValue);
                 }
                 
+                // Clear any existing transition first to ensure clean state
+                dice.style.transition = 'none';
+                
+                // Force reflow
+                dice.offsetHeight;
+                
                 // Update face value at the START of the flip (so it changes as we rotate)
                 this.updateAllFaces(dice, newFaceValue);
                 
@@ -245,6 +255,8 @@ class DiceRenderer {
                 
                 console.log(`Flip ${currentFlip + 1}/${totalFlips}: ${direction.name} (${flipDuration}s) - Face: ${newFaceValue}`);
                 console.log(`Applied transform: rotateX(${newRotationX}deg) rotateY(${newRotationY}deg)`);
+                console.log(`CSS transition: ${dice.style.transition}`);
+                console.log(`CSS transform: ${dice.style.transform}`);
                 
                 // Update our tracking variables for next flip
                 currentRotationX = newRotationX;
