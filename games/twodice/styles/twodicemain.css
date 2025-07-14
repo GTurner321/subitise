@@ -1,17 +1,4 @@
-.dice-face {
-    position: absolute;
-    width: 120px;
-    height: 120px;
-    border: 3px solid #333;
-    border-radius: 15px;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
-    gap: 8px;
-    padding: 12px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    opacity: 1;
-}/* Game area layout */
+/* Game area layout */
 .game-area {
     flex: 1;
     position: relative;
@@ -33,6 +20,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    perspective: 1000px; /* Enhanced 3D perspective */
+    perspective-origin: center center;
 }
 
 /* Middle section with plus sign */
@@ -87,6 +76,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    perspective: 1000px; /* Enhanced 3D perspective */
+    perspective-origin: center center;
 }
 
 /* Area flashing styles */
@@ -96,54 +87,18 @@
     transition: background-color 1s ease-in-out;
 }
 
-/* 3D Dice Styling */
+/* 3D Dice Styling - Improved Version */
 .dice {
     width: 120px;
     height: 120px;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.3s ease;
     margin: 20px;
     opacity: 0;
     transform: scale(0.3);
 }
 
-.dice.fade-in {
-    animation: diceAppear 1s ease-out forwards;
-}
-
-@keyframes diceAppear {
-    from {
-        opacity: 0;
-        transform: scale(0.3);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-.dice.rolling {
-    animation: diceRoll 0.4s linear infinite, diceGrow var(--grow-duration) linear;
-}
-
-@keyframes diceRoll {
-    0% { transform: rotateX(0deg) rotateY(0deg) scale(var(--current-scale)); }
-    25% { transform: rotateX(90deg) rotateY(0deg) scale(var(--current-scale)); }
-    50% { transform: rotateX(180deg) rotateY(90deg) scale(var(--current-scale)); }
-    75% { transform: rotateX(270deg) rotateY(180deg) scale(var(--current-scale)); }
-    100% { transform: rotateX(360deg) rotateY(270deg) scale(var(--current-scale)); }
-}
-
-@keyframes diceGrow {
-    from {
-        --current-scale: 0.3;
-    }
-    to {
-        --current-scale: 1;
-    }
-}
-
+/* Dice faces - improved positioning and 3D perspective */
 .dice-face {
     position: absolute;
     width: 120px;
@@ -156,17 +111,31 @@
     gap: 8px;
     padding: 12px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    opacity: 1;
+    backface-visibility: hidden; /* Important for 3D effect */
 }
 
-/* 3D face positioning */
-.dice-face.front { transform: rotateY(0deg) translateZ(60px); }
-.dice-face.back { transform: rotateY(180deg) translateZ(60px); }
-.dice-face.right { transform: rotateY(90deg) translateZ(60px); }
-.dice-face.left { transform: rotateY(-90deg) translateZ(60px); }
-.dice-face.top { transform: rotateX(90deg) translateZ(60px); }
-.dice-face.bottom { transform: rotateX(-90deg) translateZ(60px); }
+/* 3D face positioning - improved for better 3D effect */
+.dice-face.front { 
+    transform: rotateY(0deg) translateZ(60px); 
+}
+.dice-face.back { 
+    transform: rotateY(180deg) translateZ(60px); 
+}
+.dice-face.right { 
+    transform: rotateY(90deg) translateZ(60px); 
+}
+.dice-face.left { 
+    transform: rotateY(-90deg) translateZ(60px); 
+}
+.dice-face.top { 
+    transform: rotateX(90deg) translateZ(60px); 
+}
+.dice-face.bottom { 
+    transform: rotateX(-90deg) translateZ(60px); 
+}
 
-/* Dice dot styling */
+/* Dice dot styling - enhanced for better visibility */
 .dice-dot {
     width: 18px;
     height: 18px;
@@ -174,15 +143,32 @@
     background-color: #333;
     margin: auto;
     opacity: 0;
+    transition: opacity 0.1s ease; /* Smooth dot transitions */
 }
 
 .dice-dot.active {
     opacity: 1;
 }
 
-/* Final dice positioning (top view) */
-.dice.final {
-    transform: rotateX(-90deg);
+/* Final dice state - when animation is complete */
+.dice.dice-final {
+    opacity: 1 !important;
+}
+
+/* Enhanced fade animations for dice transitions between questions */
+.dice.fade-out {
+    animation: diceDisappear 1s ease-out forwards;
+}
+
+@keyframes diceDisappear {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.8);
+    }
 }
 
 /* Number buttons - 12 buttons for 1-12 */
@@ -401,6 +387,38 @@
     }
 }
 
+/* Cross overlay for incorrect answers */
+.cross-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    opacity: 1;
+    z-index: 10;
+}
+
+.cross-overlay::before,
+.cross-overlay::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60%;
+    height: 4px;
+    background-color: #ff0000;
+    transform-origin: center;
+}
+
+.cross-overlay::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cross-overlay::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
 /* Fade animations */
 .fade-out:not(.sum-row) {
     animation: fadeOut 1s ease-out forwards;
@@ -456,11 +474,31 @@
     .dice {
         width: 80px;
         height: 80px;
+        margin: 15px;
     }
     
     .dice-face {
         width: 80px;
         height: 80px;
+        padding: 8px;
+        gap: 4px;
+    }
+    
+    .dice-face.front,
+    .dice-face.back,
+    .dice-face.right,
+    .dice-face.left { 
+        transform: rotateY(var(--rotation, 0deg)) translateZ(40px); 
+    }
+    
+    .dice-face.top,
+    .dice-face.bottom { 
+        transform: rotateX(var(--rotation, 90deg)) translateZ(40px); 
+    }
+    
+    .dice-dot {
+        width: 12px;
+        height: 12px;
     }
 }
 
@@ -484,10 +522,31 @@
     .dice {
         width: 60px;
         height: 60px;
+        margin: 10px;
     }
     
     .dice-face {
         width: 60px;
         height: 60px;
+        padding: 6px;
+        gap: 3px;
+        border-width: 2px;
+    }
+    
+    .dice-face.front,
+    .dice-face.back,
+    .dice-face.right,
+    .dice-face.left { 
+        transform: rotateY(var(--rotation, 0deg)) translateZ(30px); 
+    }
+    
+    .dice-face.top,
+    .dice-face.bottom { 
+        transform: rotateX(var(--rotation, 90deg)) translateZ(30px); 
+    }
+    
+    .dice-dot {
+        width: 10px;
+        height: 10px;
     }
 }
