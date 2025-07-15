@@ -226,7 +226,7 @@ class DiceRenderer {
                 'right': 'front',   // 2 → 1
                 'back': 'left',     // 6 → 5
                 'left': 'back',     // 5 → 6
-                'top': 'left',      // 3 → 5
+                'top': 'right',     // 3 → 2 (FIXED: was 'left')
                 'bottom': 'right'   // 4 → 2
             },
             'down-left': { // rotX: 90, rotY: -90
