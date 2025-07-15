@@ -14,6 +14,9 @@ class DiceRenderer {
             '#f0932b',  // Orange
             '#6c5ce7'   // Purple
         ];
+        
+        // Track previously used colors to avoid repeats
+        this.previousColors = [];
     }
 
     clearDice() {
@@ -31,25 +34,57 @@ class DiceRenderer {
     }
 
     getRandomDiceColors() {
-        const shuffled = [...this.availableColors].sort(() => Math.random() - 0.5);
-        return {
+        // Get colors that weren't used in the previous set
+        let availableForSelection = this.availableColors.filter(color => 
+            !this.previousColors.includes(color)
+        );
+        
+        // If we don't have enough unused colors (need at least 2), reset and use all colors
+        if (availableForSelection.length < 2) {
+            availableForSelection = [...this.availableColors];
+            console.log('Resetting color pool - all colors available again');
+        }
+        
+        // Shuffle the available colors and pick the first two
+        const shuffled = [...availableForSelection].sort(() => Math.random() - 0.5);
+        const selectedColors = {
             left: shuffled[0],
             right: shuffled[1]
         };
+        
+        // Store these colors as the previous set for next time
+        this.previousColors = [selectedColors.left, selectedColors.right];
+        
+        console.log(`Selected dice colors: Left=${selectedColors.left}, Right=${selectedColors.right}`);
+        console.log(`Previous colors stored: ${this.previousColors.join(', ')}`);
+        
+        return selectedColors;
     }
 
     getDiagonalDirections() {
         return [
-            { rotX: 90, rotY: 90, name: 'down-right' },
-            { rotX: -90, rotY: 90, name: 'up-right' },
-            { rotX: 90, rotY: -90, name: 'down-left' },
-            { rotX: -90, rotY: -90, name: 'up-left' }
+            { rotX: 90, rotY: 90, name: 'down-right', reverse: 'up-left' },
+            { rotX: -90, rotY: 90, name: 'up-right', reverse: 'down-left' },
+            { rotX: 90, rotY: -90, name: 'down-left', reverse: 'up-right' },
+            { rotX: -90, rotY: -90, name: 'up-left', reverse: 'down-right' }
         ];
     }
 
-    getRandomDiagonalDirection() {
+    getRandomDiagonalDirection(previousDirection = null) {
         const directions = this.getDiagonalDirections();
-        return directions[Math.floor(Math.random() * directions.length)];
+        
+        // If this is the first move, return any direction
+        if (!previousDirection) {
+            return directions[Math.floor(Math.random() * directions.length)];
+        }
+        
+        // Filter out the reverse of the previous direction
+        const validDirections = directions.filter(dir => dir.name !== previousDirection.reverse);
+        
+        console.log(`Previous direction: ${previousDirection.name}, excluding: ${previousDirection.reverse}`);
+        console.log(`Valid directions: ${validDirections.map(d => d.name).join(', ')}`);
+        
+        return validDirections[Math.floor(Math.random() * validDirections.length)];
     }
 
     getRandomFlipDuration() {
@@ -117,6 +152,9 @@ class DiceRenderer {
         // Store initial rotation for tracking
         dice.dataset.currentRotationX = startingRotX;
         dice.dataset.currentRotationY = startingRotY;
+        
+        // Initialize previous direction tracking
+        dice.dataset.previousDirection = null;
         
         return dice;
     }
@@ -294,13 +332,16 @@ class DiceRenderer {
             let rollCount = 0;
             let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
             let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
+            let previousDirection = null; // Track the previous direction
             
             const performRoll = () => {
                 rollCount++;
                 
-                // Get random direction and duration
-                const direction = this.getRandomDiagonalDirection();
+                // Get random direction, excluding reverse of previous move
+                const direction = this.getRandomDiagonalDirection(previousDirection);
                 const flipDuration = this.getRandomFlipDuration();
+                
+                console.log(`${diceName} dice roll ${rollCount}: ${direction.name} (duration: ${flipDuration}s)`);
                 
                 // Apply rotation
                 currentRotationX += direction.rotX;
@@ -313,10 +354,14 @@ class DiceRenderer {
                 dice.dataset.currentRotationX = currentRotationX;
                 dice.dataset.currentRotationY = currentRotationY;
                 
+                // Store this direction as the previous one for next roll
+                previousDirection = direction;
+                
                 // Check if done
                 if (rollCount >= numberOfRolls) {
                     const stopTimeout = setTimeout(() => {
                         dice.classList.add('dice-final');
+                        console.log(`${diceName} dice completed rolling after ${rollCount} moves`);
                         resolve();
                     }, flipDuration * 1000);
                     this.rollTimeouts.push(stopTimeout);
@@ -395,5 +440,8 @@ class DiceRenderer {
 
     reset() {
         this.clearDice();
+        // Reset color tracking when game resets
+        this.previousColors = [];
+        console.log('Dice renderer reset - color tracking cleared');
     }
 }
