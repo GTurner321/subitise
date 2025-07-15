@@ -4,6 +4,9 @@ class TwoDiceGameController {
         this.rainbow = new Rainbow();
         this.bear = new Bear();
         
+        // Initialize dice tester
+        this.diceTester = new DiceTransitionTester(this.diceRenderer);
+        
         // Game state
         this.questionsCompleted = 0;
         this.gameComplete = false;
@@ -383,7 +386,7 @@ class TwoDiceGameController {
         this.stopFlashing();
     }
 
-startFlashing() {
+    startFlashing() {
         this.stopFlashing();
         
         const flashElements = () => {
@@ -396,14 +399,6 @@ startFlashing() {
             } else if (!this.totalFilled) {
                 this.leftSide.classList.add('area-flash');
                 this.rightSide.classList.add('area-flash');
-                this.totalInputBox.classList.add('box-flash');
-            }
-            
-            setTimeout(() => {
-                this.leftSide.classList.remove('area-flash');
-                this.rightSide.classList.remove('area-flash');
-                this.leftInputBox.classList.remove('box-flash');
-                this.rightInputBox.classList.remove('box-flash');
                 this.totalInputBox.classList.remove('box-flash');
             }, 1000);
         };
@@ -826,7 +821,7 @@ startFlashing() {
         }
     }
 
-   destroy() {
+destroy() {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         
