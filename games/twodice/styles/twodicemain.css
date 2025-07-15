@@ -109,9 +109,12 @@
     position: absolute;
     width: 120px;
     height: 120px;
-    background: transparent; /* Transparent container */
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     opacity: 1;
-    backface-visibility: hidden; /* Important for 3D effect */
+    backface-visibility: hidden;
     box-sizing: border-box;
 }
 
