@@ -311,8 +311,6 @@ class DiceRenderer {
                     face.style.transition = 'opacity 1s ease-in !important';
                     face.style.opacity = '1';
                 });
-                
-                console.log(`Dice ${index + 1}: Set container and ${faces.length} faces to fade in`);
             });
         }, 200);
         
@@ -320,10 +318,10 @@ class DiceRenderer {
         const leftRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
         const rightRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
         
-        console.log(`Left dice will do ${leftRolls} rolls, Right dice will do ${rightRolls} rolls`);
+        console.log(`Left dice will do ${leftRolls} rolls (minimal logging), Right dice will do ${rightRolls} rolls (detailed tracking)`);
         
-        const leftPromise = this.rollDiceForSteps(leftDice, leftRolls, 'Left');
-        const rightPromise = this.rollDiceForSteps(rightDice, rightRolls, 'Right');
+        const leftPromise = this.rollDiceForSteps(leftDice, leftRolls, 'Left', false); // No detailed logging
+        const rightPromise = this.rollDiceForSteps(rightDice, rightRolls, 'Right', true); // Detailed logging
         
         // Wait for both dice to complete
         const [leftFinalValue, rightFinalValue] = await Promise.all([leftPromise, rightPromise]);
@@ -332,14 +330,19 @@ class DiceRenderer {
         return { left: leftFinalValue, right: rightFinalValue, total: leftFinalValue + rightFinalValue };
     }
 
-    async rollDiceForSteps(dice, numberOfRolls, diceName) {
+    async rollDiceForSteps(dice, numberOfRolls, diceName, detailedLogging = false) {
         return new Promise((resolve) => {
             let rollCount = 0;
             let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
             let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
             let lastDirection = null;
             
-            console.log(`${diceName} dice: Will perform ${numberOfRolls} rolls, starting face: ${dice.dataset.currentVisibleFace} (${dice.dataset.currentVisibleValue})`);
+            if (detailedLogging) {
+                console.log(`\n=== ${diceName} DICE DETAILED TRACKING ===`);
+                console.log(`Starting: face=${dice.dataset.currentVisibleFace}, value=${dice.dataset.currentVisibleValue}`);
+                console.log(`Initial rotations: X=${currentRotationX}°, Y=${currentRotationY}°`);
+                console.log(`Will perform ${numberOfRolls} rolls at 1 second per roll\n`);
+            }
             
             const performRoll = () => {
                 rollCount++;
@@ -348,16 +351,28 @@ class DiceRenderer {
                 const direction = this.getRandomDiagonalDirection(
                     lastDirection ? lastDirection.opposite : null
                 );
-                const flipDuration = this.getRandomFlipDuration();
+                
+                // Use slow speed for detailed tracking, normal speed for others
+                const flipDuration = detailedLogging ? 1.0 : this.getRandomFlipDuration();
                 
                 // Calculate new rotation values
                 const newRotationX = currentRotationX + direction.rotX;
                 const newRotationY = currentRotationY + direction.rotY;
                 
                 // Update which face will be visible after this rotation
+                const oldFace = dice.dataset.currentVisibleFace;
+                const oldValue = dice.dataset.currentVisibleValue;
                 const newVisibleValue = this.updateVisibleFaceAfterRotation(dice, direction);
+                const newFace = dice.dataset.currentVisibleFace;
                 
-                console.log(`${diceName} roll ${rollCount}/${numberOfRolls}: ${direction.name} (${flipDuration}s) - Will show: ${newVisibleValue}`);
+                if (detailedLogging) {
+                    console.log(`--- ROLL ${rollCount}/${numberOfRolls} ---`);
+                    console.log(`Direction: ${direction.name} (rotX: ${direction.rotX > 0 ? '+' : ''}${direction.rotX}°, rotY: ${direction.rotY > 0 ? '+' : ''}${direction.rotY}°)`);
+                    console.log(`Before: face=${oldFace}, value=${oldValue}, rotX=${currentRotationX}°, rotY=${currentRotationY}°`);
+                    console.log(`After:  face=${newFace}, value=${newVisibleValue}, rotX=${newRotationX}°, rotY=${newRotationY}°`);
+                    console.log(`Transformation: ${oldFace}(${oldValue}) → ${newFace}(${newVisibleValue})`);
+                    console.log(`Duration: ${flipDuration}s\n`);
+                }
                 
                 // Clear transition and apply rotation
                 dice.style.transition = 'none';
@@ -375,7 +390,10 @@ class DiceRenderer {
                 
                 // Check if this was the last roll
                 if (rollCount >= numberOfRolls) {
-                    console.log(`${diceName} dice: Completed all ${numberOfRolls} rolls`);
+                    if (detailedLogging) {
+                        console.log(`=== ${diceName} DICE FINAL STATE ===`);
+                        console.log(`Completed all ${numberOfRolls} rolls`);
+                    }
                     
                     // Wait for current roll to complete, then get final value
                     const stopTimeout = setTimeout(() => {
@@ -383,8 +401,16 @@ class DiceRenderer {
                         
                         // Use the tracked visible value instead of calculating from rotations
                         const finalValue = parseInt(dice.dataset.currentVisibleValue);
+                        const finalFace = dice.dataset.currentVisibleFace;
+                        const finalRotX = dice.dataset.currentRotationX;
+                        const finalRotY = dice.dataset.currentRotationY;
                         
-                        console.log(`${diceName} dice: Final value is ${finalValue} (face: ${dice.dataset.currentVisibleFace})`);
+                        if (detailedLogging) {
+                            console.log(`FINAL RESULT: face=${finalFace}, value=${finalValue}`);
+                            console.log(`Final rotations: X=${finalRotX}°, Y=${finalRotY}°`);
+                            console.log(`=== END ${diceName} DICE TRACKING ===\n`);
+                        }
+                        
                         resolve(finalValue);
                     }, flipDuration * 1000);
                     this.rollTimeouts.push(stopTimeout);
