@@ -104,31 +104,34 @@
     transform-origin: center center;
 }
 
-/* Dice faces - improved positioning and 3D perspective */
+/* Dice faces - transparent containers for 3D positioning */
 .dice-face {
     position: absolute;
     width: 120px;
     height: 120px;
-    border: 3px solid #333;
-    border-radius: 15px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    background: transparent; /* Transparent container */
     opacity: 1;
     backface-visibility: hidden; /* Important for 3D effect */
     box-sizing: border-box;
 }
 
-/* Inner face to hide white corners during rotation */
-.dice-face-inner {
+/* The actual colored surface of each face */
+.dice-face-surface {
     position: absolute;
-    top: 3px;
-    left: 3px;
-    right: 3px;
-    bottom: 3px;
-    border-radius: 0; /* No rounded corners - this fixes the white corner issue */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 3px solid #333;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    box-sizing: border-box;
     z-index: 1;
 }
 
-/* Dots container sits above the inner face */
+/* Remove the old dice-face-inner styles since we're not using that approach */
+
+/* Dots container sits above the colored surface */
 .dice-dots-container {
     position: relative;
     z-index: 2;
