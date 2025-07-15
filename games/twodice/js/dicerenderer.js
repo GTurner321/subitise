@@ -223,6 +223,20 @@ class DiceRenderer {
         dice.style.transform = 'rotateX(0deg) rotateY(0deg)';
         dice.style.transformStyle = 'preserve-3d';
         
+        // Create inner colored cube to fill gaps between faces
+        const innerCube = document.createElement('div');
+        innerCube.className = 'dice-inner-cube';
+        innerCube.style.position = 'absolute';
+        innerCube.style.width = '110px';
+        innerCube.style.height = '110px';
+        innerCube.style.backgroundColor = diceColor;
+        innerCube.style.left = '5px';
+        innerCube.style.top = '5px';
+        innerCube.style.transformStyle = 'preserve-3d';
+        innerCube.style.opacity = '0.8'; // Slightly transparent so it doesn't interfere
+        innerCube.style.borderRadius = '10px';
+        dice.appendChild(innerCube);
+        
         // Create all 6 faces of the dice with correct numbers
         const faces = [
             { name: 'front', value: 1 },
