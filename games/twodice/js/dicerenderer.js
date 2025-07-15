@@ -89,7 +89,36 @@ class DiceRenderer {
             face.style.setProperty('--face-color', diceColor);
             face.style.opacity = '0'; // Start faces invisible
             
-            this.createDots(face, faceValue);
+            // Create inner face to hide white corners during rotation
+            const innerFace = document.createElement('div');
+            innerFace.className = 'dice-face-inner';
+            innerFace.style.position = 'absolute';
+            innerFace.style.top = '3px';
+            innerFace.style.left = '3px';
+            innerFace.style.right = '3px';
+            innerFace.style.bottom = '3px';
+            innerFace.style.backgroundColor = diceColor;
+            innerFace.style.borderRadius = '0'; // No rounded corners
+            innerFace.style.zIndex = '1';
+            
+            // Create dots container that sits above the inner face
+            const dotsContainer = document.createElement('div');
+            dotsContainer.className = 'dice-dots-container';
+            dotsContainer.style.position = 'relative';
+            dotsContainer.style.zIndex = '2';
+            dotsContainer.style.width = '100%';
+            dotsContainer.style.height = '100%';
+            dotsContainer.style.display = 'grid';
+            dotsContainer.style.gridTemplateColumns = '1fr 1fr 1fr';
+            dotsContainer.style.gridTemplateRows = '1fr 1fr 1fr';
+            dotsContainer.style.gap = '8px';
+            dotsContainer.style.padding = '12px';
+            dotsContainer.style.boxSizing = 'border-box';
+            
+            this.createDots(dotsContainer, faceValue);
+            
+            face.appendChild(innerFace);
+            face.appendChild(dotsContainer);
             dice.appendChild(face);
         });
         
@@ -157,11 +186,11 @@ class DiceRenderer {
         return match ? parseInt(match[1]) : 0;
     }
 
-    createDots(face, value) {
+    createDots(container, value) {
         const pattern = CONFIG.DICE_FACES[value];
         
         // Clear existing dots
-        face.innerHTML = '';
+        container.innerHTML = '';
         
         // Create 9 dot positions in 3x3 grid
         for (let row = 0; row < 3; row++) {
@@ -174,7 +203,7 @@ class DiceRenderer {
                     dot.classList.add('active');
                 }
                 
-                face.appendChild(dot);
+                container.appendChild(dot);
             }
         }
     }
