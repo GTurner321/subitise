@@ -102,6 +102,9 @@
     transition: opacity 1s ease-in-out;
     /* Ensure proper 3D rendering */
     transform-origin: center center;
+    /* Ensure dice container is also transparent */
+    background: transparent !important;
+    background-color: transparent !important;
 }
 
 /* Dice faces - completely transparent containers for 3D positioning */
@@ -109,13 +112,18 @@
     position: absolute;
     width: 120px;
     height: 120px;
-    background: none !important;
+    background: transparent !important;
     background-color: transparent !important;
+    background-image: none !important;
     border: none !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
+    outline: none !important;
     opacity: 1;
     backface-visibility: hidden; /* Important for 3D effect */
     box-sizing: border-box;
+    /* Additional transparency enforcement */
+    color: transparent;
 }
 
 /* The actual colored surface of each face */
@@ -130,6 +138,19 @@
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     box-sizing: border-box;
     z-index: 1;
+}
+
+/* Inner face - 90% size, fills gaps during rotation */
+.dice-face-inner {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    width: 90%;
+    height: 90%;
+    border: none;
+    border-radius: 0;
+    box-sizing: border-box;
+    z-index: 0;
 }
 
 /* Dots container sits above the colored surface */
