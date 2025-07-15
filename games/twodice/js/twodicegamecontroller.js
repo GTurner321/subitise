@@ -7,7 +7,7 @@ class TwoDiceGameController {
         // Game state
         this.questionsCompleted = 0;
         this.gameComplete = false;
-        this.usedCombinations = new Set();
+        // Remove the usedCombinations tracking for now
         
         // Current question state
         this.currentLeftValue = 0;
@@ -364,7 +364,6 @@ class TwoDiceGameController {
     startNewGame() {
         this.questionsCompleted = 0;
         this.gameComplete = false;
-        this.usedCombinations.clear();
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         this.resetBoxState();
@@ -397,14 +396,6 @@ class TwoDiceGameController {
             } else if (!this.totalFilled) {
                 this.leftSide.classList.add('area-flash');
                 this.rightSide.classList.add('area-flash');
-                this.totalInputBox.classList.add('box-flash');
-            }
-            
-            setTimeout(() => {
-                this.leftSide.classList.remove('area-flash');
-                this.rightSide.classList.remove('area-flash');
-                this.leftInputBox.classList.remove('box-flash');
-                this.rightInputBox.classList.remove('box-flash');
                 this.totalInputBox.classList.remove('box-flash');
             }, 1000);
         };
@@ -433,36 +424,6 @@ class TwoDiceGameController {
         this.totalInputBox.classList.remove('box-flash');
     }
 
-    generateUnusedCombination() {
-        // Find an unused combination
-        const availableCombinations = CONFIG.ALL_COMBINATIONS.filter(combo => {
-            const key = `${combo[0]}-${combo[1]}`;
-            return !this.usedCombinations.has(key);
-        });
-        
-        if (availableCombinations.length === 0) {
-            // All combinations used, reset for a new cycle
-            this.usedCombinations.clear();
-            return CONFIG.ALL_COMBINATIONS[Math.floor(Math.random() * CONFIG.ALL_COMBINATIONS.length)];
-        }
-        
-        const selectedCombo = availableCombinations[Math.floor(Math.random() * availableCombinations.length)];
-        
-        // Mark as used
-        const key = `${selectedCombo[0]}-${selectedCombo[1]}`;
-        this.usedCombinations.add(key);
-        
-        // Randomly decide which dice gets which value (unless they're the same)
-        if (selectedCombo[0] === selectedCombo[1]) {
-            return { left: selectedCombo[0], right: selectedCombo[1] };
-        } else {
-            const useOriginalOrder = Math.random() < 0.5;
-            return useOriginalOrder 
-                ? { left: selectedCombo[0], right: selectedCombo[1] }
-                : { left: selectedCombo[1], right: selectedCombo[0] };
-        }
-    }
-
     async startNewQuestion() {
         if (this.gameComplete) {
             return;
@@ -472,13 +433,7 @@ class TwoDiceGameController {
         this.hideAllInputBoxes();
         this.hintGiven = false;
 
-        // Generate new dice combination
-        const combination = this.generateUnusedCombination();
-        this.currentLeftValue = combination.left;
-        this.currentRightValue = combination.right;
-        this.currentTotal = combination.left + combination.right;
-        
-        console.log(`Question: ${combination.left} + ${combination.right} = ${this.currentTotal}`);
+        console.log(`Starting question ${this.questionsCompleted + 1}`);
         
         // Reset button states
         this.resetButtonStates();
@@ -490,7 +445,15 @@ class TwoDiceGameController {
         this.buttonsDisabled = true; // Disable buttons during dice roll
         
         try {
-            await this.diceRenderer.rollDice(this.currentLeftValue, this.currentRightValue);
+            // Roll dice - this will return the final values based on where they land
+            const result = await this.diceRenderer.rollDice();
+            
+            // Update our target values based on what the dice actually show
+            this.currentLeftValue = result.left;
+            this.currentRightValue = result.right;
+            this.currentTotal = result.total;
+            
+            console.log(`Dice finished rolling - Left: ${this.currentLeftValue}, Right: ${this.currentRightValue}, Total: ${this.currentTotal}`);
             
             // Dice have finished rolling, now show input boxes and enable buttons
             this.buttonsDisabled = false;
@@ -498,7 +461,11 @@ class TwoDiceGameController {
             this.startInactivityTimer();
         } catch (error) {
             console.error('Error rolling dice:', error);
-            // Fallback: enable buttons anyway
+            // Fallback: enable buttons anyway with default values
+            this.currentLeftValue = Math.floor(Math.random() * 6) + 1;
+            this.currentRightValue = Math.floor(Math.random() * 6) + 1;
+            this.currentTotal = this.currentLeftValue + this.currentRightValue;
+            
             this.buttonsDisabled = false;
             this.showInputBoxes();
             this.startInactivityTimer();
@@ -725,15 +692,15 @@ class TwoDiceGameController {
         }, 700);
     }
 
-async fadeOutDice() {
-    console.log('Starting dice transition');
-    
-    // Fade out current dice first
-    await this.diceRenderer.fadeOutCurrentDice();
-    
-    // Then start new question (which will fade in new dice)
-    this.startNewQuestion();
-}
+    async fadeOutDice() {
+        console.log('Starting dice transition');
+        
+        // Fade out current dice first
+        await this.diceRenderer.fadeOutCurrentDice();
+        
+        // Then start new question (which will fade in new dice)
+        this.startNewQuestion();
+    }
 
     hasAttemptedAnswer() {
         return Array.from(this.numberButtons).some(btn => 
@@ -851,7 +818,7 @@ async fadeOutDice() {
         }
     }
 
-    destroy() {
+   destroy() {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         
