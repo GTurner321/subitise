@@ -89,7 +89,7 @@
     transition: background-color 1s ease-in-out;
 }
 
-/* 3D Dice Styling - Improved Version with Inner Face to Fix White Corners */
+/* 3D Dice Styling - Fixed transparent faces */
 .dice {
     width: 120px;
     height: 120px;
@@ -104,7 +104,7 @@
     transform-origin: center center;
 }
 
-/* Dice faces - transparent containers for 3D positioning */
+/* Dice faces - completely transparent containers for 3D positioning */
 .dice-face {
     position: absolute;
     width: 120px;
@@ -114,7 +114,7 @@
     border: none !important;
     box-shadow: none !important;
     opacity: 1;
-    backface-visibility: hidden;
+    backface-visibility: hidden; /* Important for 3D effect */
     box-sizing: border-box;
 }
 
@@ -131,8 +131,6 @@
     box-sizing: border-box;
     z-index: 1;
 }
-
-/* Remove the old dice-face-inner styles since we're not using that approach */
 
 /* Dots container sits above the colored surface */
 .dice-dots-container {
@@ -481,18 +479,19 @@
     }
 }
 
-/* Game completion modal */
+/* Game completion modal - Fixed to match main styles format */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: transparent; /* No background darkening */
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    pointer-events: none; /* Allow clicks to pass through to bears */
     transition: opacity 0.3s ease;
 }
 
@@ -502,23 +501,38 @@
 }
 
 .modal-content {
-    background: white;
+    background: #4caf50; /* Green background like the main styles */
+    color: white;
     padding: 40px;
     border-radius: 20px;
     text-align: center;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     max-width: 400px;
     width: 90%;
+    pointer-events: auto; /* Re-enable clicks for modal content */
+    animation: modalAppear 0.5s ease;
+}
+
+@keyframes modalAppear {
+    from { 
+        opacity: 0; 
+        transform: scale(0.5); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
 }
 
 .modal-content h2 {
     margin: 0 0 30px 0;
     font-size: 2.5rem;
-    color: #333;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 .play-again-btn {
-    background: #28a745;
+    background: #28a745; /* Darker green for contrast */
     color: white;
     border: none;
     padding: 15px 30px;
@@ -540,7 +554,7 @@
     transform: translateY(0);
 }
 
-/* Back button */
+/* Back button - using the format from main styles */
 .back-button {
     position: fixed;
     top: 20px;
@@ -602,15 +616,6 @@
     .dice-face {
         width: 80px;
         height: 80px;
-        border-width: 2px;
-        border-radius: 10px;
-    }
-    
-    .dice-face-inner {
-        top: 2px;
-        left: 2px;
-        right: 2px;
-        bottom: 2px;
     }
     
     .dice-dots-container {
@@ -689,15 +694,6 @@
     .dice-face {
         width: 60px;
         height: 60px;
-        border-width: 2px;
-        border-radius: 8px;
-    }
-    
-    .dice-face-inner {
-        top: 2px;
-        left: 2px;
-        right: 2px;
-        bottom: 2px;
     }
     
     .dice-dots-container {
