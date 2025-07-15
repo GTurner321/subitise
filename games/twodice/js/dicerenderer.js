@@ -5,7 +5,7 @@ class DiceRenderer {
         this.currentDice = [];
         this.rollTimeouts = [];
         
-        // Available colors for dice (will be randomly assigned)
+        // Available colors for dice
         this.availableColors = [
             '#ff6b6b',  // Red
             '#4ecdc4',  // Teal
@@ -19,7 +19,7 @@ class DiceRenderer {
     clearDice() {
         // Remove all existing dice from both sides
         this.currentDice.forEach(dice => {
-            if (dice.parentNode) {
+            if (dice && dice.parentNode) {
                 dice.parentNode.removeChild(dice);
             }
         });
@@ -31,7 +31,6 @@ class DiceRenderer {
     }
 
     getRandomDiceColors() {
-        // Randomly select two different colors
         const shuffled = [...this.availableColors].sort(() => Math.random() - 0.5);
         return {
             left: shuffled[0],
@@ -41,20 +40,16 @@ class DiceRenderer {
 
     getDiagonalDirections() {
         return [
-            { rotX: 90, rotY: 90, name: 'down-right', opposite: 'up-left' },
-            { rotX: -90, rotY: 90, name: 'up-right', opposite: 'down-left' },
-            { rotX: 90, rotY: -90, name: 'down-left', opposite: 'up-right' },
-            { rotX: -90, rotY: -90, name: 'up-left', opposite: 'down-right' }
+            { rotX: 90, rotY: 90, name: 'down-right' },
+            { rotX: -90, rotY: 90, name: 'up-right' },
+            { rotX: 90, rotY: -90, name: 'down-left' },
+            { rotX: -90, rotY: -90, name: 'up-left' }
         ];
     }
 
-    getRandomDiagonalDirection(excludeOpposite = null) {
+    getRandomDiagonalDirection() {
         const directions = this.getDiagonalDirections();
-        const availableDirections = excludeOpposite 
-            ? directions.filter(dir => dir.name !== excludeOpposite)
-            : directions;
-        
-        return availableDirections[Math.floor(Math.random() * availableDirections.length)];
+        return directions[Math.floor(Math.random() * directions.length)];
     }
 
     getRandomFlipDuration() {
@@ -62,33 +57,24 @@ class DiceRenderer {
         return durations[Math.floor(Math.random() * durations.length)];
     }
 
-    // Create a realistic dice with proper face values and random starting orientation
-    createRealisticDice(diceColor, startingValue = null) {
+    createDice(diceColor) {
         const dice = document.createElement('div');
         dice.className = 'dice';
-        
-        // Start invisible
         dice.style.opacity = '0';
         dice.style.transformStyle = 'preserve-3d';
         
-        // Standard dice configuration - opposite faces add to 7
+        // Standard dice face values
         const faceValues = {
-            'front': 1,
-            'back': 6,    // opposite of front (1)
-            'right': 2, 
-            'left': 5,    // opposite of right (2)
-            'top': 3,
-            'bottom': 4   // opposite of top (3)
+            'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4
         };
         
-        // Create all 6 faces with realistic values
+        // Create all 6 faces
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
-            face.style.backgroundColor = 'transparent'; // Make face transparent
-            face.style.opacity = '0'; // Start faces invisible
+            face.style.backgroundColor = 'transparent';
             
-            // Create the actual colored face surface
+            // Create colored surface
             const coloredSurface = document.createElement('div');
             coloredSurface.className = 'dice-face-surface';
             coloredSurface.style.position = 'absolute';
@@ -102,7 +88,7 @@ class DiceRenderer {
             coloredSurface.style.boxSizing = 'border-box';
             coloredSurface.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
             
-            // Create dots container that sits above the colored surface
+            // Create dots container
             const dotsContainer = document.createElement('div');
             dotsContainer.className = 'dice-dots-container';
             dotsContainer.style.position = 'relative';
@@ -123,73 +109,20 @@ class DiceRenderer {
             dice.appendChild(face);
         });
         
-        // Set starting orientation to show the provided starting value, or random if none provided
-        let startingOrientation;
-        if (startingValue) {
-            // Find the face that matches the starting value
-            const faceForValue = Object.entries(faceValues).find(([face, value]) => value === startingValue);
-            if (faceForValue) {
-                const [faceName] = faceForValue;
-                startingOrientation = this.getOrientationForFace(faceName, startingValue);
-            } else {
-                // Fallback to random if value not found
-                startingOrientation = this.getRandomOrientation();
-            }
-        } else {
-            startingOrientation = this.getRandomOrientation();
-        }
+        // Set random starting orientation
+        const startingRotX = Math.floor(Math.random() * 4) * 90; // 0, 90, 180, 270
+        const startingRotY = Math.floor(Math.random() * 4) * 90;
+        dice.style.transform = `rotateX(${startingRotX}deg) rotateY(${startingRotY}deg)`;
         
-        // Set initial transform
-        dice.style.transform = startingOrientation.rotation;
-        
-        // Track current state with better face tracking
-        dice.dataset.currentVisibleFace = startingOrientation.face;
-        dice.dataset.currentVisibleValue = startingOrientation.value;
-        dice.dataset.currentRotationX = this.extractRotationX(startingOrientation.rotation);
-        dice.dataset.currentRotationY = this.extractRotationY(startingOrientation.rotation);
+        // Store initial rotation for tracking
+        dice.dataset.currentRotationX = startingRotX;
+        dice.dataset.currentRotationY = startingRotY;
         
         return dice;
     }
 
-    getOrientationForFace(faceName, value) {
-        const orientations = {
-            'front': { rotation: 'rotateX(0deg) rotateY(0deg)', value: 1, face: 'front' },
-            'right': { rotation: 'rotateX(0deg) rotateY(90deg)', value: 2, face: 'right' },
-            'top': { rotation: 'rotateX(-90deg) rotateY(0deg)', value: 3, face: 'top' },
-            'bottom': { rotation: 'rotateX(90deg) rotateY(0deg)', value: 4, face: 'bottom' },
-            'left': { rotation: 'rotateX(0deg) rotateY(-90deg)', value: 5, face: 'left' },
-            'back': { rotation: 'rotateX(0deg) rotateY(180deg)', value: 6, face: 'back' }
-        };
-        return orientations[faceName] || orientations['front'];
-    }
-
-    getRandomOrientation() {
-        const startingOrientations = [
-            { rotation: 'rotateX(0deg) rotateY(0deg)', value: 1, face: 'front' },
-            { rotation: 'rotateX(0deg) rotateY(90deg)', value: 2, face: 'right' },
-            { rotation: 'rotateX(0deg) rotateY(-90deg)', value: 5, face: 'left' },
-            { rotation: 'rotateX(0deg) rotateY(180deg)', value: 6, face: 'back' },
-            { rotation: 'rotateX(-90deg) rotateY(0deg)', value: 3, face: 'top' },
-            { rotation: 'rotateX(90deg) rotateY(0deg)', value: 4, face: 'bottom' }
-        ];
-        
-        return startingOrientations[Math.floor(Math.random() * startingOrientations.length)];
-    }
-
-    extractRotationX(rotationString) {
-        const match = rotationString.match(/rotateX\((-?\d+)deg\)/);
-        return match ? parseInt(match[1]) : 0;
-    }
-
-    extractRotationY(rotationString) {
-        const match = rotationString.match(/rotateY\((-?\d+)deg\)/);
-        return match ? parseInt(match[1]) : 0;
-    }
-
     createDots(container, value) {
         const pattern = CONFIG.DICE_FACES[value];
-        
-        // Clear existing dots
         container.innerHTML = '';
         
         // Create 9 dot positions in 3x3 grid
@@ -198,7 +131,6 @@ class DiceRenderer {
                 const dot = document.createElement('div');
                 dot.className = 'dice-dot';
                 
-                // Show dot if pattern says so
                 if (pattern[row][col] === 1) {
                     dot.classList.add('active');
                 }
@@ -208,251 +140,180 @@ class DiceRenderer {
         }
     }
 
-    // Improved face tracking through rotations
-    updateVisibleFaceAfterRotation(dice, direction) {
-        const currentFace = dice.dataset.currentVisibleFace;
+    // Face reading function - determines which face is currently visible
+    readVisibleFace(dice) {
+        const rotX = parseInt(dice.dataset.currentRotationX) || 0;
+        const rotY = parseInt(dice.dataset.currentRotationY) || 0;
         
-        // Define all possible face transitions for each diagonal direction
-        const faceTransitions = {
-            'down-right': { // rotX: 90, rotY: 90
-                'front': 'right',   // 1 → 2
-                'right': 'back',    // 2 → 6  
-                'back': 'left',     // 6 → 5
-                'left': 'front',    // 5 → 1
-                'top': 'right',     // 3 → 2
-                'bottom': 'left'    // 4 → 5
-            },
-            'up-right': { // rotX: -90, rotY: 90
-                'front': 'right',   // 1 → 2
-                'right': 'front',   // 2 → 1
-                'back': 'left',     // 6 → 5
-                'left': 'back',     // 5 → 6
-                'top': 'back',      // 3 → 6 (FIXED: was 'right')
-                'bottom': 'right'   // 4 → 2
-            },
-            'down-left': { // rotX: 90, rotY: -90
-                'front': 'left',    // 1 → 5
-                'left': 'back',     // 5 → 6
-                'back': 'right',    // 6 → 2
-                'right': 'front',   // 2 → 1
-                'top': 'left',      // 3 → 5
-                'bottom': 'right'   // 4 → 2
-            },
-            'up-left': { // rotX: -90, rotY: -90
-                'front': 'top',     // 1 → 3 (FIXED: was 'left')
-                'left': 'front',    // 5 → 1
-                'back': 'right',    // 6 → 2
-                'right': 'back',    // 2 → 6
-                'top': 'right',     // 3 → 2
-                'bottom': 'left'    // 4 → 5
-            }
-        };
+        // Normalize rotations to 0-360 range
+        const normalizedX = ((rotX % 360) + 360) % 360;
+        const normalizedY = ((rotY % 360) + 360) % 360;
         
-        const newFace = faceTransitions[direction.name]?.[currentFace] || currentFace;
+        // Determine which face is visible based on final rotation
+        // This maps rotation angles to face values
+        if (normalizedX === 0 || normalizedX === 360) {
+            // Front/Back/Left/Right faces
+            if (normalizedY === 0 || normalizedY === 360) return 1; // front
+            if (normalizedY === 90) return 2; // right
+            if (normalizedY === 180) return 6; // back
+            if (normalizedY === 270) return 5; // left
+        } else if (normalizedX === 90) {
+            return 4; // bottom
+        } else if (normalizedX === 270) {
+            return 3; // top
+        }
         
-        // Map face to value
-        const faceToValue = {
-            'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4
-        };
+        // For non-standard angles, use approximation
+        return this.approximateVisibleFace(normalizedX, normalizedY);
+    }
+
+    // Approximate face reading for non-standard angles
+    approximateVisibleFace(rotX, rotY) {
+        // Find the closest standard angle
+        const xAngles = [0, 90, 180, 270];
+        const yAngles = [0, 90, 180, 270];
         
-        const newValue = faceToValue[newFace];
+        const closestX = xAngles.reduce((prev, curr) => 
+            Math.abs(curr - rotX) < Math.abs(prev - rotX) ? curr : prev
+        );
         
-        // Update tracking data
-        dice.dataset.currentVisibleFace = newFace;
-        dice.dataset.currentVisibleValue = newValue;
+        const closestY = yAngles.reduce((prev, curr) => 
+            Math.abs(curr - rotY) < Math.abs(prev - rotY) ? curr : prev
+        );
         
-        return newValue;
+        // Use the closest standard angles to determine face
+        if (closestX === 0) {
+            if (closestY === 0) return 1; // front
+            if (closestY === 90) return 2; // right
+            if (closestY === 180) return 6; // back
+            if (closestY === 270) return 5; // left
+        } else if (closestX === 90) {
+            return 4; // bottom
+        } else if (closestX === 270) {
+            return 3; // top
+        }
+        
+        // Fallback to front face
+        return 1;
     }
 
     async rollDice() {
-        // Get random colors for each dice (ensuring they're different)
+        console.log('=== STARTING NATURAL DICE ROLL ===');
+        
+        // Get random colors
         const colors = this.getRandomDiceColors();
         
-        // Create two realistic dice with random starting values
-        const leftStartValue = Math.floor(Math.random() * 6) + 1;
-        const rightStartValue = Math.floor(Math.random() * 6) + 1;
+        // Create two dice
+        const leftDice = this.createDice(colors.left);
+        const rightDice = this.createDice(colors.right);
         
-        const leftDice = this.createRealisticDice(colors.left, leftStartValue);
-        const rightDice = this.createRealisticDice(colors.right, rightStartValue);
-        
-        // Add dice to their respective sides
+        // Add to sides
         this.leftSide.appendChild(leftDice);
         this.rightSide.appendChild(rightDice);
-        
         this.currentDice = [leftDice, rightDice];
         
-        // Force a reflow to ensure dice are in DOM before animation
-        leftDice.offsetHeight;
-        rightDice.offsetHeight;
-        
-        // Clear any existing transitions and set initial state
-        leftDice.style.transition = 'none';
-        rightDice.style.transition = 'none';
-        leftDice.style.opacity = '0';
-        rightDice.style.opacity = '0';
-        
-        // Start fade-in for both dice
+        // Fade in
         setTimeout(() => {
-            // Set opacity on both container and all faces
-            [leftDice, rightDice].forEach((dice, index) => {
-                dice.style.transition = 'opacity 1s ease-in !important';
+            [leftDice, rightDice].forEach(dice => {
+                dice.style.transition = 'opacity 1s ease-in';
                 dice.style.opacity = '1';
                 
-                // Also ensure all faces fade in
                 const faces = dice.querySelectorAll('.dice-face');
                 faces.forEach(face => {
-                    face.style.transition = 'opacity 1s ease-in !important';
+                    face.style.transition = 'opacity 1s ease-in';
                     face.style.opacity = '1';
                 });
             });
         }, 200);
         
-        // Start both dice rolling independently with random number of rolls
+        // Start rolling both dice
         const leftRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
         const rightRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
         
-        const leftPromise = this.rollDiceForSteps(leftDice, leftRolls, 'Left', false); // No detailed logging
-        const rightPromise = this.rollDiceForSteps(rightDice, rightRolls, 'Right', true); // Detailed logging
+        const leftPromise = this.rollDiceNaturally(leftDice, leftRolls, 'Left');
+        const rightPromise = this.rollDiceNaturally(rightDice, rightRolls, 'Right');
         
-        // Wait for both dice to complete
-        const [leftFinalValue, rightFinalValue] = await Promise.all([leftPromise, rightPromise]);
+        // Wait for both to complete
+        await Promise.all([leftPromise, rightPromise]);
         
-        return { left: leftFinalValue, right: rightFinalValue, total: leftFinalValue + rightFinalValue };
+        // Read the final faces
+        const leftValue = this.readVisibleFace(leftDice);
+        const rightValue = this.readVisibleFace(rightDice);
+        const total = leftValue + rightValue;
+        
+        console.log(`=== DICE ROLLING COMPLETE ===`);
+        console.log(`Left dice shows: ${leftValue}`);
+        console.log(`Right dice shows: ${rightValue}`);
+        console.log(`Total: ${total}`);
+        
+        return { left: leftValue, right: rightValue, total: total };
     }
 
-    async rollDiceForSteps(dice, numberOfRolls, diceName, detailedLogging = false) {
+    async rollDiceNaturally(dice, numberOfRolls, diceName) {
         return new Promise((resolve) => {
             let rollCount = 0;
             let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
             let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
-            let lastDirection = null;
-            
-            if (detailedLogging) {
-                console.log(`\n=== ${diceName} DICE DETAILED TRACKING ===`);
-                console.log(`Starting: face=${dice.dataset.currentVisibleFace}, value=${dice.dataset.currentVisibleValue}`);
-                console.log(`Initial rotations: X=${currentRotationX}°, Y=${currentRotationY}°`);
-                console.log(`Will perform ${numberOfRolls} rolls at 2 seconds per roll\n`);
-            }
             
             const performRoll = () => {
                 rollCount++;
                 
-                // Get random diagonal direction and duration
-                const direction = this.getRandomDiagonalDirection(
-                    lastDirection ? lastDirection.opposite : null
-                );
+                // Get random direction and duration
+                const direction = this.getRandomDiagonalDirection();
+                const flipDuration = this.getRandomFlipDuration();
                 
-                // Use slow speed for detailed tracking, normal speed for others
-                const flipDuration = detailedLogging ? 2.0 : this.getRandomFlipDuration();
-                
-                // Calculate new rotation values
-                const newRotationX = currentRotationX + direction.rotX;
-                const newRotationY = currentRotationY + direction.rotY;
-                
-                // Update which face will be visible after this rotation
-                const oldFace = dice.dataset.currentVisibleFace;
-                const oldValue = dice.dataset.currentVisibleValue;
-                const newVisibleValue = this.updateVisibleFaceAfterRotation(dice, direction);
-                const newFace = dice.dataset.currentVisibleFace;
-                
-                if (detailedLogging) {
-                    console.log(`--- ROLL ${rollCount}/${numberOfRolls} ---`);
-                    console.log(`Direction: ${direction.name} (rotX: ${direction.rotX > 0 ? '+' : ''}${direction.rotX}°, rotY: ${direction.rotY > 0 ? '+' : ''}${direction.rotY}°)`);
-                    console.log(`Before: face=${oldFace}, value=${oldValue}, rotX=${currentRotationX}°, rotY=${currentRotationY}°`);
-                    console.log(`After:  face=${newFace}, value=${newVisibleValue}, rotX=${newRotationX}°, rotY=${newRotationY}°`);
-                    console.log(`Transformation: ${oldFace}(${oldValue}) → ${newFace}(${newVisibleValue})`);
-                    console.log(`Duration: ${flipDuration}s\n`);
-                }
-                
-                // Clear transition and apply rotation
-                dice.style.transition = 'none';
-                dice.offsetHeight; // Force reflow
+                // Apply rotation
+                currentRotationX += direction.rotX;
+                currentRotationY += direction.rotY;
                 
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                dice.style.transform = `rotateX(${newRotationX}deg) rotateY(${newRotationY}deg)`;
+                dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
                 
-                // Update tracking variables
-                currentRotationX = newRotationX;
-                currentRotationY = newRotationY;
+                // Update tracking
                 dice.dataset.currentRotationX = currentRotationX;
                 dice.dataset.currentRotationY = currentRotationY;
-                lastDirection = direction;
                 
-                // Check if this was the last roll
+                // Check if done
                 if (rollCount >= numberOfRolls) {
-                    if (detailedLogging) {
-                        console.log(`=== ${diceName} DICE FINAL STATE ===`);
-                        console.log(`Completed all ${numberOfRolls} rolls`);
-                    }
-                    
-                    // Wait for current roll to complete, then get final value
                     const stopTimeout = setTimeout(() => {
                         dice.classList.add('dice-final');
-                        
-                        // Use the tracked visible value instead of calculating from rotations
-                        const finalValue = parseInt(dice.dataset.currentVisibleValue);
-                        const finalFace = dice.dataset.currentVisibleFace;
-                        const finalRotX = dice.dataset.currentRotationX;
-                        const finalRotY = dice.dataset.currentRotationY;
-                        
-                        if (detailedLogging) {
-                            console.log(`FINAL RESULT: face=${finalFace}, value=${finalValue}`);
-                            console.log(`Final rotations: X=${finalRotX}°, Y=${finalRotY}°`);
-                            console.log(`=== END ${diceName} DICE TRACKING ===\n`);
-                        }
-                        
-                        resolve(finalValue);
+                        resolve();
                     }, flipDuration * 1000);
                     this.rollTimeouts.push(stopTimeout);
                 } else {
-                    // Schedule next roll
+                    // Continue rolling
                     const nextTimeout = setTimeout(performRoll, flipDuration * 1000);
                     this.rollTimeouts.push(nextTimeout);
                 }
             };
             
-            // Start first roll after fade-in begins
-            const initialTimeout = setTimeout(performRoll, 300);
+            // Start rolling after fade-in
+            const initialTimeout = setTimeout(performRoll, 1300);
             this.rollTimeouts.push(initialTimeout);
         });
     }
 
     async fadeOutCurrentDice() {
-        if (this.currentDice.length === 0) {
-            return;
-        }
+        if (this.currentDice.length === 0) return;
         
-        // Start fade-out for current dice
-        this.currentDice.forEach((dice, index) => {
+        // Fade out current dice
+        this.currentDice.forEach(dice => {
             if (dice && dice.parentNode) {
-                // Clear any existing transition first
-                dice.style.transition = 'none';
-                
-                // Also clear transitions on all faces
-                const faces = dice.querySelectorAll('.dice-face');
-                faces.forEach(face => {
-                    face.style.transition = 'none';
-                });
-                
-                // Force reflow
-                dice.offsetHeight;
-                
-                // Apply fade-out transition to container and faces
-                dice.style.transition = 'opacity 1s ease-out !important';
+                dice.style.transition = 'opacity 1s ease-out';
                 dice.style.opacity = '0';
                 
+                const faces = dice.querySelectorAll('.dice-face');
                 faces.forEach(face => {
-                    face.style.transition = 'opacity 1s ease-out !important';
+                    face.style.transition = 'opacity 1s ease-out';
                     face.style.opacity = '0';
                 });
             }
         });
         
-        // Wait for fade-out to complete
+        // Wait for fade-out and remove
         return new Promise(resolve => {
             const timeout = setTimeout(() => {
-                // Remove the dice after fade-out
-                this.currentDice.forEach((dice, index) => {
+                this.currentDice.forEach(dice => {
                     if (dice && dice.parentNode) {
                         dice.parentNode.removeChild(dice);
                     }
@@ -466,8 +327,8 @@ class DiceRenderer {
 
     getCurrentValues() {
         if (this.currentDice.length >= 2) {
-            const leftValue = parseInt(this.currentDice[0].dataset.currentVisibleValue) || 0;
-            const rightValue = parseInt(this.currentDice[1].dataset.currentVisibleValue) || 0;
+            const leftValue = this.readVisibleFace(this.currentDice[0]);
+            const rightValue = this.readVisibleFace(this.currentDice[1]);
             return { left: leftValue, right: rightValue, total: leftValue + rightValue };
         }
         return { left: 0, right: 0, total: 0 };
