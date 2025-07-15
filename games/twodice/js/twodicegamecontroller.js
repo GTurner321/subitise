@@ -399,6 +399,14 @@ class TwoDiceGameController {
             } else if (!this.totalFilled) {
                 this.leftSide.classList.add('area-flash');
                 this.rightSide.classList.add('area-flash');
+                this.totalInputBox.classList.add('box-flash');
+            }
+            
+            setTimeout(() => {
+                this.leftSide.classList.remove('area-flash');
+                this.rightSide.classList.remove('area-flash');
+                this.leftInputBox.classList.remove('box-flash');
+                this.rightInputBox.classList.remove('box-flash');
                 this.totalInputBox.classList.remove('box-flash');
             }, 1000);
         };
@@ -821,7 +829,7 @@ class TwoDiceGameController {
         }
     }
 
-destroy() {
+ destroy() {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         
