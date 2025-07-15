@@ -41,10 +41,10 @@ class DiceRenderer {
 
     getDiagonalDirections() {
         return [
-            { rotX: 90, rotY: 90, name: 'down-right', opposite: 'up-left' },     // Flip down AND right
-            { rotX: -90, rotY: 90, name: 'up-right', opposite: 'down-left' },    // Flip up AND right  
-            { rotX: 90, rotY: -90, name: 'down-left', opposite: 'up-right' },    // Flip down AND left
-            { rotX: -90, rotY: -90, name: 'up-left', opposite: 'down-right' }    // Flip up AND left
+            { rotX: 90, rotY: 90, name: 'down-right', opposite: 'up-left' },
+            { rotX: -90, rotY: 90, name: 'up-right', opposite: 'down-left' },
+            { rotX: 90, rotY: -90, name: 'down-left', opposite: 'up-right' },
+            { rotX: -90, rotY: -90, name: 'up-left', opposite: 'down-right' }
         ];
     }
 
@@ -62,88 +62,8 @@ class DiceRenderer {
         return durations[Math.floor(Math.random() * durations.length)];
     }
 
-    // Calculate which face will be visible after a series of rotations
-    calculateFinalVisibleFace(rotationSequence) {
-        let finalX = 0;
-        let finalY = 0;
-        
-        // Apply all rotations
-        rotationSequence.forEach(rotation => {
-            finalX += rotation.rotX;
-            finalY += rotation.rotY;
-        });
-        
-        // Normalize rotations to find equivalent position
-        finalX = finalX % 360;
-        finalY = finalY % 360;
-        
-        // Handle negative values
-        if (finalX < 0) finalX += 360;
-        if (finalY < 0) finalY += 360;
-        
-        console.log(`Final calculated rotation: X=${finalX}, Y=${finalY}`);
-        
-        // Map rotations to visible faces (this is the key fix)
-        // Based on CSS transforms in our stylesheet
-        if (Math.abs(finalX - 270) < 45 || Math.abs(finalX - (-90)) < 45) {
-            // rotateX(-90) or equivalent - top face visible
-            return 'top';
-        } else if (Math.abs(finalX - 90) < 45) {
-            // rotateX(90) - bottom face visible  
-            return 'bottom';
-        } else {
-            // rotateX(0) or close - front/back/left/right face visible
-            if (Math.abs(finalY - 0) < 45 || Math.abs(finalY - 360) < 45) {
-                return 'front';
-            } else if (Math.abs(finalY - 180) < 45) {
-                return 'back';
-            } else if (Math.abs(finalY - 90) < 45) {
-                return 'right';
-            } else if (Math.abs(finalY - 270) < 45) {
-                return 'left';
-            }
-        }
-        
-        // Default fallback
-        console.log(`Couldn't determine face for rotation X=${finalX}, Y=${finalY}, defaulting to front`);
-        return 'front';
-    }
-
-    // Plan the dice roll to end on the correct number
-    planDiceRoll(targetValue) {
-        // Generate random number of flips (6-12)
-        const totalFlips = 6 + Math.floor(Math.random() * 7);
-        
-        // Generate random sequence of diagonal directions
-        const rotationSequence = [];
-        let lastDirection = null;
-        
-        for (let i = 0; i < totalFlips; i++) {
-            const direction = this.getRandomDiagonalDirection(
-                lastDirection ? lastDirection.opposite : null
-            );
-            rotationSequence.push(direction);
-            lastDirection = direction;
-        }
-        
-        // Calculate which face will be visible at the end
-        const finalVisibleFace = this.calculateFinalVisibleFace(rotationSequence);
-        
-        console.log(`Planned ${totalFlips} flips, final visible face: ${finalVisibleFace}`);
-        
-        // Generate random durations for each flip
-        const flipDurations = rotationSequence.map(() => this.getRandomFlipDuration());
-        
-        return {
-            totalFlips,
-            rotationSequence,
-            flipDurations,
-            finalVisibleFace,
-            targetValue
-        };
-    }
-
-    createDice(diceColor, rollPlan) {
+    // Create a realistic dice with proper face values (1-6 on opposite faces adding to 7)
+    createRealisticDice(diceColor) {
         const dice = document.createElement('div');
         dice.className = 'dice';
         
@@ -152,33 +72,33 @@ class DiceRenderer {
         dice.style.transform = 'rotateX(0deg) rotateY(0deg)';
         dice.style.transformStyle = 'preserve-3d';
         
-        // Create all 6 faces of the dice
-        const faces = ['front', 'back', 'right', 'left', 'top', 'bottom'];
+        // Standard dice configuration - opposite faces add to 7
+        const faceValues = {
+            'front': 1,
+            'back': 6,    // opposite of front (1)
+            'right': 2, 
+            'left': 5,    // opposite of right (2)
+            'top': 3,
+            'bottom': 4   // opposite of top (3)
+        };
         
-        faces.forEach((faceClass, index) => {
+        // Create all 6 faces with realistic values
+        Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
             face.style.backgroundColor = diceColor;
             face.style.setProperty('--face-color', diceColor);
-            face.style.opacity = '0'; // Start faces invisible too
-            
-            // Assign numbers to faces - the final visible face gets the target value
-            let faceValue;
-            if (faceClass === rollPlan.finalVisibleFace) {
-                faceValue = rollPlan.targetValue;
-            } else {
-                // Other faces get random values (avoiding the target value)
-                do {
-                    faceValue = Math.floor(Math.random() * 6) + 1;
-                } while (faceValue === rollPlan.targetValue);
-            }
+            face.style.opacity = '0'; // Start faces invisible
             
             this.createDots(face, faceValue);
             dice.appendChild(face);
         });
         
-        console.log(`Created dice with target ${rollPlan.targetValue} on ${rollPlan.finalVisibleFace} face`);
+        // Track which face is currently visible (starts with front)
+        dice.dataset.currentVisibleFace = 'front';
+        dice.dataset.currentVisibleValue = '1';
         
+        console.log(`Created realistic dice with standard 1-6 configuration`);
         return dice;
     }
 
@@ -204,27 +124,84 @@ class DiceRenderer {
         }
     }
 
-    async rollDice(leftValue, rightValue) {
-        console.log(`=== PLANNING DICE ROLLS: Left=${leftValue}, Right=${rightValue} ===`);
+    // Track which face becomes visible after a diagonal rotation
+    updateVisibleFace(dice, rotation) {
+        const currentFace = dice.dataset.currentVisibleFace;
         
-        // Plan both dice rolls
-        const leftPlan = this.planDiceRoll(leftValue);
-        const rightPlan = this.planDiceRoll(rightValue);
+        // Mapping of face transitions for each diagonal rotation
+        const faceTransitions = {
+            'front': {
+                'down-right': 'bottom',   // 1 → 4
+                'up-right': 'top',        // 1 → 3
+                'down-left': 'bottom',    // 1 → 4
+                'up-left': 'top'          // 1 → 3
+            },
+            'back': {
+                'down-right': 'bottom',   // 6 → 4
+                'up-right': 'top',        // 6 → 3
+                'down-left': 'bottom',    // 6 → 4
+                'up-left': 'top'          // 6 → 3
+            },
+            'right': {
+                'down-right': 'bottom',   // 2 → 4
+                'up-right': 'top',        // 2 → 3
+                'down-left': 'front',     // 2 → 1
+                'up-left': 'back'         // 2 → 6
+            },
+            'left': {
+                'down-right': 'front',    // 5 → 1
+                'up-right': 'back',       // 5 → 6
+                'down-left': 'bottom',    // 5 → 4
+                'up-left': 'top'          // 5 → 3
+            },
+            'top': {
+                'down-right': 'back',     // 3 → 6
+                'up-right': 'front',      // 3 → 1
+                'down-left': 'back',      // 3 → 6
+                'up-left': 'front'        // 3 → 1
+            },
+            'bottom': {
+                'down-right': 'front',    // 4 → 1
+                'up-right': 'back',       // 4 → 6
+                'down-left': 'front',     // 4 → 1
+                'up-left': 'back'         // 4 → 6
+            }
+        };
+        
+        const newFace = faceTransitions[currentFace]?.[rotation.name] || currentFace;
+        
+        // Update the tracking data
+        dice.dataset.currentVisibleFace = newFace;
+        
+        // Map face to value
+        const faceToValue = {
+            'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4
+        };
+        
+        const newValue = faceToValue[newFace];
+        dice.dataset.currentVisibleValue = newValue;
+        
+        console.log(`After ${rotation.name}: ${newFace} face visible (value: ${newValue})`);
+        return newValue;
+    }
+
+    async rollDice(leftValue, rightValue) {
+        console.log(`=== STARTING REALISTIC DICE ROLL: Left=${leftValue}, Right=${rightValue} ===`);
         
         // Get random colors for each dice (ensuring they're different)
         const colors = this.getRandomDiceColors();
         console.log(`Dice colors: Left=${colors.left}, Right=${colors.right}`);
         
-        // Create two dice with their roll plans
-        const leftDice = this.createDice(colors.left, leftPlan);
-        const rightDice = this.createDice(colors.right, rightPlan);
+        // Create two realistic dice
+        const leftDice = this.createRealisticDice(colors.left);
+        const rightDice = this.createRealisticDice(colors.right);
         
         // Add dice to their respective sides
         this.leftSide.appendChild(leftDice);
         this.rightSide.appendChild(rightDice);
         
         this.currentDice = [leftDice, rightDice];
-        console.log('Dice created and added to DOM, starting fade-in...');
+        console.log('Realistic dice created and added to DOM, starting fade-in...');
         
         // Force a reflow to ensure dice are in DOM before animation
         leftDice.offsetHeight;
@@ -236,7 +213,7 @@ class DiceRenderer {
         leftDice.style.opacity = '0';
         rightDice.style.opacity = '0';
         
-        // Start fade-in for both dice with more delay
+        // Start fade-in for both dice
         setTimeout(() => {
             console.log('=== STARTING FADE-IN (1 second) ===');
             
@@ -256,61 +233,80 @@ class DiceRenderer {
             });
         }, 200);
         
-        console.log(`Left: ${leftPlan.totalFlips} flips, Right: ${rightPlan.totalFlips} flips`);
-        
-        // Start both dice animations independently
-        const leftPromise = this.executeDiceRoll(leftDice, leftPlan);
-        const rightPromise = this.executeDiceRoll(rightDice, rightPlan);
+        // Start both dice rolling independently until they hit target values
+        const leftPromise = this.rollUntilTarget(leftDice, leftValue, 'Left');
+        const rightPromise = this.rollUntilTarget(rightDice, rightValue, 'Right');
         
         // Wait for both dice to complete
         await Promise.all([leftPromise, rightPromise]);
         
-        console.log('=== BOTH DICE ANIMATIONS COMPLETED ===');
+        console.log('=== BOTH DICE COMPLETED ROLLING ===');
         return { left: leftValue, right: rightValue, total: leftValue + rightValue };
     }
 
-    async executeDiceRoll(dice, rollPlan) {
+    async rollUntilTarget(dice, targetValue, diceName) {
         return new Promise((resolve) => {
-            let currentFlip = 0;
+            let flipCount = 0;
             let currentRotationX = 0;
             let currentRotationY = 0;
+            let lastDirection = null;
+            const maxFlips = 25; // Safety limit (extremely unlikely to reach)
             
-            console.log(`Starting planned roll: ${rollPlan.totalFlips} flips to show ${rollPlan.targetValue}`);
+            console.log(`${diceName} dice: Rolling until we get ${targetValue}`);
             
             const performFlip = () => {
-                if (currentFlip >= rollPlan.totalFlips) {
-                    // Animation complete
-                    console.log(`=== DICE ROLL COMPLETE - Target: ${rollPlan.targetValue} ===`);
+                flipCount++;
+                
+                // Safety check
+                if (flipCount > maxFlips) {
+                    console.log(`${diceName} dice: Hit safety limit at ${maxFlips} flips, stopping anyway`);
                     dice.classList.add('dice-final');
                     resolve();
                     return;
                 }
                 
-                const direction = rollPlan.rotationSequence[currentFlip];
-                const flipDuration = rollPlan.flipDurations[currentFlip];
+                // Get random diagonal direction and duration
+                const direction = this.getRandomDiagonalDirection(
+                    lastDirection ? lastDirection.opposite : null
+                );
+                const flipDuration = this.getRandomFlipDuration();
                 
-                // Calculate the NEW rotation values
+                // Calculate new rotation values
                 const newRotationX = currentRotationX + direction.rotX;
                 const newRotationY = currentRotationY + direction.rotY;
                 
-                console.log(`Flip ${currentFlip + 1}/${rollPlan.totalFlips}: ${direction.name} (${flipDuration}s)`);
+                // Update which face will be visible after this rotation
+                const newVisibleValue = this.updateVisibleFace(dice, direction);
                 
-                // Clear any existing transition first
+                console.log(`${diceName} flip ${flipCount}: ${direction.name} (${flipDuration}s) - Will show: ${newVisibleValue}, Target: ${targetValue}`);
+                
+                // Clear transition and apply rotation
                 dice.style.transition = 'none';
                 dice.offsetHeight; // Force reflow
                 
-                // Apply the rotation animation
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
                 dice.style.transform = `rotateX(${newRotationX}deg) rotateY(${newRotationY}deg)`;
                 
                 // Update tracking variables
                 currentRotationX = newRotationX;
                 currentRotationY = newRotationY;
-                currentFlip++;
+                lastDirection = direction;
                 
-                // Schedule next flip
-                const timeout = setTimeout(performFlip, flipDuration * 1000);
-                this.rollTimeouts.push(timeout);
+                // Check if we should stop after this flip (minimum 5 flips, then check for target)
+                if (flipCount >= 5 && newVisibleValue === targetValue) {
+                    console.log(`${diceName} dice: SUCCESS! Hit target ${targetValue} after ${flipCount} flips`);
+                    
+                    // Wait for current flip to complete, then stop
+                    const stopTimeout = setTimeout(() => {
+                        dice.classList.add('dice-final');
+                        resolve();
+                    }, flipDuration * 1000);
+                    this.rollTimeouts.push(stopTimeout);
+                } else {
+                    // Schedule next flip
+                    const nextTimeout = setTimeout(performFlip, flipDuration * 1000);
+                    this.rollTimeouts.push(nextTimeout);
+                }
             };
             
             // Start first flip after fade-in begins
