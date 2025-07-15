@@ -4,11 +4,6 @@ class TwoDiceGameController {
         this.rainbow = new Rainbow();
         this.bear = new Bear();
         
-        // Initialize dice tester (optional - only if class is available)
-        if (typeof DiceTransitionTester !== 'undefined') {
-            this.diceTester = new DiceTransitionTester(this.diceRenderer);
-        }
-        
         // Game state
         this.questionsCompleted = 0;
         this.gameComplete = false;
