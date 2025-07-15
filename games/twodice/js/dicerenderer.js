@@ -140,60 +140,100 @@ class DiceRenderer {
         }
     }
 
-    // Face reading function - determines which face is currently visible
+    // Face reading function - counts visible dots to determine dice value
     readVisibleFace(dice) {
-        const rotX = parseInt(dice.dataset.currentRotationX) || 0;
-        const rotY = parseInt(dice.dataset.currentRotationY) || 0;
+        // Get all active dots on this dice
+        const activeDots = dice.querySelectorAll('.dice-dot.active');
+        const diceRect = dice.getBoundingClientRect();
         
-        // Normalize rotations to 0-360 range
-        const normalizedX = ((rotX % 360) + 360) % 360;
-        const normalizedY = ((rotY % 360) + 360) % 360;
+        let visibleDots = 0;
         
-        // Determine which face is visible based on final rotation
-        // This maps rotation angles to face values
-        if (normalizedX === 0 || normalizedX === 360) {
-            // Front/Back/Left/Right faces
-            if (normalizedY === 0 || normalizedY === 360) return 1; // front
-            if (normalizedY === 90) return 2; // right
-            if (normalizedY === 180) return 6; // back
-            if (normalizedY === 270) return 5; // left
-        } else if (normalizedX === 90) {
-            return 4; // bottom
-        } else if (normalizedX === 270) {
-            return 3; // top
-        }
+        activeDots.forEach(dot => {
+            if (this.isDotVisible(dot, dice, diceRect)) {
+                visibleDots++;
+            }
+        });
         
-        // For non-standard angles, use approximation
-        return this.approximateVisibleFace(normalizedX, normalizedY);
+        // Ensure we return a valid dice value (1-6)
+        const finalValue = Math.max(1, Math.min(6, visibleDots));
+        
+        console.log(`Dice face reader: Found ${visibleDots} visible dots, returning value ${finalValue}`);
+        return finalValue;
     }
 
-    // Approximate face reading for non-standard angles
-    approximateVisibleFace(rotX, rotY) {
-        // Find the closest standard angle
-        const xAngles = [0, 90, 180, 270];
-        const yAngles = [0, 90, 180, 270];
+    // Check if a dot is visible (facing toward the viewer)
+    isDotVisible(dot, dice, diceRect) {
+        const dotRect = dot.getBoundingClientRect();
         
-        const closestX = xAngles.reduce((prev, curr) => 
-            Math.abs(curr - rotX) < Math.abs(prev - rotX) ? curr : prev
-        );
-        
-        const closestY = yAngles.reduce((prev, curr) => 
-            Math.abs(curr - rotY) < Math.abs(prev - rotY) ? curr : prev
-        );
-        
-        // Use the closest standard angles to determine face
-        if (closestX === 0) {
-            if (closestY === 0) return 1; // front
-            if (closestY === 90) return 2; // right
-            if (closestY === 180) return 6; // back
-            if (closestY === 270) return 5; // left
-        } else if (closestX === 90) {
-            return 4; // bottom
-        } else if (closestX === 270) {
-            return 3; // top
+        // Check if dot is within the dice boundaries (basic sanity check)
+        if (dotRect.width === 0 || dotRect.height === 0) {
+            return false;
         }
         
-        // Fallback to front face
+        // Get the face this dot belongs to
+        const face = dot.closest('.dice-face');
+        if (!face) return false;
+        
+        // Check if this face is oriented toward the front
+        return this.isFaceFacingFront(face, dice);
+    }
+
+    // Determine if a face is facing toward the viewer
+    isFaceFacingFront(face, dice) {
+        const faceRect = face.getBoundingClientRect();
+        const diceRect = dice.getBoundingClientRect();
+        
+        // If the face has no visible area, it's not facing front
+        if (faceRect.width === 0 || faceRect.height === 0) {
+            return false;
+        }
+        
+        // Check if the face is positioned in the front area of the dice
+        const faceCenterX = faceRect.left + faceRect.width / 2;
+        const faceCenterY = faceRect.top + faceRect.height / 2;
+        const diceCenterX = diceRect.left + diceRect.width / 2;
+        const diceCenterY = diceRect.top + diceRect.height / 2;
+        
+        // The face should be close to the dice center and have reasonable size
+        const maxDistance = Math.min(diceRect.width, diceRect.height) * 0.4;
+        const distance = Math.sqrt(
+            Math.pow(faceCenterX - diceCenterX, 2) + 
+            Math.pow(faceCenterY - diceCenterY, 2)
+        );
+        
+        // Also check that the face has a reasonable size (not collapsed)
+        const minFaceSize = Math.min(diceRect.width, diceRect.height) * 0.6;
+        const faceSize = Math.min(faceRect.width, faceRect.height);
+        
+        return distance < maxDistance && faceSize > minFaceSize;
+    }
+
+    // Alternative simpler approach - find the largest visible face
+    readVisibleFaceSimple(dice) {
+        const faces = dice.querySelectorAll('.dice-face');
+        let largestFace = null;
+        let largestArea = 0;
+        
+        faces.forEach(face => {
+            const rect = face.getBoundingClientRect();
+            const area = rect.width * rect.height;
+            
+            // Only consider faces that are actually visible
+            if (area > largestArea && rect.width > 50 && rect.height > 50) {
+                largestFace = face;
+                largestArea = area;
+            }
+        });
+        
+        if (largestFace) {
+            // Count dots on the largest visible face
+            const activeDots = largestFace.querySelectorAll('.dice-dot.active');
+            const value = activeDots.length;
+            console.log(`Simple reader: Largest face has ${value} dots`);
+            return Math.max(1, Math.min(6, value));
+        }
+        
+        console.log('Simple reader: No clear visible face found, defaulting to 1');
         return 1;
     }
 
@@ -236,9 +276,9 @@ class DiceRenderer {
         // Wait for both to complete
         await Promise.all([leftPromise, rightPromise]);
         
-        // Read the final faces
-        const leftValue = this.readVisibleFace(leftDice);
-        const rightValue = this.readVisibleFace(rightDice);
+        // Read the final faces using visual detection
+        const leftValue = this.readVisibleFaceRobust(leftDice);
+        const rightValue = this.readVisibleFaceRobust(rightDice);
         const total = leftValue + rightValue;
         
         console.log(`=== DICE ROLLING COMPLETE ===`);
@@ -325,10 +365,29 @@ class DiceRenderer {
         });
     }
 
+    // Robust face reader that tries multiple approaches
+    readVisibleFaceRobust(dice) {
+        // Try the simple approach first (largest visible face)
+        const simpleResult = this.readVisibleFaceSimple(dice);
+        
+        // Try the complex approach for verification
+        const complexResult = this.readVisibleFace(dice);
+        
+        // If both methods agree, use that value
+        if (simpleResult === complexResult) {
+            console.log(`Both methods agree: ${simpleResult}`);
+            return simpleResult;
+        }
+        
+        // If they disagree, prefer the simple method but log the disagreement
+        console.log(`Methods disagree: simple=${simpleResult}, complex=${complexResult}, using simple`);
+        return simpleResult;
+    }
+
     getCurrentValues() {
         if (this.currentDice.length >= 2) {
-            const leftValue = this.readVisibleFace(this.currentDice[0]);
-            const rightValue = this.readVisibleFace(this.currentDice[1]);
+            const leftValue = this.readVisibleFaceRobust(this.currentDice[0]);
+            const rightValue = this.readVisibleFaceRobust(this.currentDice[1]);
             return { left: leftValue, right: rightValue, total: leftValue + rightValue };
         }
         return { left: 0, right: 0, total: 0 };
