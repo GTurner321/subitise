@@ -147,7 +147,6 @@ class DiceRenderer {
         dice.dataset.currentRotationX = this.extractRotationX(startingOrientation.rotation);
         dice.dataset.currentRotationY = this.extractRotationY(startingOrientation.rotation);
         
-        console.log(`Created dice starting with face ${startingOrientation.face} (value ${startingOrientation.value})`);
         return dice;
     }
 
@@ -261,16 +260,12 @@ class DiceRenderer {
         dice.dataset.currentVisibleFace = newFace;
         dice.dataset.currentVisibleValue = newValue;
         
-        console.log(`${direction.name}: ${currentFace}(${faceToValue[currentFace]}) → ${newFace}(${newValue})`);
         return newValue;
     }
 
     async rollDice() {
-        console.log(`=== STARTING IMPROVED DICE ROLL ===`);
-        
         // Get random colors for each dice (ensuring they're different)
         const colors = this.getRandomDiceColors();
-        console.log(`Dice colors: Left=${colors.left}, Right=${colors.right}`);
         
         // Create two realistic dice with random starting values
         const leftStartValue = Math.floor(Math.random() * 6) + 1;
@@ -284,7 +279,6 @@ class DiceRenderer {
         this.rightSide.appendChild(rightDice);
         
         this.currentDice = [leftDice, rightDice];
-        console.log('Dice created and added to DOM, starting fade-in...');
         
         // Force a reflow to ensure dice are in DOM before animation
         leftDice.offsetHeight;
@@ -298,8 +292,6 @@ class DiceRenderer {
         
         // Start fade-in for both dice
         setTimeout(() => {
-            console.log('=== STARTING FADE-IN (1 second) ===');
-            
             // Set opacity on both container and all faces
             [leftDice, rightDice].forEach((dice, index) => {
                 dice.style.transition = 'opacity 1s ease-in !important';
@@ -318,15 +310,12 @@ class DiceRenderer {
         const leftRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
         const rightRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
         
-        console.log(`Left dice will do ${leftRolls} rolls (minimal logging), Right dice will do ${rightRolls} rolls (detailed tracking)`);
-        
         const leftPromise = this.rollDiceForSteps(leftDice, leftRolls, 'Left', false); // No detailed logging
         const rightPromise = this.rollDiceForSteps(rightDice, rightRolls, 'Right', true); // Detailed logging
         
         // Wait for both dice to complete
         const [leftFinalValue, rightFinalValue] = await Promise.all([leftPromise, rightPromise]);
         
-        console.log(`=== BOTH DICE COMPLETED ROLLING: Left=${leftFinalValue}, Right=${rightFinalValue} ===`);
         return { left: leftFinalValue, right: rightFinalValue, total: leftFinalValue + rightFinalValue };
     }
 
@@ -341,7 +330,7 @@ class DiceRenderer {
                 console.log(`\n=== ${diceName} DICE DETAILED TRACKING ===`);
                 console.log(`Starting: face=${dice.dataset.currentVisibleFace}, value=${dice.dataset.currentVisibleValue}`);
                 console.log(`Initial rotations: X=${currentRotationX}°, Y=${currentRotationY}°`);
-                console.log(`Will perform ${numberOfRolls} rolls at 1 second per roll\n`);
+                console.log(`Will perform ${numberOfRolls} rolls at 2 seconds per roll\n`);
             }
             
             const performRoll = () => {
@@ -353,7 +342,7 @@ class DiceRenderer {
                 );
                 
                 // Use slow speed for detailed tracking, normal speed for others
-                const flipDuration = detailedLogging ? 1.0 : this.getRandomFlipDuration();
+                const flipDuration = detailedLogging ? 2.0 : this.getRandomFlipDuration();
                 
                 // Calculate new rotation values
                 const newRotationX = currentRotationX + direction.rotX;
@@ -429,17 +418,12 @@ class DiceRenderer {
 
     async fadeOutCurrentDice() {
         if (this.currentDice.length === 0) {
-            console.log('No dice to fade out');
             return;
         }
-        
-        console.log('=== STARTING FADE-OUT (1 second) ===');
         
         // Start fade-out for current dice
         this.currentDice.forEach((dice, index) => {
             if (dice && dice.parentNode) {
-                console.log(`Fading out dice ${index + 1}`);
-                
                 // Clear any existing transition first
                 dice.style.transition = 'none';
                 
@@ -460,19 +444,15 @@ class DiceRenderer {
                     face.style.transition = 'opacity 1s ease-out !important';
                     face.style.opacity = '0';
                 });
-                
-                console.log(`Dice ${index + 1}: Set container and ${faces.length} faces to fade out`);
             }
         });
         
         // Wait for fade-out to complete
         return new Promise(resolve => {
             const timeout = setTimeout(() => {
-                console.log('=== FADE-OUT COMPLETE, REMOVING DICE ===');
                 // Remove the dice after fade-out
                 this.currentDice.forEach((dice, index) => {
                     if (dice && dice.parentNode) {
-                        console.log(`Removing dice ${index + 1} from DOM`);
                         dice.parentNode.removeChild(dice);
                     }
                 });
