@@ -85,23 +85,24 @@ class DiceRenderer {
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
-            face.style.backgroundColor = diceColor;
-            face.style.setProperty('--face-color', diceColor);
+            face.style.backgroundColor = 'transparent'; // Make face transparent
             face.style.opacity = '0'; // Start faces invisible
             
-            // Create inner face to hide white corners during rotation
-            const innerFace = document.createElement('div');
-            innerFace.className = 'dice-face-inner';
-            innerFace.style.position = 'absolute';
-            innerFace.style.top = '3px';
-            innerFace.style.left = '3px';
-            innerFace.style.right = '3px';
-            innerFace.style.bottom = '3px';
-            innerFace.style.backgroundColor = diceColor;
-            innerFace.style.borderRadius = '0'; // No rounded corners
-            innerFace.style.zIndex = '1';
+            // Create the actual colored face surface
+            const coloredSurface = document.createElement('div');
+            coloredSurface.className = 'dice-face-surface';
+            coloredSurface.style.position = 'absolute';
+            coloredSurface.style.top = '0';
+            coloredSurface.style.left = '0';
+            coloredSurface.style.right = '0';
+            coloredSurface.style.bottom = '0';
+            coloredSurface.style.backgroundColor = diceColor;
+            coloredSurface.style.border = '3px solid #333';
+            coloredSurface.style.borderRadius = '15px';
+            coloredSurface.style.boxSizing = 'border-box';
+            coloredSurface.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
             
-            // Create dots container that sits above the inner face
+            // Create dots container that sits above the colored surface
             const dotsContainer = document.createElement('div');
             dotsContainer.className = 'dice-dots-container';
             dotsContainer.style.position = 'relative';
@@ -117,7 +118,7 @@ class DiceRenderer {
             
             this.createDots(dotsContainer, faceValue);
             
-            face.appendChild(innerFace);
+            face.appendChild(coloredSurface);
             face.appendChild(dotsContainer);
             dice.appendChild(face);
         });
@@ -226,7 +227,7 @@ class DiceRenderer {
                 'right': 'front',   // 2 → 1
                 'back': 'left',     // 6 → 5
                 'left': 'back',     // 5 → 6
-                'top': 'right',     // 3 → 2 (FIXED: was 'left')
+                'top': 'back',      // 3 → 6 (FIXED: was 'right')
                 'bottom': 'right'   // 4 → 2
             },
             'down-left': { // rotX: 90, rotY: -90
