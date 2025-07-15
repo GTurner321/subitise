@@ -7,9 +7,8 @@ class TwoDiceGameController {
         // Game state
         this.questionsCompleted = 0;
         this.gameComplete = false;
-        // Remove the usedCombinations tracking for now
         
-        // Current question state
+        // Current question state - will be set after dice roll
         this.currentLeftValue = 0;
         this.currentRightValue = 0;
         this.currentTotal = 0;
@@ -72,7 +71,6 @@ class TwoDiceGameController {
     }
 
     createMuteButton() {
-        // Create mute button container
         const muteContainer = document.createElement('div');
         muteContainer.style.position = 'fixed';
         muteContainer.style.top = '20px';
@@ -89,7 +87,6 @@ class TwoDiceGameController {
         muteContainer.style.transition = 'all 0.3s ease';
         muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
         
-        // Create button
         this.muteButton = document.createElement('button');
         this.muteButton.style.background = 'none';
         this.muteButton.style.border = 'none';
@@ -102,17 +99,14 @@ class TwoDiceGameController {
         this.muteButton.style.alignItems = 'center';
         this.muteButton.style.justifyContent = 'center';
         
-        // Set initial icon
         this.updateMuteButtonIcon();
         
-        // Add event listeners
         this.muteButton.addEventListener('click', () => this.toggleAudio());
         this.muteButton.addEventListener('touchstart', (e) => {
             e.preventDefault();
             this.toggleAudio();
         });
         
-        // Hover effects
         muteContainer.addEventListener('mouseenter', () => {
             muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
             muteContainer.style.transform = 'scale(1.1)';
@@ -125,7 +119,6 @@ class TwoDiceGameController {
         
         muteContainer.appendChild(this.muteButton);
         document.body.appendChild(muteContainer);
-        
         this.muteContainer = muteContainer;
     }
 
@@ -201,9 +194,7 @@ class TwoDiceGameController {
     }
 
     startInactivityTimer() {
-        if (!this.isTabVisible || this.hintGiven) {
-            return;
-        }
+        if (!this.isTabVisible || this.hintGiven) return;
         
         this.clearInactivityTimer();
         this.inactivityTimer = setTimeout(() => {
@@ -248,9 +239,7 @@ class TwoDiceGameController {
     initializeEventListeners() {
         this.numberButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                if (this.buttonsDisabled) {
-                    return;
-                }
+                if (this.buttonsDisabled) return;
                 
                 this.clearInactivityTimer();
                 this.startInactivityTimer();
@@ -264,19 +253,13 @@ class TwoDiceGameController {
             this.startNewGame();
         });
 
-        // Add keyboard event listener
         document.addEventListener('keydown', (e) => {
-            if (this.buttonsDisabled || this.gameComplete) {
-                return;
-            }
+            if (this.buttonsDisabled || this.gameComplete) return;
             
-            // Handle number keys 0-9
             if (e.key >= '0' && e.key <= '9') {
                 e.preventDefault();
-                
                 this.clearInactivityTimer();
                 this.startInactivityTimer();
-                
                 const digit = parseInt(e.key);
                 this.handleKeyboardDigit(digit);
             }
@@ -284,9 +267,7 @@ class TwoDiceGameController {
     }
 
     handleKeyboardDigit(digit) {
-        // Handle keyboard input for numbers 1-12
         if (this.keyboardBuffer === '1' && (digit === 0 || digit === 1 || digit === 2)) {
-            // Complete two-digit numbers: 10, 11, 12
             this.clearKeyboardTimer();
             const number = parseInt('1' + digit);
             if (number >= 10 && number <= 12) {
@@ -303,7 +284,6 @@ class TwoDiceGameController {
         this.clearKeyboardTimer();
         
         if (digit === 1) {
-            // Check if 1 alone is valid first
             if (this.isDigitValidAnswer(1)) {
                 const button = Array.from(this.numberButtons).find(btn => 
                     parseInt(btn.dataset.number) === 1
@@ -314,11 +294,9 @@ class TwoDiceGameController {
                 return;
             }
             
-            // If 1 is not valid but 10, 11, or 12 could be valid, wait for potential second digit
             if (this.isDigitValidAnswer(10) || this.isDigitValidAnswer(11) || this.isDigitValidAnswer(12)) {
                 this.keyboardBuffer = '1';
                 this.keyboardTimer = setTimeout(() => {
-                    // Timeout - treat the "1" as an incorrect answer
                     this.clearKeyboardTimer();
                     const button = Array.from(this.numberButtons).find(btn => 
                         parseInt(btn.dataset.number) === 1
@@ -331,7 +309,6 @@ class TwoDiceGameController {
             }
         }
         
-        // Handle single digits 1-9
         if (digit >= 1 && digit <= 9) {
             const button = Array.from(this.numberButtons).find(btn => 
                 parseInt(btn.dataset.number) === digit
@@ -340,24 +317,12 @@ class TwoDiceGameController {
                 this.handleNumberClick(digit, button);
             }
         }
-        
-        // Handle 0 (only valid as part of 10)
-        if (digit === 0) {
-            // 0 alone is not valid in our game (no 0 on dice), so ignore
-            return;
-        }
     }
 
     isDigitValidAnswer(number) {
-        if (!this.leftFilled && number === this.currentLeftValue) {
-            return true;
-        }
-        if (!this.rightFilled && number === this.currentRightValue) {
-            return true;
-        }
-        if (!this.totalFilled && number === this.currentTotal) {
-            return true;
-        }
+        if (!this.leftFilled && number === this.currentLeftValue) return true;
+        if (!this.rightFilled && number === this.currentRightValue) return true;
+        if (!this.totalFilled && number === this.currentTotal) return true;
         return false;
     }
 
@@ -433,9 +398,7 @@ class TwoDiceGameController {
     }
 
     async startNewQuestion() {
-        if (this.gameComplete) {
-            return;
-        }
+        if (this.gameComplete) return;
 
         this.resetBoxState();
         this.hideAllInputBoxes();
@@ -443,33 +406,30 @@ class TwoDiceGameController {
 
         console.log(`Starting question ${this.questionsCompleted + 1}`);
         
-        // Reset button states
         this.resetButtonStates();
-        
-        // Give starting instruction
         this.giveStartingInstruction();
         
-        // Roll the dice and wait for them to finish
-        this.buttonsDisabled = true; // Disable buttons during dice roll
+        // Disable buttons during dice roll
+        this.buttonsDisabled = true;
         
         try {
-            // Roll dice - this will return the final values based on where they land
+            // Roll dice - this will return the actual values based on face reading
             const result = await this.diceRenderer.rollDice();
             
-            // Update our target values based on what the dice actually show
+            // Set our target values based on what the dice actually show
             this.currentLeftValue = result.left;
             this.currentRightValue = result.right;
             this.currentTotal = result.total;
             
-            console.log(`Dice finished rolling - Left: ${this.currentLeftValue}, Right: ${this.currentRightValue}, Total: ${this.currentTotal}`);
+            console.log(`Dice show: Left=${this.currentLeftValue}, Right=${this.currentRightValue}, Total=${this.currentTotal}`);
             
-            // Dice have finished rolling, now show input boxes and enable buttons
+            // Enable buttons and show input boxes
             this.buttonsDisabled = false;
             this.showInputBoxes();
             this.startInactivityTimer();
         } catch (error) {
             console.error('Error rolling dice:', error);
-            // Fallback: enable buttons anyway with default values
+            // Fallback with random values
             this.currentLeftValue = Math.floor(Math.random() * 6) + 1;
             this.currentRightValue = Math.floor(Math.random() * 6) + 1;
             this.currentTotal = this.currentLeftValue + this.currentRightValue;
@@ -541,21 +501,17 @@ class TwoDiceGameController {
     }
 
     fillBox(boxType, selectedNumber, buttonElement) {
-        // Flash green on correct answer
         buttonElement.classList.add('correct');
         setTimeout(() => {
             buttonElement.classList.remove('correct');
         }, CONFIG.FLASH_DURATION);
 
-        // Play completion sound
         if (this.audioEnabled) {
             this.playCompletionSound();
         }
 
-        // Create celebration stars
         this.createCelebrationStars(buttonElement);
 
-        // Fill the appropriate box
         switch (boxType) {
             case 'left':
                 this.leftInputBox.textContent = selectedNumber;
@@ -603,11 +559,9 @@ class TwoDiceGameController {
             
             this.checkMark.classList.add('visible');
             
-            // Add rainbow piece
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}`);
             
-            // Give completion feedback
             if (this.audioEnabled) {
                 const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
                 const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
@@ -616,7 +570,6 @@ class TwoDiceGameController {
             
             this.questionsCompleted++;
             
-            // Check if game is complete
             if (this.rainbow.isComplete()) {
                 setTimeout(() => {
                     this.completeGame();
@@ -624,7 +577,6 @@ class TwoDiceGameController {
                 return;
             }
 
-            // Start next question after delay
             setTimeout(() => {
                 this.fadeOutDice();
             }, CONFIG.NEXT_QUESTION_DELAY);
@@ -652,14 +604,12 @@ class TwoDiceGameController {
             buttonElement.classList.remove('incorrect');
         }, CONFIG.FLASH_DURATION);
 
-        // Add cross overlay
         const crossOverlay = document.createElement('div');
         crossOverlay.className = 'cross-overlay';
         buttonElement.appendChild(crossOverlay);
 
         buttonElement.dataset.attempted = 'true';
         
-        // Fade out other buttons
         this.numberButtons.forEach(btn => {
             if (btn !== buttonElement) {
                 btn.style.transition = 'opacity 700ms ease-in-out';
@@ -703,17 +653,8 @@ class TwoDiceGameController {
     async fadeOutDice() {
         console.log('Starting dice transition');
         
-        // Fade out current dice first
         await this.diceRenderer.fadeOutCurrentDice();
-        
-        // Then start new question (which will fade in new dice)
         this.startNewQuestion();
-    }
-
-    hasAttemptedAnswer() {
-        return Array.from(this.numberButtons).some(btn => 
-            btn.dataset.attempted === 'true'
-        );
     }
 
     resetButtonStates() {
@@ -826,7 +767,7 @@ class TwoDiceGameController {
         }
     }
 
- destroy() {
+    destroy() {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         
