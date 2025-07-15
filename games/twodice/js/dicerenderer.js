@@ -112,35 +112,36 @@ class DiceRenderer {
         // Set initial transform
         dice.style.transform = startingOrientation.rotation;
         
-        // Track current state (simplified - just track the visible value)
+        // Track current state with better face tracking
+        dice.dataset.currentVisibleFace = startingOrientation.face;
         dice.dataset.currentVisibleValue = startingOrientation.value;
         dice.dataset.currentRotationX = this.extractRotationX(startingOrientation.rotation);
         dice.dataset.currentRotationY = this.extractRotationY(startingOrientation.rotation);
         
-        console.log(`Created dice starting with value ${startingOrientation.value}`);
+        console.log(`Created dice starting with face ${startingOrientation.face} (value ${startingOrientation.value})`);
         return dice;
     }
 
     getOrientationForFace(faceName, value) {
         const orientations = {
-            'front': { rotation: 'rotateX(0deg) rotateY(0deg)', value: 1 },
-            'right': { rotation: 'rotateX(0deg) rotateY(90deg)', value: 2 },
-            'top': { rotation: 'rotateX(-90deg) rotateY(0deg)', value: 3 },
-            'bottom': { rotation: 'rotateX(90deg) rotateY(0deg)', value: 4 },
-            'left': { rotation: 'rotateX(0deg) rotateY(-90deg)', value: 5 },
-            'back': { rotation: 'rotateX(0deg) rotateY(180deg)', value: 6 }
+            'front': { rotation: 'rotateX(0deg) rotateY(0deg)', value: 1, face: 'front' },
+            'right': { rotation: 'rotateX(0deg) rotateY(90deg)', value: 2, face: 'right' },
+            'top': { rotation: 'rotateX(-90deg) rotateY(0deg)', value: 3, face: 'top' },
+            'bottom': { rotation: 'rotateX(90deg) rotateY(0deg)', value: 4, face: 'bottom' },
+            'left': { rotation: 'rotateX(0deg) rotateY(-90deg)', value: 5, face: 'left' },
+            'back': { rotation: 'rotateX(0deg) rotateY(180deg)', value: 6, face: 'back' }
         };
         return orientations[faceName] || orientations['front'];
     }
 
     getRandomOrientation() {
         const startingOrientations = [
-            { rotation: 'rotateX(0deg) rotateY(0deg)', value: 1 },      // Front facing
-            { rotation: 'rotateX(0deg) rotateY(90deg)', value: 2 },     // Right facing
-            { rotation: 'rotateX(0deg) rotateY(-90deg)', value: 5 },    // Left facing
-            { rotation: 'rotateX(0deg) rotateY(180deg)', value: 6 },    // Back facing
-            { rotation: 'rotateX(-90deg) rotateY(0deg)', value: 3 },    // Top facing
-            { rotation: 'rotateX(90deg) rotateY(0deg)', value: 4 }      // Bottom facing
+            { rotation: 'rotateX(0deg) rotateY(0deg)', value: 1, face: 'front' },
+            { rotation: 'rotateX(0deg) rotateY(90deg)', value: 2, face: 'right' },
+            { rotation: 'rotateX(0deg) rotateY(-90deg)', value: 5, face: 'left' },
+            { rotation: 'rotateX(0deg) rotateY(180deg)', value: 6, face: 'back' },
+            { rotation: 'rotateX(-90deg) rotateY(0deg)', value: 3, face: 'top' },
+            { rotation: 'rotateX(90deg) rotateY(0deg)', value: 4, face: 'bottom' }
         ];
         
         return startingOrientations[Math.floor(Math.random() * startingOrientations.length)];
@@ -178,31 +179,65 @@ class DiceRenderer {
         }
     }
 
-    // Simplified function to get the current visible value after rotation
-    getCurrentVisibleValue(dice, rotationX, rotationY) {
-        // Normalize rotations to 0-360 range
-        const normX = ((rotationX % 360) + 360) % 360;
-        const normY = ((rotationY % 360) + 360) % 360;
+    // Improved face tracking through rotations
+    updateVisibleFaceAfterRotation(dice, direction) {
+        const currentFace = dice.dataset.currentVisibleFace;
         
-        // Determine which face is visible based on final rotation
-        // This is a simplified mapping - in a real implementation you'd want more precise calculations
-        if (normX === 0 || normX === 360) {
-            if (normY === 0 || normY === 360) return 1; // front
-            if (normY === 90) return 2; // right
-            if (normY === 180) return 6; // back
-            if (normY === 270) return 5; // left
-        } else if (normX === 90) {
-            return 4; // bottom
-        } else if (normX === 270) {
-            return 3; // top
-        }
+        // Define all possible face transitions for each diagonal direction
+        const faceTransitions = {
+            'down-right': { // rotX: 90, rotY: 90
+                'front': 'right',   // 1 → 2
+                'right': 'back',    // 2 → 6  
+                'back': 'left',     // 6 → 5
+                'left': 'front',    // 5 → 1
+                'top': 'right',     // 3 → 2
+                'bottom': 'left'    // 4 → 5
+            },
+            'up-right': { // rotX: -90, rotY: 90
+                'front': 'right',   // 1 → 2
+                'right': 'front',   // 2 → 1
+                'back': 'left',     // 6 → 5
+                'left': 'back',     // 5 → 6
+                'top': 'left',      // 3 → 5
+                'bottom': 'right'   // 4 → 2
+            },
+            'down-left': { // rotX: 90, rotY: -90
+                'front': 'left',    // 1 → 5
+                'left': 'back',     // 5 → 6
+                'back': 'right',    // 6 → 2
+                'right': 'front',   // 2 → 1
+                'top': 'left',      // 3 → 5
+                'bottom': 'right'   // 4 → 2
+            },
+            'up-left': { // rotX: -90, rotY: -90
+                'front': 'left',    // 1 → 5
+                'left': 'front',    // 5 → 1
+                'back': 'right',    // 6 → 2
+                'right': 'back',    // 2 → 6
+                'top': 'right',     // 3 → 2
+                'bottom': 'left'    // 4 → 5
+            }
+        };
         
-        // Fallback - return random valid dice value
-        return Math.floor(Math.random() * 6) + 1;
+        const newFace = faceTransitions[direction.name]?.[currentFace] || currentFace;
+        
+        // Map face to value
+        const faceToValue = {
+            'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4
+        };
+        
+        const newValue = faceToValue[newFace];
+        
+        // Update tracking data
+        dice.dataset.currentVisibleFace = newFace;
+        dice.dataset.currentVisibleValue = newValue;
+        
+        console.log(`${direction.name}: ${currentFace}(${faceToValue[currentFace]}) → ${newFace}(${newValue})`);
+        return newValue;
     }
 
     async rollDice() {
-        console.log(`=== STARTING SIMPLIFIED DICE ROLL ===`);
+        console.log(`=== STARTING IMPROVED DICE ROLL ===`);
         
         // Get random colors for each dice (ensuring they're different)
         const colors = this.getRandomDiceColors();
@@ -275,7 +310,7 @@ class DiceRenderer {
             let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
             let lastDirection = null;
             
-            console.log(`${diceName} dice: Will perform ${numberOfRolls} rolls`);
+            console.log(`${diceName} dice: Will perform ${numberOfRolls} rolls, starting face: ${dice.dataset.currentVisibleFace} (${dice.dataset.currentVisibleValue})`);
             
             const performRoll = () => {
                 rollCount++;
@@ -290,7 +325,10 @@ class DiceRenderer {
                 const newRotationX = currentRotationX + direction.rotX;
                 const newRotationY = currentRotationY + direction.rotY;
                 
-                console.log(`${diceName} roll ${rollCount}/${numberOfRolls}: ${direction.name} (${flipDuration}s)`);
+                // Update which face will be visible after this rotation
+                const newVisibleValue = this.updateVisibleFaceAfterRotation(dice, direction);
+                
+                console.log(`${diceName} roll ${rollCount}/${numberOfRolls}: ${direction.name} (${flipDuration}s) - Will show: ${newVisibleValue}`);
                 
                 // Clear transition and apply rotation
                 dice.style.transition = 'none';
@@ -310,15 +348,14 @@ class DiceRenderer {
                 if (rollCount >= numberOfRolls) {
                     console.log(`${diceName} dice: Completed all ${numberOfRolls} rolls`);
                     
-                    // Wait for current roll to complete, then determine final value
+                    // Wait for current roll to complete, then get final value
                     const stopTimeout = setTimeout(() => {
                         dice.classList.add('dice-final');
                         
-                        // Calculate the final visible value based on final rotation
-                        const finalValue = this.getCurrentVisibleValue(dice, currentRotationX, currentRotationY);
-                        dice.dataset.currentVisibleValue = finalValue;
+                        // Use the tracked visible value instead of calculating from rotations
+                        const finalValue = parseInt(dice.dataset.currentVisibleValue);
                         
-                        console.log(`${diceName} dice: Final value is ${finalValue}`);
+                        console.log(`${diceName} dice: Final value is ${finalValue} (face: ${dice.dataset.currentVisibleFace})`);
                         resolve(finalValue);
                     }, flipDuration * 1000);
                     this.rollTimeouts.push(stopTimeout);
