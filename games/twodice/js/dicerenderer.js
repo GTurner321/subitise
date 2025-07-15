@@ -98,6 +98,12 @@ class DiceRenderer {
         dice.style.opacity = '0';
         dice.style.transformStyle = 'preserve-3d';
         
+        // Ensure dice container is transparent
+        dice.style.backgroundColor = 'transparent';
+        dice.style.background = 'transparent';
+        dice.style.border = 'none';
+        dice.style.boxShadow = 'none';
+        
         // Standard dice face values
         const faceValues = {
             'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4
@@ -107,13 +113,32 @@ class DiceRenderer {
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
-            // Explicitly ensure transparent background
-            face.style.backgroundColor = 'transparent';
-            face.style.background = 'none';
-            face.style.border = 'none';
-            face.style.boxShadow = 'none';
             
-            // Create colored surface
+            // Aggressively ensure transparent background
+            face.style.backgroundColor = 'transparent';
+            face.style.background = 'transparent';
+            face.style.backgroundImage = 'none';
+            face.style.border = 'none';
+            face.style.borderRadius = '0';
+            face.style.boxShadow = 'none';
+            face.style.outline = 'none';
+            face.style.color = 'transparent';
+            
+            // Create inner face - 90% size, same color, no rounded corners
+            const innerFace = document.createElement('div');
+            innerFace.className = 'dice-face-inner';
+            innerFace.style.position = 'absolute';
+            innerFace.style.top = '5%';
+            innerFace.style.left = '5%';
+            innerFace.style.width = '90%';
+            innerFace.style.height = '90%';
+            innerFace.style.backgroundColor = diceColor;
+            innerFace.style.border = 'none';
+            innerFace.style.borderRadius = '0';
+            innerFace.style.boxSizing = 'border-box';
+            innerFace.style.zIndex = '0';
+            
+            // Create colored surface with proper positioning
             const coloredSurface = document.createElement('div');
             coloredSurface.className = 'dice-face-surface';
             coloredSurface.style.position = 'absolute';
@@ -121,11 +146,14 @@ class DiceRenderer {
             coloredSurface.style.left = '0';
             coloredSurface.style.right = '0';
             coloredSurface.style.bottom = '0';
+            coloredSurface.style.width = '100%';
+            coloredSurface.style.height = '100%';
             coloredSurface.style.backgroundColor = diceColor;
             coloredSurface.style.border = '3px solid #333';
             coloredSurface.style.borderRadius = '15px';
             coloredSurface.style.boxSizing = 'border-box';
             coloredSurface.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+            coloredSurface.style.zIndex = '1';
             
             // Create dots container
             const dotsContainer = document.createElement('div');
@@ -143,8 +171,9 @@ class DiceRenderer {
             
             this.createDots(dotsContainer, faceValue);
             
-            face.appendChild(coloredSurface);
-            face.appendChild(dotsContainer);
+            face.appendChild(innerFace);      // Inner cube first (z-index 0)
+            face.appendChild(coloredSurface); // Colored surface second (z-index 1)
+            face.appendChild(dotsContainer);  // Dots on top (z-index 2)
             dice.appendChild(face);
         });
         
