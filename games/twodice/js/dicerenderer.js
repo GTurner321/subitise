@@ -107,7 +107,11 @@ class DiceRenderer {
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
+            // Explicitly ensure transparent background
             face.style.backgroundColor = 'transparent';
+            face.style.background = 'none';
+            face.style.border = 'none';
+            face.style.boxShadow = 'none';
             
             // Create colored surface
             const coloredSurface = document.createElement('div');
