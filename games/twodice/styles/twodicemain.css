@@ -89,7 +89,7 @@
     transition: background-color 1s ease-in-out;
 }
 
-/* 3D Dice Styling - Improved Version */
+/* 3D Dice Styling - Improved Version with Inner Face to Fix White Corners */
 .dice {
     width: 120px;
     height: 120px;
@@ -111,23 +111,35 @@
     height: 120px;
     border: 3px solid #333;
     border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    opacity: 1;
+    backface-visibility: hidden; /* Important for 3D effect */
+    box-sizing: border-box;
+}
+
+/* Inner face to hide white corners during rotation */
+.dice-face-inner {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    border-radius: 0; /* No rounded corners - this fixes the white corner issue */
+    z-index: 1;
+}
+
+/* Dots container sits above the inner face */
+.dice-dots-container {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr 1fr;
     gap: 8px;
     padding: 12px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    opacity: 1;
-    backface-visibility: hidden; /* Important for 3D effect */
     box-sizing: border-box;
-    /* Create a larger background to cover corners during rotation */
-    background-size: 140px 140px;
-    background-position: center;
-    background-repeat: no-repeat;
-    /* Add a slight inset shadow to hide edge artifacts */
-    box-shadow: 
-        0 4px 8px rgba(0,0,0,0.3),
-        inset 0 0 0 20px var(--face-color, #ffffff);
 }
 
 /* 3D face positioning - improved for better 3D effect */
@@ -173,11 +185,6 @@
 }
 
 /* Enhanced fade animations for dice transitions between questions */
-/* Remove old fade-out animation that might conflict */
-.dice.fade-out {
-    /* This class is no longer used - all fading handled by JavaScript */
-}
-
 @keyframes diceDisappear {
     from {
         opacity: 1;
@@ -468,6 +475,97 @@
     }
 }
 
+/* Game completion modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+}
+
+.modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+}
+
+.modal-content h2 {
+    margin: 0 0 30px 0;
+    font-size: 2.5rem;
+    color: #333;
+}
+
+.play-again-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.play-again-btn:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.play-again-btn:active {
+    transform: translateY(0);
+}
+
+/* Back button */
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: #6c757d;
+    color: white;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+}
+
+.back-button:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+    text-decoration: none;
+    color: white;
+}
+
+.back-button i {
+    font-size: 1rem;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
     .game-area {
@@ -498,6 +596,18 @@
     .dice-face {
         width: 80px;
         height: 80px;
+        border-width: 2px;
+        border-radius: 10px;
+    }
+    
+    .dice-face-inner {
+        top: 2px;
+        left: 2px;
+        right: 2px;
+        bottom: 2px;
+    }
+    
+    .dice-dots-container {
         padding: 8px;
         gap: 4px;
     }
@@ -518,6 +628,28 @@
         width: 12px;
         height: 12px;
     }
+    
+    .sum-row {
+        gap: 15px;
+        padding: 8px 15px;
+        height: 70px;
+    }
+    
+    .left-sum-box,
+    .right-sum-box,
+    .total-sum-box {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .input-box {
+        font-size: 2rem;
+    }
+    
+    .sum-plus-sign,
+    .sum-equals-sign {
+        font-size: 2rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -526,6 +658,11 @@
         height: 60px;
         font-size: 1.8rem;
         gap: 5px;
+    }
+    
+    .number-buttons {
+        gap: 5px;
+        padding: 15px;
     }
     
     .plus-sign {
@@ -546,9 +683,20 @@
     .dice-face {
         width: 60px;
         height: 60px;
+        border-width: 2px;
+        border-radius: 8px;
+    }
+    
+    .dice-face-inner {
+        top: 2px;
+        left: 2px;
+        right: 2px;
+        bottom: 2px;
+    }
+    
+    .dice-dots-container {
         padding: 6px;
         gap: 3px;
-        border-width: 2px;
     }
     
     .dice-face.front,
@@ -566,5 +714,53 @@
     .dice-dot {
         width: 10px;
         height: 10px;
+    }
+    
+    .sum-row {
+        gap: 10px;
+        padding: 6px 12px;
+        height: 60px;
+    }
+    
+    .left-sum-box,
+    .right-sum-box,
+    .total-sum-box {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .input-box {
+        font-size: 1.8rem;
+        border-width: 3px;
+    }
+    
+    .sum-plus-sign,
+    .sum-equals-sign {
+        font-size: 1.8rem;
+        min-width: 30px;
+    }
+    
+    .check-mark {
+        font-size: 2rem;
+        min-width: 40px;
+    }
+    
+    .back-button {
+        padding: 10px 15px;
+        font-size: 1rem;
+    }
+    
+    .modal-content {
+        padding: 30px;
+    }
+    
+    .modal-content h2 {
+        font-size: 2rem;
+        margin-bottom: 20px;
+    }
+    
+    .play-again-btn {
+        padding: 12px 25px;
+        font-size: 1.3rem;
     }
 }
