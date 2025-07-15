@@ -62,14 +62,13 @@ class DiceRenderer {
         return durations[Math.floor(Math.random() * durations.length)];
     }
 
-    // Create a realistic dice with proper face values (1-6 on opposite faces adding to 7)
+    // Create a realistic dice with proper face values and random starting orientation
     createRealisticDice(diceColor) {
         const dice = document.createElement('div');
         dice.className = 'dice';
         
         // Start invisible
         dice.style.opacity = '0';
-        dice.style.transform = 'rotateX(0deg) rotateY(0deg)';
         dice.style.transformStyle = 'preserve-3d';
         
         // Standard dice configuration - opposite faces add to 7
@@ -94,11 +93,31 @@ class DiceRenderer {
             dice.appendChild(face);
         });
         
-        // Track which face is currently visible (starts with front)
-        dice.dataset.currentVisibleFace = 'front';
-        dice.dataset.currentVisibleValue = '1';
+        // Randomly choose starting orientation to make all faces reachable
+        const startingOrientations = [
+            { rotation: 'rotateX(0deg) rotateY(0deg)', face: 'front', value: 1 },      // Front facing
+            { rotation: 'rotateX(0deg) rotateY(90deg)', face: 'right', value: 2 },     // Right facing
+            { rotation: 'rotateX(0deg) rotateY(-90deg)', face: 'left', value: 5 },     // Left facing
+            { rotation: 'rotateX(0deg) rotateY(180deg)', face: 'back', value: 6 },     // Back facing
+            { rotation: 'rotateX(-90deg) rotateY(0deg)', face: 'top', value: 3 },      // Top facing
+            { rotation: 'rotateX(90deg) rotateY(0deg)', face: 'bottom', value: 4 }     // Bottom facing
+        ];
         
-        console.log(`Created realistic dice with standard 1-6 configuration`);
+        const startingOrientation = startingOrientations[Math.floor(Math.random() * startingOrientations.length)];
+        
+        // Set initial transform
+        dice.style.transform = startingOrientation.rotation;
+        
+        // Track which face is currently visible
+        dice.dataset.currentVisibleFace = startingOrientation.face;
+        dice.dataset.currentVisibleValue = startingOrientation.value;
+        dice.dataset.currentRotationX = startingOrientation.rotation.includes('rotateX(-90deg)') ? -90 : 
+                                       startingOrientation.rotation.includes('rotateX(90deg)') ? 90 : 0;
+        dice.dataset.currentRotationY = startingOrientation.rotation.includes('rotateY(90deg)') ? 90 :
+                                       startingOrientation.rotation.includes('rotateY(-90deg)') ? -90 :
+                                       startingOrientation.rotation.includes('rotateY(180deg)') ? 180 : 0;
+        
+        console.log(`Created dice starting with ${startingOrientation.face} face (${startingOrientation.value}) visible`);
         return dice;
     }
 
@@ -128,43 +147,44 @@ class DiceRenderer {
     updateVisibleFace(dice, rotation) {
         const currentFace = dice.dataset.currentVisibleFace;
         
-        // Mapping of face transitions for each diagonal rotation
+        // Corrected mapping based on actual 3D rotations
+        // Each diagonal move combines X and Y rotations
         const faceTransitions = {
-            'front': {
-                'down-right': 'bottom',   // 1 → 4
-                'up-right': 'top',        // 1 → 3
-                'down-left': 'bottom',    // 1 → 4
-                'up-left': 'top'          // 1 → 3
+            'front': {  // Starting face: 1
+                'down-right': 'right',    // rotateX(90) + rotateY(90) → 2
+                'up-right': 'right',      // rotateX(-90) + rotateY(90) → 2
+                'down-left': 'left',      // rotateX(90) + rotateY(-90) → 5
+                'up-left': 'left'         // rotateX(-90) + rotateY(-90) → 5
             },
-            'back': {
-                'down-right': 'bottom',   // 6 → 4
-                'up-right': 'top',        // 6 → 3
-                'down-left': 'bottom',    // 6 → 4
-                'up-left': 'top'          // 6 → 3
+            'back': {   // Starting face: 6
+                'down-right': 'left',     // 6 → 5
+                'up-right': 'left',       // 6 → 5
+                'down-left': 'right',     // 6 → 2
+                'up-left': 'right'        // 6 → 2
             },
-            'right': {
-                'down-right': 'bottom',   // 2 → 4
-                'up-right': 'top',        // 2 → 3
-                'down-left': 'front',     // 2 → 1
-                'up-left': 'back'         // 2 → 6
+            'right': {  // Starting face: 2
+                'down-right': 'back',     // 2 → 6
+                'up-right': 'front',      // 2 → 1
+                'down-left': 'back',      // 2 → 6
+                'up-left': 'front'        // 2 → 1
             },
-            'left': {
+            'left': {   // Starting face: 5
                 'down-right': 'front',    // 5 → 1
                 'up-right': 'back',       // 5 → 6
-                'down-left': 'bottom',    // 5 → 4
-                'up-left': 'top'          // 5 → 3
+                'down-left': 'front',     // 5 → 1
+                'up-left': 'back'         // 5 → 6
             },
-            'top': {
-                'down-right': 'back',     // 3 → 6
-                'up-right': 'front',      // 3 → 1
-                'down-left': 'back',      // 3 → 6
-                'up-left': 'front'        // 3 → 1
+            'top': {    // Starting face: 3
+                'down-right': 'right',    // 3 → 2
+                'up-right': 'left',       // 3 → 5
+                'down-left': 'left',      // 3 → 5
+                'up-left': 'right'        // 3 → 2
             },
-            'bottom': {
-                'down-right': 'front',    // 4 → 1
-                'up-right': 'back',       // 4 → 6
-                'down-left': 'front',     // 4 → 1
-                'up-left': 'back'         // 4 → 6
+            'bottom': { // Starting face: 4
+                'down-right': 'left',     // 4 → 5
+                'up-right': 'right',      // 4 → 2
+                'down-left': 'right',     // 4 → 2
+                'up-left': 'left'         // 4 → 5
             }
         };
         
@@ -181,7 +201,7 @@ class DiceRenderer {
         const newValue = faceToValue[newFace];
         dice.dataset.currentVisibleValue = newValue;
         
-        console.log(`After ${rotation.name}: ${newFace} face visible (value: ${newValue})`);
+        console.log(`${rotation.name}: ${currentFace}(${faceToValue[currentFace]}) → ${newFace}(${newValue})`);
         return newValue;
     }
 
@@ -247,12 +267,12 @@ class DiceRenderer {
     async rollUntilTarget(dice, targetValue, diceName) {
         return new Promise((resolve) => {
             let flipCount = 0;
-            let currentRotationX = 0;
-            let currentRotationY = 0;
+            let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
+            let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
             let lastDirection = null;
-            const maxFlips = 25; // Safety limit (extremely unlikely to reach)
+            const maxFlips = 25; // Safety limit
             
-            console.log(`${diceName} dice: Rolling until we get ${targetValue}`);
+            console.log(`${diceName} dice: Starting from ${dice.dataset.currentVisibleFace}(${dice.dataset.currentVisibleValue}), rolling until we get ${targetValue}`);
             
             const performFlip = () => {
                 flipCount++;
@@ -290,6 +310,8 @@ class DiceRenderer {
                 // Update tracking variables
                 currentRotationX = newRotationX;
                 currentRotationY = newRotationY;
+                dice.dataset.currentRotationX = currentRotationX;
+                dice.dataset.currentRotationY = currentRotationY;
                 lastDirection = direction;
                 
                 // Check if we should stop after this flip (minimum 5 flips, then check for target)
