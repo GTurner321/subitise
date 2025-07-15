@@ -14,16 +14,6 @@ class DiceRenderer {
             '#f0932b',  // Orange
             '#6c5ce7'   // Purple
         ];
-        
-        // Face mapping for 3D positioning - which face is visible at which rotation
-        this.faceRotations = {
-            'front': { x: 0, y: 0 },      // rotateX(0) rotateY(0)
-            'back': { x: 0, y: 180 },     // rotateX(0) rotateY(180)
-            'right': { x: 0, y: 90 },     // rotateX(0) rotateY(90)
-            'left': { x: 0, y: -90 },     // rotateX(0) rotateY(-90)
-            'top': { x: -90, y: 0 },      // rotateX(-90) rotateY(0)
-            'bottom': { x: 90, y: 0 }     // rotateX(90) rotateY(0)
-        };
     }
 
     clearDice() {
@@ -83,22 +73,40 @@ class DiceRenderer {
             finalY += rotation.rotY;
         });
         
-        // Normalize to 0-359 range
-        finalX = ((finalX % 360) + 360) % 360;
-        finalY = ((finalY % 360) + 360) % 360;
+        // Normalize rotations to find equivalent position
+        finalX = finalX % 360;
+        finalY = finalY % 360;
         
-        // Find which face corresponds to this rotation
-        for (const [faceName, rotation] of Object.entries(this.faceRotations)) {
-            const normalizedFaceX = ((rotation.x % 360) + 360) % 360;
-            const normalizedFaceY = ((rotation.y % 360) + 360) % 360;
-            
-            if (Math.abs(finalX - normalizedFaceX) < 10 && Math.abs(finalY - normalizedFaceY) < 10) {
-                return faceName;
+        // Handle negative values
+        if (finalX < 0) finalX += 360;
+        if (finalY < 0) finalY += 360;
+        
+        console.log(`Final calculated rotation: X=${finalX}, Y=${finalY}`);
+        
+        // Map rotations to visible faces (this is the key fix)
+        // Based on CSS transforms in our stylesheet
+        if (Math.abs(finalX - 270) < 45 || Math.abs(finalX - (-90)) < 45) {
+            // rotateX(-90) or equivalent - top face visible
+            return 'top';
+        } else if (Math.abs(finalX - 90) < 45) {
+            // rotateX(90) - bottom face visible  
+            return 'bottom';
+        } else {
+            // rotateX(0) or close - front/back/left/right face visible
+            if (Math.abs(finalY - 0) < 45 || Math.abs(finalY - 360) < 45) {
+                return 'front';
+            } else if (Math.abs(finalY - 180) < 45) {
+                return 'back';
+            } else if (Math.abs(finalY - 90) < 45) {
+                return 'right';
+            } else if (Math.abs(finalY - 270) < 45) {
+                return 'left';
             }
         }
         
-        // Default to top face if no exact match
-        return 'top';
+        // Default fallback
+        console.log(`Couldn't determine face for rotation X=${finalX}, Y=${finalY}, defaulting to front`);
+        return 'front';
     }
 
     // Plan the dice roll to end on the correct number
