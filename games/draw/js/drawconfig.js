@@ -35,6 +35,9 @@ const DRAW_CONFIG = {
     COMPLETION_DELAY: 2000,
     AUDIO_ENABLED: true,
     
+    // Bear image path - relative to draw game folder
+    BEAR_IMAGE_PATH: '../../assets/bear.png',
+    
     NUMBER_WORDS: {
         0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four',
         5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine'
@@ -331,4 +334,12 @@ const DRAW_CONFIG = {
 };
 
 // Create alias for compatibility with shared components (Rainbow, Bear)
-const CONFIG = DRAW_CONFIG;
+// This ensures the shared files can access the configuration they expect
+const CONFIG = {
+    ...DRAW_CONFIG,
+    // Override specific paths for this game
+    BEAR_IMAGE_PATH: DRAW_CONFIG.BEAR_IMAGE_PATH,
+    // Ensure all expected properties are available
+    RAINBOW_PIECES: DRAW_CONFIG.RAINBOW_PIECES,
+    RAINBOW_COLORS: DRAW_CONFIG.RAINBOW_COLORS
+};
