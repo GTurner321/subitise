@@ -245,7 +245,8 @@ class DrawGameController {
         }
         
         this.currentNumber = this.numbersSequence[this.currentNumberIndex];
-        this.updateNumberWordDisplay(DRAW_CONFIG.NUMBER_WORDS[this.currentNumber]);
+        // Remove number word display - not needed
+        // this.updateNumberWordDisplay(DRAW_CONFIG.NUMBER_WORDS[this.currentNumber]);
         
         if (!this.renderer.renderNumber(this.currentNumber)) return;
         
