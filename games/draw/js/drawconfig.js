@@ -2,18 +2,18 @@ const DRAW_CONFIG = {
     NUMBERS_TO_COMPLETE: 10,
     RAINBOW_PIECES: 10,
     
-    // Drawing area dimensions
+    // Drawing area dimensions - taller areas
     get REFERENCE_WIDTH() {
         return Math.min(window.innerWidth * 0.25, 250);
     },
     get REFERENCE_HEIGHT() {
-        return Math.min(window.innerHeight * 0.35, 250);
+        return Math.min(window.innerHeight * 0.525, 375); // 50% taller
     },
     get DRAWING_WIDTH() {
         return Math.min(window.innerWidth * 0.55, 550);
     },
     get DRAWING_HEIGHT() {
-        return Math.min(window.innerHeight * 0.6, 550);
+        return Math.min(window.innerHeight * 0.72, 660); // 20% taller
     },
     
     // Reference number styling
@@ -21,9 +21,9 @@ const DRAW_CONFIG = {
     REFERENCE_WHITE_WIDTH: 20,
     REFERENCE_OUTLINE_COLOR: '#2C2C2C',
     
-    // Drawing canvas styling
-    DRAWING_OUTLINE_WIDTH: 150, // Much thicker for drawing area
-    DRAWING_WHITE_WIDTH: 100,   // Large white area to draw in
+    // Drawing canvas styling - smaller grey number, larger white interior
+    DRAWING_OUTLINE_WIDTH: 135, // 10% smaller (was 150)
+    DRAWING_WHITE_WIDTH: 120,   // Larger white area (was 100)
     DRAWING_OUTLINE_COLOR: '#CCCCCC', // Light grey
     DRAWING_STROKE_COLOR: '#4CAF50', // Green for drawn lines
     DRAWING_STROKE_WIDTH: 8,
