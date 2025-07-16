@@ -518,17 +518,6 @@ class DrawNumberRenderer {
         this.reset();
     }
 }
-                const interiorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                interiorPath.setAttribute('d', pathData);
-                interiorPath.setAttribute('stroke', 'white');
-                interiorPath.setAttribute('stroke-width', DRAW_CONFIG.REFERENCE_WHITE_WIDTH);
-                interiorPath.setAttribute('fill', 'none');
-                interiorPath.setAttribute('stroke-linecap', 'round');
-                interiorPath.setAttribute('stroke-linejoin', 'round');
-                this.referenceSvg.appendChild(interiorPath);
-            }
-        });
-    }
 
     createDrawingTemplate(strokes) {
         strokes.forEach((stroke, strokeIndex) => {
