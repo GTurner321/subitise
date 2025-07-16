@@ -99,9 +99,9 @@ const BALLOON_CONFIG = {
         96: 'ninety-six', 97: 'ninety-seven', 98: 'ninety-eight', 99: 'ninety-nine', 100: 'one hundred'
     },
     
-    // Game state storage keys
+    // Game state storage keys (not used in Claude.ai)
     STORAGE_KEY_LEVEL: 'balloonGame_currentLevel',
-    STORAGE_KEY_PROGRESS: 'balloonGame_levelProgress',
+    STORAGE_KEY_PROGRESS: 'balloonGame_levelProgress', 
     STORAGE_KEY_USED_NUMBERS: 'balloonGame_usedNumbers',
     
     DEBUG_MODE: false
