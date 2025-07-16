@@ -230,22 +230,8 @@ class BalloonGameController {
         // Select target number for current level
         this.selectTargetNumber();
         
-        // Update displays
-        this.updateGameInfo();
-        
-        // Start spawning balloons
-        this.spawnBalloons();
-        
-        // Start animation loop
-        this.lastTime = performance.now();
-        this.animationId = requestAnimationFrame((time) => this.gameLoop(time));
-        
-        // Give audio instruction
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText(`Pop the balloons with the number ${this.targetNumber}`);
-            }, 1000);
-        }
+        // Show target number first, then start game
+        this.showTargetNumber();
     }
     
     selectTargetNumber() {
@@ -263,20 +249,72 @@ class BalloonGameController {
         this.usedNumbers.add(this.targetNumber);
     }
     
-    updateGameInfo() {
-        if (this.targetNumberDisplay) {
-            this.targetNumberDisplay.textContent = `Target: ${this.targetNumber}`;
+    showTargetNumber() {
+        // Create target number display
+        const targetDisplay = document.createElement('div');
+        targetDisplay.id = 'targetNumberDisplay';
+        targetDisplay.style.position = 'fixed';
+        targetDisplay.style.top = '50%';
+        targetDisplay.style.left = '50%';
+        targetDisplay.style.transform = 'translate(-50%, -50%)';
+        targetDisplay.style.zIndex = '100';
+        targetDisplay.style.textAlign = 'center';
+        targetDisplay.style.opacity = '0';
+        targetDisplay.style.transition = 'opacity 1s ease-in-out';
+        
+        // Large number
+        const numberElement = document.createElement('div');
+        numberElement.textContent = this.targetNumber.toString();
+        numberElement.style.fontSize = '8rem';
+        numberElement.style.fontWeight = 'bold';
+        numberElement.style.color = '#dc3545';
+        numberElement.style.fontFamily = 'Arial, sans-serif';
+        numberElement.style.lineHeight = '1';
+        numberElement.style.marginBottom = '10px';
+        
+        // Text version
+        const textElement = document.createElement('div');
+        textElement.textContent = BALLOON_CONFIG.NUMBER_TO_WORD[this.targetNumber] || this.targetNumber.toString();
+        textElement.style.fontSize = '2rem';
+        textElement.style.fontWeight = 'bold';
+        textElement.style.color = '#dc3545';
+        textElement.style.fontFamily = 'Arial, sans-serif';
+        
+        targetDisplay.appendChild(numberElement);
+        targetDisplay.appendChild(textElement);
+        document.body.appendChild(targetDisplay);
+        
+        // Fade in
+        setTimeout(() => {
+            targetDisplay.style.opacity = '1';
+        }, 100);
+        
+        // Give audio instruction
+        if (this.audioEnabled) {
+            setTimeout(() => {
+                this.speakText(`Pop all the balloons with the number ${this.targetNumber}`);
+            }, 1000);
         }
         
-        if (this.progressInfo) {
-            const current = this.levelProgress[this.currentLevel] || 0;
-            const needed = BALLOON_CONFIG.LEVELS[this.currentLevel].questionsNeeded;
-            this.progressInfo.textContent = `Progress: ${current}/${needed}`;
-        }
+        // Fade out and start game
+        setTimeout(() => {
+            targetDisplay.style.opacity = '0';
+            setTimeout(() => {
+                if (targetDisplay.parentNode) {
+                    targetDisplay.parentNode.removeChild(targetDisplay);
+                }
+                this.startBalloonSpawning();
+            }, 1000);
+        }, 4000); // Stay for 1s fade in + 3s display + start fade out
+    }
+    
+    startBalloonSpawning() {
+        // Start spawning balloons
+        this.spawnBalloons();
         
-        if (this.levelInfo) {
-            this.levelInfo.textContent = `Level ${this.currentLevel}: ${BALLOON_CONFIG.LEVELS[this.currentLevel].name}`;
-        }
+        // Start animation loop
+        this.lastTime = performance.now();
+        this.animationId = requestAnimationFrame((time) => this.gameLoop(time));
     }
     
     spawnBalloons() {
