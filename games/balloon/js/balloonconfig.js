@@ -47,9 +47,9 @@ const BALLOON_CONFIG = {
     },
     
     // Balloon settings
-    TOTAL_BALLOONS: 40,
+    TOTAL_BALLOONS: 34, // Reduced from 40 to 34 (10 correct + 24 incorrect)
     CORRECT_BALLOONS: 10,
-    INCORRECT_BALLOONS: 30,
+    INCORRECT_BALLOONS: 24, // Reduced from 30 to 24
     
     // Success criteria
     MIN_CORRECT_BALLOONS: 8,
@@ -57,10 +57,10 @@ const BALLOON_CONFIG = {
     
     // Balloon physics
     BALLOON_RADIUS: 43, // Reduced from 54 to 43 (20% smaller)
-    BALLOON_RISE_SPEED_MIN: 15,
-    BALLOON_RISE_SPEED_MAX: 25,
-    BALLOON_SIDEWAYS_SPEED_MIN: 20, // Increased from 30 to 20-50 range
-    BALLOON_SIDEWAYS_SPEED_MAX: 50,
+    BALLOON_RISE_SPEED_MIN: 12, // Reduced from 15 to 12
+    BALLOON_RISE_SPEED_MAX: 20, // Reduced from 25 to 20
+    BALLOON_SIDEWAYS_SPEED_MIN: 15, // Reduced from 20 to 15
+    BALLOON_SIDEWAYS_SPEED_MAX: 35, // Reduced from 50 to 35
     
     // Animation settings
     BALLOON_SPAWN_INTERVAL: 200, // ms between balloon spawns
