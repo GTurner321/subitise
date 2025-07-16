@@ -7,6 +7,13 @@ const BALLOON_CONFIG = {
         return window.innerHeight - 80; // Minus grass band height
     },
     
+    // Rainbow settings (for shared rainbow.js compatibility)
+    RAINBOW_PIECES: 10,
+    RAINBOW_COLORS: [
+        '#ff0000', '#ff8000', '#ffff00', '#80ff00', '#00ff00',
+        '#00ff80', '#00ffff', '#0080ff', '#0000ff', '#8000ff'
+    ],
+    
     // Level definitions
     LEVELS: {
         1: {
