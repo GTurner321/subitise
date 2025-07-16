@@ -370,9 +370,11 @@ class BalloonGameController {
         const x = startOffset + (Math.random() * (constrainedWidth - BALLOON_CONFIG.BALLOON_RADIUS * 2));
         
         // Start much higher so balloon centers are above grass when first visible
-        // Random range from 1.3x to 1.8x screen height
-        const minStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 1.3;
-        const maxStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 1.8;
+        // In SVG, lower y values = higher on screen, higher y values = lower on screen
+        // We want balloons to start OFF-SCREEN ABOVE (negative y or very low y values)
+        // Random range from -300 to -100 (well above screen)
+        const minStartHeight = -300;
+        const maxStartHeight = -100;
         const y = minStartHeight + Math.random() * (maxStartHeight - minStartHeight);
         
         const balloon = {
@@ -415,15 +417,15 @@ class BalloonGameController {
         highlight.setAttribute('r', 14);
         highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.6)');
         
-        // Number text (digit, not word) - larger and crimson
+        // Number text (digit, not word) - larger and black
         const numberText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         numberText.setAttribute('x', balloon.x + balloon.radius);
         numberText.setAttribute('y', balloon.y + balloon.radius + 2);
         numberText.setAttribute('text-anchor', 'middle');
         numberText.setAttribute('dominant-baseline', 'middle');
-        numberText.setAttribute('font-size', '32'); // Increased from 26 to 32
+        numberText.setAttribute('font-size', '36'); // Increased from 32 to 36
         numberText.setAttribute('font-weight', 'bold');
-        numberText.setAttribute('fill', '#dc143c'); // Crimson color, no outline
+        numberText.setAttribute('fill', '#000000'); // Black color
         numberText.textContent = number.toString(); // Use digit, not word
         
         balloonGroup.appendChild(balloonCircle);
@@ -522,31 +524,50 @@ class BalloonGameController {
         const targetY = grassBandTop + randomHeightFromTop;
         
         const fallingNumber = {
-            x: x,
-            startX: x,
+            x: x, // Fixed x position - no sideways movement
             y: y,
             targetY: targetY,
             number: number,
             speed: BALLOON_CONFIG.FALLING_NUMBER_SPEED,
             element: null,
-            landed: false
+            landed: false,
+            landedTime: 0 // Track when it landed
         };
         
-        // Create falling text element with word version of number
+        // Create group for lozenge background and text
+        const numberGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        numberGroup.setAttribute('class', 'falling-number-group');
+        
+        // Create lozenge background
+        const lozenge = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        lozenge.setAttribute('cx', fallingNumber.x);
+        lozenge.setAttribute('cy', fallingNumber.y);
+        lozenge.setAttribute('rx', '45'); // Width
+        lozenge.setAttribute('ry', '22'); // Height
+        lozenge.setAttribute('fill', '#add8e6'); // Light blue
+        lozenge.setAttribute('stroke', '#4682b4'); // Darker blue border
+        lozenge.setAttribute('stroke-width', '2');
+        
+        // Create text element with word version of number
         const numberElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        numberElement.setAttribute('x', fallingNumber.x); // Use x directly, not startX
-        numberElement.setAttribute('y', fallingNumber.y);
+        numberElement.setAttribute('x', fallingNumber.x);
+        numberElement.setAttribute('y', fallingNumber.y + 2);
         numberElement.setAttribute('text-anchor', 'middle');
         numberElement.setAttribute('dominant-baseline', 'middle');
-        numberElement.setAttribute('font-size', '32'); // Reduced from 40 to 32
+        numberElement.setAttribute('font-size', '24'); // Slightly smaller to fit in lozenge
         numberElement.setAttribute('font-weight', 'bold');
-        numberElement.setAttribute('fill', '#1e3a8a'); // Dark blue, no outline
-        numberElement.setAttribute('class', 'falling-number-static');
+        numberElement.setAttribute('fill', '#1e3a8a'); // Dark blue text
         numberElement.textContent = BALLOON_CONFIG.NUMBER_TO_WORD[number] || number.toString();
         
-        fallingNumber.element = numberElement;
+        numberGroup.appendChild(lozenge);
+        numberGroup.appendChild(numberElement);
+        
+        fallingNumber.element = numberGroup;
+        fallingNumber.lozenge = lozenge;
+        fallingNumber.text = numberElement;
+        
         this.fallingNumbers.push(fallingNumber);
-        this.svg.appendChild(numberElement);
+        this.svg.appendChild(numberGroup);
         
         return fallingNumber;
     }
@@ -560,10 +581,10 @@ class BalloonGameController {
         // Update balloons
         this.balloons.forEach(balloon => {
             if (!balloon.popped) {
-                // Move balloon up
+                // Move balloon up (negative direction in SVG coordinates)
                 balloon.y -= balloon.riseSpeed * deltaTime;
                 
-                // Check if balloon reached top (no buffer, hits ceiling)
+                // Check if balloon reached top (y <= 0 means above screen)
                 if (balloon.y + balloon.radius <= 0) {
                     this.popBalloon(balloon, false); // Auto-pop, not user-popped
                     return;
@@ -618,19 +639,30 @@ class BalloonGameController {
         });
         
         // Update falling numbers - fall straight down
-        this.fallingNumbers.forEach(fallingNumber => {
+        this.fallingNumbers.forEach((fallingNumber, index) => {
             if (!fallingNumber.landed) {
                 fallingNumber.y += fallingNumber.speed * deltaTime;
                 
                 if (fallingNumber.y >= fallingNumber.targetY) {
                     fallingNumber.y = fallingNumber.targetY;
                     fallingNumber.landed = true;
+                    fallingNumber.landedTime = currentTime; // Record when it landed
                 }
                 
-                if (fallingNumber.element) {
-                    fallingNumber.element.setAttribute('y', fallingNumber.y);
-                    // Keep x constant for straight downward motion
-                    fallingNumber.element.setAttribute('x', fallingNumber.x);
+                // Update both lozenge and text positions
+                if (fallingNumber.lozenge) {
+                    fallingNumber.lozenge.setAttribute('cy', fallingNumber.y);
+                }
+                if (fallingNumber.text) {
+                    fallingNumber.text.setAttribute('y', fallingNumber.y + 2);
+                }
+            } else {
+                // Check if it's time to remove landed numbers (after 3 seconds)
+                if (currentTime - fallingNumber.landedTime > 3000) {
+                    if (fallingNumber.element && fallingNumber.element.parentNode) {
+                        fallingNumber.element.parentNode.removeChild(fallingNumber.element);
+                    }
+                    this.fallingNumbers.splice(index, 1);
                 }
             }
         });
