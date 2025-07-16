@@ -1,0 +1,660 @@
+/* Balloon Number Game Styles - Full Screen with Transparent Background */
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #87CEEB, #98FB98, #FFE4B5);
+    overflow: hidden;
+    height: 100vh;
+    position: relative;
+}
+
+/* Grass band at bottom */
+.grass-band {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 80px !important;
+    background: linear-gradient(to top, 
+        rgba(144, 238, 144, 0.6),
+        rgba(152, 251, 152, 0.7),
+        rgba(173, 255, 47, 0.5)
+    ) !important;
+    z-index: 1 !important;
+    border: none !important;
+    box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3) !important;
+}
+
+.grass-band::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 10px,
+        rgba(0, 100, 0, 0.3) 10px,
+        rgba(0, 100, 0, 0.3) 15px
+    );
+}
+
+/* Game area - now full screen above grass */
+.game-area {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh; /* Full height */
+    width: 100vw;
+    padding: 0; /* No padding to allow balloons to hit ceiling */
+    z-index: 2;
+}
+
+/* Rainbow container - positioned at bottom above grass */
+.rainbow-container {
+    position: absolute;
+    bottom: 80px; /* Above grass band */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 40%;
+    z-index: 3;
+    pointer-events: none;
+}
+
+/* Main balloon container - now transparent and full screen */
+.balloon-container {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 80px); /* Full height minus grass */
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* SVG styling */
+.balloon-svg {
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Game info display - positioned at top */
+.game-info-container {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.target-number {
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+    padding: 15px 30px;
+    border-radius: 25px;
+    font-size: 2rem;
+    font-weight: bold;
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    text-align: center;
+    min-width: 180px;
+}
+
+.progress-info, .level-info {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.level-info {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+}
+
+/* Balloon elements */
+.balloon-group {
+    transition: transform 0.1s ease;
+}
+
+.balloon-group:hover {
+    transform: scale(1.05);
+}
+
+.balloon-group:active {
+    transform: scale(0.95);
+}
+
+/* Balloon string animation */
+.balloon-string {
+    animation: stringFloat 3s ease-in-out infinite;
+    transform-origin: top;
+}
+
+@keyframes stringFloat {
+    0%, 100% { transform: rotate(-2deg); }
+    50% { transform: rotate(2deg); }
+}
+
+/* Falling number animations */
+.falling-number-static {
+    animation: numberFall 0.8s ease-in-out;
+}
+
+@keyframes numberFall {
+    0% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+    50% { 
+        transform: scale(1.2); 
+        opacity: 0.9; 
+        filter: drop-shadow(0 0 15px rgba(76, 175, 80, 0.8));
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Pop effect animation */
+.pop-star {
+    animation: popEffect 0.6s ease-out forwards;
+    transform-origin: center;
+}
+
+@keyframes popEffect {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.5) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1) rotate(360deg);
+    }
+}
+
+/* Game completion modal styling */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.modal:not(.hidden) {
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    animation: modalAppear 0.5s ease;
+    pointer-events: auto;
+    z-index: 1001;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    max-width: 90vw;
+}
+
+@keyframes modalAppear {
+    from { 
+        opacity: 0; 
+        transform: scale(0.5) translateY(-50px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1) translateY(0); 
+    }
+}
+
+.modal h2 {
+    color: white;
+    font-size: 3rem;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    animation: titleBounce 1s ease infinite;
+}
+
+@keyframes titleBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+.modal p {
+    color: white;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    line-height: 1.4;
+}
+
+.play-again-btn {
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1002;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 auto;
+}
+
+.play-again-btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.5);
+}
+
+.play-again-btn:active {
+    transform: translateY(0);
+}
+
+.play-again-btn i {
+    font-size: 1.2rem;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Back button styling */
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: bold;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.back-button:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.back-button i {
+    font-size: 1rem;
+}
+
+/* Touch feedback and accessibility */
+.balloon-container {
+    touch-action: none; /* Prevent scrolling/zooming on touch */
+}
+
+/* Focus states for accessibility */
+.play-again-btn:focus {
+    outline: 3px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+}
+
+.back-button:focus {
+    outline: 3px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+}
+
+/* Responsive design for full screen */
+@media (max-width: 768px) {
+    .game-area {
+        height: 100vh;
+    }
+    
+    .balloon-container {
+        height: calc(100vh - 60px);
+    }
+    
+    .grass-band {
+        height: 60px !important;
+    }
+    
+    .rainbow-container {
+        bottom: 60px;
+    }
+    
+    .target-number {
+        font-size: 1.8rem;
+        padding: 12px 24px;
+    }
+    
+    .progress-info, .level-info {
+        font-size: 0.9rem;
+        padding: 6px 12px;
+    }
+    
+    .modal h2 {
+        font-size: 2.5rem;
+    }
+    
+    .play-again-btn {
+        font-size: 1.3rem;
+        padding: 12px 24px;
+    }
+    
+    .game-info-container {
+        top: 80px; /* Make room for back button on mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .balloon-container {
+        height: calc(100vh - 50px);
+    }
+    
+    .grass-band {
+        height: 50px !important;
+    }
+    
+    .rainbow-container {
+        bottom: 50px;
+    }
+    
+    .target-number {
+        font-size: 1.5rem;
+        padding: 10px 20px;
+    }
+    
+    .progress-info, .level-info {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+    }
+    
+    .modal-content {
+        padding: 30px 20px;
+        margin: 0 10px;
+    }
+    
+    .modal h2 {
+        font-size: 2rem;
+    }
+    
+    .modal p {
+        font-size: 1rem;
+    }
+    
+    .play-again-btn {
+        font-size: 1.2rem;
+        padding: 10px 20px;
+    }
+    
+    .back-button {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .game-info-container {
+        top: 70px;
+        gap: 8px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .balloon-container {
+        border: 3px solid #000;
+    }
+    
+    .target-number, .progress-info, .level-info {
+        border: 2px solid #000;
+    }
+    
+    .balloon-group circle {
+        stroke-width: 4;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .target-number, .progress-info, .level-info {
+        transition: none;
+    }
+    
+    .balloon-group {
+        transition: none;
+    }
+    
+    .balloon-group:hover {
+        transform: none;
+    }
+    
+    .pop-star {
+        animation: none;
+        opacity: 1;
+    }
+    
+    .modal-content {
+        animation: none;
+    }
+    
+    .modal h2 {
+        animation: none;
+    }
+    
+    .balloon-string {
+        animation: none;
+    }
+    
+    .falling-number-static {
+        animation: none;
+    }
+    
+    .back-button {
+        transition: none;
+    }
+    
+    .play-again-btn {
+        transition: none;
+    }
+}
+
+/* Print styles (hide interactive elements) */
+@media print {
+    .back-button,
+    .modal,
+    .rainbow-container,
+    .grass-band,
+    .game-info-container {
+        display: none;
+    }
+    
+    .balloon-container {
+        box-shadow: none;
+        border: 2px solid #000;
+    }
+}
+
+/* Special balloon animations */
+@keyframes balloonBob {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+.balloon-group.floating {
+    animation: balloonBob 2s ease-in-out infinite;
+}
+
+/* Success/failure visual feedback */
+.success-flash {
+    animation: successFlash 0.5s ease-in-out;
+}
+
+.failure-flash {
+    animation: failureFlash 0.5s ease-in-out;
+}
+
+@keyframes successFlash {
+    0%, 100% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: rgba(76, 175, 80, 0.3);
+    }
+}
+
+@keyframes failureFlash {
+    0%, 100% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: rgba(244, 67, 54, 0.3);
+    }
+}
+
+/* Level progression indicators */
+.level-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.level-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+    transition: width 0.5s ease;
+    border-radius: 4px;
+}
+
+/* Balloon spawn animation */
+@keyframes balloonSpawn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.balloon-group.spawning {
+    animation: balloonSpawn 0.3s ease-out;
+}
+
+/* Rainbow arc animations */
+.rainbow-arc {
+    transition: opacity 0.5s ease-in-out, transform 0.3s ease;
+}
+
+.rainbow-arc.visible {
+    opacity: 1 !important;
+    transform: translateX(-50%) scale(1);
+}
+
+.rainbow-arc.hidden {
+    opacity: 0 !important;
+    transform: translateX(-50%) scale(0.8);
+}
+
+/* Custom scrollbar for any overflow areas */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #4CAF50;
+    border-radius: 50%;
+    animation: loading-spin 1s linear infinite;
+}
+
+@keyframes loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
