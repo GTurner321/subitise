@@ -760,3 +760,92 @@
         transform: translateY(0) scale(1);
     }
 }
+
+/* Balloon Numbers game preview specific styles */
+.balloon-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 100%;
+    padding: 0 8px;
+}
+
+.preview-balloon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-balloon i {
+    font-size: 2rem !important;
+    color: #ff6b6b !important;
+    animation: balloonFloat 2s ease-in-out infinite !important;
+}
+
+.balloon-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    z-index: 2;
+}
+
+.preview-target i {
+    font-size: 1.2rem !important;
+    color: #4ecdc4 !important;
+    animation: targetPulse 1.5s ease-in-out infinite !important;
+}
+
+@keyframes balloonFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes targetPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+/* Responsive adjustments for balloon preview */
+@media (max-width: 768px) {
+    .preview-balloon i {
+        font-size: 1.8rem !important;
+    }
+    
+    .balloon-number {
+        font-size: 0.7rem;
+    }
+    
+    .preview-target i {
+        font-size: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .preview-balloon i {
+        font-size: 1.5rem !important;
+    }
+    
+    .balloon-number {
+        font-size: 0.6rem;
+    }
+    
+    .preview-target i {
+        font-size: 0.9rem !important;
+    }
+}
