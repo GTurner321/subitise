@@ -145,26 +145,7 @@ body {
     }
 }
 
-/* Pop effect animation - REMOVED star circling effect */
-.pop-star {
-    animation: popEffect 0.6s ease-out forwards;
-    transform-origin: center;
-}
-
-@keyframes popEffect {
-    0% {
-        opacity: 0;
-        transform: scale(0) rotate(0deg);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.5) rotate(180deg);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(1) rotate(360deg);
-    }
-}
+/* Pop effect animation - REMOVED */
 
 /* Game completion modal styling */
 .modal {
@@ -422,11 +403,6 @@ body {
     
     .balloon-group:hover {
         transform: none;
-    }
-    
-    .pop-star {
-        animation: none;
-        opacity: 1;
     }
     
     .modal-content {
