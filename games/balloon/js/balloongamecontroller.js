@@ -1,5 +1,8 @@
 class BalloonGameController {
     constructor() {
+        // Make config available globally for shared Rainbow and Bear classes
+        window.CONFIG = BALLOON_CONFIG;
+        
         this.svg = null;
         this.rainbow = new Rainbow();
         this.bear = new Bear();
@@ -57,33 +60,8 @@ class BalloonGameController {
     }
     
     initializeRainbow() {
-        const gameWidth = BALLOON_CONFIG.SVG_WIDTH;
-        const rainbowWidth = gameWidth * 0.75;
-        
-        this.rainbow.initializeArcs = function() {
-            this.container.innerHTML = '';
-            for (let i = 0; i < this.maxPieces; i++) {
-                const arc = document.createElement('div');
-                arc.className = 'rainbow-arc';
-                arc.id = `arc-${i}`;
-                const baseRadius = rainbowWidth / 2;
-                const radius = baseRadius - (i * this.arcWidth);
-                arc.style.width = radius * 2 + 'px';
-                arc.style.height = radius + 'px';
-                arc.style.borderTopWidth = this.arcWidth + 'px';
-                arc.style.borderTopColor = this.colors[i];
-                arc.style.borderRadius = radius + 'px ' + radius + 'px 0 0';
-                arc.style.position = 'absolute';
-                arc.style.bottom = '0';
-                arc.style.left = '50%';
-                arc.style.transform = 'translateX(-50%)';
-                arc.style.opacity = '0';
-                arc.style.transition = 'opacity 0.5s ease-in-out';
-                arc.style.pointerEvents = 'none';
-                this.container.appendChild(arc);
-            }
-        };
-        this.rainbow.initializeArcs();
+        // Rainbow will auto-initialize using the global CONFIG we set
+        // No need to override its initialization
     }
     
     async initializeAudio() {
@@ -202,21 +180,9 @@ class BalloonGameController {
     }
     
     loadGameState() {
-        // Load from in-memory storage for this session
-        const savedLevel = localStorage.getItem(BALLOON_CONFIG.STORAGE_KEY_LEVEL);
-        const savedProgress = localStorage.getItem(BALLOON_CONFIG.STORAGE_KEY_PROGRESS);
-        
-        if (savedLevel) {
-            this.currentLevel = parseInt(savedLevel);
-        }
-        
-        if (savedProgress) {
-            try {
-                this.levelProgress = JSON.parse(savedProgress);
-            } catch (e) {
-                this.levelProgress = {};
-            }
-        }
+        // Don't use localStorage in Claude.ai - use in-memory storage
+        this.currentLevel = this.sessionLevel || 1;
+        this.levelProgress = this.sessionProgress || {};
         
         // Initialize level progress if needed
         for (let level = 1; level <= 4; level++) {
@@ -227,8 +193,9 @@ class BalloonGameController {
     }
     
     saveGameState() {
-        localStorage.setItem(BALLOON_CONFIG.STORAGE_KEY_LEVEL, this.currentLevel.toString());
-        localStorage.setItem(BALLOON_CONFIG.STORAGE_KEY_PROGRESS, JSON.stringify(this.levelProgress));
+        // Store in memory for this session
+        this.sessionLevel = this.currentLevel;
+        this.sessionProgress = this.levelProgress;
     }
     
     startNewGame() {
