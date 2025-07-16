@@ -96,8 +96,82 @@ class DrawNumberRenderer {
         this.pencilIcon.style.zIndex = '10';
         this.pencilIcon.style.transition = 'opacity 0.3s ease';
         
+        // Create undo button
+        this.undoButton = document.createElement('button');
+        this.undoButton.innerHTML = '<i class="fas fa-undo"></i>';
+        this.undoButton.className = 'undo-button';
+        this.undoButton.style.position = 'absolute';
+        this.undoButton.style.top = '20px';
+        this.undoButton.style.right = '60px';
+        this.undoButton.style.width = '50px';
+        this.undoButton.style.height = '50px';
+        this.undoButton.style.borderRadius = '50%';
+        this.undoButton.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        this.undoButton.style.color = 'white';
+        this.undoButton.style.border = 'none';
+        this.undoButton.style.fontSize = '20px';
+        this.undoButton.style.cursor = 'pointer';
+        this.undoButton.style.transition = 'all 0.3s ease';
+        this.undoButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        this.undoButton.style.zIndex = '10';
+        this.undoButton.style.display = 'flex';
+        this.undoButton.style.alignItems = 'center';
+        this.undoButton.style.justifyContent = 'center';
+        
+        // Hover effects
+        this.undoButton.addEventListener('mouseenter', () => {
+            this.undoButton.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            this.undoButton.style.transform = 'scale(1.1)';
+        });
+        
+        this.undoButton.addEventListener('mouseleave', () => {
+            this.undoButton.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            this.undoButton.style.transform = 'scale(1)';
+        });
+        
+        // Click handler
+        this.undoButton.addEventListener('click', () => this.undoLastPath());
+        this.undoButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.undoLastPath();
+        });
+        
         this.drawingContainer.style.position = 'relative';
         this.drawingContainer.appendChild(this.pencilIcon);
+        this.drawingContainer.appendChild(this.undoButton);
+    }
+
+    undoLastPath() {
+        if (this.userDrawnPaths.length > 0) {
+            // Remove last path from array
+            this.userDrawnPaths.pop();
+            
+            // Remove last path from SVG
+            const userPaths = this.drawingSvg.querySelectorAll('.user-drawn-path');
+            if (userPaths.length > 0) {
+                userPaths[userPaths.length - 1].remove();
+            }
+            
+            // Recalculate coverage
+            this.recalculateCoverage();
+            
+            // Show pencil icon again if no paths left
+            if (this.userDrawnPaths.length === 0 && this.pencilIcon) {
+                this.pencilIcon.style.opacity = '0.7';
+            }
+        }
+    }
+
+    recalculateCoverage() {
+        // Reset coverage points
+        this.coveredPoints.clear();
+        
+        // Recalculate coverage based on remaining paths
+        this.userDrawnPaths.forEach(path => {
+            path.forEach(point => {
+                this.checkDrawingProgress(point);
+            });
+        });
     }
 
     renderNumber(number) {
@@ -165,18 +239,19 @@ class DrawNumberRenderer {
             return [];
         }
         
-        // Use same scaling system as trace game
-        const scaleX = DRAW_CONFIG.REFERENCE_WIDTH / 120;  // 120px normalized width
-        const scaleY = DRAW_CONFIG.REFERENCE_HEIGHT / 200; // 200px normalized height
-        const offsetX = (DRAW_CONFIG.REFERENCE_WIDTH - 120 * scaleX) / 2;
-        const offsetY = (DRAW_CONFIG.REFERENCE_HEIGHT - 200 * scaleY) / 2;
+        // Use same scaling system as trace game - SAME scale for both X and Y
+        const minDimension = Math.min(DRAW_CONFIG.REFERENCE_WIDTH, DRAW_CONFIG.REFERENCE_HEIGHT);
+        const scale = minDimension / 200;  // Use 200 as base since coordinates go 0-200
         
-        console.log('Reference scaling:', { scaleX, scaleY, offsetX, offsetY });
+        const offsetX = (DRAW_CONFIG.REFERENCE_WIDTH - 120 * scale) / 2;
+        const offsetY = (DRAW_CONFIG.REFERENCE_HEIGHT - 200 * scale) / 2;
+        
+        console.log('Reference scaling:', { scale, offsetX, offsetY });
         
         return coordinates.map((coord, index) => {
-            const scaledX = offsetX + (coord.x * scaleX);
+            const scaledX = offsetX + (coord.x * scale);
             // Flip Y coordinate: SVG Y increases downward, coordinates Y increases upward
-            const scaledY = offsetY + ((200 - coord.y) * scaleY);
+            const scaledY = offsetY + ((200 - coord.y) * scale);
             
             // Log first few coordinates for debugging
             if (index < 3) {
@@ -193,18 +268,19 @@ class DrawNumberRenderer {
             return [];
         }
         
-        // Use same scaling system as trace game but for larger drawing area
-        const scaleX = DRAW_CONFIG.DRAWING_WIDTH / 120;
-        const scaleY = DRAW_CONFIG.DRAWING_HEIGHT / 200;
-        const offsetX = (DRAW_CONFIG.DRAWING_WIDTH - 120 * scaleX) / 2;
-        const offsetY = (DRAW_CONFIG.DRAWING_HEIGHT - 200 * scaleY) / 2;
+        // Use same scaling system as trace game - SAME scale for both X and Y
+        const minDimension = Math.min(DRAW_CONFIG.DRAWING_WIDTH, DRAW_CONFIG.DRAWING_HEIGHT);
+        const scale = minDimension / 200;  // Use 200 as base since coordinates go 0-200
         
-        console.log('Drawing scaling:', { scaleX, scaleY, offsetX, offsetY });
+        const offsetX = (DRAW_CONFIG.DRAWING_WIDTH - 120 * scale) / 2;
+        const offsetY = (DRAW_CONFIG.DRAWING_HEIGHT - 200 * scale) / 2;
+        
+        console.log('Drawing scaling:', { scale, offsetX, offsetY });
         
         return coordinates.map((coord, index) => {
-            const scaledX = offsetX + (coord.x * scaleX);
+            const scaledX = offsetX + (coord.x * scale);
             // Flip Y coordinate: SVG Y increases downward, coordinates Y increases upward
-            const scaledY = offsetY + ((200 - coord.y) * scaleY);
+            const scaledY = offsetY + ((200 - coord.y) * scale);
             
             // Log first few coordinates for debugging
             if (index < 3) {
