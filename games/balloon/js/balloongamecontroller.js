@@ -155,8 +155,9 @@ class BalloonGameController {
         // Create traffic light container
         this.trafficLightContainer = document.createElement('div');
         this.trafficLightContainer.style.position = 'fixed';
-        this.trafficLightContainer.style.top = '20px';
-        this.trafficLightContainer.style.left = '20px';
+        this.trafficLightContainer.style.top = '50%';
+        this.trafficLightContainer.style.right = '20px';
+        this.trafficLightContainer.style.transform = 'translateY(-50%)';
         this.trafficLightContainer.style.zIndex = '1000';
         this.trafficLightContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
         this.trafficLightContainer.style.borderRadius = '20px';
@@ -167,8 +168,8 @@ class BalloonGameController {
         this.trafficLightContainer.style.gap = '8px';
         this.trafficLightContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
         
-        // Create traffic lights (need 6 for minimum correct balloons)
-        for (let i = 0; i < BALLOON_CONFIG.MIN_CORRECT_BALLOONS; i++) {
+        // Create traffic lights (need 8 for correct balloons)
+        for (let i = 0; i < BALLOON_CONFIG.CORRECT_BALLOONS; i++) {
             const light = document.createElement('div');
             light.style.width = '20px';
             light.style.height = '20px';
@@ -185,13 +186,21 @@ class BalloonGameController {
     }
     
     updateTrafficLight() {
-        // Update traffic lights based on correct balloons popped
+        // Update traffic lights based on all correct balloons (popped by user + hit ceiling)
+        const totalCorrectProcessed = this.correctBalloonsPopped + this.correctBalloonsCeilingHit;
+        
         this.trafficLights.forEach((light, index) => {
             if (index < this.correctBalloonsPopped) {
-                light.style.backgroundColor = '#4CAF50'; // Green for popped
+                // Green for user-popped balloons
+                light.style.backgroundColor = '#4CAF50';
                 light.style.boxShadow = '0 0 10px rgba(76, 175, 80, 0.8)';
+            } else if (index < totalCorrectProcessed) {
+                // Grey for ceiling-hit balloons
+                light.style.backgroundColor = '#808080';
+                light.style.boxShadow = '0 0 10px rgba(128, 128, 128, 0.8)';
             } else {
-                light.style.backgroundColor = '#333'; // Dark for not popped
+                // Dark for not processed
+                light.style.backgroundColor = '#333';
                 light.style.boxShadow = 'none';
             }
         });
@@ -438,9 +447,12 @@ class BalloonGameController {
         const startOffset = (gameAreaWidth - constrainedWidth) / 2;
         const x = startOffset + (Math.random() * (constrainedWidth - BALLOON_CONFIG.BALLOON_RADIUS * 2));
         
-        // Start approximately 20% above the bottom of the game area
-        const minStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.65;
-        const maxStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.85;
+        // Start approximately 20% above the bottom of the game area, extend range upward by 50%
+        const baseMinStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.65;  // 65% from top = 35% from bottom
+        const baseMaxStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.85;  // 85% from top = 15% from bottom
+        const rangeExtension = (baseMaxStartHeight - baseMinStartHeight) * 0.5; // 50% extension
+        const minStartHeight = baseMinStartHeight - rangeExtension;
+        const maxStartHeight = baseMaxStartHeight;
         const y = minStartHeight + Math.random() * (maxStartHeight - minStartHeight);
         
         const balloon = {
@@ -553,8 +565,6 @@ class BalloonGameController {
             
             if (poppedByUser) {
                 this.correctBalloonsPopped++;
-                this.updateTrafficLight();
-                
                 if (this.audioEnabled) this.playCompletionSound();
                 
                 if (this.audioEnabled) {
@@ -564,14 +574,18 @@ class BalloonGameController {
                     }, 200);
                 }
             } else {
+                // Correct balloon hit ceiling
                 this.correctBalloonsCeilingHit++;
-                this.updateTrafficLight();
+                if (this.audioEnabled) this.playCompletionSound();
             }
+            
+            this.updateTrafficLight();
         } else {
+            // Incorrect balloon
             if (poppedByUser) {
                 this.incorrectBalloonsPopped++;
-                if (this.audioEnabled) this.playFailureSound();
             }
+            if (this.audioEnabled) this.playFailureSound();
         }
         
         if (balloon.group) balloon.group.remove();
@@ -691,8 +705,8 @@ class BalloonGameController {
                 // Move balloon up
                 balloon.y -= balloon.riseSpeed * deltaTime;
                 
-                // Check if balloon reached top
-                if (balloon.y + balloon.radius <= 0) {
+                // Check if balloon reached top (considering balloon radius)
+                if (balloon.y <= -balloon.radius) {
                     this.popBalloon(balloon, false);
                     return;
                 }
