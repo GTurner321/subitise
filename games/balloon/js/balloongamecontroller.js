@@ -309,6 +309,15 @@ class BalloonGameController {
         // Start spawning balloons
         this.spawnBalloons();
         
+        // Fade in all balloons over 1 second
+        setTimeout(() => {
+            this.balloons.forEach(balloon => {
+                if (balloon.group) {
+                    balloon.group.style.opacity = '1';
+                }
+            });
+        }, 100);
+        
         // Start animation loop
         this.lastTime = performance.now();
         this.animationId = requestAnimationFrame((time) => this.gameLoop(time));
@@ -335,13 +344,9 @@ class BalloonGameController {
         // Shuffle the array
         this.shuffleArray(balloonNumbers);
         
-        // Schedule balloon spawns
+        // Schedule balloon spawns (all at once, not staggered)
         balloonNumbers.forEach((number, index) => {
-            setTimeout(() => {
-                if (this.gameActive) {
-                    this.createBalloon(number);
-                }
-            }, index * BALLOON_CONFIG.BALLOON_SPAWN_INTERVAL);
+            this.createBalloon(number);
         });
     }
     
@@ -364,8 +369,11 @@ class BalloonGameController {
         const startOffset = (gameAreaWidth - constrainedWidth) / 2;
         const x = startOffset + (Math.random() * (constrainedWidth - BALLOON_CONFIG.BALLOON_RADIUS * 2));
         
-        // Start higher so strings are visible (start at 120% of screen height)
-        const y = BALLOON_CONFIG.SVG_HEIGHT * 1.2;
+        // Start much higher so balloon centers are above grass when first visible
+        // Random range from 1.3x to 1.8x screen height
+        const minStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 1.3;
+        const maxStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 1.8;
+        const y = minStartHeight + Math.random() * (maxStartHeight - minStartHeight);
         
         const balloon = {
             x: x,
@@ -407,17 +415,15 @@ class BalloonGameController {
         highlight.setAttribute('r', 14);
         highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.6)');
         
-        // Number text (digit, not word)
+        // Number text (digit, not word) - larger and crimson
         const numberText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         numberText.setAttribute('x', balloon.x + balloon.radius);
         numberText.setAttribute('y', balloon.y + balloon.radius + 2);
         numberText.setAttribute('text-anchor', 'middle');
         numberText.setAttribute('dominant-baseline', 'middle');
-        numberText.setAttribute('font-size', '26');
+        numberText.setAttribute('font-size', '32'); // Increased from 26 to 32
         numberText.setAttribute('font-weight', 'bold');
-        numberText.setAttribute('fill', 'white');
-        numberText.setAttribute('stroke', '#333');
-        numberText.setAttribute('stroke-width', '1.4');
+        numberText.setAttribute('fill', '#dc143c'); // Crimson color, no outline
         numberText.textContent = number.toString(); // Use digit, not word
         
         balloonGroup.appendChild(balloonCircle);
@@ -502,28 +508,7 @@ class BalloonGameController {
     }
     
     createPopEffect(x, y) {
-        const star = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        star.setAttribute('x', x);
-        star.setAttribute('y', y);
-        star.setAttribute('text-anchor', 'middle');
-        star.setAttribute('dominant-baseline', 'middle');
-        star.setAttribute('font-size', '50');
-        star.setAttribute('fill', '#FFD700');
-        star.setAttribute('class', 'pop-star');
-        star.textContent = '💥';
-        
-        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-        animate.setAttribute('attributeName', 'opacity');
-        animate.setAttribute('values', '0;1;0;1;0');
-        animate.setAttribute('dur', '0.6s');
-        animate.setAttribute('fill', 'freeze');
-        
-        star.appendChild(animate);
-        this.svg.appendChild(star);
-        
-        setTimeout(() => {
-            if (star.parentNode) star.parentNode.removeChild(star);
-        }, 600);
+        // No pop effect stars - removed completely
     }
     
     createFallingNumber(x, y, number) {
@@ -549,7 +534,7 @@ class BalloonGameController {
         
         // Create falling text element with word version of number
         const numberElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        numberElement.setAttribute('x', fallingNumber.startX);
+        numberElement.setAttribute('x', fallingNumber.x); // Use x directly, not startX
         numberElement.setAttribute('y', fallingNumber.y);
         numberElement.setAttribute('text-anchor', 'middle');
         numberElement.setAttribute('dominant-baseline', 'middle');
@@ -632,7 +617,7 @@ class BalloonGameController {
             }
         });
         
-        // Update falling numbers
+        // Update falling numbers - fall straight down
         this.fallingNumbers.forEach(fallingNumber => {
             if (!fallingNumber.landed) {
                 fallingNumber.y += fallingNumber.speed * deltaTime;
@@ -644,6 +629,8 @@ class BalloonGameController {
                 
                 if (fallingNumber.element) {
                     fallingNumber.element.setAttribute('y', fallingNumber.y);
+                    // Keep x constant for straight downward motion
+                    fallingNumber.element.setAttribute('x', fallingNumber.x);
                 }
             }
         });
