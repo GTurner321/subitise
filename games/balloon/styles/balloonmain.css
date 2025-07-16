@@ -102,8 +102,6 @@ body {
     -ms-user-select: none;
 }
 
-/* Game info display - REMOVED */
-
 /* Balloon elements */
 .balloon-group {
     transition: transform 0.1s ease;
@@ -147,8 +145,6 @@ body {
         opacity: 1;
     }
 }
-
-/* Pop effect animation - REMOVED */
 
 /* Game completion modal styling */
 .modal {
@@ -254,11 +250,11 @@ body {
     display: none;
 }
 
-/* Back button styling - moved to bottom left */
+/* Back button styling - positioned bottom left */
 .back-button {
     position: fixed;
-    bottom: '20px'; /* Changed from top to bottom */
-    left: '20px';
+    bottom: 20px !important; /* Bottom positioning */
+    left: 20px !important; /* Left positioning */
     background: rgba(0, 0, 0, 0.7);
     color: white;
     text-decoration: none;
@@ -337,7 +333,6 @@ body {
         padding: 12px 24px;
     }
 }
-}
 
 @media (max-width: 480px) {
     .balloon-container {
@@ -384,7 +379,6 @@ body {
         padding: 8px 16px;
         font-size: 0.9rem;
     }
-}
 }
 
 /* High contrast mode support */
