@@ -62,15 +62,28 @@
     }
     
     updateTrafficLight() {
+        const totalProcessed = this.correctBalloonsPopped + this.correctBalloonsCeilingHit;
+        
         for (let i = 0; i < 8; i++) {
             const circle = document.getElementById(`traffic-circle-${i}`);
             if (circle) {
-                circle.style.backgroundColor = i < this.correctBalloonsPopped ? '#28a745' : '#dc3545';
+                if (i < this.correctBalloonsPopped) {
+                    // User successfully popped - green
+                    circle.style.backgroundColor = '#28a745';
+                } else if (i < totalProcessed) {
+                    // Hit ceiling (missed opportunity) - light grey
+                    circle.style.backgroundColor = '#d3d3d3';
+                } else {
+                    // Still available - red
+                    circle.style.backgroundColor = '#dc3545';
+                }
             }
         }
     }
     
     resetTrafficLight() {
+        this.correctBalloonsCeilingHit = 0; // Reset ceiling hit counter
+        
         for (let i = 0; i < 8; i++) {
             const circle = document.getElementById(`traffic-circle-${i}`);
             if (circle) {
@@ -106,6 +119,7 @@
         this.incorrectBalloonsPopped = 0; // User popped incorrect balloons
         this.totalCorrectBalloons = 0; // Total correct balloons in game
         this.totalQuestionsCompleted = 0; // Track total questions for rainbow
+        this.correctBalloonsCeilingHit = 0; // Correct balloons that hit ceiling
         
         // Audio
         this.audioContext = null;
@@ -303,6 +317,7 @@
         this.correctBalloonsPopped = 0;
         this.incorrectBalloonsPopped = 0;
         this.totalCorrectBalloons = 0;
+        this.correctBalloonsCeilingHit = 0; // Reset ceiling hit counter
         
         // Reset traffic light
         this.resetTrafficLight();
@@ -569,26 +584,30 @@
         if (balloon.isCorrect) {
             this.createFallingNumber(balloon.x + balloon.radius, balloon.y + balloon.radius, balloon.number);
             
-            // Only count user-popped balloons
             if (poppedByUser) {
+                // User successfully popped correct balloon
                 this.correctBalloonsPopped++;
                 this.updateTrafficLight();
-            }
-            
-            if (this.audioEnabled) this.playCompletionSound();
-            
-            if (poppedByUser && this.audioEnabled) {
-                const encouragements = ['Great job!', 'Well done!', 'Excellent!', 'Perfect!'];
-                setTimeout(() => {
-                    this.speakText(encouragements[Math.floor(Math.random() * encouragements.length)]);
-                }, 200);
+                
+                if (this.audioEnabled) this.playCompletionSound();
+                
+                if (this.audioEnabled) {
+                    const encouragements = ['Great job!', 'Well done!', 'Excellent!', 'Perfect!'];
+                    setTimeout(() => {
+                        this.speakText(encouragements[Math.floor(Math.random() * encouragements.length)]);
+                    }, 200);
+                }
+            } else {
+                // Correct balloon hit ceiling (missed opportunity)
+                this.correctBalloonsCeilingHit++;
+                this.updateTrafficLight();
             }
         } else {
-            // Only count user-popped balloons
+            // Incorrect balloon
             if (poppedByUser) {
                 this.incorrectBalloonsPopped++;
+                if (this.audioEnabled) this.playFailureSound();
             }
-            if (this.audioEnabled) this.playFailureSound();
         }
         
         if (balloon.group) balloon.group.remove();
