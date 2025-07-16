@@ -35,9 +35,6 @@ class BalloonGameController {
         
         // DOM elements
         this.container = document.getElementById('balloonContainer');
-        this.targetNumberDisplay = document.getElementById('targetNumber');
-        this.progressInfo = document.getElementById('progressInfo');
-        this.levelInfo = document.getElementById('levelInfo');
         this.modal = document.getElementById('gameModal');
         this.modalTitle = document.getElementById('modalTitle');
         this.modalMessage = document.getElementById('modalMessage');
@@ -367,8 +364,8 @@ class BalloonGameController {
         const startOffset = (gameAreaWidth - constrainedWidth) / 2;
         const x = startOffset + (Math.random() * (constrainedWidth - BALLOON_CONFIG.BALLOON_RADIUS * 2));
         
-        // Start below the screen
-        const y = BALLOON_CONFIG.SVG_HEIGHT + BALLOON_CONFIG.BALLOON_RADIUS;
+        // Start higher so strings are visible (start at 120% of screen height)
+        const y = BALLOON_CONFIG.SVG_HEIGHT * 1.2;
         
         const balloon = {
             x: x,
@@ -377,8 +374,9 @@ class BalloonGameController {
             isCorrect: isCorrect,
             riseSpeed: BALLOON_CONFIG.BALLOON_RISE_SPEED_MIN + 
                       Math.random() * (BALLOON_CONFIG.BALLOON_RISE_SPEED_MAX - BALLOON_CONFIG.BALLOON_RISE_SPEED_MIN),
-            sidewaysSpeed: (Math.random() - 0.5) * BALLOON_CONFIG.BALLOON_SIDEWAYS_SPEED,
-            sidewaysDirection: Math.sign((Math.random() - 0.5) * BALLOON_CONFIG.BALLOON_SIDEWAYS_SPEED) || 1,
+            sidewaysSpeed: BALLOON_CONFIG.BALLOON_SIDEWAYS_SPEED_MIN + 
+                          Math.random() * (BALLOON_CONFIG.BALLOON_SIDEWAYS_SPEED_MAX - BALLOON_CONFIG.BALLOON_SIDEWAYS_SPEED_MIN),
+            sidewaysDirection: Math.random() > 0.5 ? 1 : -1,
             popped: false,
             color: BALLOON_CONFIG.BALLOON_COLORS[Math.floor(Math.random() * BALLOON_CONFIG.BALLOON_COLORS.length)],
             radius: BALLOON_CONFIG.BALLOON_RADIUS
@@ -555,11 +553,9 @@ class BalloonGameController {
         numberElement.setAttribute('y', fallingNumber.y);
         numberElement.setAttribute('text-anchor', 'middle');
         numberElement.setAttribute('dominant-baseline', 'middle');
-        numberElement.setAttribute('font-size', '40');
+        numberElement.setAttribute('font-size', '32'); // Reduced from 40 to 32
         numberElement.setAttribute('font-weight', 'bold');
-        numberElement.setAttribute('fill', '#4CAF50');
-        numberElement.setAttribute('stroke', 'white');
-        numberElement.setAttribute('stroke-width', 2);
+        numberElement.setAttribute('fill', '#1e3a8a'); // Dark blue, no outline
         numberElement.setAttribute('class', 'falling-number-static');
         numberElement.textContent = BALLOON_CONFIG.NUMBER_TO_WORD[number] || number.toString();
         
@@ -588,8 +584,8 @@ class BalloonGameController {
                     return;
                 }
                 
-                // Move balloon sideways
-                balloon.x += Math.abs(balloon.sidewaysSpeed) * balloon.sidewaysDirection * deltaTime;
+                // Move balloon sideways with individual speed
+                balloon.x += balloon.sidewaysSpeed * balloon.sidewaysDirection * deltaTime;
                 
                 // Bounce off walls
                 const gameAreaWidth = BALLOON_CONFIG.SVG_WIDTH;
