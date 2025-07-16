@@ -56,10 +56,11 @@ const BALLOON_CONFIG = {
     MAX_INCORRECT_BALLOONS: 4,
     
     // Balloon physics
-    BALLOON_RADIUS: 54,
+    BALLOON_RADIUS: 43, // Reduced from 54 to 43 (20% smaller)
     BALLOON_RISE_SPEED_MIN: 15,
     BALLOON_RISE_SPEED_MAX: 25,
-    BALLOON_SIDEWAYS_SPEED: 30,
+    BALLOON_SIDEWAYS_SPEED_MIN: 20, // Increased from 30 to 20-50 range
+    BALLOON_SIDEWAYS_SPEED_MAX: 50,
     
     // Animation settings
     BALLOON_SPAWN_INTERVAL: 200, // ms between balloon spawns
