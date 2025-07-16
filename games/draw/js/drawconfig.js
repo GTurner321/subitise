@@ -329,3 +329,6 @@ const DRAW_CONFIG = {
     NUMBERS_SEQUENCE: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
     DEBUG_MODE: false
 };
+
+// Create alias for compatibility with shared components (Rainbow, Bear)
+const CONFIG = DRAW_CONFIG;
