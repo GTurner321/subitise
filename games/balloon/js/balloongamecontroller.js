@@ -42,6 +42,10 @@ class BalloonGameController {
         this.modalMessage = document.getElementById('modalMessage');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         
+        // Traffic light elements
+        this.trafficLightContainer = null;
+        this.trafficLights = [];
+        
         this.handleResize = this.handleResize.bind(this);
         
         this.initializeGame();
@@ -76,7 +80,7 @@ class BalloonGameController {
     createMuteButton() {
         const muteContainer = document.createElement('div');
         muteContainer.style.position = 'fixed';
-        muteContainer.style.bottom = '20px'; // Changed from top to bottom
+        muteContainer.style.bottom = '20px';
         muteContainer.style.right = '20px';
         muteContainer.style.zIndex = '1000';
         muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
@@ -145,6 +149,60 @@ class BalloonGameController {
                 this.speakText('Audio enabled');
             }, 100);
         }
+    }
+    
+    createTrafficLight() {
+        // Create traffic light container
+        this.trafficLightContainer = document.createElement('div');
+        this.trafficLightContainer.style.position = 'fixed';
+        this.trafficLightContainer.style.top = '20px';
+        this.trafficLightContainer.style.left = '20px';
+        this.trafficLightContainer.style.zIndex = '1000';
+        this.trafficLightContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        this.trafficLightContainer.style.borderRadius = '20px';
+        this.trafficLightContainer.style.padding = '15px 10px';
+        this.trafficLightContainer.style.display = 'flex';
+        this.trafficLightContainer.style.flexDirection = 'column';
+        this.trafficLightContainer.style.alignItems = 'center';
+        this.trafficLightContainer.style.gap = '8px';
+        this.trafficLightContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        
+        // Create traffic lights (need 6 for minimum correct balloons)
+        for (let i = 0; i < BALLOON_CONFIG.MIN_CORRECT_BALLOONS; i++) {
+            const light = document.createElement('div');
+            light.style.width = '20px';
+            light.style.height = '20px';
+            light.style.borderRadius = '50%';
+            light.style.backgroundColor = '#333';
+            light.style.border = '2px solid #555';
+            light.style.transition = 'all 0.3s ease';
+            
+            this.trafficLights.push(light);
+            this.trafficLightContainer.appendChild(light);
+        }
+        
+        document.body.appendChild(this.trafficLightContainer);
+    }
+    
+    updateTrafficLight() {
+        // Update traffic lights based on correct balloons popped
+        this.trafficLights.forEach((light, index) => {
+            if (index < this.correctBalloonsPopped) {
+                light.style.backgroundColor = '#4CAF50'; // Green for popped
+                light.style.boxShadow = '0 0 10px rgba(76, 175, 80, 0.8)';
+            } else {
+                light.style.backgroundColor = '#333'; // Dark for not popped
+                light.style.boxShadow = 'none';
+            }
+        });
+    }
+    
+    resetTrafficLight() {
+        // Reset all traffic lights to dark
+        this.trafficLights.forEach(light => {
+            light.style.backgroundColor = '#333';
+            light.style.boxShadow = 'none';
+        });
     }
     
     setupEventListeners() {
@@ -225,7 +283,7 @@ class BalloonGameController {
         this.correctBalloonsPopped = 0;
         this.incorrectBalloonsPopped = 0;
         this.totalCorrectBalloons = 0;
-        this.correctBalloonsCeilingHit = 0; // Reset ceiling hit counter
+        this.correctBalloonsCeilingHit = 0;
         
         // Reset traffic light
         this.resetTrafficLight();
@@ -313,7 +371,7 @@ class BalloonGameController {
                 }
                 this.startBalloonSpawning();
             }, 1000);
-        }, 4000); // Stay for 1s fade in + 3s display + start fade out
+        }, 4000);
     }
     
     startBalloonSpawning() {
@@ -380,9 +438,9 @@ class BalloonGameController {
         const startOffset = (gameAreaWidth - constrainedWidth) / 2;
         const x = startOffset + (Math.random() * (constrainedWidth - BALLOON_CONFIG.BALLOON_RADIUS * 2));
         
-        // Start approximately 20% above the bottom of the game area (visible initially)
-        const minStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.65;  // 80% from top = 20% from bottom
-        const maxStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.85;  // 90% from top = 10% from bottom
+        // Start approximately 20% above the bottom of the game area
+        const minStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.65;
+        const maxStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.85;
         const y = minStartHeight + Math.random() * (maxStartHeight - minStartHeight);
         
         const balloon = {
@@ -404,6 +462,7 @@ class BalloonGameController {
         const balloonGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         balloonGroup.setAttribute('class', 'balloon-group');
         balloonGroup.style.cursor = 'pointer';
+        balloonGroup.style.opacity = '0';
         
         // Balloon string
         const string = this.createBalloonString(balloon);
@@ -425,16 +484,16 @@ class BalloonGameController {
         highlight.setAttribute('r', 14);
         highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.6)');
         
-        // Number text (digit, not word) - larger and black
+        // Number text
         const numberText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         numberText.setAttribute('x', balloon.x + balloon.radius);
         numberText.setAttribute('y', balloon.y + balloon.radius + 2);
         numberText.setAttribute('text-anchor', 'middle');
         numberText.setAttribute('dominant-baseline', 'middle');
-        numberText.setAttribute('font-size', '36'); // Increased from 32 to 36
+        numberText.setAttribute('font-size', '36');
         numberText.setAttribute('font-weight', 'bold');
-        numberText.setAttribute('fill', '#000000'); // Black color
-        numberText.textContent = number.toString(); // Use digit, not word
+        numberText.setAttribute('fill', '#000000');
+        numberText.textContent = number.toString();
         
         balloonGroup.appendChild(balloonCircle);
         balloonGroup.appendChild(highlight);
@@ -493,7 +552,6 @@ class BalloonGameController {
             this.createFallingNumber(balloon.x + balloon.radius, balloon.y + balloon.radius, balloon.number);
             
             if (poppedByUser) {
-                // User successfully popped correct balloon
                 this.correctBalloonsPopped++;
                 this.updateTrafficLight();
                 
@@ -506,12 +564,10 @@ class BalloonGameController {
                     }, 200);
                 }
             } else {
-                // Correct balloon hit ceiling (missed opportunity)
                 this.correctBalloonsCeilingHit++;
                 this.updateTrafficLight();
             }
         } else {
-            // Incorrect balloon
             if (poppedByUser) {
                 this.incorrectBalloonsPopped++;
                 if (this.audioEnabled) this.playFailureSound();
@@ -530,7 +586,38 @@ class BalloonGameController {
     }
     
     createPopEffect(x, y) {
-        // No pop effect stars - removed completely
+        // Simple pop effect - create expanding circle that fades out
+        const popEffect = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        popEffect.setAttribute('cx', x);
+        popEffect.setAttribute('cy', y);
+        popEffect.setAttribute('r', 5);
+        popEffect.setAttribute('fill', 'rgba(255, 255, 255, 0.8)');
+        popEffect.setAttribute('stroke', 'rgba(255, 255, 255, 0.6)');
+        popEffect.setAttribute('stroke-width', 2);
+        
+        this.svg.appendChild(popEffect);
+        
+        // Animate the pop effect
+        let startTime = performance.now();
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / 300, 1); // 300ms animation
+            
+            const radius = 5 + (progress * 25); // Expand from 5 to 30
+            const opacity = 1 - progress; // Fade out
+            
+            popEffect.setAttribute('r', radius);
+            popEffect.setAttribute('fill', `rgba(255, 255, 255, ${opacity * 0.8})`);
+            popEffect.setAttribute('stroke', `rgba(255, 255, 255, ${opacity * 0.6})`);
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                popEffect.remove();
+            }
+        };
+        
+        requestAnimationFrame(animate);
     }
     
     createFallingNumber(x, y, number) {
@@ -544,39 +631,39 @@ class BalloonGameController {
         const targetY = grassBandTop + randomHeightFromTop;
         
         const fallingNumber = {
-            x: x, // Fixed x position - no sideways movement
+            x: x,
             y: y,
             targetY: targetY,
             number: number,
             speed: BALLOON_CONFIG.FALLING_NUMBER_SPEED,
             element: null,
             landed: false,
-            landedTime: 0 // Track when it landed
+            landedTime: 0
         };
         
         // Create group for lozenge background and text
         const numberGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         numberGroup.setAttribute('class', 'falling-number-group');
         
-        // Create lozenge background - positioned at fixed x
+        // Create lozenge background
         const lozenge = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-        lozenge.setAttribute('cx', x); // Use x directly
+        lozenge.setAttribute('cx', x);
         lozenge.setAttribute('cy', y);
-        lozenge.setAttribute('rx', '45'); // Width
-        lozenge.setAttribute('ry', '22'); // Height
-        lozenge.setAttribute('fill', '#add8e6'); // Light blue
-        lozenge.setAttribute('stroke', '#4682b4'); // Darker blue border
+        lozenge.setAttribute('rx', '45');
+        lozenge.setAttribute('ry', '22');
+        lozenge.setAttribute('fill', '#add8e6');
+        lozenge.setAttribute('stroke', '#4682b4');
         lozenge.setAttribute('stroke-width', '2');
         
-        // Create text element with word version of number - positioned at fixed x
+        // Create text element with word version of number
         const numberElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        numberElement.setAttribute('x', x); // Use x directly
+        numberElement.setAttribute('x', x);
         numberElement.setAttribute('y', y + 2);
         numberElement.setAttribute('text-anchor', 'middle');
         numberElement.setAttribute('dominant-baseline', 'middle');
-        numberElement.setAttribute('font-size', '24'); // Slightly smaller to fit in lozenge
+        numberElement.setAttribute('font-size', '24');
         numberElement.setAttribute('font-weight', 'bold');
-        numberElement.setAttribute('fill', '#1e3a8a'); // Dark blue text
+        numberElement.setAttribute('fill', '#1e3a8a');
         numberElement.textContent = BALLOON_CONFIG.NUMBER_TO_WORD[number] || number.toString();
         
         numberGroup.appendChild(lozenge);
@@ -601,16 +688,16 @@ class BalloonGameController {
         // Update balloons
         this.balloons.forEach(balloon => {
             if (!balloon.popped) {
-                // Move balloon up (negative direction in SVG coordinates)
+                // Move balloon up
                 balloon.y -= balloon.riseSpeed * deltaTime;
                 
-                // Check if balloon reached top (y <= 0 means above screen)
+                // Check if balloon reached top
                 if (balloon.y + balloon.radius <= 0) {
-                    this.popBalloon(balloon, false); // Auto-pop, not user-popped
+                    this.popBalloon(balloon, false);
                     return;
                 }
                 
-                // Move balloon sideways with individual speed
+                // Move balloon sideways
                 balloon.x += balloon.sidewaysSpeed * balloon.sidewaysDirection * deltaTime;
                 
                 // Bounce off walls
@@ -658,7 +745,7 @@ class BalloonGameController {
             }
         });
         
-        // Update falling numbers - fall straight down
+        // Update falling numbers
         this.fallingNumbers.forEach((fallingNumber, index) => {
             if (!fallingNumber.landed) {
                 fallingNumber.y += fallingNumber.speed * deltaTime;
@@ -666,17 +753,17 @@ class BalloonGameController {
                 if (fallingNumber.y >= fallingNumber.targetY) {
                     fallingNumber.y = fallingNumber.targetY;
                     fallingNumber.landed = true;
-                    fallingNumber.landedTime = currentTime; // Record when it landed
+                    fallingNumber.landedTime = currentTime;
                 }
                 
-                // Update both lozenge and text positions - keep x fixed
+                // Update both lozenge and text positions
                 if (fallingNumber.lozenge) {
                     fallingNumber.lozenge.setAttribute('cy', fallingNumber.y);
-                    fallingNumber.lozenge.setAttribute('cx', fallingNumber.x); // Keep x fixed
+                    fallingNumber.lozenge.setAttribute('cx', fallingNumber.x);
                 }
                 if (fallingNumber.text) {
                     fallingNumber.text.setAttribute('y', fallingNumber.y + 2);
-                    fallingNumber.text.setAttribute('x', fallingNumber.x); // Keep x fixed
+                    fallingNumber.text.setAttribute('x', fallingNumber.x);
                 }
             } else {
                 // Check if it's time to remove landed numbers (after 3 seconds)
@@ -693,7 +780,7 @@ class BalloonGameController {
     }
     
     checkQuestionCompletion() {
-        // Check if all correct balloons have been handled (popped or reached top)
+        // Check if all correct balloons have been handled
         const remainingCorrectBalloons = this.balloons.filter(b => b.isCorrect && !b.popped).length;
         const totalCorrectBalloons = this.totalCorrectBalloons;
         const correctBalloonsHandled = totalCorrectBalloons - remainingCorrectBalloons;
@@ -749,14 +836,14 @@ class BalloonGameController {
         let message = '';
         
         if (success) {
-            message = `Well done, you popped ${this.correctBalloonsPopped} out of 10 of the number ${this.targetNumber} balloons`;
+            message = `Well done, you popped ${this.correctBalloonsPopped} out of 8 of the number ${this.targetNumber} balloons`;
             if (this.incorrectBalloonsPopped === 0) {
                 message += ' and none of the other balloons';
             } else {
                 message += ` and only ${this.incorrectBalloonsPopped} of the other balloons`;
             }
         } else {
-            message = `You popped ${this.correctBalloonsPopped} out of 10 of the number ${this.targetNumber} balloons`;
+            message = `You popped ${this.correctBalloonsPopped} out of 8 of the number ${this.targetNumber} balloons`;
             if (this.incorrectBalloonsPopped === 0) {
                 message += ' and none of the other balloons';
             } else {
@@ -786,36 +873,20 @@ class BalloonGameController {
         const requiredProgress = BALLOON_CONFIG.LEVELS[this.currentLevel].questionsNeeded;
         
         if (success && currentProgress >= requiredProgress) {
-            // Level completed - advance to next level (hidden from user)
+            // Level completed - advance to next level
             if (this.currentLevel < 4) {
                 this.currentLevel++;
                 this.saveGameState();
             }
         } else if (!success && this.currentLevel > 1) {
-            // Failure - drop back to previous level (hidden from user)
+            // Failure - drop back to previous level
             this.currentLevel--;
             this.levelProgress[this.currentLevel] = Math.max(0, this.levelProgress[this.currentLevel] - 1);
             this.saveGameState();
         }
         
-        // Continue to next question (no level complete modal)
+        // Continue to next question
         this.startNewQuestion();
-    }
-    
-    showGameCompleteModal() {
-        if (this.modal && this.modalTitle && this.modalMessage) {
-            this.modalTitle.textContent = '🏆 Game Complete! 🏆';
-            this.modalMessage.textContent = 'Congratulations! You have completed all 10 questions and built a beautiful rainbow!';
-            this.modal.classList.remove('hidden');
-            
-            this.bear.startCelebration();
-            
-            if (this.audioEnabled) {
-                setTimeout(() => {
-                    this.speakText('Congratulations! You have completed all questions and built a beautiful rainbow!');
-                }, 1000);
-            }
-        }
     }
     
     speakText(text) {
@@ -921,6 +992,10 @@ class BalloonGameController {
         
         if (this.muteContainer && this.muteContainer.parentNode) {
             this.muteContainer.parentNode.removeChild(this.muteContainer);
+        }
+        
+        if (this.trafficLightContainer && this.trafficLightContainer.parentNode) {
+            this.trafficLightContainer.parentNode.removeChild(this.trafficLightContainer);
         }
     }
 }
