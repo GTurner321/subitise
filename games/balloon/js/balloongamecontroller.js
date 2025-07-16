@@ -28,6 +28,7 @@ class BalloonGameController {
         this.totalCorrectBalloons = 0; // Total correct balloons in game
         this.totalQuestionsCompleted = 0; // Track total questions for rainbow
         this.correctBalloonsCeilingHit = 0; // Correct balloons that hit ceiling
+        this.balloonPopOrder = []; // Track order of correct balloon pops (user=true, ceiling=false)
         
         // Audio
         this.audioContext = null;
@@ -186,18 +187,19 @@ class BalloonGameController {
     }
     
     updateTrafficLight() {
-        // Update traffic lights based on all correct balloons (popped by user + hit ceiling)
-        const totalCorrectProcessed = this.correctBalloonsPopped + this.correctBalloonsCeilingHit;
-        
+        // Update traffic lights based on order of balloon pops
         this.trafficLights.forEach((light, index) => {
-            if (index < this.correctBalloonsPopped) {
-                // Green for user-popped balloons
-                light.style.backgroundColor = '#4CAF50';
-                light.style.boxShadow = '0 0 10px rgba(76, 175, 80, 0.8)';
-            } else if (index < totalCorrectProcessed) {
-                // Grey for ceiling-hit balloons
-                light.style.backgroundColor = '#808080';
-                light.style.boxShadow = '0 0 10px rgba(128, 128, 128, 0.8)';
+            if (index < this.balloonPopOrder.length) {
+                const wasUserPopped = this.balloonPopOrder[index];
+                if (wasUserPopped) {
+                    // Green for user-popped balloons
+                    light.style.backgroundColor = '#4CAF50';
+                    light.style.boxShadow = '0 0 10px rgba(76, 175, 80, 0.8)';
+                } else {
+                    // Grey for ceiling-hit balloons
+                    light.style.backgroundColor = '#808080';
+                    light.style.boxShadow = '0 0 10px rgba(128, 128, 128, 0.8)';
+                }
             } else {
                 // Dark for not processed
                 light.style.backgroundColor = '#333';
@@ -207,11 +209,12 @@ class BalloonGameController {
     }
     
     resetTrafficLight() {
-        // Reset all traffic lights to dark
+        // Reset all traffic lights to dark and clear pop order
         this.trafficLights.forEach(light => {
             light.style.backgroundColor = '#333';
             light.style.boxShadow = 'none';
         });
+        this.balloonPopOrder = [];
     }
     
     setupEventListeners() {
@@ -293,6 +296,7 @@ class BalloonGameController {
         this.incorrectBalloonsPopped = 0;
         this.totalCorrectBalloons = 0;
         this.correctBalloonsCeilingHit = 0;
+        this.balloonPopOrder = []; // Reset pop order
         
         // Reset traffic light
         this.resetTrafficLight();
@@ -387,10 +391,11 @@ class BalloonGameController {
         // Start spawning balloons
         this.spawnBalloons();
         
-        // Fade in all balloons over 1 second
+        // Fade in all balloons over 2 seconds
         setTimeout(() => {
             this.balloons.forEach(balloon => {
                 if (balloon.group) {
+                    balloon.group.style.transition = 'opacity 2s ease-in';
                     balloon.group.style.opacity = '1';
                 }
             });
@@ -563,6 +568,9 @@ class BalloonGameController {
         if (balloon.isCorrect) {
             this.createFallingNumber(balloon.x + balloon.radius, balloon.y + balloon.radius, balloon.number);
             
+            // Add to pop order tracking
+            this.balloonPopOrder.push(poppedByUser);
+            
             if (poppedByUser) {
                 this.correctBalloonsPopped++;
                 if (this.audioEnabled) this.playCompletionSound();
@@ -580,6 +588,11 @@ class BalloonGameController {
             }
             
             this.updateTrafficLight();
+            
+            // Check if this was the last correct balloon
+            if (this.balloonPopOrder.length === this.totalCorrectBalloons) {
+                this.startEndSequence();
+            }
         } else {
             // Incorrect balloon
             if (poppedByUser) {
@@ -645,7 +658,7 @@ class BalloonGameController {
         const targetY = grassBandTop + randomHeightFromTop;
         
         const fallingNumber = {
-            x: x,
+            x: x, // Fixed x position - no sideways movement
             y: y,
             targetY: targetY,
             number: number,
@@ -659,7 +672,7 @@ class BalloonGameController {
         const numberGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         numberGroup.setAttribute('class', 'falling-number-group');
         
-        // Create lozenge background
+        // Create lozenge background - fixed position
         const lozenge = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
         lozenge.setAttribute('cx', x);
         lozenge.setAttribute('cy', y);
@@ -669,7 +682,7 @@ class BalloonGameController {
         lozenge.setAttribute('stroke', '#4682b4');
         lozenge.setAttribute('stroke-width', '2');
         
-        // Create text element with word version of number
+        // Create text element with word version of number - fixed position
         const numberElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         numberElement.setAttribute('x', x);
         numberElement.setAttribute('y', y + 2);
@@ -705,8 +718,8 @@ class BalloonGameController {
                 // Move balloon up
                 balloon.y -= balloon.riseSpeed * deltaTime;
                 
-                // Check if balloon reached top (considering balloon radius)
-                if (balloon.y <= -balloon.radius) {
+                // Check if balloon reached top (when top of balloon hits ceiling)
+                if (balloon.y - balloon.radius <= 0) {
                     this.popBalloon(balloon, false);
                     return;
                 }
@@ -759,7 +772,7 @@ class BalloonGameController {
             }
         });
         
-        // Update falling numbers
+        // Update falling numbers - fall straight down, no sideways movement
         this.fallingNumbers.forEach((fallingNumber, index) => {
             if (!fallingNumber.landed) {
                 fallingNumber.y += fallingNumber.speed * deltaTime;
@@ -770,14 +783,14 @@ class BalloonGameController {
                     fallingNumber.landedTime = currentTime;
                 }
                 
-                // Update both lozenge and text positions
+                // Update positions - keep x completely fixed
                 if (fallingNumber.lozenge) {
                     fallingNumber.lozenge.setAttribute('cy', fallingNumber.y);
-                    fallingNumber.lozenge.setAttribute('cx', fallingNumber.x);
+                    // Don't update cx - keep it fixed
                 }
                 if (fallingNumber.text) {
                     fallingNumber.text.setAttribute('y', fallingNumber.y + 2);
-                    fallingNumber.text.setAttribute('x', fallingNumber.x);
+                    // Don't update x - keep it fixed
                 }
             } else {
                 // Check if it's time to remove landed numbers (after 3 seconds)
@@ -793,17 +806,28 @@ class BalloonGameController {
         this.animationId = requestAnimationFrame((time) => this.gameLoop(time));
     }
     
+    startEndSequence() {
+        // Start fading out remaining balloons
+        this.balloons.forEach(balloon => {
+            if (balloon.group && !balloon.popped) {
+                balloon.group.style.transition = 'opacity 2s ease-out';
+                balloon.group.style.opacity = '0';
+                // Remove after fade
+                setTimeout(() => {
+                    if (balloon.group && balloon.group.parentNode) {
+                        balloon.group.parentNode.removeChild(balloon.group);
+                    }
+                }, 2000);
+            }
+        });
+    }
+    
     checkQuestionCompletion() {
-        // Check if all correct balloons have been handled
-        const remainingCorrectBalloons = this.balloons.filter(b => b.isCorrect && !b.popped).length;
-        const totalCorrectBalloons = this.totalCorrectBalloons;
-        const correctBalloonsHandled = totalCorrectBalloons - remainingCorrectBalloons;
+        // Check if all falling numbers have landed and disappeared
+        const allNumbersGone = this.fallingNumbers.length === 0;
         
-        // Check if all falling numbers have landed
-        const allNumbersLanded = this.fallingNumbers.every(fn => fn.landed);
-        
-        // Question is complete when all correct balloons handled and all numbers landed
-        if (correctBalloonsHandled >= totalCorrectBalloons && allNumbersLanded) {
+        // If all correct balloons processed and all numbers gone, end question
+        if (this.balloonPopOrder.length === this.totalCorrectBalloons && allNumbersGone) {
             this.endQuestion();
         }
     }
