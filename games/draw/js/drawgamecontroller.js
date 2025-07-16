@@ -284,15 +284,62 @@ class DrawGameController {
         this.rainbow.addPiece();
         
         if (this.audioEnabled) {
-            this.speakText('Great job! Well done!');
-        }
-        
-        // Show next button
-        if (this.nextBtn) {
-            this.nextBtn.classList.remove('hidden');
+            this.speakTextWithCallback('Great job! Well done!', () => {
+                // Auto-advance to next number 2 seconds after audio completes
+                setTimeout(() => {
+                    this.moveToNextNumber();
+                }, 2000);
+            });
+        } else {
+            // If audio is disabled, just wait 2 seconds
+            setTimeout(() => {
+                this.moveToNextNumber();
+            }, 2000);
         }
         
         this.playCompletionSound();
+    }
+
+    speakTextWithCallback(text, callback) {
+        if (!this.audioEnabled) {
+            if (callback) callback();
+            return;
+        }
+        
+        try {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.3;
+                utterance.volume = 0.8;
+                
+                const voices = speechSynthesis.getVoices();
+                let selectedVoice = voices.find(voice => 
+                    voice.name.toLowerCase().includes('male') ||
+                    voice.name.toLowerCase().includes('boy') ||
+                    voice.name.toLowerCase().includes('man') ||
+                    (!voice.name.toLowerCase().includes('female') && 
+                     !voice.name.toLowerCase().includes('woman') &&
+                     !voice.name.toLowerCase().includes('girl'))
+                );
+                
+                if (selectedVoice) utterance.voice = selectedVoice;
+                utterance.pitch = 1.3;
+                
+                if (callback) {
+                    utterance.onend = callback;
+                    utterance.onerror = callback;
+                }
+                
+                speechSynthesis.speak(utterance);
+            } else {
+                if (callback) callback();
+            }
+        } catch (error) {
+            if (callback) callback();
+        }
     }
 
     moveToNextNumber() {
