@@ -369,14 +369,11 @@ class BalloonGameController {
         const startOffset = (gameAreaWidth - constrainedWidth) / 2;
         const x = startOffset + (Math.random() * (constrainedWidth - BALLOON_CONFIG.BALLOON_RADIUS * 2));
         
-        // Start much higher so balloon centers are above grass when first visible
-        // In SVG, lower y values = higher on screen, higher y values = lower on screen
-        // We want balloons to start OFF-SCREEN ABOVE (negative y or very low y values)
-        // Random range from -300 to -100 (well above screen)
-        const minStartHeight = -300;
-        const maxStartHeight = -100;
-        const y = minStartHeight + Math.random() * (maxStartHeight - minStartHeight);
-        
+        // Start approximately 20% above the bottom of the game area (visible initially)
+const minStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.8;  // 80% from top = 20% from bottom
+const maxStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.9;  // 90% from top = 10% from bottom
+const y = minStartHeight + Math.random() * (maxStartHeight - minStartHeight);
+
         const balloon = {
             x: x,
             y: y,
