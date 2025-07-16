@@ -1,8 +1,15 @@
 class DrawGameController {
     constructor() {
         this.renderer = null;
+        
+        // Initialize shared components with proper configuration
         this.rainbow = new Rainbow();
         this.bear = new Bear();
+        
+        // Override bear image path for this game
+        if (this.bear && DRAW_CONFIG.BEAR_IMAGE_PATH) {
+            this.bear.bearImage = DRAW_CONFIG.BEAR_IMAGE_PATH;
+        }
         
         this.currentNumberIndex = 0;
         this.currentNumber = 0;
@@ -185,6 +192,12 @@ class DrawGameController {
         
         if (this.nextBtn) {
             this.nextBtn.addEventListener('click', () => this.moveToNextNumber());
+        }
+        
+        // Set up renderer completion callback
+        if (this.renderer) {
+            // Store reference to this controller for the renderer to use
+            window.drawGame = this;
         }
         
         document.addEventListener('visibilitychange', this.handleVisibilityChange);
