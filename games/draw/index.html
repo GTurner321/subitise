@@ -8,40 +8,14 @@
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="styles/drawmain.css">
     <style>
-        /* Beautiful subtle background gradient */
+        /* Clean white background */
         html, body {
-            background: linear-gradient(135deg, 
-                rgba(135, 206, 235, 0.2) 0%,
-                rgba(152, 251, 152, 0.15) 50%,
-                rgba(255, 228, 181, 0.2) 100%
-            ) !important;
-            background-attachment: fixed !important;
+            background: white !important;
             min-height: 100vh !important;
         }
         
         .game-area {
             background: transparent !important;
-        }
-        
-        /* Soft grass band at bottom */
-        .grass-band {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 80px !important;
-            background: linear-gradient(to top, 
-                rgba(144, 238, 144, 0.6),
-                rgba(152, 251, 152, 0.7),
-                rgba(173, 255, 47, 0.5)
-            ) !important;
-            z-index: 1 !important;
-            border: none !important;
-            box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3) !important;
-        }
-        
-        .grass-texture {
-            display: none !important;
         }
     </style>
 </head>
@@ -59,15 +33,13 @@
         
         <!-- Draw area container -->
         <div class="draw-area">
-            <!-- Reference number (left side) -->
+            <!-- Reference number (left side) - no visible box -->
             <div class="reference-container" id="referenceContainer">
-                <h3>Copy this number:</h3>
                 <div class="reference-number" id="referenceNumber"></div>
             </div>
             
-            <!-- Drawing canvas (right side) -->
+            <!-- Drawing canvas (right side) - no visible box -->
             <div class="drawing-container" id="drawingContainer">
-                <h3>Draw here:</h3>
                 <div class="drawing-canvas" id="drawingCanvas"></div>
                 <button class="next-btn hidden" id="nextBtn">
                     <i class="fas fa-arrow-right"></i>
@@ -80,11 +52,6 @@
         <div class="number-word-container">
             <div class="number-word" id="numberWord"></div>
         </div>
-    </div>
-    
-    <!-- Grass band -->
-    <div class="grass-band">
-        <div class="grass-texture"></div>
     </div>
     
     <!-- Game completion modal -->
