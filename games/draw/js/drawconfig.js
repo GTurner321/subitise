@@ -4,16 +4,16 @@ const DRAW_CONFIG = {
     
     // Drawing area dimensions
     get REFERENCE_WIDTH() {
-        return Math.min(window.innerWidth * 0.35, 300);
+        return Math.min(window.innerWidth * 0.25, 250);
     },
     get REFERENCE_HEIGHT() {
-        return Math.min(window.innerHeight * 0.4, 250);
+        return Math.min(window.innerHeight * 0.35, 250);
     },
     get DRAWING_WIDTH() {
-        return Math.min(window.innerWidth * 0.45, 400);
+        return Math.min(window.innerWidth * 0.55, 550);
     },
     get DRAWING_HEIGHT() {
-        return Math.min(window.innerHeight * 0.5, 350);
+        return Math.min(window.innerHeight * 0.6, 550);
     },
     
     // Reference number styling
