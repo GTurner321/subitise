@@ -21,9 +21,9 @@ const DRAW_CONFIG = {
     REFERENCE_WHITE_WIDTH: 20,
     REFERENCE_OUTLINE_COLOR: '#2C2C2C',
     
-    // Drawing canvas styling - smaller grey number, larger white interior
-    DRAWING_OUTLINE_WIDTH: 135, // 10% smaller (was 150)
-    DRAWING_WHITE_WIDTH: 120,   // Larger white area (was 100)
+    // Drawing canvas styling - thinner lines, 60% narrower
+    DRAWING_OUTLINE_WIDTH: 54, // 60% narrower (135 * 0.4 = 54)
+    DRAWING_WHITE_WIDTH: 48,   // 60% narrower (120 * 0.4 = 48)
     DRAWING_OUTLINE_COLOR: '#CCCCCC', // Light grey
     DRAWING_STROKE_COLOR: '#4CAF50', // Green for drawn lines
     DRAWING_STROKE_WIDTH: 8,
