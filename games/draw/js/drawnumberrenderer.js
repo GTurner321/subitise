@@ -241,7 +241,7 @@ class DrawNumberRenderer {
         
         // Use same scaling system as trace game - SAME scale for both X and Y
         const minDimension = Math.min(DRAW_CONFIG.REFERENCE_WIDTH, DRAW_CONFIG.REFERENCE_HEIGHT);
-        const scale = minDimension / 200;  // Use 200 as base since coordinates go 0-200
+        const scale = minDimension / 250;  // Use 250 to allow for taller rendering
         
         const offsetX = (DRAW_CONFIG.REFERENCE_WIDTH - 120 * scale) / 2;
         const offsetY = (DRAW_CONFIG.REFERENCE_HEIGHT - 200 * scale) / 2;
@@ -270,17 +270,20 @@ class DrawNumberRenderer {
         
         // Use same scaling system as trace game - SAME scale for both X and Y
         const minDimension = Math.min(DRAW_CONFIG.DRAWING_WIDTH, DRAW_CONFIG.DRAWING_HEIGHT);
-        const scale = minDimension / 200;  // Use 200 as base since coordinates go 0-200
+        const scale = minDimension / 250;  // Use 250 to allow for taller rendering
         
-        const offsetX = (DRAW_CONFIG.DRAWING_WIDTH - 120 * scale) / 2;
-        const offsetY = (DRAW_CONFIG.DRAWING_HEIGHT - 200 * scale) / 2;
+        // Make the drawing number 10% smaller
+        const drawingScale = scale * 0.9;
         
-        console.log('Drawing scaling:', { scale, offsetX, offsetY });
+        const offsetX = (DRAW_CONFIG.DRAWING_WIDTH - 120 * drawingScale) / 2;
+        const offsetY = (DRAW_CONFIG.DRAWING_HEIGHT - 200 * drawingScale) / 2;
+        
+        console.log('Drawing scaling:', { scale: drawingScale, offsetX, offsetY });
         
         return coordinates.map((coord, index) => {
-            const scaledX = offsetX + (coord.x * scale);
+            const scaledX = offsetX + (coord.x * drawingScale);
             // Flip Y coordinate: SVG Y increases downward, coordinates Y increases upward
-            const scaledY = offsetY + ((200 - coord.y) * scale);
+            const scaledY = offsetY + ((200 - coord.y) * drawingScale);
             
             // Log first few coordinates for debugging
             if (index < 3) {
@@ -292,6 +295,9 @@ class DrawNumberRenderer {
     }
 
     createReferenceNumber(strokes) {
+        // For multi-stroke numbers (4, 5), render all black outlines first
+        const allPathData = [];
+        
         strokes.forEach((stroke, strokeIndex) => {
             if (stroke.type === 'coordinates' && this.scaledReferenceCoords[strokeIndex]) {
                 const coords = this.scaledReferenceCoords[strokeIndex];
@@ -305,32 +311,41 @@ class DrawNumberRenderer {
                     }
                 });
                 
-                console.log(`Reference path data for stroke ${strokeIndex}:`, pathData.substring(0, 100) + '...');
-                
-                // Create black outline
-                const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                outlinePath.setAttribute('d', pathData);
-                outlinePath.setAttribute('stroke', DRAW_CONFIG.REFERENCE_OUTLINE_COLOR);
-                outlinePath.setAttribute('stroke-width', DRAW_CONFIG.REFERENCE_OUTLINE_WIDTH);
-                outlinePath.setAttribute('fill', 'none');
-                outlinePath.setAttribute('stroke-linecap', 'round');
-                outlinePath.setAttribute('stroke-linejoin', 'round');
-                this.referenceSvg.appendChild(outlinePath);
-                
-                // Create white interior
-                const interiorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                interiorPath.setAttribute('d', pathData);
-                interiorPath.setAttribute('stroke', 'white');
-                interiorPath.setAttribute('stroke-width', DRAW_CONFIG.REFERENCE_WHITE_WIDTH);
-                interiorPath.setAttribute('fill', 'none');
-                interiorPath.setAttribute('stroke-linecap', 'round');
-                interiorPath.setAttribute('stroke-linejoin', 'round');
-                this.referenceSvg.appendChild(interiorPath);
+                allPathData.push({ pathData, strokeIndex });
             }
+        });
+        
+        // First pass: Create all black outlines
+        allPathData.forEach(({ pathData, strokeIndex }) => {
+            console.log(`Reference path data for stroke ${strokeIndex}:`, pathData.substring(0, 100) + '...');
+            
+            const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            outlinePath.setAttribute('d', pathData);
+            outlinePath.setAttribute('stroke', DRAW_CONFIG.REFERENCE_OUTLINE_COLOR);
+            outlinePath.setAttribute('stroke-width', DRAW_CONFIG.REFERENCE_OUTLINE_WIDTH);
+            outlinePath.setAttribute('fill', 'none');
+            outlinePath.setAttribute('stroke-linecap', 'round');
+            outlinePath.setAttribute('stroke-linejoin', 'round');
+            this.referenceSvg.appendChild(outlinePath);
+        });
+        
+        // Second pass: Create all white interiors
+        allPathData.forEach(({ pathData, strokeIndex }) => {
+            const interiorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            interiorPath.setAttribute('d', pathData);
+            interiorPath.setAttribute('stroke', 'white');
+            interiorPath.setAttribute('stroke-width', DRAW_CONFIG.REFERENCE_WHITE_WIDTH);
+            interiorPath.setAttribute('fill', 'none');
+            interiorPath.setAttribute('stroke-linecap', 'round');
+            interiorPath.setAttribute('stroke-linejoin', 'round');
+            this.referenceSvg.appendChild(interiorPath);
         });
     }
 
     createDrawingTemplate(strokes) {
+        // For multi-stroke numbers (4, 5), render all grey outlines first
+        const allPathData = [];
+        
         strokes.forEach((stroke, strokeIndex) => {
             if (stroke.type === 'coordinates' && this.scaledDrawingCoords[strokeIndex]) {
                 const coords = this.scaledDrawingCoords[strokeIndex];
@@ -344,31 +359,58 @@ class DrawNumberRenderer {
                     }
                 });
                 
-                console.log(`Drawing path data for stroke ${strokeIndex}:`, pathData.substring(0, 100) + '...');
-                
-                // Create thick grey outline for drawing template
-                const templatePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                templatePath.setAttribute('d', pathData);
-                templatePath.setAttribute('stroke', DRAW_CONFIG.DRAWING_OUTLINE_COLOR);
-                templatePath.setAttribute('stroke-width', DRAW_CONFIG.DRAWING_OUTLINE_WIDTH);
-                templatePath.setAttribute('fill', 'none');
-                templatePath.setAttribute('stroke-linecap', 'round');
-                templatePath.setAttribute('stroke-linejoin', 'round');
-                templatePath.setAttribute('class', `template-outline-${strokeIndex}`);
-                this.drawingSvg.appendChild(templatePath);
-                
-                // Create large white interior for drawing area
-                const drawingAreaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                drawingAreaPath.setAttribute('d', pathData);
-                drawingAreaPath.setAttribute('stroke', 'white');
-                drawingAreaPath.setAttribute('stroke-width', DRAW_CONFIG.DRAWING_WHITE_WIDTH);
-                drawingAreaPath.setAttribute('fill', 'none');
-                drawingAreaPath.setAttribute('stroke-linecap', 'round');
-                drawingAreaPath.setAttribute('stroke-linejoin', 'round');
-                drawingAreaPath.setAttribute('class', `drawing-area-${strokeIndex}`);
-                this.drawingSvg.appendChild(drawingAreaPath);
+                allPathData.push({ pathData, strokeIndex });
             }
         });
+        
+        // First pass: Create all grey outlines
+        allPathData.forEach(({ pathData, strokeIndex }) => {
+            console.log(`Drawing path data for stroke ${strokeIndex}:`, pathData.substring(0, 100) + '...');
+            
+            const templatePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            templatePath.setAttribute('d', pathData);
+            templatePath.setAttribute('stroke', DRAW_CONFIG.DRAWING_OUTLINE_COLOR);
+            templatePath.setAttribute('stroke-width', DRAW_CONFIG.DRAWING_OUTLINE_WIDTH);
+            templatePath.setAttribute('fill', 'none');
+            templatePath.setAttribute('stroke-linecap', 'round');
+            templatePath.setAttribute('stroke-linejoin', 'round');
+            templatePath.setAttribute('class', `template-outline-${strokeIndex}`);
+            this.drawingSvg.appendChild(templatePath);
+        });
+        
+        // Second pass: Create all white interiors
+        allPathData.forEach(({ pathData, strokeIndex }) => {
+            const drawingAreaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            drawingAreaPath.setAttribute('d', pathData);
+            drawingAreaPath.setAttribute('stroke', 'white');
+            drawingAreaPath.setAttribute('stroke-width', DRAW_CONFIG.DRAWING_WHITE_WIDTH);
+            drawingAreaPath.setAttribute('fill', 'none');
+            drawingAreaPath.setAttribute('stroke-linecap', 'round');
+            drawingAreaPath.setAttribute('stroke-linejoin', 'round');
+            drawingAreaPath.setAttribute('class', `drawing-area-${strokeIndex}`);
+            this.drawingSvg.appendChild(drawingAreaPath);
+        });
+        
+        // Start grey outline pulsing
+        this.startGreyOutlinePulsing();
+    }
+
+    startGreyOutlinePulsing() {
+        // Clear any existing pulse interval
+        if (this.pulseInterval) {
+            clearInterval(this.pulseInterval);
+        }
+        
+        // Pulse every 5 seconds
+        this.pulseInterval = setInterval(() => {
+            const greyOutlines = this.drawingSvg.querySelectorAll('[class*="template-outline"]');
+            greyOutlines.forEach(outline => {
+                outline.style.opacity = '0';
+                setTimeout(() => {
+                    outline.style.opacity = '1';
+                }, 200); // Brief 200ms disappearance
+            });
+        }, 5000);
     }
 
     setupDrawingEvents() {
@@ -401,10 +443,14 @@ class DrawNumberRenderer {
             this.pencilIcon.style.opacity = '0';
         }
         
+        // Create large drawing cursor
+        this.createDrawingCursor();
+        
         const point = this.getEventPoint(event, this.drawingSvg);
         if (point) {
             this.currentDrawnPath.push(point);
             this.createNewDrawnPath();
+            this.updateDrawingCursor(event);
         }
     }
 
@@ -417,6 +463,7 @@ class DrawNumberRenderer {
             this.currentDrawnPath.push(point);
             this.updateCurrentDrawnPath();
             this.checkDrawingProgress(point);
+            this.updateDrawingCursor(event);
         }
     }
 
@@ -425,6 +472,9 @@ class DrawNumberRenderer {
         
         this.isDrawing = false;
         
+        // Remove drawing cursor
+        this.removeDrawingCursor();
+        
         if (this.currentDrawnPath.length > 0) {
             this.userDrawnPaths.push([...this.currentDrawnPath]);
             this.currentDrawnPath = [];
@@ -432,6 +482,44 @@ class DrawNumberRenderer {
         
         // Check if drawing is complete
         this.checkDrawingCompletion();
+    }
+
+    createDrawingCursor() {
+        this.drawingCursor = document.createElement('i');
+        this.drawingCursor.className = 'fa-solid fa-pencil drawing-cursor';
+        this.drawingCursor.style.position = 'fixed';
+        this.drawingCursor.style.fontSize = '96px'; // 4x larger than 24px
+        this.drawingCursor.style.color = '#DAA520'; // Dull yellow
+        this.drawingCursor.style.pointerEvents = 'none';
+        this.drawingCursor.style.zIndex = '1000';
+        this.drawingCursor.style.transform = 'translate(-50%, -50%) rotate(45deg)';
+        this.drawingCursor.style.filter = 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))';
+        
+        document.body.appendChild(this.drawingCursor);
+    }
+
+    updateDrawingCursor(event) {
+        if (!this.drawingCursor) return;
+        
+        let clientX, clientY;
+        if (event.type.startsWith('touch')) {
+            if (event.touches.length === 0) return;
+            clientX = event.touches[0].clientX;
+            clientY = event.touches[0].clientY;
+        } else {
+            clientX = event.clientX;
+            clientY = event.clientY;
+        }
+        
+        this.drawingCursor.style.left = clientX + 'px';
+        this.drawingCursor.style.top = clientY + 'px';
+    }
+
+    removeDrawingCursor() {
+        if (this.drawingCursor) {
+            this.drawingCursor.remove();
+            this.drawingCursor = null;
+        }
     }
 
     getEventPoint(event, svg) {
@@ -576,6 +664,15 @@ class DrawNumberRenderer {
         this.coveredPoints.clear();
         this.isDrawing = false;
         
+        // Clear pulse interval
+        if (this.pulseInterval) {
+            clearInterval(this.pulseInterval);
+            this.pulseInterval = null;
+        }
+        
+        // Remove drawing cursor
+        this.removeDrawingCursor();
+        
         if (this.referenceSvg && this.drawingSvg) {
             this.clearSVGs();
         }
@@ -591,6 +688,16 @@ class DrawNumberRenderer {
             window.removeEventListener('resize', this.handleResize);
             this.handleResize = null;
         }
+        
+        // Clear pulse interval
+        if (this.pulseInterval) {
+            clearInterval(this.pulseInterval);
+            this.pulseInterval = null;
+        }
+        
+        // Remove drawing cursor
+        this.removeDrawingCursor();
+        
         this.reset();
     }
 }
