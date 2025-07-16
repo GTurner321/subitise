@@ -126,7 +126,7 @@ body {
 }
 
 /* Falling number animations */
-.falling-number-static {
+.falling-number-group {
     animation: numberFall 0.8s ease-in-out;
 }
 
@@ -417,7 +417,7 @@ body {
         animation: none;
     }
     
-    .falling-number-static {
+    .falling-number-group {
         animation: none;
     }
     
