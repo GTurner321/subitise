@@ -1,31 +1,153 @@
-// Evaluate performance (only count user-popped balloons)
-        const success = this.correctBalloonsPopped >= BALLOON_CONFIG.MIN_CORRECT_BALLOONS && 
-                       this.incorrectBalloonsPopped <= BALLOON_CONFIG.MAX_INCORRECT_BALLOONS;
+class BalloonGameController {
+    constructor() {
+        // Make config available globally for shared Rainbow and Bear classes
+        window.CONFIG = BALLOON_CONFIG;
         
-        // Always add rainbow piece for encouragement
-        this.totalQuestionsCompleted++;
-        this.rainbow.addPiece();
+        this.svg = null;
+        this.rainbow = new Rainbow();
+        this.bear = new Bear();
         
-        // Update level progress for internal tracking
-        if (success) {
-            this.levelProgress[this.currentLevel]++;
+        // Game state
+        this.currentLevel = 1;
+        this.levelProgress = {}; // Track progress for each level
+        this.usedNumbers = new Set(); // Track used numbers in current session
+        this.targetNumber = null;
+        this.questionCount = 0;
+        
+        // Balloon management
+        this.balloons = [];
+        this.fallingNumbers = [];
+        this.balloonsSpawned = 0;
+        this.animationId = null;
+        this.lastTime = 0;
+        this.gameActive = false;
+        
+        // Score tracking (only count user-popped balloons)
+        this.correctBalloonsPopped = 0; // User popped correct balloons
+        this.incorrectBalloonsPopped = 0; // User popped incorrect balloons
+        this.totalCorrectBalloons = 0; // Total correct balloons in game
+        this.totalQuestionsCompleted = 0; // Track total questions for rainbow
+        this.correctBalloonsCeilingHit = 0; // Correct balloons that hit ceiling
+        
+        // Audio
+        this.audioContext = null;
+        this.audioEnabled = BALLOON_CONFIG.AUDIO_ENABLED;
+        this.muteButton = null;
+        this.muteContainer = null;
+        
+        // DOM elements
+        this.container = document.getElementById('balloonContainer');
+        this.modal = document.getElementById('gameModal');
+        this.modalTitle = document.getElementById('modalTitle');
+        this.modalMessage = document.getElementById('modalMessage');
+        this.playAgainBtn = document.getElementById('playAgainBtn');
+        
+        this.handleResize = this.handleResize.bind(this);
+        
+        this.initializeGame();
+    }
+    
+    async initializeGame() {
+        window.addEventListener('resize', this.handleResize);
+        await this.initializeAudio();
+        this.initializeRainbow();
+        this.createMuteButton();
+        this.setupEventListeners();
+        this.createSVG();
+        this.createTrafficLight();
+        this.loadGameState();
+        this.startNewQuestion();
+    }
+    
+    initializeRainbow() {
+        // Rainbow will auto-initialize using the global CONFIG we set
+        // No need to override its initialization
+    }
+    
+    async initializeAudio() {
+        if (!this.audioEnabled) return;
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (error) {
+            this.audioEnabled = false;
+        }
+    }
+    
+    createMuteButton() {
+        const muteContainer = document.createElement('div');
+        muteContainer.style.position = 'fixed';
+        muteContainer.style.bottom = '20px'; // Changed from top to bottom
+        muteContainer.style.right = '20px';
+        muteContainer.style.zIndex = '1000';
+        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        muteContainer.style.borderRadius = '50%';
+        muteContainer.style.width = '60px';
+        muteContainer.style.height = '60px';
+        muteContainer.style.display = 'flex';
+        muteContainer.style.alignItems = 'center';
+        muteContainer.style.justifyContent = 'center';
+        muteContainer.style.cursor = 'pointer';
+        muteContainer.style.transition = 'all 0.3s ease';
+        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        
+        this.muteButton = document.createElement('button');
+        this.muteButton.style.background = 'none';
+        this.muteButton.style.border = 'none';
+        this.muteButton.style.color = 'white';
+        this.muteButton.style.fontSize = '24px';
+        this.muteButton.style.cursor = 'pointer';
+        this.muteButton.style.width = '100%';
+        this.muteButton.style.height = '100%';
+        this.muteButton.style.display = 'flex';
+        this.muteButton.style.alignItems = 'center';
+        this.muteButton.style.justifyContent = 'center';
+        
+        this.updateMuteButtonIcon();
+        
+        this.muteButton.addEventListener('click', () => this.toggleAudio());
+        this.muteButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.toggleAudio();
+        });
+        
+        muteContainer.addEventListener('mouseenter', () => {
+            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            muteContainer.style.transform = 'scale(1.1)';
+        });
+        
+        muteContainer.addEventListener('mouseleave', () => {
+            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            muteContainer.style.transform = 'scale(1)';
+        });
+        
+        muteContainer.appendChild(this.muteButton);
+        document.body.appendChild(muteContainer);
+        this.muteContainer = muteContainer;
+    }
+    
+    updateMuteButtonIcon() {
+        if (this.muteButton) {
+            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
+            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
+        }
+    }
+    
+    toggleAudio() {
+        this.audioEnabled = !this.audioEnabled;
+        this.updateMuteButtonIcon();
+        
+        if ('speechSynthesis' in window) {
+            speechSynthesis.cancel();
         }
         
-        // Save state
-        this.saveGameState();
-        
-        // Give audio feedback
-        this.giveQuestionFeedback(success);
-        
-        // Check if game should end (10 questions completed)
-        setTimeout(() => {
-            if (this.totalQuestionsCompleted >= 10) {
-                this.showGameCompleteModal();
-            } else {
-                this.checkLevelProgression(success);
-            }
-        }, 2000);
-    }    createTrafficLight() {
+        if (this.audioEnabled) {
+            setTimeout(() => {
+                this.speakText('Audio enabled');
+            }, 100);
+        }
+    }
+
+createTrafficLight() {
         const trafficLight = document.createElement('div');
         trafficLight.id = 'trafficLight';
         trafficLight.style.position = 'fixed';
