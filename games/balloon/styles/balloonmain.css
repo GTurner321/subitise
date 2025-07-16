@@ -99,46 +99,7 @@ body {
     -ms-user-select: none;
 }
 
-/* Game info display - positioned at top */
-.game-info-container {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 15;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.target-number {
-    background: linear-gradient(135deg, #4caf50, #45a049);
-    color: white;
-    padding: 15px 30px;
-    border-radius: 25px;
-    font-size: 2rem;
-    font-weight: bold;
-    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-    text-align: center;
-    min-width: 180px;
-}
-
-.progress-info, .level-info {
-    background: rgba(255, 255, 255, 0.9);
-    color: #333;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 1rem;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    text-align: center;
-}
-
-.level-info {
-    background: linear-gradient(135deg, #2196F3, #1976D2);
-    color: white;
-}
+/* Game info display - REMOVED */
 
 /* Balloon elements */
 .balloon-group {
@@ -177,7 +138,6 @@ body {
     50% { 
         transform: scale(1.2); 
         opacity: 0.9; 
-        filter: drop-shadow(0 0 15px rgba(76, 175, 80, 0.8));
     }
     100% {
         transform: scale(1);
@@ -185,7 +145,7 @@ body {
     }
 }
 
-/* Pop effect animation */
+/* Pop effect animation - REMOVED star circling effect */
 .pop-star {
     animation: popEffect 0.6s ease-out forwards;
     transform-origin: center;
@@ -392,10 +352,7 @@ body {
         font-size: 1.3rem;
         padding: 12px 24px;
     }
-    
-    .game-info-container {
-        top: 80px; /* Make room for back button on mobile */
-    }
+}
 }
 
 @media (max-width: 480px) {
@@ -443,21 +400,13 @@ body {
         padding: 8px 16px;
         font-size: 0.9rem;
     }
-    
-    .game-info-container {
-        top: 70px;
-        gap: 8px;
-    }
+}
 }
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
     .balloon-container {
         border: 3px solid #000;
-    }
-    
-    .target-number, .progress-info, .level-info {
-        border: 2px solid #000;
     }
     
     .balloon-group circle {
@@ -467,10 +416,6 @@ body {
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-    .target-number, .progress-info, .level-info {
-        transition: none;
-    }
-    
     .balloon-group {
         transition: none;
     }
@@ -514,8 +459,7 @@ body {
     .back-button,
     .modal,
     .rainbow-container,
-    .grass-band,
-    .game-info-container {
+    .grass-band {
         display: none;
     }
     
