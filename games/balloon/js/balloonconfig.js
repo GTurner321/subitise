@@ -1,10 +1,10 @@
 const BALLOON_CONFIG = {
-    // Game dimensions
+    // Game dimensions - full height now
     get SVG_WIDTH() {
         return window.innerWidth;
     },
     get SVG_HEIGHT() {
-        return window.innerHeight - 80; // Minus grass band height
+        return window.innerHeight; // Full height, no grass deduction
     },
     
     // Rainbow settings (for shared rainbow.js compatibility)
@@ -47,18 +47,18 @@ const BALLOON_CONFIG = {
     },
     
     // Balloon settings
-    TOTAL_BALLOONS: 34, // Reduced from 40 to 34 (10 correct + 24 incorrect)
-    CORRECT_BALLOONS: 10,
-    INCORRECT_BALLOONS: 24, // Reduced from 30 to 24
+    TOTAL_BALLOONS: 28, // Reduced to 8 correct + 20 incorrect
+    CORRECT_BALLOONS: 8, // Reduced from 10 to 8
+    INCORRECT_BALLOONS: 20, // Reduced from 24 to 20
     
     // Success criteria
-    MIN_CORRECT_BALLOONS: 8,
-    MAX_INCORRECT_BALLOONS: 4,
+    MIN_CORRECT_BALLOONS: 6, // Reduced from 8 to 6
+    MAX_INCORRECT_BALLOONS: 4, // Remains 4
     
     // Balloon physics
     BALLOON_RADIUS: 43, // Reduced from 54 to 43 (20% smaller)
-    BALLOON_RISE_SPEED_MIN: 12, // Reduced from 15 to 12
-    BALLOON_RISE_SPEED_MAX: 20, // Reduced from 25 to 20
+    BALLOON_RISE_SPEED_MIN: 8, // Reduced from 12 to 8
+    BALLOON_RISE_SPEED_MAX: 15, // Reduced from 20 to 15
     BALLOON_SIDEWAYS_SPEED_MIN: 15, // Reduced from 20 to 15
     BALLOON_SIDEWAYS_SPEED_MAX: 35, // Reduced from 50 to 35
     
