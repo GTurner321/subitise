@@ -239,9 +239,9 @@ class DrawNumberRenderer {
             return [];
         }
         
-        // Use same scaling system as trace game - SAME scale for both X and Y
+        // Make reference number 100% larger
         const minDimension = Math.min(DRAW_CONFIG.REFERENCE_WIDTH, DRAW_CONFIG.REFERENCE_HEIGHT);
-        const scale = minDimension / 250;  // Use 250 to allow for taller rendering
+        const scale = (minDimension / 250) * 2.0; // 100% larger
         
         const offsetX = (DRAW_CONFIG.REFERENCE_WIDTH - 120 * scale) / 2;
         const offsetY = (DRAW_CONFIG.REFERENCE_HEIGHT - 200 * scale) / 2;
@@ -270,10 +270,10 @@ class DrawNumberRenderer {
         
         // Use same scaling system as trace game - SAME scale for both X and Y
         const minDimension = Math.min(DRAW_CONFIG.DRAWING_WIDTH, DRAW_CONFIG.DRAWING_HEIGHT);
-        const scale = minDimension / 250;  // Use 250 to allow for taller rendering
+        const scale = minDimension / 250;
         
-        // Make the drawing number 10% smaller
-        const drawingScale = scale * 0.9;
+        // Make the drawing number 15% bigger to compensate for thinner lines
+        const drawingScale = scale * 1.15;
         
         const offsetX = (DRAW_CONFIG.DRAWING_WIDTH - 120 * drawingScale) / 2;
         const offsetY = (DRAW_CONFIG.DRAWING_HEIGHT - 200 * drawingScale) / 2;
@@ -511,8 +511,14 @@ class DrawNumberRenderer {
             clientY = event.clientY;
         }
         
-        this.drawingCursor.style.left = clientX + 'px';
-        this.drawingCursor.style.top = clientY + 'px';
+        // Position the pencil tip (bottom-left of icon) at the touch point
+        // The pencil is rotated 45 degrees, so we need to offset accordingly
+        // For a 96px icon rotated 45 degrees, the tip is roughly at (-34, 34) from center
+        const pencilTipOffsetX = -34;
+        const pencilTipOffsetY = 34;
+        
+        this.drawingCursor.style.left = (clientX - pencilTipOffsetX) + 'px';
+        this.drawingCursor.style.top = (clientY - pencilTipOffsetY) + 'px';
     }
 
     removeDrawingCursor() {
