@@ -280,12 +280,17 @@
     }
     
     .drawing-container {
-        min-height: 400px;
+        min-height: 500px;
+        max-width: 90%;
     }
     
     .reference-number {
-        height: 300px;
-        width: 200px;
+        height: 350px;
+        width: 300px;
+    }
+    
+    .drawing-canvas {
+        min-height: 500px;
     }
 }
 
@@ -309,7 +314,12 @@
     }
     
     .drawing-cursor {
-        font-size: 72px; /* Smaller on mobile */
+        width: 30px;
+        height: 120px; /* Smaller on mobile */
+    }
+    
+    .drawing-canvas {
+        min-height: 400px;
     }
 }
 
@@ -333,8 +343,8 @@
     }
     
     .reference-number {
-        height: 250px;
-        width: 180px;
+        height: 300px;
+        width: 250px;
     }
     
     .drawing-container {
@@ -347,7 +357,12 @@
     }
     
     .drawing-cursor {
-        font-size: 64px; /* Even smaller on very small screens */
+        width: 25px;
+        height: 100px; /* Even smaller on very small screens */
+    }
+    
+    .drawing-canvas {
+        min-height: 350px;
     }
 }
 
