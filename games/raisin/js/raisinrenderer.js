@@ -1,40 +1,4 @@
-eatRaisin(raisinIndex) {
-        const raisinElement = this.raisinElements[raisinIndex];
-        if (raisinElement && !raisinElement.classList.contains('eaten')) {
-            raisinElement.classList.add('eaten');
-            
-            // Remove from DOM after animation (no visual "nom" effect)
-            setTimeout(() => {
-                if (raisinElement.parentNode) {
-                    raisinElement.parentNode.removeChild(raisinElement);
-                }
-            }, 800);
-        }
-    }
-    
-    playPatSound() {
-        // Simple pat sound - short, quiet beep
-        if (window.raisinGame && window.raisinGame.audioContext && window.raisinGame.audioEnabled) {
-            try {
-                const oscillator = window.raisinGame.audioContext.createOscillator();
-                const gainNode = window.raisinGame.audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(window.raisinGame.audioContext.destination);
-                
-                oscillator.frequency.setValueAtTime(800, window.raisinGame.audioContext.currentTime);
-                oscillator.type = 'square';
-                
-                gainNode.gain.setValueAtTime(0.1, window.raisinGame.audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, window.raisinGame.audioContext.currentTime + 0.1);
-                
-                oscillator.start(window.raisinGame.audioContext.currentTime);
-                oscillator.stop(window.raisinGame.audioContext.currentTime + 0.1);
-            } catch (error) {
-                // Silent failure
-            }
-        }
-    }class RaisinRenderer {
+class RaisinRenderer {
     constructor() {
         this.gameArea = document.querySelector('.game-area');
         this.raisins = [];
@@ -403,7 +367,7 @@ eatRaisin(raisinIndex) {
         }, checkInterval);
     }
     
-    eatRaisin(raisinIndex, raisinRect) {
+    eatRaisin(raisinIndex) {
         const raisinElement = this.raisinElements[raisinIndex];
         if (raisinElement && !raisinElement.classList.contains('eaten')) {
             raisinElement.classList.add('eaten');
@@ -417,8 +381,28 @@ eatRaisin(raisinIndex) {
         }
     }
     
-    addNomEffect(raisinRect) {
-        // Remove this method - no visual nom effects
+    playPatSound() {
+        // Simple pat sound - short, quiet beep
+        if (window.raisinGame && window.raisinGame.audioContext && window.raisinGame.audioEnabled) {
+            try {
+                const oscillator = window.raisinGame.audioContext.createOscillator();
+                const gainNode = window.raisinGame.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(window.raisinGame.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, window.raisinGame.audioContext.currentTime);
+                oscillator.type = 'square';
+                
+                gainNode.gain.setValueAtTime(0.1, window.raisinGame.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, window.raisinGame.audioContext.currentTime + 0.1);
+                
+                oscillator.start(window.raisinGame.audioContext.currentTime);
+                oscillator.stop(window.raisinGame.audioContext.currentTime + 0.1);
+            } catch (error) {
+                // Silent failure
+            }
+        }
     }
     
     reset() {
@@ -431,9 +415,11 @@ eatRaisin(raisinIndex) {
         this.guineaPig3.style.transition = '';
         this.showGuineaPig3();
         
-        // Reset guinea pig positions
+        // Reset guinea pig positions properly
         this.guineaPig2.style.left = '-25%';
+        this.guineaPig2.style.right = 'auto';
         this.guineaPig1.style.right = '-25%';
+        this.guineaPig1.style.left = 'auto';
         
         // Clear any remaining nom effects
         const nomEffects = this.gameArea.querySelectorAll('.nom-effect');
