@@ -1,439 +1,4 @@
-/* Drawing container (right side) - no visible box, taller and larger */
-.drawing-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    max-width: 650px;
-    height: 100%;
-    position: relative;
-}
-
-.drawing-canvas {
-    flex: 1;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: crosshair;
-    touch-action: none; /* Prevent scrolling while drawing */
-    position: relative;
-    min-height: 500px; /* Taller canvas */
-}
-
-/* Reference number - taller */
-.reference-number {
-    width: 250px;
-    height: 375px; /* 50% taller */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.reference-svg {
-    width: 100%;
-    height: 100%;
-    max-width: 250px;
-    max-height: 375px;
-    pointer-events: none; /* Remove any hover effects */
-}
-
-/* Drawing container (right side) - no visible box, taller and larger */
-.drawing-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    max-width: 650px;
-    height: 100%;
-    position: relative;
-}
-
-.drawing-canvas {
-    flex: 1;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: crosshair;
-    touch-action: none; /* Prevent scrolling while drawing */
-    position: relative;
-    min-height: 500px; /* Taller canvas */
-}
-
-.drawing-svg {
-    width: 100%;
-    height: 100%;
-    cursor: crosshair;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    pointer-events: auto; /* Allow drawing events */
-}
-
-/* Pencil icon */
-.pencil-icon {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    font-size: 24px;
-    color: #666;
-    opacity: 0.7;
-    pointer-events: none;
-    z-index: 10;
-    transition: opacity 0.3s ease;
-}
-
-/* Large drawing cursor */
-.drawing-cursor {
-    position: fixed;
-    font-size: 96px; /* 4x larger */
-    color: #DAA520; /* Dull yellow */
-    pointer-events: none;
-    z-index: 1000;
-    transform: translate(-50%, -50%) rotate(45deg);
-    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
-}
-
-/* Undo button */
-.undo-button {
-    position: absolute;
-    top: 20px;
-    right: 80px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.undo-button:hover {
-    background: rgba(0, 0, 0, 0.9);
-    transform: scale(1.1);
-}
-
-.undo-button:focus {
-    outline: 3px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
-}
-
-/* Remove next button styles since it's no longer needed */
-
-/* SVG drawing styles */
-.user-drawn-path {
-    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-/* Game completion modal styling */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    transition: opacity 0.3s ease;
-}
-
-.modal.hidden {
-    display: none;
-}
-
-.modal-content {
-    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-    padding: 40px;
-    border-radius: 20px;
-    text-align: center;
-    animation: modalAppear 0.5s ease;
-    z-index: 1001;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-}
-
-@keyframes modalAppear {
-    from { 
-        opacity: 0; 
-        transform: scale(0.5) translateY(-50px); 
-    }
-    to { 
-        opacity: 1; 
-        transform: scale(1) translateY(0); 
-    }
-}
-
-.modal h2 {
-    color: white;
-    font-size: 3rem;
-    margin-bottom: 15px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    animation: titleBounce 1s ease infinite;
-}
-
-@keyframes titleBounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-5px);
-    }
-}
-
-.modal p {
-    color: white;
-    font-size: 1.2rem;
-    margin-bottom: 20px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-}
-
-.play-again-btn {
-    background: #4caf50;
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    font-size: 1.5rem;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 0 auto;
-}
-
-.play-again-btn:hover {
-    background: #45a049;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.5);
-}
-
-.play-again-btn:active {
-    transform: translateY(0);
-}
-
-.play-again-btn i {
-    font-size: 1.2rem;
-}
-
-/* Back button styling */
-.back-button {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    text-decoration: none;
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-size: 1rem;
-    font-weight: bold;
-    z-index: 1000;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.back-button:hover {
-    background: rgba(0, 0, 0, 0.9);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
-}
-
-/* Focus states for accessibility */
-.play-again-btn:focus,
-.back-button:focus {
-    outline: 3px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
-}
-
-/* Responsive design */
-@media (max-width: 1024px) {
-    .draw-area {
-        flex-direction: column;
-        gap: 30px;
-        padding: 10px;
-        height: 80%;
-    }
-    
-    .reference-container,
-    .drawing-container {
-        max-width: 90%;
-        width: 100%;
-    }
-    
-    .drawing-container {
-        min-height: 500px;
-        max-width: 90%;
-    }
-    
-    .reference-number {
-        height: 350px;
-        width: 300px;
-    }
-    
-    .drawing-canvas {
-        min-height: 500px;
-    }
-}
-
-@media (max-width: 768px) {
-    .game-area {
-        padding: 10px;
-    }
-    
-    .modal h2 {
-        font-size: 2.5rem;
-    }
-    
-    .play-again-btn {
-        font-size: 1.3rem;
-        padding: 12px 24px;
-    }
-    
-    .draw-area {
-        gap: 20px;
-        height: 75%;
-    }
-    
-    .drawing-cursor {
-        width: 30px;
-        height: 120px; /* Smaller on mobile */
-    }
-    
-    .drawing-canvas {
-        min-height: 400px;
-    }
-}
-
-@media (max-width: 480px) {
-    .game-area {
-        padding: 5px;
-    }
-    
-    .modal-content {
-        padding: 30px 20px;
-        margin: 0 10px;
-    }
-    
-    .modal h2 {
-        font-size: 2rem;
-    }
-    
-    .play-again-btn {
-        font-size: 1.2rem;
-        padding: 10px 20px;
-    }
-    
-    .reference-number {
-        height: 300px;
-        width: 250px;
-    }
-    
-    .drawing-container {
-        min-height: 350px;
-    }
-    
-    .draw-area {
-        gap: 15px;
-        height: 70%;
-    }
-    
-    .drawing-cursor {
-        width: 25px;
-        height: 100px; /* Even smaller on very small screens */
-    }
-    
-    .drawing-canvas {
-        min-height: 350px;
-    }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    .drawing-canvas {
-        border: 2px solid #000;
-    }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    .modal-content {
-        animation: none;
-    }
-    
-    .modal h2 {
-        animation: none;
-    }
-    
-    .play-again-btn,
-    .back-button {
-        transition: background-color 0.2s ease;
-    }
-    
-    .play-again-btn:hover,
-    .back-button:hover {
-        transform: none;
-    }
-    
-    .pencil-icon {
-        transition: none;
-    }
-    
-    .drawing-cursor {
-        filter: none;
-    }
-}
-
-/* Touch device optimizations */
-@media (hover: none) {
-    .play-again-btn {
-        padding: 14px 28px; /* Larger touch targets */
-    }
-    
-    .drawing-canvas {
-        /* Ensure good touch response */
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        -khtml-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-    }
-}
-
-/* Custom cursor for drawing */
-.drawing-svg {
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewport='0 0 20 20'><circle cx='10' cy='10' r='2' fill='%234CAF50'/></svg>") 10 10, crosshair;
-}
-
-/* Drawing success animation */
-@keyframes drawingSuccess {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-.drawing-success {
-    animation: drawingSuccess 0.3s ease-in-out;
-}/* Enhanced Number Drawing Game Styles - Clean Layout */
+/* Enhanced Number Drawing Game Styles - Clean Layout */
 
 /* Reset and base styles */
 * {
@@ -475,32 +40,32 @@ body {
     pointer-events: none;
 }
 
-/* Draw area container - make much larger to accommodate bigger drawing area */
+/* Draw area container - enhanced for larger drawing area */
 .draw-area {
     display: flex;
     width: 100%;
-    height: 85%; /* Increased height */
+    height: 85%;
     gap: 40px;
     align-items: center;
     justify-content: center;
     z-index: 10;
-    max-width: none; /* Remove width constraint */
+    max-width: none;
 }
 
-/* Reference container (left side) - no visible box, no hover effects */
+/* Reference container (left side) - enhanced for 20% taller container */
 .reference-container {
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    max-width: 300px;
+    max-width: 350px;
     height: 100%;
 }
 
 .reference-number {
-    width: 250px;
-    height: 250px;
+    width: 300px;
+    height: 360px; /* 20% taller: 300 * 1.2 = 360 */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -509,19 +74,19 @@ body {
 .reference-svg {
     width: 100%;
     height: 100%;
-    max-width: 250px;
-    max-height: 250px;
-    pointer-events: none; /* Remove any hover effects */
+    max-width: 300px;
+    max-height: 360px; /* 20% taller */
+    pointer-events: none;
 }
 
-/* Drawing container (right side) - no visible box, larger size */
+/* Drawing container (right side) - enhanced for larger drawing area */
 .drawing-container {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    max-width: 600px;
+    max-width: 650px;
     height: 100%;
     position: relative;
 }
@@ -533,9 +98,9 @@ body {
     align-items: center;
     justify-content: center;
     cursor: crosshair;
-    touch-action: none; /* Prevent scrolling while drawing */
+    touch-action: none;
     position: relative;
-    min-height: 450px;
+    min-height: 500px;
 }
 
 .drawing-svg {
@@ -546,20 +111,20 @@ body {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    pointer-events: auto; /* Allow drawing events */
+    pointer-events: auto;
 }
 
-/* Pencil icon */
-.pencil-icon {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    font-size: 24px;
-    color: #666;
-    opacity: 0.7;
-    pointer-events: none;
-    z-index: 10;
-    transition: opacity 0.3s ease;
+/* Enhanced button styling - consolidated */
+.undo-button,
+.next-btn,
+.play-again-btn {
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Undo button */
@@ -572,15 +137,9 @@ body {
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.7);
     color: white;
-    border: none;
     font-size: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .undo-button:hover {
@@ -588,26 +147,15 @@ body {
     transform: scale(1.1);
 }
 
-.undo-button:focus {
-    outline: 3px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
-}
-
 /* Next button */
 .next-btn {
     background: linear-gradient(135deg, #4caf50, #45a049);
     color: white;
-    border: none;
     padding: 12px 24px;
     font-size: 1.2rem;
     border-radius: 25px;
-    cursor: pointer;
-    font-weight: bold;
     box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-    transition: all 0.3s ease;
     margin-top: 20px;
-    display: flex;
-    align-items: center;
     gap: 8px;
 }
 
@@ -625,21 +173,32 @@ body {
     display: none;
 }
 
-/* Number word display - REMOVED */
+/* Pencil icon */
+.pencil-icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 24px;
+    color: #666;
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 10;
+    transition: opacity 0.3s ease;
+}
 
 /* SVG drawing styles */
 .user-drawn-path {
     filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
 }
 
-/* Game completion modal styling */
+/* Enhanced modal styling - transparent background as requested */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: transparent; /* Changed from rgba(0, 0, 0, 0.8) to transparent */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -696,19 +255,14 @@ body {
     text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
+/* Play again button */
 .play-again-btn {
     background: #4caf50;
     color: white;
-    border: none;
     padding: 15px 30px;
     font-size: 1.5rem;
     border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
     box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
     gap: 10px;
     margin: 0 auto;
 }
@@ -753,7 +307,8 @@ body {
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
 }
 
-/* Focus states for accessibility */
+/* Focus states for accessibility - consolidated */
+.undo-button:focus,
 .next-btn:focus,
 .play-again-btn:focus,
 .back-button:focus {
@@ -761,7 +316,23 @@ body {
     outline-offset: 2px;
 }
 
-/* Responsive design */
+/* Custom cursor for drawing */
+.drawing-svg {
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewport='0 0 20 20'><circle cx='10' cy='10' r='2' fill='%234CAF50'/></svg>") 10 10, crosshair;
+}
+
+/* Drawing success animation */
+@keyframes drawingSuccess {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.drawing-success {
+    animation: drawingSuccess 0.3s ease-in-out;
+}
+
+/* Responsive design - consolidated breakpoints */
 @media (max-width: 1024px) {
     .draw-area {
         flex-direction: column;
@@ -777,23 +348,23 @@ body {
     }
     
     .drawing-container {
-        min-height: 300px;
+        min-height: 400px;
     }
     
     .reference-number {
-        height: 200px;
+        height: 280px; /* Proportionally smaller but still 20% taller than base */
         width: 250px;
+    }
+    
+    .reference-svg {
+        max-height: 280px;
+        max-width: 250px;
     }
 }
 
 @media (max-width: 768px) {
     .game-area {
         padding: 10px;
-    }
-    
-    .number-word {
-        font-size: 1.8rem;
-        padding: 12px 24px;
     }
     
     .modal h2 {
@@ -814,16 +385,25 @@ body {
         gap: 20px;
         height: 75%;
     }
+    
+    .drawing-canvas {
+        min-height: 350px;
+    }
+    
+    .reference-number {
+        height: 240px;
+        width: 200px;
+    }
+    
+    .reference-svg {
+        max-height: 240px;
+        max-width: 200px;
+    }
 }
 
 @media (max-width: 480px) {
     .game-area {
         padding: 5px;
-    }
-    
-    .number-word {
-        font-size: 1.5rem;
-        padding: 10px 20px;
     }
     
     .modal-content {
@@ -841,12 +421,17 @@ body {
     }
     
     .reference-number {
-        height: 180px;
-        width: 220px;
+        height: 200px;
+        width: 180px;
+    }
+    
+    .reference-svg {
+        max-height: 200px;
+        max-width: 180px;
     }
     
     .drawing-container {
-        min-height: 250px;
+        min-height: 300px;
     }
     
     .next-btn {
@@ -858,14 +443,14 @@ body {
         gap: 15px;
         height: 70%;
     }
+    
+    .drawing-canvas {
+        min-height: 300px;
+    }
 }
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
-    .number-word {
-        border: 2px solid #000;
-    }
-    
     .drawing-canvas {
         border: 2px solid #000;
     }
@@ -873,15 +458,6 @@ body {
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-    .number-word {
-        transition: opacity 0.3s ease;
-        transform: none;
-    }
-    
-    .number-word.visible {
-        transform: none;
-    }
-    
     .modal-content {
         animation: none;
     }
@@ -890,12 +466,14 @@ body {
         animation: none;
     }
     
+    .undo-button,
     .next-btn,
     .play-again-btn,
     .back-button {
         transition: background-color 0.2s ease;
     }
     
+    .undo-button:hover,
     .next-btn:hover,
     .play-again-btn:hover,
     .back-button:hover {
@@ -905,6 +483,10 @@ body {
     .pencil-icon {
         transition: none;
     }
+    
+    .drawing-success {
+        animation: none;
+    }
 }
 
 /* Touch device optimizations */
@@ -915,7 +497,6 @@ body {
     }
     
     .drawing-canvas {
-        /* Ensure good touch response */
         -webkit-touch-callout: none;
         -webkit-user-select: none;
         -khtml-user-select: none;
@@ -925,309 +506,7 @@ body {
     }
 }
 
-/* Custom cursor for drawing */
-.drawing-svg {
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewport='0 0 20 20'><circle cx='10' cy='10' r='2' fill='%234CAF50'/></svg>") 10 10, crosshair;
-}
-
-/* Drawing success animation */
-@keyframes drawingSuccess {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-.drawing-success {
-    animation: drawingSuccess 0.3s ease-in-out;
-}
-}
-
-.play-again-btn {
-    background: #4caf50;
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    font-size: 1.5rem;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 0 auto;
-}
-
-.play-again-btn:hover {
-    background: #45a049;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.5);
-}
-
-.play-again-btn:active {
-    transform: translateY(0);
-}
-
-.play-again-btn i {
-    font-size: 1.2rem;
-}
-
-/* Back button styling */
-.back-button {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    text-decoration: none;
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-size: 1rem;
-    font-weight: bold;
-    z-index: 1000;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.back-button:hover {
-    background: rgba(0, 0, 0, 0.9);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
-}
-
-/* Focus states for accessibility */
-.next-btn:focus,
-.play-again-btn:focus,
-.back-button:focus {
-    outline: 3px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
-}
-
-/* Responsive design */
-@media (max-width: 1024px) {
-    .draw-area {
-        flex-direction: column;
-        gap: 20px;
-        padding: 10px;
-    }
-    
-    .reference-container,
-    .drawing-container {
-        max-width: 90%;
-        width: 100%;
-    }
-    
-    .drawing-container {
-        min-height: 300px;
-    }
-    
-    .reference-number {
-        height: 200px;
-    }
-}
-
-@media (max-width: 768px) {
-    .game-area {
-        padding: 10px;
-        height: calc(100vh - 60px);
-    }
-    
-    .grass-band {
-        height: 60px;
-    }
-    
-    .rainbow-container {
-        bottom: 60px;
-    }
-    
-    .number-word {
-        font-size: 1.8rem;
-        padding: 12px 24px;
-    }
-    
-    .modal h2 {
-        font-size: 2.5rem;
-    }
-    
-    .play-again-btn {
-        font-size: 1.3rem;
-        padding: 12px 24px;
-    }
-    
-    .reference-container h3,
-    .drawing-container h3 {
-        font-size: 1.3rem;
-    }
-    
-    .next-btn {
-        font-size: 1.1rem;
-        padding: 10px 20px;
-    }
-}
-
-@media (max-width: 480px) {
-    .game-area {
-        height: calc(100vh - 50px);
-        padding: 5px;
-    }
-    
-    .grass-band {
-        height: 50px;
-    }
-    
-    .rainbow-container {
-        bottom: 50px;
-    }
-    
-    .number-word {
-        font-size: 1.5rem;
-        padding: 10px 20px;
-    }
-    
-    .modal-content {
-        padding: 30px 20px;
-        margin: 0 10px;
-    }
-    
-    .modal h2 {
-        font-size: 2rem;
-    }
-    
-    .play-again-btn {
-        font-size: 1.2rem;
-        padding: 10px 20px;
-    }
-    
-    .reference-container,
-    .drawing-container {
-        padding: 15px;
-    }
-    
-    .reference-container h3,
-    .drawing-container h3 {
-        font-size: 1.2rem;
-        margin-bottom: 10px;
-    }
-    
-    .reference-number {
-        height: 180px;
-    }
-    
-    .drawing-container {
-        min-height: 250px;
-    }
-    
-    .next-btn {
-        font-size: 1rem;
-        padding: 8px 16px;
-        bottom: 15px;
-        right: 15px;
-    }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    .reference-container,
-    .drawing-container {
-        border-width: 4px;
-        box-shadow: 0 0 0 2px #000;
-    }
-    
-    .number-word {
-        border: 2px solid #000;
-    }
-    
-    .drawing-canvas {
-        border-width: 3px;
-        border-color: #000;
-    }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    .number-word {
-        transition: opacity 0.3s ease;
-        transform: none;
-    }
-    
-    .number-word.visible {
-        transform: none;
-    }
-    
-    .modal-content {
-        animation: none;
-    }
-    
-    .modal h2 {
-        animation: none;
-    }
-    
-    .next-btn,
-    .play-again-btn,
-    .back-button {
-        transition: background-color 0.2s ease;
-    }
-    
-    .next-btn:hover,
-    .play-again-btn:hover,
-    .back-button:hover {
-        transform: none;
-    }
-}
-
-/* Print styles (hide interactive elements) */
-@media print {
-    .back-button,
-    .modal,
-    .rainbow-container,
-    .grass-band,
-    .next-btn {
-        display: none;
-    }
-    
-    .reference-container,
-    .drawing-container {
-        box-shadow: none;
-        border: 2px solid #000;
-    }
-    
-    .draw-area {
-        flex-direction: row;
-        gap: 20px;
-    }
-}
-
-/* Drawing interaction feedback */
-.drawing-canvas:active {
-    background: rgba(240, 248, 240, 0.9);
-    border-color: #4CAF50;
-}
-
-/* Hover effects for desktop - REMOVED for number areas */
-
-/* Touch device optimizations */
-@media (hover: none) {
-    .next-btn,
-    .play-again-btn {
-        padding: 14px 28px; /* Larger touch targets */
-    }
-    
-    .drawing-canvas {
-        /* Ensure good touch response */
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        -khtml-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-    }
-}
-
-/* Custom scrollbar for any overflow (shouldn't be needed but just in case) */
+/* Custom scrollbar styling */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -1246,24 +525,12 @@ body {
     background: rgba(76, 175, 80, 0.9);
 }
 
-/* Loading state styling */
+/* Loading and error states */
 .loading {
     opacity: 0.7;
     pointer-events: none;
 }
 
-/* Success animations */
-@keyframes drawingSuccess {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-.drawing-success {
-    animation: drawingSuccess 0.3s ease-in-out;
-}
-
-/* Error state styling */
 .drawing-error {
     border-color: #f44336 !important;
     box-shadow: 0 0 10px rgba(244, 67, 54, 0.3);
@@ -1280,4 +547,26 @@ body {
     border-radius: 15px;
     font-size: 0.9rem;
     font-weight: bold;
+}
+
+/* Print styles */
+@media print {
+    .back-button,
+    .modal,
+    .rainbow-container,
+    .next-btn,
+    .undo-button,
+    .pencil-icon {
+        display: none;
+    }
+    
+    .reference-container,
+    .drawing-container {
+        border: 2px solid #000;
+    }
+    
+    .draw-area {
+        flex-direction: row;
+        gap: 20px;
+    }
 }
