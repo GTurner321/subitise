@@ -10,9 +10,13 @@ class DrawNumberRenderer {
         this.userDrawnPaths = [];
         this.isDrawing = false;
         this.currentDrawnPath = [];
-        this.coveredPoints = new Set(); // Track which points have been covered
+        this.coveredPoints = new Set();
         this.pencilIcon = null;
         this.handleResize = null;
+        
+        // Enhanced coverage tracking
+        this.numberBounds = null;
+        this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
     }
 
     initialize(referenceContainerId, drawingContainerId) {
@@ -67,7 +71,7 @@ class DrawNumberRenderer {
     }
 
     updateSVGDimensions() {
-        // Reference SVG dimensions (smaller) - use same system as trace game
+        // Reference SVG dimensions (smaller) - now 20% taller
         const refWidth = DRAW_CONFIG.REFERENCE_WIDTH;
         const refHeight = DRAW_CONFIG.REFERENCE_HEIGHT;
         this.referenceSvg.setAttribute('viewBox', `0 0 ${refWidth} ${refHeight}`);
@@ -86,37 +90,41 @@ class DrawNumberRenderer {
         // Create pencil icon for drawing area
         this.pencilIcon = document.createElement('i');
         this.pencilIcon.className = 'fa-solid fa-pencil pencil-icon';
-        this.pencilIcon.style.position = 'absolute';
-        this.pencilIcon.style.top = '20px';
-        this.pencilIcon.style.right = '20px';
-        this.pencilIcon.style.fontSize = '24px';
-        this.pencilIcon.style.color = '#666';
-        this.pencilIcon.style.opacity = '0.7';
-        this.pencilIcon.style.pointerEvents = 'none';
-        this.pencilIcon.style.zIndex = '10';
-        this.pencilIcon.style.transition = 'opacity 0.3s ease';
+        this.pencilIcon.style.cssText = `
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: #666;
+            opacity: 0.7;
+            pointer-events: none;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        `;
         
         // Create undo button
         this.undoButton = document.createElement('button');
         this.undoButton.innerHTML = '<i class="fas fa-undo"></i>';
         this.undoButton.className = 'undo-button';
-        this.undoButton.style.position = 'absolute';
-        this.undoButton.style.top = '20px';
-        this.undoButton.style.right = '60px';
-        this.undoButton.style.width = '50px';
-        this.undoButton.style.height = '50px';
-        this.undoButton.style.borderRadius = '50%';
-        this.undoButton.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        this.undoButton.style.color = 'white';
-        this.undoButton.style.border = 'none';
-        this.undoButton.style.fontSize = '20px';
-        this.undoButton.style.cursor = 'pointer';
-        this.undoButton.style.transition = 'all 0.3s ease';
-        this.undoButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-        this.undoButton.style.zIndex = '10';
-        this.undoButton.style.display = 'flex';
-        this.undoButton.style.alignItems = 'center';
-        this.undoButton.style.justifyContent = 'center';
+        this.undoButton.style.cssText = `
+            position: absolute;
+            top: 20px;
+            right: 60px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
         
         // Hover effects
         this.undoButton.addEventListener('mouseenter', () => {
@@ -163,13 +171,15 @@ class DrawNumberRenderer {
     }
 
     recalculateCoverage() {
-        // Reset coverage points
+        // Reset coverage points and bounds
         this.coveredPoints.clear();
+        this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
         
         // Recalculate coverage based on remaining paths
         this.userDrawnPaths.forEach(path => {
             path.forEach(point => {
                 this.checkDrawingProgress(point);
+                this.updateDrawnBounds(point);
             });
         });
     }
@@ -187,6 +197,10 @@ class DrawNumberRenderer {
         this.userDrawnPaths = [];
         this.currentDrawnPath = [];
         this.coveredPoints.clear();
+        this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+        
+        // Calculate number bounds for coverage checking
+        this.calculateNumberBounds(number);
         
         // Show pencil icon again
         if (this.pencilIcon) {
@@ -205,7 +219,7 @@ class DrawNumberRenderer {
             // Process and scale coordinates for both SVGs
             this.processCoordinates(numberConfig.strokes);
             
-            // Create reference number (left side - normal thickness)
+            // Create reference number (left side - black outline with red interior)
             this.createReferenceNumber(numberConfig.strokes);
             
             // Create drawing template (right side - thick grey outline)
@@ -217,6 +231,27 @@ class DrawNumberRenderer {
             console.error('Error rendering number:', number, error);
             return false;
         }
+    }
+
+    calculateNumberBounds(number) {
+        const numberConfig = DRAW_CONFIG.STROKE_DEFINITIONS[number];
+        if (!numberConfig || !numberConfig.strokes) return;
+        
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        
+        numberConfig.strokes.forEach(stroke => {
+            if (stroke.type === 'coordinates' && stroke.coordinates) {
+                stroke.coordinates.forEach(coord => {
+                    minX = Math.min(minX, coord.x);
+                    maxX = Math.max(maxX, coord.x);
+                    minY = Math.min(minY, coord.y);
+                    maxY = Math.max(maxY, coord.y);
+                });
+            }
+        });
+        
+        this.numberBounds = { minX, maxX, minY, maxY };
+        console.log('Number bounds:', this.numberBounds);
     }
 
     processCoordinates(strokes) {
@@ -239,9 +274,9 @@ class DrawNumberRenderer {
             return [];
         }
         
-        // Revert to original scaling then scale up by 50%
+        // Enhanced scaling for reference - 50% larger as before
         const minDimension = Math.min(DRAW_CONFIG.REFERENCE_WIDTH, DRAW_CONFIG.REFERENCE_HEIGHT);
-        const scale = (minDimension / 250) * 1.5; // 50% larger
+        const scale = (minDimension / 250) * 1.5;
         
         const offsetX = (DRAW_CONFIG.REFERENCE_WIDTH - 120 * scale) / 2;
         const offsetY = (DRAW_CONFIG.REFERENCE_HEIGHT - 200 * scale) / 2;
@@ -268,7 +303,7 @@ class DrawNumberRenderer {
             return [];
         }
         
-        // Use same scaling system as trace game - SAME scale for both X and Y
+        // Same scaling system as trace game - SAME scale for both X and Y
         const minDimension = Math.min(DRAW_CONFIG.DRAWING_WIDTH, DRAW_CONFIG.DRAWING_HEIGHT);
         const scale = minDimension / 250;
         
@@ -295,7 +330,7 @@ class DrawNumberRenderer {
     }
 
     createReferenceNumber(strokes) {
-        // For multi-stroke numbers (4, 5), render all black outlines first
+        // For multi-stroke numbers (4, 5), render all black outlines first, then red interiors
         const allPathData = [];
         
         strokes.forEach((stroke, strokeIndex) => {
@@ -315,7 +350,7 @@ class DrawNumberRenderer {
             }
         });
         
-        // First pass: Create all black outlines
+        // First pass: Create all black outlines (50% thicker)
         allPathData.forEach(({ pathData, strokeIndex }) => {
             console.log(`Reference path data for stroke ${strokeIndex}:`, pathData.substring(0, 100) + '...');
             
@@ -329,7 +364,7 @@ class DrawNumberRenderer {
             this.referenceSvg.appendChild(outlinePath);
         });
         
-        // Second pass: Create all white interiors (now red)
+        // Second pass: Create all red interiors (50% thicker) - this ensures red appears on top
         allPathData.forEach(({ pathData, strokeIndex }) => {
             const interiorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             interiorPath.setAttribute('d', pathData);
@@ -474,9 +509,51 @@ class DrawNumberRenderer {
     }
 
     isNumberComplete() {
+        // Enhanced completion check with vertical and horizontal coverage requirements
         const totalPoints = this.getTotalTemplatePoints();
         const coveragePercentage = (this.coveredPoints.size / totalPoints) * 100;
-        return coveragePercentage >= DRAW_CONFIG.MIN_COVERAGE_PERCENTAGE;
+        
+        if (coveragePercentage < DRAW_CONFIG.MIN_COVERAGE_PERCENTAGE) {
+            return false;
+        }
+        
+        // Additional coverage checks for vertical and horizontal spans
+        const verticalCoverage = this.calculateVerticalCoverage();
+        const horizontalCoverage = this.calculateHorizontalCoverage();
+        
+        console.log(`Coverage check: ${coveragePercentage.toFixed(1)}% points, ${verticalCoverage.toFixed(1)}% vertical, ${horizontalCoverage.toFixed(1)}% horizontal`);
+        
+        return verticalCoverage >= DRAW_CONFIG.MIN_VERTICAL_COVERAGE && 
+               horizontalCoverage >= DRAW_CONFIG.MIN_HORIZONTAL_COVERAGE;
+    }
+
+    calculateVerticalCoverage() {
+        if (!this.numberBounds || this.drawnBounds.minY === Infinity) return 0;
+        
+        const numberHeight = this.numberBounds.maxY - this.numberBounds.minY;
+        const drawnHeight = this.drawnBounds.maxY - this.drawnBounds.minY;
+        
+        // Calculate what percentage of the number's height is covered by drawing
+        const coverage = Math.min(drawnHeight / numberHeight * 100, 100);
+        return coverage;
+    }
+
+    calculateHorizontalCoverage() {
+        if (!this.numberBounds || this.drawnBounds.minX === Infinity) return 0;
+        
+        const numberWidth = this.numberBounds.maxX - this.numberBounds.minX;
+        const drawnWidth = this.drawnBounds.maxX - this.drawnBounds.minX;
+        
+        // Calculate what percentage of the number's width is covered by drawing
+        const coverage = Math.min(drawnWidth / numberWidth * 100, 100);
+        return coverage;
+    }
+
+    updateDrawnBounds(point) {
+        this.drawnBounds.minX = Math.min(this.drawnBounds.minX, point.x);
+        this.drawnBounds.maxX = Math.max(this.drawnBounds.maxX, point.x);
+        this.drawnBounds.minY = Math.min(this.drawnBounds.minY, point.y);
+        this.drawnBounds.maxY = Math.max(this.drawnBounds.maxY, point.y);
     }
 
     setupDrawingEvents() {
@@ -515,12 +592,11 @@ class DrawNumberRenderer {
         // Reset inactivity timer
         this.resetInactivityTimer();
         
-        // No custom cursor - removed pencil pointer
-        
         const point = this.getEventPoint(event, this.drawingSvg);
         if (point) {
             this.currentDrawnPath.push(point);
             this.createNewDrawnPath();
+            this.updateDrawnBounds(point);
         }
     }
 
@@ -537,6 +613,7 @@ class DrawNumberRenderer {
             this.currentDrawnPath.push(point);
             this.updateCurrentDrawnPath();
             this.checkDrawingProgress(point);
+            this.updateDrawnBounds(point);
         }
     }
 
@@ -557,75 +634,6 @@ class DrawNumberRenderer {
         
         // Check if drawing is complete
         this.checkDrawingCompletion();
-    }
-
-    createDrawingCursor() {
-        // Create a custom pencil cursor using SVG
-        this.drawingCursor = document.createElement('div');
-        this.drawingCursor.style.position = 'fixed';
-        this.drawingCursor.style.pointerEvents = 'none';
-        this.drawingCursor.style.zIndex = '1000';
-        this.drawingCursor.style.width = '40px';
-        this.drawingCursor.style.height = '160px';
-        this.drawingCursor.style.transform = 'translate(-50%, -50%)';
-        
-        // Create SVG pencil
-        this.drawingCursor.innerHTML = `
-            <svg width="40" height="160" viewBox="0 0 40 160" xmlns="http://www.w3.org/2000/svg">
-                <!-- Pencil tip -->
-                <polygon points="20,0 15,20 25,20" fill="#D2691E" stroke="#8B4513" stroke-width="1"/>
-                
-                <!-- Metal ferrule -->
-                <rect x="14" y="20" width="12" height="8" fill="#C0C0C0" stroke="#808080" stroke-width="1"/>
-                
-                <!-- Pink eraser -->
-                <rect x="16" y="28" width="8" height="12" fill="#FFB6C1" stroke="#FF69B4" stroke-width="1" rx="4"/>
-                
-                <!-- Wooden body -->
-                <rect x="15" y="40" width="10" height="120" fill="#DAA520" stroke="#B8860B" stroke-width="1"/>
-                
-                <!-- Yellow paint -->
-                <rect x="15.5" y="45" width="9" height="110" fill="#FFD700" stroke="#FFA500" stroke-width="0.5"/>
-                
-                <!-- Brand text area -->
-                <rect x="16" y="80" width="8" height="20" fill="#FFD700" opacity="0.8"/>
-                
-                <!-- Shadow/depth -->
-                <line x1="24.5" y1="45" x2="24.5" y2="155" stroke="#DAA520" stroke-width="0.5" opacity="0.7"/>
-            </svg>
-        `;
-        
-        document.body.appendChild(this.drawingCursor);
-    }
-
-    updateDrawingCursor(event) {
-        if (!this.drawingCursor) return;
-        
-        let clientX, clientY;
-        if (event.type.startsWith('touch')) {
-            if (event.touches.length === 0) return;
-            clientX = event.touches[0].clientX;
-            clientY = event.touches[0].clientY;
-        } else {
-            clientX = event.clientX;
-            clientY = event.clientY;
-        }
-        
-        // Position the pencil tip at the touch point
-        // The tip is at the top of the pencil (0,0 in our SVG)
-        // With transform translate(-50%, -50%), we need to offset to put tip at cursor
-        const tipOffsetX = 0;  // Centered horizontally
-        const tipOffsetY = -80; // Move up so tip is at cursor (half height)
-        
-        this.drawingCursor.style.left = (clientX + tipOffsetX) + 'px';
-        this.drawingCursor.style.top = (clientY + tipOffsetY) + 'px';
-    }
-
-    removeDrawingCursor() {
-        if (this.drawingCursor) {
-            this.drawingCursor.remove();
-            this.drawingCursor = null;
-        }
     }
 
     getEventPoint(event, svg) {
@@ -705,10 +713,12 @@ class DrawNumberRenderer {
     checkDrawingCompletion() {
         const totalPoints = this.getTotalTemplatePoints();
         const coveragePercentage = (this.coveredPoints.size / totalPoints) * 100;
+        const verticalCoverage = this.calculateVerticalCoverage();
+        const horizontalCoverage = this.calculateHorizontalCoverage();
         
-        console.log(`Drawing coverage: ${coveragePercentage.toFixed(1)}% (${this.coveredPoints.size}/${totalPoints} points)`);
+        console.log(`Drawing coverage: ${coveragePercentage.toFixed(1)}% (${this.coveredPoints.size}/${totalPoints} points), vertical: ${verticalCoverage.toFixed(1)}%, horizontal: ${horizontalCoverage.toFixed(1)}%`);
         
-        if (coveragePercentage >= DRAW_CONFIG.MIN_COVERAGE_PERCENTAGE) {
+        if (this.isNumberComplete()) {
             this.completeNumber();
         }
     }
@@ -741,6 +751,7 @@ class DrawNumberRenderer {
         this.userDrawnPaths = [];
         this.currentDrawnPath = [];
         this.coveredPoints.clear();
+        this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
         this.isDrawing = false;
         
         // Show pencil icon again
@@ -768,7 +779,9 @@ class DrawNumberRenderer {
         this.userDrawnPaths = [];
         this.currentDrawnPath = [];
         this.coveredPoints.clear();
+        this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
         this.isDrawing = false;
+        this.numberBounds = null;
         
         // Clear pulse interval
         this.stopPulsing();
@@ -778,9 +791,6 @@ class DrawNumberRenderer {
             clearTimeout(this.inactivityTimer);
             this.inactivityTimer = null;
         }
-        
-        // Remove drawing cursor
-        this.removeDrawingCursor();
         
         if (this.referenceSvg && this.drawingSvg) {
             this.clearSVGs();
@@ -806,9 +816,6 @@ class DrawNumberRenderer {
             clearTimeout(this.inactivityTimer);
             this.inactivityTimer = null;
         }
-        
-        // Remove drawing cursor
-        this.removeDrawingCursor();
         
         this.reset();
     }
