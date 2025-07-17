@@ -329,11 +329,11 @@ class DrawNumberRenderer {
             this.referenceSvg.appendChild(outlinePath);
         });
         
-        // Second pass: Create all white interiors
+        // Second pass: Create all white interiors (now red)
         allPathData.forEach(({ pathData, strokeIndex }) => {
             const interiorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             interiorPath.setAttribute('d', pathData);
-            interiorPath.setAttribute('stroke', 'white');
+            interiorPath.setAttribute('stroke', DRAW_CONFIG.REFERENCE_WHITE_COLOR); // Now red
             interiorPath.setAttribute('stroke-width', DRAW_CONFIG.REFERENCE_WHITE_WIDTH);
             interiorPath.setAttribute('fill', 'none');
             interiorPath.setAttribute('stroke-linecap', 'round');
@@ -566,15 +566,40 @@ class DrawNumberRenderer {
     }
 
     createDrawingCursor() {
-        this.drawingCursor = document.createElement('i');
-        this.drawingCursor.className = 'fa-solid fa-pencil drawing-cursor';
+        // Create a custom pencil cursor using SVG
+        this.drawingCursor = document.createElement('div');
         this.drawingCursor.style.position = 'fixed';
-        this.drawingCursor.style.fontSize = '96px'; // 4x larger than 24px
-        this.drawingCursor.style.color = '#DAA520'; // Dull yellow
         this.drawingCursor.style.pointerEvents = 'none';
         this.drawingCursor.style.zIndex = '1000';
-        this.drawingCursor.style.transform = 'translate(-50%, -50%)'; // No rotation
-        this.drawingCursor.style.filter = 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))';
+        this.drawingCursor.style.width = '40px';
+        this.drawingCursor.style.height = '160px';
+        this.drawingCursor.style.transform = 'translate(-50%, -50%)';
+        
+        // Create SVG pencil
+        this.drawingCursor.innerHTML = `
+            <svg width="40" height="160" viewBox="0 0 40 160" xmlns="http://www.w3.org/2000/svg">
+                <!-- Pencil tip -->
+                <polygon points="20,0 15,20 25,20" fill="#D2691E" stroke="#8B4513" stroke-width="1"/>
+                
+                <!-- Metal ferrule -->
+                <rect x="14" y="20" width="12" height="8" fill="#C0C0C0" stroke="#808080" stroke-width="1"/>
+                
+                <!-- Pink eraser -->
+                <rect x="16" y="28" width="8" height="12" fill="#FFB6C1" stroke="#FF69B4" stroke-width="1" rx="4"/>
+                
+                <!-- Wooden body -->
+                <rect x="15" y="40" width="10" height="120" fill="#DAA520" stroke="#B8860B" stroke-width="1"/>
+                
+                <!-- Yellow paint -->
+                <rect x="15.5" y="45" width="9" height="110" fill="#FFD700" stroke="#FFA500" stroke-width="0.5"/>
+                
+                <!-- Brand text area -->
+                <rect x="16" y="80" width="8" height="20" fill="#FFD700" opacity="0.8"/>
+                
+                <!-- Shadow/depth -->
+                <line x1="24.5" y1="45" x2="24.5" y2="155" stroke="#DAA520" stroke-width="0.5" opacity="0.7"/>
+            </svg>
+        `;
         
         document.body.appendChild(this.drawingCursor);
     }
@@ -592,14 +617,11 @@ class DrawNumberRenderer {
             clientY = event.clientY;
         }
         
-        // For Font Awesome pencil icon (fa-solid fa-pencil), the tip is at the bottom-left
-        // With a 96px font size and no rotation, we need to offset to position the tip correctly
-        // The pencil tip is roughly at 25% from left and 85% from top of the icon bounds
-        const iconWidth = 96 * 0.6; // Font Awesome icons are roughly 0.6 aspect ratio
-        const iconHeight = 96;
-        
-        const tipOffsetX = -(iconWidth * 0.25); // 25% from left edge
-        const tipOffsetY = (iconHeight * 0.35); // 35% from center (tip is near bottom)
+        // Position the pencil tip at the touch point
+        // The tip is at the top of the pencil (0,0 in our SVG)
+        // With transform translate(-50%, -50%), we need to offset to put tip at cursor
+        const tipOffsetX = 0;  // Centered horizontally
+        const tipOffsetY = -80; // Move up so tip is at cursor (half height)
         
         this.drawingCursor.style.left = (clientX + tipOffsetX) + 'px';
         this.drawingCursor.style.top = (clientY + tipOffsetY) + 'px';
