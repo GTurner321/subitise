@@ -85,7 +85,7 @@
 }
 
 .guinea-pig-1 {
-    top: 67%; /* Center at 67% down the game area */
+    top: 63%; /* Raised up slightly for better coverage */
     right: -25%; /* Start off screen on right side */
     z-index: 5; /* Above raisins when moving */
     transform: translateY(-50%); /* Center the guinea pig vertically */
@@ -152,7 +152,7 @@
     }
     
     .guinea-pig-1 {
-        top: 67%; /* Keep consistent positioning */
+        top: 63%; /* Keep consistent positioning */
     }
 }
 
@@ -167,7 +167,7 @@
     }
     
     .guinea-pig-1 {
-        top: 67%; /* Keep consistent positioning */
+        top: 63%; /* Keep consistent positioning */
     }
 }
 
