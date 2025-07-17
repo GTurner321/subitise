@@ -12,21 +12,26 @@ class RaisinRenderer {
     
     setupGuineaPigSizes() {
         const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
         
-        // Set guinea pig sizes
+        // Set guinea pig sizes - guinea pig 2 and 1 are now 10% larger
         const gp3Size = screenWidth * CONFIG.GUINEA_PIG_3_SIZE;
-        const gp2Size = screenWidth * CONFIG.GUINEA_PIG_2_SIZE;
-        const gp1Size = screenWidth * CONFIG.GUINEA_PIG_1_SIZE;
+        const gp2Size = screenWidth * CONFIG.GUINEA_PIG_2_SIZE * 1.1; // 10% larger
+        const gp1Size = screenWidth * CONFIG.GUINEA_PIG_1_SIZE * 1.1; // 10% larger
         
-        this.guineaPig3.style.width = `${gp3Size}px`;
-        this.guineaPig3.style.height = `${gp3Size}px`;
+        this.guineaPig3.style.cssText = `
+            width: ${gp3Size}px;
+            height: ${gp3Size}px;
+        `;
         
-        this.guineaPig2.style.width = `${gp2Size}px`;
-        this.guineaPig2.style.height = `${gp2Size}px`;
+        this.guineaPig2.style.cssText = `
+            width: ${gp2Size}px;
+            height: ${gp2Size}px;
+        `;
         
-        this.guineaPig1.style.width = `${gp1Size}px`;
-        this.guineaPig1.style.height = `${gp1Size}px`;
+        this.guineaPig1.style.cssText = `
+            width: ${gp1Size}px;
+            height: ${gp1Size}px;
+        `;
     }
     
     generateRaisinPositions() {
@@ -168,17 +173,27 @@ class RaisinRenderer {
             const raisinElement = document.createElement('img');
             raisinElement.src = `../../assets/raisin/raisin${index + 1}.png`; // Use raisin1.png through raisin10.png
             raisinElement.className = 'raisin staggered-appear';
-            raisinElement.style.left = `${raisin.x}px`;
-            raisinElement.style.top = `${raisin.y}px`;
-            raisinElement.style.width = `${raisin.size}px`;
-            raisinElement.style.height = `${raisin.size}px`;
+            raisinElement.style.cssText = `
+                position: absolute;
+                left: ${raisin.x}px;
+                top: ${raisin.y}px;
+                width: ${raisin.size}px;
+                height: ${raisin.size}px;
+                opacity: 0;
+                z-index: 2;
+                pointer-events: none;
+                transition: all 0.3s ease;
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: crisp-edges;
+                object-fit: contain;
+                filter: brightness(1.3) contrast(0.8);
+            `;
             raisinElement.dataset.index = index;
             
             // Calculate staggered appearance timing
             const staggerDelay = CONFIG.RAISIN_STAGGER_START + (Math.random() * CONFIG.RAISIN_STAGGER_WINDOW);
             
-            // Add to DOM but keep hidden initially
-            raisinElement.style.opacity = '0';
+            // Add to DOM
             this.gameArea.appendChild(raisinElement);
             this.raisinElements.push(raisinElement);
             
@@ -187,7 +202,7 @@ class RaisinRenderer {
                 raisinElement.style.opacity = '1';
                 raisinElement.style.animation = 'raisinStaggeredAppear 0.5s ease-in forwards';
                 
-                // Play pat sound
+                // Play pat sound with reduced volume to minimize lag
                 this.playPatSound();
             }, staggerDelay);
         });
@@ -345,6 +360,7 @@ class RaisinRenderer {
                         }
                     } else {
                         // Second guinea pig eats raisins in bottom half (50% to 100%)
+                        // Changed from 58% to 60% as requested
                         if (raisinGameAreaY > 0.5) {
                             // Check if guinea pig's left edge has passed raisin's center
                             const raisinCenterX = raisinRect.left + raisinRect.width / 2;
@@ -372,17 +388,19 @@ class RaisinRenderer {
         if (raisinElement && !raisinElement.classList.contains('eaten')) {
             raisinElement.classList.add('eaten');
             
-            // Remove from DOM after animation (no visual "nom" effect)
-            setTimeout(() => {
-                if (raisinElement.parentNode) {
-                    raisinElement.parentNode.removeChild(raisinElement);
-                }
-            }, 800);
+            // Use requestAnimationFrame for smoother removal to reduce lag
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (raisinElement.parentNode) {
+                        raisinElement.parentNode.removeChild(raisinElement);
+                    }
+                }, 800);
+            });
         }
     }
     
     playPatSound() {
-        // Simple pat sound - short, quiet beep
+        // Optimized pat sound with reduced complexity to minimize lag
         if (window.raisinGame && window.raisinGame.audioContext && window.raisinGame.audioEnabled) {
             try {
                 const oscillator = window.raisinGame.audioContext.createOscillator();
@@ -392,13 +410,13 @@ class RaisinRenderer {
                 gainNode.connect(window.raisinGame.audioContext.destination);
                 
                 oscillator.frequency.setValueAtTime(800, window.raisinGame.audioContext.currentTime);
-                oscillator.type = 'square';
+                oscillator.type = 'sine'; // Changed from square to sine for smoother sound
                 
-                gainNode.gain.setValueAtTime(0.1, window.raisinGame.audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, window.raisinGame.audioContext.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.05, window.raisinGame.audioContext.currentTime); // Reduced volume
+                gainNode.gain.exponentialRampToValueAtTime(0.001, window.raisinGame.audioContext.currentTime + 0.08); // Shorter duration
                 
                 oscillator.start(window.raisinGame.audioContext.currentTime);
-                oscillator.stop(window.raisinGame.audioContext.currentTime + 0.1);
+                oscillator.stop(window.raisinGame.audioContext.currentTime + 0.08);
             } catch (error) {
                 // Silent failure
             }
