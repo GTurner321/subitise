@@ -1,0 +1,214 @@
+/* Raisin game specific styles */
+
+/* Game area flash animation for hints */
+.game-area.area-flash {
+    animation: areaFlash 1s ease-in-out;
+}
+
+@keyframes areaFlash {
+    0%, 100% {
+        background: white;
+    }
+    50% {
+        background: rgba(255, 255, 0, 0.1);
+    }
+}
+
+/* Raisin styles */
+.raisin {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    object-fit: contain;
+}
+
+.raisin.eaten {
+    animation: raisinEaten 0.8s ease-out forwards;
+}
+
+@keyframes raisinEaten {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0);
+    }
+}
+
+.raisin.fade-in {
+    animation: raisinFadeIn 0.5s ease-in;
+}
+
+@keyframes raisinFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Guinea pig styles */
+.guinea-pig {
+    position: absolute;
+    z-index: 3;
+    pointer-events: none;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    object-fit: contain;
+    transition: all 0.3s ease;
+}
+
+.guinea-pig-3 {
+    top: 5%;
+    left: 5%;
+    z-index: 4; /* Above other guinea pigs */
+}
+
+.guinea-pig-2 {
+    top: 40%; /* Slightly higher than middle */
+    left: -20%; /* Start off screen */
+    z-index: 5; /* Above raisins when moving */
+}
+
+.guinea-pig-1 {
+    top: 60%; /* Slightly lower than middle */
+    right: -20%; /* Start off screen */
+    z-index: 5; /* Above raisins when moving */
+}
+
+.guinea-pig.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.guinea-pig.moving {
+    transition: all 3s linear;
+}
+
+/* Star celebration animation (shared with other games) */
+.star-celebration-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.completion-star {
+    animation: starSparkle 1.5s ease-out forwards;
+    transform-origin: center;
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes starSparkle {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8) rotate(360deg);
+    }
+}
+
+/* Enhanced completion effects */
+.completion-effect {
+    pointer-events: none;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+    .raisin {
+        /* Adjust raisin size for mobile if needed */
+    }
+    
+    .guinea-pig-3 {
+        top: 3%;
+        left: 3%;
+    }
+    
+    .guinea-pig-2 {
+        top: 35%;
+    }
+    
+    .guinea-pig-1 {
+        top: 65%;
+    }
+}
+
+@media (max-width: 480px) {
+    .guinea-pig-3 {
+        top: 2%;
+        left: 2%;
+    }
+    
+    .guinea-pig-2 {
+        top: 30%;
+    }
+    
+    .guinea-pig-1 {
+        top: 70%;
+    }
+}
+
+/* Guinea pig bounce animation for guinea pig 3 */
+.guinea-pig-3.bounce {
+    animation: guineaPigBounce 2s ease-in-out infinite;
+}
+
+@keyframes guineaPigBounce {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Nom nom visual effect */
+.nom-effect {
+    position: absolute;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ff6b6b;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    pointer-events: none;
+    z-index: 6;
+    animation: nomAnimation 1s ease-out forwards;
+}
+
+@keyframes nomAnimation {
+    0% {
+        opacity: 1;
+        transform: scale(0.5) translateY(0px);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) translateY(-20px);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1) translateY(-40px);
+    }
+}
