@@ -29,7 +29,7 @@ const CONFIG = {
     GUINEA_PIG_1_SIZE: 0.2, // 1/5th of screen width
     
     // Raisin settings
-    RAISIN_SIZE: 0.05, // 1/20th of screen width
+    RAISIN_SIZE: 0.05, // 1/20th of screen width (or 1/15th of height if height > width)
     RAISIN_MIN_DISTANCE: 0.08, // Minimum distance between raisins (relative to screen)
     TOTAL_RAISINS: 10,
     
