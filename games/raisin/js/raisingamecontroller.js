@@ -38,6 +38,9 @@ class RaisinGameController {
         this.muteButton = null;
         this.muteContainer = null;
         
+        // Guinea pig sounds
+        this.guineaPigSoundInterval = null;
+        
         this.initializeEventListeners();
         this.initializeAudio();
         this.createMuteButton();
@@ -57,33 +60,37 @@ class RaisinGameController {
     createMuteButton() {
         // Create mute button container
         const muteContainer = document.createElement('div');
-        muteContainer.style.position = 'fixed';
-        muteContainer.style.top = '20px';
-        muteContainer.style.right = '20px';
-        muteContainer.style.zIndex = '1000';
-        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        muteContainer.style.borderRadius = '50%';
-        muteContainer.style.width = '60px';
-        muteContainer.style.height = '60px';
-        muteContainer.style.display = 'flex';
-        muteContainer.style.alignItems = 'center';
-        muteContainer.style.justifyContent = 'center';
-        muteContainer.style.cursor = 'pointer';
-        muteContainer.style.transition = 'all 0.3s ease';
-        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        muteContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        `;
         
         // Create button
         this.muteButton = document.createElement('button');
-        this.muteButton.style.background = 'none';
-        this.muteButton.style.border = 'none';
-        this.muteButton.style.color = 'white';
-        this.muteButton.style.fontSize = '24px';
-        this.muteButton.style.cursor = 'pointer';
-        this.muteButton.style.width = '100%';
-        this.muteButton.style.height = '100%';
-        this.muteButton.style.display = 'flex';
-        this.muteButton.style.alignItems = 'center';
-        this.muteButton.style.justifyContent = 'center';
+        this.muteButton.style.cssText = `
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
         
         // Set initial icon
         this.updateMuteButtonIcon();
@@ -127,6 +134,7 @@ class RaisinGameController {
             if (!this.isTabVisible) {
                 // Tab is hidden - stop all audio and clear timers
                 this.clearInactivityTimer();
+                this.stopGuineaPigSounds();
                 if ('speechSynthesis' in window) {
                     speechSynthesis.cancel();
                 }
@@ -143,10 +151,11 @@ class RaisinGameController {
         this.audioEnabled = !this.audioEnabled;
         this.updateMuteButtonIcon();
         
-        // Stop any current speech
+        // Stop any current speech and sounds
         if ('speechSynthesis' in window) {
             speechSynthesis.cancel();
         }
+        this.stopGuineaPigSounds();
         
         // Provide feedback
         if (this.audioEnabled) {
@@ -166,13 +175,7 @@ class RaisinGameController {
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = 0.9;
                 utterance.volume = 0.8;
-                
-                // Use higher pitch for nom-nom sounds
-                if (text.includes('nom')) {
-                    utterance.pitch = CONFIG.NOM_NOM_PITCH;
-                } else {
-                    utterance.pitch = 1.3;
-                }
+                utterance.pitch = 1.3;
                 
                 const voices = speechSynthesis.getVoices();
                 let selectedVoice = voices.find(voice => 
@@ -190,6 +193,53 @@ class RaisinGameController {
             }
         } catch (error) {
             // Silent failure
+        }
+    }
+    
+    playGuineaPigSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            // Create a squeaky guinea pig sound
+            oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, this.audioContext.currentTime + 0.1);
+            oscillator.frequency.exponentialRampToValueAtTime(600, this.audioContext.currentTime + 0.2);
+            oscillator.type = 'sawtooth';
+            
+            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.25);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.25);
+        } catch (error) {
+            // Silent failure
+        }
+    }
+    
+    startGuineaPigSounds() {
+        if (!this.audioEnabled || !this.isTabVisible) return;
+        
+        this.stopGuineaPigSounds(); // Clear any existing interval
+        
+        // Play first sound immediately
+        this.playGuineaPigSound();
+        
+        // Continue playing sounds at intervals
+        this.guineaPigSoundInterval = setInterval(() => {
+            this.playGuineaPigSound();
+        }, 600); // Play every 600ms
+    }
+    
+    stopGuineaPigSounds() {
+        if (this.guineaPigSoundInterval) {
+            clearInterval(this.guineaPigSoundInterval);
+            this.guineaPigSoundInterval = null;
         }
     }
     
@@ -298,13 +348,15 @@ class RaisinGameController {
         // Create container for stars with completion-effect class
         const starContainer = document.createElement('div');
         starContainer.className = 'star-celebration-container completion-effect';
-        starContainer.style.position = 'fixed';
-        starContainer.style.top = '0';
-        starContainer.style.left = '0';
-        starContainer.style.width = '100%';
-        starContainer.style.height = '100%';
-        starContainer.style.pointerEvents = 'none';
-        starContainer.style.zIndex = '1000';
+        starContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        `;
         
         // Use the exact same star positions as trace game (scaled for button size)
         const starPositions = [
@@ -336,14 +388,16 @@ class RaisinGameController {
         const star = document.createElement('div');
         star.className = 'completion-star';
         star.innerHTML = '✨';
-        star.style.position = 'fixed';
-        star.style.left = (x - 15) + 'px';
-        star.style.top = (y - 15) + 'px';
-        star.style.fontSize = '30px';
-        star.style.color = '#FFD700';
-        star.style.textAlign = 'center';
-        star.style.pointerEvents = 'none';
-        star.style.zIndex = '1000';
+        star.style.cssText = `
+            position: fixed;
+            left: ${x - 15}px;
+            top: ${y - 15}px;
+            font-size: 30px;
+            color: #FFD700;
+            text-align: center;
+            pointer-events: none;
+            z-index: 1000;
+        `;
         
         return star;
     }
@@ -371,7 +425,7 @@ class RaisinGameController {
         // Select exactly currentAnswer raisins to eat
         const raisinsToEat = this.selectRaisinsToEat();
         
-        // Give starting instruction
+        // Give starting instruction (different for first question vs subsequent)
         this.giveStartingInstruction();
         
         // Start the guinea pig sequence
@@ -407,7 +461,13 @@ class RaisinGameController {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
         setTimeout(() => {
-            this.speakText('Watch the hungry guinea pig');
+            if (this.currentQuestion === 0) {
+                // First question - full instruction
+                this.speakText('Watch the hungry guinea pig');
+            } else {
+                // Subsequent questions - shorter instruction
+                this.speakText('How many of the 10 raisins does the guinea pig eat this time?');
+            }
         }, 500);
     }
     
@@ -420,21 +480,23 @@ class RaisinGameController {
         // Wait for initial display period
         await this.sleep(CONFIG.GUINEA_PIG_3_INITIAL_DISPLAY);
         
-        // Give extended instruction after 1 more second
-        await this.sleep(CONFIG.INITIAL_INSTRUCTION_DELAY);
-        
-        if (this.audioEnabled && this.isTabVisible) {
-            this.speakText('There are 10 raisins. The hungry guinea pig is going to eat some of them.');
+        // For first question only, give extended instruction
+        if (this.currentQuestion === 0) {
+            await this.sleep(CONFIG.INITIAL_INSTRUCTION_DELAY);
+            
+            if (this.audioEnabled && this.isTabVisible) {
+                this.speakText('There are 10 raisins. The hungry guinea pig is going to eat some of them.');
+            }
+            
+            // Wait for instruction to finish (approximately 5 seconds)
+            await this.sleep(5000);
         }
-        
-        // Wait for instruction to finish (approximately 5 seconds)
-        await this.sleep(5000);
         
         // Fade out guinea pig 3 completely before moving guinea pigs appear
         await this.raisinRenderer.fadeOutGuineaPig3();
         
-        // Start nom-nom audio
-        this.startNomNomAudio();
+        // Start guinea pig sounds
+        this.startGuineaPigSounds();
         
         // Guinea pig 2 moves left to right (only after GP3 is completely gone)
         await this.raisinRenderer.moveGuineaPig2(raisinsToEat);
@@ -445,8 +507,8 @@ class RaisinGameController {
         // Guinea pig 1 moves right to left (only after GP2 is completely gone)
         await this.raisinRenderer.moveGuineaPig1(raisinsToEat);
         
-        // Stop nom-nom audio
-        this.stopNomNomAudio();
+        // Stop guinea pig sounds
+        this.stopGuineaPigSounds();
         
         // Fade in guinea pig 3 again (only after GP1 is completely gone)
         await this.raisinRenderer.fadeInGuineaPig3();
@@ -459,28 +521,6 @@ class RaisinGameController {
         }, 500);
         
         this.buttonsDisabled = false;
-    }
-    
-    startNomNomAudio() {
-        if (!this.audioEnabled || !this.isTabVisible) return;
-        
-        // Start immediately and repeat "nom nom" continuously during guinea pig movement
-        this.speakText('nom nom');
-        this.nomNomInterval = setInterval(() => {
-            this.speakText('nom nom');
-        }, 800); // Faster interval for continuous sound
-    }
-    
-    stopNomNomAudio() {
-        if (this.nomNomInterval) {
-            clearInterval(this.nomNomInterval);
-            this.nomNomInterval = null;
-        }
-        
-        // Stop any current speech
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
     }
     
     sleep(ms) {
@@ -722,6 +762,7 @@ class RaisinGameController {
         this.gameComplete = true;
         this.clearInactivityTimer();
         this.stopFlashing();
+        this.stopGuineaPigSounds();
         this.modal.classList.remove('hidden');
         
         // Start bear celebration when modal opens
@@ -745,7 +786,7 @@ class RaisinGameController {
         
         this.clearInactivityTimer();
         this.stopFlashing();
-        this.stopNomNomAudio();
+        this.stopGuineaPigSounds();
         
         this.rainbow.reset();
         this.bear.reset();
@@ -758,7 +799,7 @@ class RaisinGameController {
         // Clean up audio and timers
         this.clearInactivityTimer();
         this.stopFlashing();
-        this.stopNomNomAudio();
+        this.stopGuineaPigSounds();
         
         if ('speechSynthesis' in window) {
             speechSynthesis.cancel();
