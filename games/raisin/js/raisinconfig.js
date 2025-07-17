@@ -21,6 +21,10 @@ const CONFIG = {
     FLASH_DURATION: 800,
     NEXT_QUESTION_DELAY: 2000,
     GUINEA_PIG_3_INITIAL_DISPLAY: 4000, // 4 seconds initial display
+    INITIAL_INSTRUCTION_DELAY: 1000, // 1 second after initial display
+    RAISIN_STAGGER_START: 1000, // 1 second after game loads
+    RAISIN_STAGGER_WINDOW: 3000, // 3 second window for raisins to appear
+    RAISIN_FADE_DURATION: 500, // 0.5 seconds fade in
     GUINEA_PIG_ANIMATION_DURATION: 3000, // 3 seconds for each guinea pig to cross
     GUINEA_PIG_PAUSE_DURATION: 500, // Pause between guinea pigs
     
@@ -31,17 +35,34 @@ const CONFIG = {
     
     // Raisin settings
     RAISIN_SIZE: 0.1, // 1/10th of screen width (twice as large)
-    RAISIN_MIN_DISTANCE: 0.08, // Minimum distance between raisins (relative to screen)
+    RAISIN_MIN_DISTANCE: 0.12, // Increased minimum distance between raisins
     TOTAL_RAISINS: 10,
     
     // Audio
     AUDIO_ENABLED: true,
+    NOM_NOM_PITCH: 1.8, // Higher pitch for nom-nom sounds
     
-    // Game area exclusions
+    // Game area exclusions - expanded for top right
     GUINEA_PIG_3_EXCLUSION: {
         x: 0,
         y: 0,
-        width: 0.15, // Slightly larger than guinea pig 3
-        height: 0.15
+        width: 0.25, // Expanded width
+        height: 0.25  // Expanded height
+    },
+    
+    // Difficulty levels (hidden from user)
+    DIFFICULTY_LEVELS: {
+        LEVEL_1: {
+            possibleRaisinsToEat: [1, 2],
+            name: 'Level 1'
+        },
+        LEVEL_2: {
+            possibleRaisinsToEat: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            name: 'Level 2'
+        },
+        LEVEL_3: {
+            possibleRaisinsToEat: [1, 2, 5, 9],
+            name: 'Level 3'
+        }
     }
 };
