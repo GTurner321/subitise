@@ -80,32 +80,20 @@ class BalloonGameController {
     
     createMuteButton() {
         const muteContainer = document.createElement('div');
-        muteContainer.style.position = 'fixed';
-        muteContainer.style.bottom = '20px';
-        muteContainer.style.right = '20px';
-        muteContainer.style.zIndex = '1000';
-        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        muteContainer.style.borderRadius = '50%';
-        muteContainer.style.width = '60px';
-        muteContainer.style.height = '60px';
-        muteContainer.style.display = 'flex';
-        muteContainer.style.alignItems = 'center';
-        muteContainer.style.justifyContent = 'center';
-        muteContainer.style.cursor = 'pointer';
-        muteContainer.style.transition = 'all 0.3s ease';
-        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        muteContainer.style.cssText = `
+            position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+            background: rgba(0, 0, 0, 0.7); border-radius: 50%;
+            width: 60px; height: 60px; display: flex;
+            align-items: center; justify-content: center; cursor: pointer;
+            transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        `;
         
         this.muteButton = document.createElement('button');
-        this.muteButton.style.background = 'none';
-        this.muteButton.style.border = 'none';
-        this.muteButton.style.color = 'white';
-        this.muteButton.style.fontSize = '24px';
-        this.muteButton.style.cursor = 'pointer';
-        this.muteButton.style.width = '100%';
-        this.muteButton.style.height = '100%';
-        this.muteButton.style.display = 'flex';
-        this.muteButton.style.alignItems = 'center';
-        this.muteButton.style.justifyContent = 'center';
+        this.muteButton.style.cssText = `
+            background: none; border: none; color: white; font-size: 24px;
+            cursor: pointer; width: 100%; height: 100%; display: flex;
+            align-items: center; justify-content: center;
+        `;
         
         this.updateMuteButtonIcon();
         
@@ -153,31 +141,21 @@ class BalloonGameController {
     }
     
     createTrafficLight() {
-        // Create traffic light container
         this.trafficLightContainer = document.createElement('div');
-        this.trafficLightContainer.style.position = 'fixed';
-        this.trafficLightContainer.style.top = '50%';
-        this.trafficLightContainer.style.right = '20px';
-        this.trafficLightContainer.style.transform = 'translateY(-50%)';
-        this.trafficLightContainer.style.zIndex = '1000';
-        this.trafficLightContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-        this.trafficLightContainer.style.borderRadius = '20px';
-        this.trafficLightContainer.style.padding = '15px 10px';
-        this.trafficLightContainer.style.display = 'flex';
-        this.trafficLightContainer.style.flexDirection = 'column';
-        this.trafficLightContainer.style.alignItems = 'center';
-        this.trafficLightContainer.style.gap = '8px';
-        this.trafficLightContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        this.trafficLightContainer.style.cssText = `
+            position: fixed; top: 50%; right: 20px; transform: translateY(-50%); z-index: 1000;
+            background: rgba(0, 0, 0, 0.8); border-radius: 20px; padding: 15px 10px;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        `;
         
         // Create traffic lights (need 8 for correct balloons)
         for (let i = 0; i < BALLOON_CONFIG.CORRECT_BALLOONS; i++) {
             const light = document.createElement('div');
-            light.style.width = '20px';
-            light.style.height = '20px';
-            light.style.borderRadius = '50%';
-            light.style.backgroundColor = '#333';
-            light.style.border = '2px solid #555';
-            light.style.transition = 'all 0.3s ease';
+            light.style.cssText = `
+                width: 20px; height: 20px; border-radius: 50%; background: #333;
+                border: 2px solid #555; transition: all 0.3s ease;
+            `;
             
             this.trafficLights.push(light);
             this.trafficLightContainer.appendChild(light);
@@ -275,6 +253,7 @@ class BalloonGameController {
         // Reset used numbers for new game
         this.usedNumbers.clear();
         this.totalQuestionsCompleted = 0;
+        this.questionCount = 0;
         
         // Hide modal
         if (this.modal) this.modal.classList.add('hidden');
@@ -293,7 +272,7 @@ class BalloonGameController {
         this.questionCount++;
         this.gameActive = true;
         
-        // Clear all arrays completely
+        // Clear all arrays completely and remove DOM elements
         this.balloons.forEach(balloon => {
             if (balloon.group && balloon.group.parentNode) {
                 balloon.group.parentNode.removeChild(balloon.group);
@@ -308,6 +287,7 @@ class BalloonGameController {
         });
         this.fallingNumbers = [];
         
+        // Reset counters
         this.balloonsSpawned = 0;
         this.correctBalloonsPopped = 0;
         this.incorrectBalloonsPopped = 0;
@@ -349,32 +329,25 @@ class BalloonGameController {
         // Create target number display
         const targetDisplay = document.createElement('div');
         targetDisplay.id = 'targetNumberDisplay';
-        targetDisplay.style.position = 'fixed';
-        targetDisplay.style.top = '50%';
-        targetDisplay.style.left = '50%';
-        targetDisplay.style.transform = 'translate(-50%, -50%)';
-        targetDisplay.style.zIndex = '100';
-        targetDisplay.style.textAlign = 'center';
-        targetDisplay.style.opacity = '0';
-        targetDisplay.style.transition = 'opacity 1s ease-in-out';
+        targetDisplay.style.cssText = `
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 100; text-align: center; opacity: 0; transition: opacity 1s ease-in-out;
+        `;
         
         // Large number
         const numberElement = document.createElement('div');
         numberElement.textContent = this.targetNumber.toString();
-        numberElement.style.fontSize = '8rem';
-        numberElement.style.fontWeight = 'bold';
-        numberElement.style.color = '#dc3545';
-        numberElement.style.fontFamily = 'Arial, sans-serif';
-        numberElement.style.lineHeight = '1';
-        numberElement.style.marginBottom = '10px';
+        numberElement.style.cssText = `
+            font-size: 8rem; font-weight: bold; color: #dc3545;
+            font-family: Arial, sans-serif; line-height: 1; margin-bottom: 10px;
+        `;
         
         // Text version
         const textElement = document.createElement('div');
         textElement.textContent = BALLOON_CONFIG.NUMBER_TO_WORD[this.targetNumber] || this.targetNumber.toString();
-        textElement.style.fontSize = '2rem';
-        textElement.style.fontWeight = 'bold';
-        textElement.style.color = '#dc3545';
-        textElement.style.fontFamily = 'Arial, sans-serif';
+        textElement.style.cssText = `
+            font-size: 2rem; font-weight: bold; color: #dc3545; font-family: Arial, sans-serif;
+        `;
         
         targetDisplay.appendChild(numberElement);
         targetDisplay.appendChild(textElement);
@@ -424,7 +397,7 @@ class BalloonGameController {
     }
     
     spawnBalloons() {
-        // Create array of balloon numbers - exactly the right amount
+        // Create array of balloon numbers with exact counts
         const balloonNumbers = [];
         
         // Add correct balloons
@@ -448,7 +421,7 @@ class BalloonGameController {
         this.balloons = [];
         
         // Create exactly the balloons we need
-        balloonNumbers.forEach((number, index) => {
+        balloonNumbers.forEach((number) => {
             this.createBalloon(number);
         });
         
@@ -468,17 +441,17 @@ class BalloonGameController {
             this.totalCorrectBalloons++;
         }
         
-        // Generate random position across game width
+        // Generate random position across game width with better distribution
         const gameAreaWidth = window.innerWidth;
         const constrainedWidth = gameAreaWidth * 0.9;
         const startOffset = (gameAreaWidth - constrainedWidth) / 2;
         const x = startOffset + (Math.random() * (constrainedWidth - BALLOON_CONFIG.BALLOON_RADIUS * 2));
         
-        // Start approximately 20% above the bottom of the game area, extend range upward by 50%
-        const gameAreaHeight = window.innerHeight; // Use full window height
-        const baseMinStartHeight = gameAreaHeight * 0.65;
-        const baseMaxStartHeight = gameAreaHeight * 0.85;
-        const rangeExtension = (baseMaxStartHeight - baseMinStartHeight) * 0.5;
+        // Use improved height positioning with larger range
+        const gameAreaHeight = window.innerHeight;
+        const baseMinStartHeight = gameAreaHeight * BALLOON_CONFIG.BALLOON_START_HEIGHT_MIN;
+        const baseMaxStartHeight = gameAreaHeight * BALLOON_CONFIG.BALLOON_START_HEIGHT_MAX;
+        const rangeExtension = (baseMaxStartHeight - baseMinStartHeight) * BALLOON_CONFIG.BALLOON_RANGE_EXTENSION;
         const minStartHeight = baseMinStartHeight - rangeExtension;
         const maxStartHeight = baseMaxStartHeight;
         const y = minStartHeight + Math.random() * (maxStartHeight - minStartHeight);
@@ -612,7 +585,7 @@ class BalloonGameController {
             
             this.updateTrafficLight();
             
-            // Check if this was the last correct balloon
+            // Check if all correct balloons processed
             if (this.balloonPopOrder.length === this.totalCorrectBalloons) {
                 this.startEndSequence();
             }
@@ -631,8 +604,6 @@ class BalloonGameController {
         if (index > -1) {
             this.balloons.splice(index, 1);
         }
-        
-        this.checkQuestionCompletion();
     }
     
     createPopEffect(x, y) {
@@ -681,7 +652,7 @@ class BalloonGameController {
         const targetY = grassBandTop + randomHeightFromTop;
         
         const fallingNumber = {
-            x: x, // Fixed x position - no sideways movement ever
+            x: x, // Fixed x position - no sideways movement
             y: y,
             targetY: targetY,
             number: number,
@@ -694,9 +665,9 @@ class BalloonGameController {
         // Get text to measure width
         const textContent = BALLOON_CONFIG.NUMBER_TO_WORD[number] || number.toString();
         
-        // Calculate rectangle width based on text length (rough estimate)
-        const charWidth = 12; // approximate pixels per character
-        const padding = 20; // padding on each side
+        // Calculate rectangle width based on text length
+        const charWidth = 12;
+        const padding = 20;
         const rectWidth = Math.max(80, textContent.length * charWidth + padding);
         const rectHeight = 30;
         
@@ -704,14 +675,14 @@ class BalloonGameController {
         const numberGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         numberGroup.setAttribute('class', 'falling-number-group');
         
-        // Create rounded rectangle background instead of ellipse
+        // Create rounded rectangle background
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.setAttribute('x', x - rectWidth/2);
         rect.setAttribute('y', y - rectHeight/2);
         rect.setAttribute('width', rectWidth);
         rect.setAttribute('height', rectHeight);
-        rect.setAttribute('rx', '15'); // rounded corners
-        rect.setAttribute('ry', '15'); // rounded corners
+        rect.setAttribute('rx', '15');
+        rect.setAttribute('ry', '15');
         rect.setAttribute('fill', '#add8e6');
         rect.setAttribute('stroke', '#4682b4');
         rect.setAttribute('stroke-width', '2');
@@ -754,8 +725,8 @@ class BalloonGameController {
                 // Move balloon up
                 balloon.y -= balloon.riseSpeed * deltaTime;
                 
-                // Check if balloon reached top (when center is radius distance from top)
-                if (balloon.y <= balloon.radius) {
+                // Check if balloon reached top - balloon center should touch the ceiling
+                if (balloon.y + balloon.radius <= 0) {
                     this.popBalloon(balloon, false);
                     return;
                 }
@@ -808,7 +779,7 @@ class BalloonGameController {
             }
         });
         
-        // Update falling numbers - absolutely no horizontal movement
+        // Update falling numbers - only vertical movement, no swing animations
         this.fallingNumbers.forEach((fallingNumber, index) => {
             if (!fallingNumber.landed) {
                 // Only update Y position - never touch X
@@ -823,11 +794,11 @@ class BalloonGameController {
                 // Update rectangle position - only Y coordinate
                 if (fallingNumber.rect) {
                     fallingNumber.rect.setAttribute('y', fallingNumber.y - fallingNumber.rectHeight/2);
-                    // Never update x position
+                    // Never update x position to prevent swinging
                 }
                 if (fallingNumber.text) {
                     fallingNumber.text.setAttribute('y', fallingNumber.y + 2);
-                    // Never update x position
+                    // Never update x position to prevent swinging
                 }
             } else {
                 // Check if it's time to remove landed numbers (after 3 seconds)
@@ -844,19 +815,29 @@ class BalloonGameController {
     }
     
     startEndSequence() {
-        // Start fading out remaining balloons
+        // Immediately fade out and remove all remaining incorrect balloons
         this.balloons.forEach(balloon => {
-            if (balloon.group && !balloon.popped) {
-                balloon.group.style.transition = 'opacity 2s ease-out';
+            if (!balloon.popped && !balloon.isCorrect) {
+                balloon.group.style.transition = 'opacity 1s ease-out';
                 balloon.group.style.opacity = '0';
-                // Remove after fade
+                // Remove after fade without popping sound
                 setTimeout(() => {
                     if (balloon.group && balloon.group.parentNode) {
                         balloon.group.parentNode.removeChild(balloon.group);
                     }
-                }, 2000);
+                    // Remove from balloons array
+                    const index = this.balloons.indexOf(balloon);
+                    if (index > -1) {
+                        this.balloons.splice(index, 1);
+                    }
+                }, 1000);
             }
         });
+        
+        // Check for question completion after end sequence starts
+        setTimeout(() => {
+            this.checkQuestionCompletion();
+        }, 1500);
     }
     
     checkQuestionCompletion() {
@@ -866,6 +847,9 @@ class BalloonGameController {
         // If all correct balloons processed and all numbers gone, end question
         if (this.balloonPopOrder.length === this.totalCorrectBalloons && allNumbersGone) {
             this.endQuestion();
+        } else {
+            // Check again in a bit if not ready
+            setTimeout(() => this.checkQuestionCompletion(), 500);
         }
     }
     
@@ -877,7 +861,7 @@ class BalloonGameController {
             this.animationId = null;
         }
         
-        // Clear remaining balloons
+        // Clear any remaining balloons
         this.balloons.forEach(balloon => {
             if (balloon.group) balloon.group.remove();
         });
@@ -893,16 +877,42 @@ class BalloonGameController {
             this.rainbow.addPiece();
         }
         
+        this.totalQuestionsCompleted++;
+        
         // Save state
         this.saveGameState();
         
         // Give audio feedback
         this.giveQuestionFeedback(success);
         
-        // Check for level progression
-        setTimeout(() => {
-            this.checkLevelProgression(success);
-        }, 2000);
+        // Check if we've completed all questions
+        if (this.totalQuestionsCompleted >= BALLOON_CONFIG.TOTAL_QUESTIONS) {
+            setTimeout(() => {
+                this.showFinalModal();
+            }, 2000);
+        } else {
+            // Check for level progression
+            setTimeout(() => {
+                this.checkLevelProgression(success);
+            }, 2000);
+        }
+    }
+    
+    showFinalModal() {
+        if (this.modal && this.modalTitle && this.modalMessage) {
+            this.modalTitle.textContent = '🌈 Well Done! 🌈';
+            this.modalMessage.textContent = `Congratulations! You've completed all ${BALLOON_CONFIG.TOTAL_QUESTIONS} questions!`;
+            
+            // Remove dark background by making modal background transparent
+            this.modal.style.background = 'transparent';
+            this.modal.classList.remove('hidden');
+            
+            if (this.audioEnabled) {
+                setTimeout(() => {
+                    this.speakText('Well done! You have completed all the questions!');
+                }, 500);
+            }
+        }
     }
     
     giveQuestionFeedback(success) {
@@ -911,14 +921,14 @@ class BalloonGameController {
         let message = '';
         
         if (success) {
-            message = `Well done, you popped ${this.correctBalloonsPopped} out of 8 of the number ${this.targetNumber} balloons`;
+            message = `Well done, you popped ${this.correctBalloonsPopped} out of ${BALLOON_CONFIG.CORRECT_BALLOONS} of the number ${this.targetNumber} balloons`;
             if (this.incorrectBalloonsPopped === 0) {
                 message += ' and none of the other balloons';
             } else {
                 message += ` and only ${this.incorrectBalloonsPopped} of the other balloons`;
             }
         } else {
-            message = `You popped ${this.correctBalloonsPopped} out of 8 of the number ${this.targetNumber} balloons`;
+            message = `You popped ${this.correctBalloonsPopped} out of ${BALLOON_CONFIG.CORRECT_BALLOONS} of the number ${this.targetNumber} balloons`;
             if (this.incorrectBalloonsPopped === 0) {
                 message += ' and none of the other balloons';
             } else {
@@ -947,6 +957,7 @@ class BalloonGameController {
         const currentProgress = this.levelProgress[this.currentLevel];
         const requiredProgress = BALLOON_CONFIG.LEVELS[this.currentLevel].questionsNeeded;
         
+        // Only hidden levels are dependent on success criteria per question
         if (success && currentProgress >= requiredProgress) {
             // Level completed - advance to next level
             if (this.currentLevel < 4) {
