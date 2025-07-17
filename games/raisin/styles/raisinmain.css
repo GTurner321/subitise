@@ -78,15 +78,17 @@
 }
 
 .guinea-pig-2 {
-    top: 25%; /* Higher position for top half sweep */
+    top: 33%; /* Center at 33% down the game area */
     left: -25%; /* Start off screen */
     z-index: 5; /* Above raisins when moving */
+    transform: translateY(-50%); /* Center the guinea pig vertically */
 }
 
 .guinea-pig-1 {
-    top: 65%; /* Lower position for bottom half sweep */
+    top: 67%; /* Center at 67% down the game area */
     right: -25%; /* Start off screen on right side */
     z-index: 5; /* Above raisins when moving */
+    transform: translateY(-50%); /* Center the guinea pig vertically */
 }
 
 .guinea-pig.hidden {
@@ -146,11 +148,11 @@
     }
     
     .guinea-pig-2 {
-        top: 20%; /* Adjusted for mobile */
+        top: 33%; /* Keep consistent positioning */
     }
     
     .guinea-pig-1 {
-        top: 70%; /* Adjusted for mobile */
+        top: 67%; /* Keep consistent positioning */
     }
 }
 
@@ -161,11 +163,11 @@
     }
     
     .guinea-pig-2 {
-        top: 15%; /* Adjusted for mobile */
+        top: 33%; /* Keep consistent positioning */
     }
     
     .guinea-pig-1 {
-        top: 75%; /* Adjusted for mobile */
+        top: 67%; /* Keep consistent positioning */
     }
 }
 
