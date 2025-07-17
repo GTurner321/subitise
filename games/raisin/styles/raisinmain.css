@@ -23,6 +23,7 @@
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     object-fit: contain;
+    filter: brightness(1.3) contrast(0.8); /* Make raisins lighter */
 }
 
 .raisin.eaten {
@@ -77,14 +78,14 @@
 }
 
 .guinea-pig-2 {
-    top: 40%; /* Slightly higher than middle */
-    left: -20%; /* Start off screen */
+    top: 25%; /* Higher position for top half sweep */
+    left: -25%; /* Start off screen */
     z-index: 5; /* Above raisins when moving */
 }
 
 .guinea-pig-1 {
-    top: 60%; /* Slightly lower than middle */
-    right: -20%; /* Start off screen */
+    top: 65%; /* Lower position for bottom half sweep */
+    right: -25%; /* Start off screen on right side */
     z-index: 5; /* Above raisins when moving */
 }
 
@@ -139,21 +140,17 @@
 
 /* Responsive adjustments for mobile */
 @media (max-width: 768px) {
-    .raisin {
-        /* Adjust raisin size for mobile if needed */
-    }
-    
     .guinea-pig-3 {
         top: 3%;
         left: 3%;
     }
     
     .guinea-pig-2 {
-        top: 35%;
+        top: 20%; /* Adjusted for mobile */
     }
     
     .guinea-pig-1 {
-        top: 65%;
+        top: 70%; /* Adjusted for mobile */
     }
 }
 
@@ -164,11 +161,11 @@
     }
     
     .guinea-pig-2 {
-        top: 30%;
+        top: 15%; /* Adjusted for mobile */
     }
     
     .guinea-pig-1 {
-        top: 70%;
+        top: 75%; /* Adjusted for mobile */
     }
 }
 
