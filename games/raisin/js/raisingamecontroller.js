@@ -349,15 +349,16 @@ class RaisinGameController {
         this.buttonsDisabled = false;
         
         // Generate question: decide how many raisins to eat (1-9)
-        this.currentAnswer = Math.floor(Math.random() * 9) + 1;
+        // The answer is the number of raisins EATEN, not remaining
+        this.currentAnswer = Math.floor(Math.random() * 9) + 1; // 1 to 9 raisins eaten
         
         // Reset button states
         this.resetButtonStates();
         
-        // Render raisins
+        // Render all 10 raisins
         this.raisinRenderer.renderRaisins();
         
-        // Randomly select which raisins to eat
+        // Select exactly currentAnswer raisins to eat
         const raisinsToEat = this.selectRaisinsToEat();
         
         // Give starting instruction
@@ -365,6 +366,9 @@ class RaisinGameController {
         
         // Start the guinea pig sequence
         await this.runGuineaPigSequence(raisinsToEat);
+        
+        // After guinea pigs finish, we should have (10 - currentAnswer) raisins remaining
+        // And currentAnswer raisins should have been eaten
         
         // Start visual flashing and inactivity timer after guinea pigs finish
         this.startFlashing();
@@ -375,7 +379,7 @@ class RaisinGameController {
         const totalRaisins = CONFIG.TOTAL_RAISINS;
         const raisinsToEat = [];
         
-        // Randomly select which raisins to eat
+        // Randomly select exactly currentAnswer raisins to eat
         while (raisinsToEat.length < this.currentAnswer) {
             const randomIndex = Math.floor(Math.random() * totalRaisins);
             if (!raisinsToEat.includes(randomIndex)) {
@@ -437,10 +441,11 @@ class RaisinGameController {
     startNomNomAudio() {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
-        // Repeat "nom-nom-nom" during guinea pig movement
+        // Start immediately and repeat "nom-nom-nom" continuously during guinea pig movement
+        this.speakText('nom nom nom');
         this.nomNomInterval = setInterval(() => {
             this.speakText('nom nom nom');
-        }, 1000);
+        }, 1500); // Slightly longer interval to avoid overlap
     }
     
     stopNomNomAudio() {
