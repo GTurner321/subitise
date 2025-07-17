@@ -49,7 +49,8 @@ class RaisinRenderer {
         let attempts = 0;
         const maxAttempts = 1000;
         
-        while (positions.length < CONFIG.TOTAL_RAISINS && attempts < maxAttempts) {
+        // Generate exactly 10 raisin positions
+        while (positions.length < 10 && attempts < maxAttempts) {
             attempts++;
             
             // Generate random position within game area
@@ -80,6 +81,43 @@ class RaisinRenderer {
             
             if (!tooClose) {
                 positions.push({ x, y });
+            }
+        }
+        
+        // If we couldn't generate 10 positions, reduce minimum distance and try again
+        if (positions.length < 10) {
+            console.warn(`Only generated ${positions.length} raisin positions, reducing constraints...`);
+            const reducedMinDistance = minDistance * 0.7;
+            
+            while (positions.length < 10 && attempts < maxAttempts + 500) {
+                attempts++;
+                
+                const x = Math.random() * (gameAreaRect.width - raisinSize);
+                const y = Math.random() * (gameAreaRect.height - raisinSize);
+                
+                const inExclusionZone = (
+                    x < exclusionX + exclusionWidth &&
+                    x + raisinSize > exclusionX &&
+                    y < exclusionY + exclusionHeight &&
+                    y + raisinSize > exclusionY
+                );
+                
+                if (inExclusionZone) {
+                    continue;
+                }
+                
+                let tooClose = false;
+                for (const pos of positions) {
+                    const distance = Math.sqrt(Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2));
+                    if (distance < reducedMinDistance) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                
+                if (!tooClose) {
+                    positions.push({ x, y });
+                }
             }
         }
         
@@ -131,6 +169,32 @@ class RaisinRenderer {
     showGuineaPig3() {
         this.guineaPig3.classList.remove('hidden');
         this.guineaPig3.classList.add('bounce');
+    }
+    
+    async fadeOutGuineaPig3() {
+        return new Promise((resolve) => {
+            this.guineaPig3.style.transition = 'opacity 0.5s ease-out';
+            this.guineaPig3.style.opacity = '0';
+            this.guineaPig3.classList.remove('bounce');
+            
+            setTimeout(() => {
+                this.guineaPig3.classList.add('hidden');
+                resolve();
+            }, 500);
+        });
+    }
+    
+    async fadeInGuineaPig3() {
+        return new Promise((resolve) => {
+            this.guineaPig3.classList.remove('hidden');
+            this.guineaPig3.style.transition = 'opacity 0.5s ease-in';
+            this.guineaPig3.style.opacity = '1';
+            this.guineaPig3.classList.add('bounce');
+            
+            setTimeout(() => {
+                resolve();
+            }, 500);
+        });
     }
     
     async moveGuineaPig2(raisinsToEat) {
@@ -250,6 +314,10 @@ class RaisinRenderer {
         this.clearRaisins();
         this.guineaPig2.classList.add('hidden');
         this.guineaPig1.classList.add('hidden');
+        
+        // Reset guinea pig 3 to initial state
+        this.guineaPig3.style.opacity = '1';
+        this.guineaPig3.style.transition = '';
         this.showGuineaPig3();
         
         // Reset guinea pig positions
