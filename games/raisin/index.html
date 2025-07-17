@@ -15,8 +15,9 @@
         Back to Games
     </a>
     
-    <!-- Main game area -->
+    <!-- Main game area with background image -->
     <div class="game-area">
+        <!-- Rainbow container positioned above background -->
         <div class="rainbow-container" id="rainbowContainer">
             <!-- Rainbow arcs will be added here by JavaScript -->
         </div>
@@ -24,16 +25,16 @@
         <!-- Guinea pig 3 (stationary in top left) -->
         <img id="guineaPig3" class="guinea-pig guinea-pig-3" src="../../assets/raisin/guineapig3.png" alt="Guinea Pig">
         
-        <!-- Guinea pig 2 (moves left to right) -->
+        <!-- Guinea pig 2 (moves left to right, 10% larger) -->
         <img id="guineaPig2" class="guinea-pig guinea-pig-2 hidden" src="../../assets/raisin/guineapig2.png" alt="Guinea Pig Eating">
         
-        <!-- Guinea pig 1 (moves right to left) -->
+        <!-- Guinea pig 1 (moves right to left at 60% down, 10% larger) -->
         <img id="guineaPig1" class="guinea-pig guinea-pig-1 hidden" src="../../assets/raisin/guineapig1.png" alt="Guinea Pig Eating">
         
-        <!-- Raisins will be added here by JavaScript -->
+        <!-- Raisins will be dynamically added here by JavaScript -->
     </div>
     
-    <!-- Number selection buttons (only 1-9 since we need at least 1 raisin to remain) -->
+    <!-- Number selection buttons (1-9 since at least 1 raisin must remain) -->
     <div class="number-buttons">
         <button class="number-btn" data-number="1">1</button>
         <button class="number-btn" data-number="2">2</button>
@@ -54,7 +55,7 @@
         </div>
     </div>
     
-    <!-- JavaScript files -->
+    <!-- JavaScript files loaded in dependency order -->
     <script src="js/raisinconfig.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
