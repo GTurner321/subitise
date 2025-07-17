@@ -394,18 +394,18 @@ class RaisinGameController {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
         setTimeout(() => {
-            if (this.questionsCompleted === 0) {
-                // First question
-                this.speakText('Watch the guinea pigs eat the raisins');
-            } else {
-                // Second and further questions
-                this.speakText('Watch carefully');
-            }
+            this.speakText('Watch the hungry guinea pig');
         }, 500);
     }
     
     async runGuineaPigSequence(raisinsToEat) {
         this.buttonsDisabled = true;
+        
+        // Show guinea pig 3 for 4 seconds at the start
+        this.raisinRenderer.showGuineaPig3();
+        
+        // Wait for initial display period
+        await this.sleep(CONFIG.GUINEA_PIG_3_INITIAL_DISPLAY);
         
         // Hide guinea pig 3
         this.raisinRenderer.hideGuineaPig3();
