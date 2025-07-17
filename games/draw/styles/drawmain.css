@@ -475,15 +475,16 @@ body {
     pointer-events: none;
 }
 
-/* Draw area container - side by side layout, no visible boxes */
+/* Draw area container - make much larger to accommodate bigger drawing area */
 .draw-area {
     display: flex;
     width: 100%;
-    height: 70%;
-    gap: 60px;
+    height: 85%; /* Increased height */
+    gap: 40px;
     align-items: center;
     justify-content: center;
     z-index: 10;
+    max-width: none; /* Remove width constraint */
 }
 
 /* Reference container (left side) - no visible box, no hover effects */
