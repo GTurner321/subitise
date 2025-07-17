@@ -515,14 +515,12 @@ class DrawNumberRenderer {
         // Reset inactivity timer
         this.resetInactivityTimer();
         
-        // Create large drawing cursor
-        this.createDrawingCursor();
+        // No custom cursor - removed pencil pointer
         
         const point = this.getEventPoint(event, this.drawingSvg);
         if (point) {
             this.currentDrawnPath.push(point);
             this.createNewDrawnPath();
-            this.updateDrawingCursor(event);
         }
     }
 
@@ -539,7 +537,6 @@ class DrawNumberRenderer {
             this.currentDrawnPath.push(point);
             this.updateCurrentDrawnPath();
             this.checkDrawingProgress(point);
-            this.updateDrawingCursor(event);
         }
     }
 
@@ -547,9 +544,6 @@ class DrawNumberRenderer {
         if (!this.isDrawing) return;
         
         this.isDrawing = false;
-        
-        // Remove drawing cursor
-        this.removeDrawingCursor();
         
         // Start pulsing again if number not complete
         if (!this.isNumberComplete()) {
