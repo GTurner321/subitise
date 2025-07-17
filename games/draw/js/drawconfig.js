@@ -2,18 +2,18 @@ const DRAW_CONFIG = {
     NUMBERS_TO_COMPLETE: 10,
     RAINBOW_PIECES: 10,
     
-    // Drawing area dimensions - taller areas
+    // Drawing area dimensions - larger containers to prevent cut-off
     get REFERENCE_WIDTH() {
-        return Math.min(window.innerWidth * 0.25, 250);
+        return Math.min(window.innerWidth * 0.3, 350); // Wider for 50% larger number
     },
     get REFERENCE_HEIGHT() {
-        return Math.min(window.innerHeight * 0.525, 375); // 50% taller
+        return Math.min(window.innerHeight * 0.6, 450); // Taller for 50% larger number
     },
     get DRAWING_WIDTH() {
-        return Math.min(window.innerWidth * 0.55, 550);
+        return Math.min(window.innerWidth * 0.6, 650); // Wider for larger drawing area
     },
     get DRAWING_HEIGHT() {
-        return Math.min(window.innerHeight * 0.72, 660); // 20% taller
+        return Math.min(window.innerHeight * 0.75, 700); // Taller for larger drawing area
     },
     
     // Reference number styling
