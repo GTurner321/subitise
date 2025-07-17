@@ -126,24 +126,62 @@ body {
     50% { transform: rotate(2deg); }
 }
 
-/* Falling number animations */
-.falling-number-group {
-    animation: numberFall 0.8s ease-in-out;
+/* Falling number animations - COMPLETELY DISABLE ALL ANIMATIONS AND TRANSFORMS */
+.falling-number-group,
+.falling-number-group *,
+svg .falling-number-group,
+svg .falling-number-group * {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+    transform-origin: initial !important; /* Remove any transform-origin that causes swinging */
+    -webkit-animation: none !important;
+    -webkit-transform: none !important;
+    -webkit-transition: none !important;
+    -webkit-transform-origin: initial !important;
+    -moz-animation: none !important;
+    -moz-transform: none !important;
+    -moz-transition: none !important;
+    -moz-transform-origin: initial !important;
 }
 
-@keyframes numberFall {
-    0% { 
-        transform: scale(1); 
-        opacity: 1; 
-    }
-    50% { 
-        transform: scale(1.2); 
-        opacity: 0.9; 
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
+/* Override any swing animations completely */
+@keyframes swing {
+    0%, 100% { transform: none !important; }
+}
+
+@-webkit-keyframes swing {
+    0%, 100% { -webkit-transform: none !important; }
+}
+
+@-moz-keyframes swing {
+    0%, 100% { -moz-transform: none !important; }
+}
+
+/* Override any rotation animations */
+@keyframes rotate {
+    0%, 100% { transform: none !important; }
+}
+
+@-webkit-keyframes rotate {
+    0%, 100% { -webkit-transform: none !important; }
+}
+
+@-moz-keyframes rotate {
+    0%, 100% { -moz-transform: none !important; }
+}
+
+/* Override any pendulum animations */
+@keyframes pendulum {
+    0%, 100% { transform: none !important; }
+}
+
+@-webkit-keyframes pendulum {
+    0%, 100% { -webkit-transform: none !important; }
+}
+
+@-moz-keyframes pendulum {
+    0%, 100% { -moz-transform: none !important; }
 }
 
 /* Game completion modal styling */
@@ -250,11 +288,15 @@ body {
     display: none;
 }
 
-/* Back button styling - positioned bottom left */
+/* Back button styling - Override shared styles with maximum specificity */
+html body .game-area .back-button,
+html body .back-button,
+body .back-button,
 .back-button {
     position: fixed !important;
     bottom: 20px !important;
     left: 20px !important;
+    top: unset !important; /* Explicitly unset top positioning */
     background: rgba(0, 0, 0, 0.7) !important;
     color: white !important;
     text-decoration: none !important;
@@ -262,7 +304,7 @@ body {
     border-radius: 25px !important;
     font-size: 1rem !important;
     font-weight: bold !important;
-    z-index: 1000 !important;
+    z-index: 1004 !important; /* Higher than shared styles z-index: 1003 */
     transition: all 0.3s ease !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -272,6 +314,8 @@ body {
     width: auto !important;
     max-height: 50px !important;
     max-width: 200px !important;
+    margin: 0 !important;
+    transform: none !important;
 }
 
 .back-button:hover {
