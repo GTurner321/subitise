@@ -17,7 +17,7 @@ const CONFIG = {
         '#8000ff'  // Blue-purple
     ],
     
-    // Timing
+    // Timing configurations
     FLASH_DURATION: 800,
     NEXT_QUESTION_DELAY: 2000,
     GUINEA_PIG_3_INITIAL_DISPLAY: 4000, // 4 seconds initial display
@@ -28,40 +28,39 @@ const CONFIG = {
     GUINEA_PIG_ANIMATION_DURATION: 3000, // 3 seconds for each guinea pig to cross
     GUINEA_PIG_PAUSE_DURATION: 500, // Pause between guinea pigs
     
-    // Guinea pig sizes (relative to screen)
-    GUINEA_PIG_3_SIZE: 0.1, // 1/10th of screen width
-    GUINEA_PIG_2_SIZE: 0.25, // 1/4th of screen width (25% larger)
-    GUINEA_PIG_1_SIZE: 0.25, // 1/4th of screen width (25% larger)
+    // Guinea pig sizes (relative to screen width)
+    GUINEA_PIG_3_SIZE: 0.1, // 10% of screen width
+    GUINEA_PIG_2_SIZE: 0.22, // 22% of screen width (will be made 10% larger in renderer)
+    GUINEA_PIG_1_SIZE: 0.22, // 22% of screen width (will be made 10% larger in renderer)
     
     // Raisin settings
-    RAISIN_SIZE: 0.1, // 1/10th of screen width (twice as large)
-    RAISIN_MIN_DISTANCE: 0.12, // Increased minimum distance between raisins
+    RAISIN_SIZE: 0.08, // 8% of screen width
+    RAISIN_MIN_DISTANCE: 0.12, // Minimum distance between raisins
     TOTAL_RAISINS: 10,
     
-    // Audio
+    // Audio settings
     AUDIO_ENABLED: true,
-    NOM_NOM_PITCH: 1.8, // Higher pitch for nom-nom sounds
     
-    // Game area exclusions - expanded for top right
+    // Game area exclusions - area to avoid placing raisins
     GUINEA_PIG_3_EXCLUSION: {
-        x: 0,
-        y: 0,
-        width: 0.25, // Expanded width
-        height: 0.25  // Expanded height
+        x: 0,        // Start from left edge
+        y: 0,        // Start from top edge  
+        width: 0.25, // 25% of game area width
+        height: 0.25 // 25% of game area height
     },
     
-    // Difficulty levels (hidden from user)
+    // Hidden difficulty levels that adapt based on player performance
     DIFFICULTY_LEVELS: {
         LEVEL_1: {
-            possibleRaisinsToEat: [1, 2],
+            possibleRaisinsToEat: [1, 2], // Easier numbers
             name: 'Level 1'
         },
         LEVEL_2: {
-            possibleRaisinsToEat: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            possibleRaisinsToEat: [1, 2, 3, 4, 5, 6, 7, 8, 9], // Full range
             name: 'Level 2'
         },
         LEVEL_3: {
-            possibleRaisinsToEat: [1, 2, 5, 9],
+            possibleRaisinsToEat: [1, 2, 5, 9], // Specific challenging numbers
             name: 'Level 3'
         }
     }
