@@ -2,40 +2,43 @@ const DRAW_CONFIG = {
     NUMBERS_TO_COMPLETE: 10,
     RAINBOW_PIECES: 10,
     
-    // Drawing area dimensions - larger containers to prevent cut-off
+    // Drawing area dimensions - enhanced for better layout
     get REFERENCE_WIDTH() {
-        return Math.min(window.innerWidth * 0.3, 350); // Wider for 50% larger number
+        return Math.min(window.innerWidth * 0.3, 350);
     },
     get REFERENCE_HEIGHT() {
-        return Math.min(window.innerHeight * 0.6, 450); // Taller for 50% larger number
+        // Made 20% taller as requested
+        return Math.min(window.innerHeight * 0.72, 540);
     },
     get DRAWING_WIDTH() {
-        return Math.min(window.innerWidth * 0.6, 650); // Wider for larger drawing area
+        return Math.min(window.innerWidth * 0.6, 650);
     },
     get DRAWING_HEIGHT() {
-        return Math.min(window.innerHeight * 0.75, 700); // Taller for larger drawing area
+        return Math.min(window.innerHeight * 0.75, 700);
     },
     
-    // Reference number styling
-    REFERENCE_OUTLINE_WIDTH: 30,
-    REFERENCE_WHITE_WIDTH: 20,
+    // Reference number styling - enhanced for better visibility
+    REFERENCE_OUTLINE_WIDTH: 45, // Made 50% thicker (30 * 1.5)
+    REFERENCE_WHITE_WIDTH: 30,   // Made 50% thicker (20 * 1.5) - this is actually the red line
     REFERENCE_OUTLINE_COLOR: '#2C2C2C',
+    REFERENCE_WHITE_COLOR: '#FF0000', // Changed to red for the inner line
     
-    // Drawing canvas styling - thinner lines, 60% narrower
-    DRAWING_OUTLINE_WIDTH: 54, // 60% narrower (135 * 0.4 = 54)
-    DRAWING_WHITE_WIDTH: 48,   // 60% narrower (120 * 0.4 = 48)
-    DRAWING_OUTLINE_COLOR: '#CCCCCC', // Light grey
-    DRAWING_STROKE_COLOR: '#4CAF50', // Green for drawn lines
+    // Drawing canvas styling - maintained proportions
+    DRAWING_OUTLINE_WIDTH: 54,
+    DRAWING_WHITE_WIDTH: 48,
+    DRAWING_OUTLINE_COLOR: '#CCCCCC',
+    DRAWING_STROKE_COLOR: '#4CAF50',
     DRAWING_STROKE_WIDTH: 8,
     
-    // Drawing detection
-    DRAWING_TOLERANCE: 25, // How close to the path user needs to draw
-    MIN_COVERAGE_PERCENTAGE: 60, // Minimum % of path that needs to be covered
+    // Enhanced drawing detection with coverage requirements
+    DRAWING_TOLERANCE: 25,
+    MIN_COVERAGE_PERCENTAGE: 60,
+    MIN_VERTICAL_COVERAGE: 75,   // New: minimum vertical coverage requirement
+    MIN_HORIZONTAL_COVERAGE: 75, // New: minimum horizontal coverage requirement
     
     COMPLETION_DELAY: 2000,
     AUDIO_ENABLED: true,
     
-    // Bear image path - relative to draw game folder
     BEAR_IMAGE_PATH: '../../assets/bear.png',
     
     NUMBER_WORDS: {
@@ -43,7 +46,7 @@ const DRAW_CONFIG = {
         5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine'
     },
     
-    // Same stroke definitions as trace game but adapted for drawing
+    // Stroke definitions remain the same - coordinate system intact
     STROKE_DEFINITIONS: {
         0: {
             strokes: [{
@@ -334,12 +337,9 @@ const DRAW_CONFIG = {
 };
 
 // Create alias for compatibility with shared components (Rainbow, Bear)
-// This ensures the shared files can access the configuration they expect
 const CONFIG = {
     ...DRAW_CONFIG,
-    // Override specific paths for this game
     BEAR_IMAGE_PATH: DRAW_CONFIG.BEAR_IMAGE_PATH,
-    // Ensure all expected properties are available
     RAINBOW_PIECES: DRAW_CONFIG.RAINBOW_PIECES,
     RAINBOW_COLORS: DRAW_CONFIG.RAINBOW_COLORS
 };
