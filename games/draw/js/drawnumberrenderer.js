@@ -239,9 +239,9 @@ class DrawNumberRenderer {
             return [];
         }
         
-        // Make reference number 100% larger
+        // Revert to original scaling then scale up by 50%
         const minDimension = Math.min(DRAW_CONFIG.REFERENCE_WIDTH, DRAW_CONFIG.REFERENCE_HEIGHT);
-        const scale = (minDimension / 250) * 2.0; // 100% larger
+        const scale = (minDimension / 250) * 1.5; // 50% larger
         
         const offsetX = (DRAW_CONFIG.REFERENCE_WIDTH - 120 * scale) / 2;
         const offsetY = (DRAW_CONFIG.REFERENCE_HEIGHT - 200 * scale) / 2;
@@ -375,6 +375,7 @@ class DrawNumberRenderer {
             templatePath.setAttribute('stroke-linecap', 'round');
             templatePath.setAttribute('stroke-linejoin', 'round');
             templatePath.setAttribute('class', `template-outline-${strokeIndex}`);
+            templatePath.style.transition = 'opacity 0.2s ease';
             this.drawingSvg.appendChild(templatePath);
         });
         
@@ -391,26 +392,91 @@ class DrawNumberRenderer {
             this.drawingSvg.appendChild(drawingAreaPath);
         });
         
-        // Start grey outline pulsing
-        this.startGreyOutlinePulsing();
+        // Start slow pulsing from the beginning
+        this.startSlowPulsing();
+        
+        // Set up inactivity timer
+        this.resetInactivityTimer();
     }
 
-    startGreyOutlinePulsing() {
+    startSlowPulsing() {
         // Clear any existing pulse interval
-        if (this.pulseInterval) {
-            clearInterval(this.pulseInterval);
-        }
+        this.stopPulsing();
         
-        // Pulse every 5 seconds
+        // Slow pulse like a cursor - fade in and out every 2 seconds
         this.pulseInterval = setInterval(() => {
+            if (this.isDrawing) return; // Don't pulse while drawing
+            
             const greyOutlines = this.drawingSvg.querySelectorAll('[class*="template-outline"]');
             greyOutlines.forEach(outline => {
-                outline.style.opacity = '0';
-                setTimeout(() => {
+                if (outline.style.opacity === '0.3') {
                     outline.style.opacity = '1';
-                }, 200); // Brief 200ms disappearance
+                } else {
+                    outline.style.opacity = '0.3';
+                }
             });
-        }, 5000);
+        }, 1000); // Every 1 second for slow pulsing
+    }
+
+    stopPulsing() {
+        if (this.pulseInterval) {
+            clearInterval(this.pulseInterval);
+            this.pulseInterval = null;
+        }
+        
+        // Ensure outlines are fully visible when pulsing stops
+        const greyOutlines = this.drawingSvg.querySelectorAll('[class*="template-outline"]');
+        greyOutlines.forEach(outline => {
+            outline.style.opacity = '1';
+        });
+    }
+
+    resetInactivityTimer() {
+        // Clear existing timer
+        if (this.inactivityTimer) {
+            clearTimeout(this.inactivityTimer);
+        }
+        
+        // Set 10-second inactivity timer
+        this.inactivityTimer = setTimeout(() => {
+            if (!this.isDrawing && !this.isNumberComplete()) {
+                this.showInactivityReminder();
+            }
+        }, 10000);
+    }
+
+    showInactivityReminder() {
+        // Play audio message
+        if (window.drawGame && window.drawGame.audioEnabled) {
+            if (window.drawGame.speakText) {
+                window.drawGame.speakText('Keep drawing to complete the number');
+            }
+        }
+        
+        // Flash grey outline twice
+        const greyOutlines = this.drawingSvg.querySelectorAll('[class*="template-outline"]');
+        let flashCount = 0;
+        
+        const flashInterval = setInterval(() => {
+            greyOutlines.forEach(outline => {
+                outline.style.opacity = outline.style.opacity === '0' ? '1' : '0';
+            });
+            
+            flashCount++;
+            if (flashCount >= 4) { // 2 complete flashes (4 opacity changes)
+                clearInterval(flashInterval);
+                // Ensure outlines are visible after flashing
+                greyOutlines.forEach(outline => {
+                    outline.style.opacity = '1';
+                });
+            }
+        }, 300); // Flash every 300ms
+    }
+
+    isNumberComplete() {
+        const totalPoints = this.getTotalTemplatePoints();
+        const coveragePercentage = (this.coveredPoints.size / totalPoints) * 100;
+        return coveragePercentage >= DRAW_CONFIG.MIN_COVERAGE_PERCENTAGE;
     }
 
     setupDrawingEvents() {
@@ -443,6 +509,12 @@ class DrawNumberRenderer {
             this.pencilIcon.style.opacity = '0';
         }
         
+        // Stop pulsing when drawing starts
+        this.stopPulsing();
+        
+        // Reset inactivity timer
+        this.resetInactivityTimer();
+        
         // Create large drawing cursor
         this.createDrawingCursor();
         
@@ -458,6 +530,10 @@ class DrawNumberRenderer {
         if (!this.isDrawing) return;
         
         event.preventDefault();
+        
+        // Reset inactivity timer on continued drawing
+        this.resetInactivityTimer();
+        
         const point = this.getEventPoint(event, this.drawingSvg);
         if (point) {
             this.currentDrawnPath.push(point);
@@ -474,6 +550,11 @@ class DrawNumberRenderer {
         
         // Remove drawing cursor
         this.removeDrawingCursor();
+        
+        // Start pulsing again if number not complete
+        if (!this.isNumberComplete()) {
+            this.startSlowPulsing();
+        }
         
         if (this.currentDrawnPath.length > 0) {
             this.userDrawnPaths.push([...this.currentDrawnPath]);
@@ -492,7 +573,7 @@ class DrawNumberRenderer {
         this.drawingCursor.style.color = '#DAA520'; // Dull yellow
         this.drawingCursor.style.pointerEvents = 'none';
         this.drawingCursor.style.zIndex = '1000';
-        this.drawingCursor.style.transform = 'translate(-50%, -50%) rotate(45deg)';
+        this.drawingCursor.style.transform = 'translate(-50%, -50%)'; // No rotation
         this.drawingCursor.style.filter = 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))';
         
         document.body.appendChild(this.drawingCursor);
@@ -511,14 +592,17 @@ class DrawNumberRenderer {
             clientY = event.clientY;
         }
         
-        // Position the pencil tip (bottom-left of icon) at the touch point
-        // The pencil is rotated 45 degrees, so we need to offset accordingly
-        // For a 96px icon rotated 45 degrees, the tip is roughly at (-34, 34) from center
-        const pencilTipOffsetX = -34;
-        const pencilTipOffsetY = 34;
+        // For Font Awesome pencil icon (fa-solid fa-pencil), the tip is at the bottom-left
+        // With a 96px font size and no rotation, we need to offset to position the tip correctly
+        // The pencil tip is roughly at 25% from left and 85% from top of the icon bounds
+        const iconWidth = 96 * 0.6; // Font Awesome icons are roughly 0.6 aspect ratio
+        const iconHeight = 96;
         
-        this.drawingCursor.style.left = (clientX - pencilTipOffsetX) + 'px';
-        this.drawingCursor.style.top = (clientY - pencilTipOffsetY) + 'px';
+        const tipOffsetX = -(iconWidth * 0.25); // 25% from left edge
+        const tipOffsetY = (iconHeight * 0.35); // 35% from center (tip is near bottom)
+        
+        this.drawingCursor.style.left = (clientX + tipOffsetX) + 'px';
+        this.drawingCursor.style.top = (clientY + tipOffsetY) + 'px';
     }
 
     removeDrawingCursor() {
@@ -671,9 +755,12 @@ class DrawNumberRenderer {
         this.isDrawing = false;
         
         // Clear pulse interval
-        if (this.pulseInterval) {
-            clearInterval(this.pulseInterval);
-            this.pulseInterval = null;
+        this.stopPulsing();
+        
+        // Clear inactivity timer
+        if (this.inactivityTimer) {
+            clearTimeout(this.inactivityTimer);
+            this.inactivityTimer = null;
         }
         
         // Remove drawing cursor
@@ -696,9 +783,12 @@ class DrawNumberRenderer {
         }
         
         // Clear pulse interval
-        if (this.pulseInterval) {
-            clearInterval(this.pulseInterval);
-            this.pulseInterval = null;
+        this.stopPulsing();
+        
+        // Clear inactivity timer
+        if (this.inactivityTimer) {
+            clearTimeout(this.inactivityTimer);
+            this.inactivityTimer = null;
         }
         
         // Remove drawing cursor
