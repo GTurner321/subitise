@@ -1,5 +1,21 @@
 /* Raisin game specific styles */
 
+/* Game area with background image */
+.game-area {
+    background-image: url('../../assets/raisin/raisinbackground.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+    z-index: 1;
+}
+
+/* Ensure rainbow container is above background but below guinea pigs */
+.rainbow-container {
+    position: relative;
+    z-index: 2;
+}
+
 /* Game area flash animation for hints */
 .game-area.area-flash {
     animation: areaFlash 1s ease-in-out;
@@ -7,23 +23,23 @@
 
 @keyframes areaFlash {
     0%, 100% {
-        background: white;
+        background-color: transparent;
     }
     50% {
-        background: rgba(255, 255, 0, 0.1);
+        background-color: rgba(255, 255, 0, 0.1);
     }
 }
 
-/* Raisin styles */
+/* Raisin styles with shared properties */
 .raisin {
     position: absolute;
-    z-index: 2;
+    z-index: 3;
     pointer-events: none;
     transition: all 0.3s ease;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     object-fit: contain;
-    filter: brightness(1.3) contrast(0.8); /* Make raisins lighter */
+    filter: brightness(1.3) contrast(0.8);
 }
 
 .raisin.eaten {
@@ -60,35 +76,27 @@
     }
 }
 
-/* Guinea pig styles */
+/* Staggered appear animation for raisins */
+@keyframes raisinStaggeredAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Guinea pig shared styles */
 .guinea-pig {
     position: absolute;
-    z-index: 3;
+    z-index: 4;
     pointer-events: none;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     object-fit: contain;
     transition: all 0.3s ease;
-}
-
-.guinea-pig-3 {
-    top: 5%;
-    left: 5%;
-    z-index: 4; /* Above other guinea pigs */
-}
-
-.guinea-pig-2 {
-    top: 33%; /* Center at 33% down the game area */
-    left: -25%; /* Start off screen */
-    z-index: 5; /* Above raisins when moving */
-    transform: translateY(-50%); /* Center the guinea pig vertically */
-}
-
-.guinea-pig-1 {
-    top: 63%; /* Raised up slightly for better coverage */
-    right: -25%; /* Start off screen on right side */
-    z-index: 5; /* Above raisins when moving */
-    transform: translateY(-50%); /* Center the guinea pig vertically */
 }
 
 .guinea-pig.hidden {
@@ -98,6 +106,40 @@
 
 .guinea-pig.moving {
     transition: all 3s linear;
+    z-index: 5; /* Above raisins when moving */
+}
+
+/* Individual guinea pig positioning */
+.guinea-pig-3 {
+    top: 5%;
+    left: 5%;
+    z-index: 6; /* Above other guinea pigs */
+}
+
+.guinea-pig-2 {
+    top: 33%;
+    left: -25%;
+    transform: translateY(-50%);
+}
+
+.guinea-pig-1 {
+    top: 60%; /* Changed from 63% to 60% as requested */
+    right: -25%;
+    transform: translateY(-50%);
+}
+
+/* Guinea pig bounce animation for guinea pig 3 */
+.guinea-pig-3.bounce {
+    animation: guineaPigBounce 2s ease-in-out infinite;
+}
+
+@keyframes guineaPigBounce {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 /* Star celebration animation (shared with other games) */
@@ -140,52 +182,7 @@
     pointer-events: none;
 }
 
-/* Responsive adjustments for mobile */
-@media (max-width: 768px) {
-    .guinea-pig-3 {
-        top: 3%;
-        left: 3%;
-    }
-    
-    .guinea-pig-2 {
-        top: 33%; /* Keep consistent positioning */
-    }
-    
-    .guinea-pig-1 {
-        top: 63%; /* Keep consistent positioning */
-    }
-}
-
-@media (max-width: 480px) {
-    .guinea-pig-3 {
-        top: 2%;
-        left: 2%;
-    }
-    
-    .guinea-pig-2 {
-        top: 33%; /* Keep consistent positioning */
-    }
-    
-    .guinea-pig-1 {
-        top: 63%; /* Keep consistent positioning */
-    }
-}
-
-/* Guinea pig bounce animation for guinea pig 3 */
-.guinea-pig-3.bounce {
-    animation: guineaPigBounce 2s ease-in-out infinite;
-}
-
-@keyframes guineaPigBounce {
-    0%, 100% {
-        transform: translateY(0px);
-    }
-    50% {
-        transform: translateY(-10px);
-    }
-}
-
-/* Nom nom visual effect */
+/* Nom nom visual effect (if still used) */
 .nom-effect {
     position: absolute;
     font-size: 1.5rem;
@@ -209,5 +206,36 @@
     100% {
         opacity: 0;
         transform: scale(1) translateY(-40px);
+    }
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+    .guinea-pig-3 {
+        top: 3%;
+        left: 3%;
+    }
+    
+    .guinea-pig-2 {
+        top: 33%;
+    }
+    
+    .guinea-pig-1 {
+        top: 60%;
+    }
+}
+
+@media (max-width: 480px) {
+    .guinea-pig-3 {
+        top: 2%;
+        left: 2%;
+    }
+    
+    .guinea-pig-2 {
+        top: 33%;
+    }
+    
+    .guinea-pig-1 {
+        top: 60%;
     }
 }
