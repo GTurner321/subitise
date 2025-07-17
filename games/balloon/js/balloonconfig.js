@@ -46,21 +46,26 @@ const BALLOON_CONFIG = {
         }
     },
     
-    // Balloon settings
-    TOTAL_BALLOONS: 28, // Reduced to 8 correct + 20 incorrect
-    CORRECT_BALLOONS: 8, // Reduced from 10 to 8
-    INCORRECT_BALLOONS: 20, // Reduced from 24 to 20
+    // Balloon settings - Updated counts
+    TOTAL_BALLOONS: 26, // Reduced from 28: 8 correct + 18 incorrect
+    CORRECT_BALLOONS: 8, // Remains 8
+    INCORRECT_BALLOONS: 18, // Reduced from 20 to 18
     
     // Success criteria
     MIN_CORRECT_BALLOONS: 6, // Reduced from 8 to 6
     MAX_INCORRECT_BALLOONS: 4, // Remains 4
     
-    // Balloon physics
+    // Balloon physics - Updated with larger ranges
     BALLOON_RADIUS: 43, // Reduced from 54 to 43 (20% smaller)
     BALLOON_RISE_SPEED_MIN: 8, // Reduced from 12 to 8
     BALLOON_RISE_SPEED_MAX: 15, // Reduced from 20 to 15
-    BALLOON_SIDEWAYS_SPEED_MIN: 15, // Reduced from 20 to 15
-    BALLOON_SIDEWAYS_SPEED_MAX: 35, // Reduced from 50 to 35
+    BALLOON_SIDEWAYS_SPEED_MIN: 18, // Increased from 15 to 18 (20% faster)
+    BALLOON_SIDEWAYS_SPEED_MAX: 42, // Increased from 35 to 42 (20% faster)
+    
+    // Balloon positioning - Extended vertical range (10% higher)
+    BALLOON_START_HEIGHT_MIN: 0.55, // Changed from 0.65 to 0.55 (10% higher)
+    BALLOON_START_HEIGHT_MAX: 0.85, // Remains 0.85 (no lower)
+    BALLOON_RANGE_EXTENSION: 0.5, // For additional height variance
     
     // Animation settings
     BALLOON_SPAWN_INTERVAL: 200, // ms between balloon spawns
@@ -75,6 +80,9 @@ const BALLOON_CONFIG = {
     
     // Audio settings
     AUDIO_ENABLED: true,
+    
+    // Game progression settings
+    TOTAL_QUESTIONS: 10, // Total questions before final modal
     
     // Number to word conversion
     NUMBER_TO_WORD: {
