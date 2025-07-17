@@ -20,6 +20,7 @@ const CONFIG = {
     // Timing
     FLASH_DURATION: 800,
     NEXT_QUESTION_DELAY: 2000,
+    GUINEA_PIG_3_INITIAL_DISPLAY: 4000, // 4 seconds initial display
     GUINEA_PIG_ANIMATION_DURATION: 3000, // 3 seconds for each guinea pig to cross
     GUINEA_PIG_PAUSE_DURATION: 500, // Pause between guinea pigs
     
