@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raisin Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="styles/raisinmain.css">
+</head>
+<body>
+    <!-- Back to games navigation -->
+    <a href="../../index.html" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Back to Games
+    </a>
+    
+    <!-- Main game area -->
+    <div class="game-area">
+        <div class="rainbow-container" id="rainbowContainer">
+            <!-- Rainbow arcs will be added here by JavaScript -->
+        </div>
+        
+        <!-- Guinea pig 3 (stationary in top left) -->
+        <img id="guineaPig3" class="guinea-pig guinea-pig-3" src="../../assets/raisin/guineapig3.png" alt="Guinea Pig">
+        
+        <!-- Guinea pig 2 (moves left to right) -->
+        <img id="guineaPig2" class="guinea-pig guinea-pig-2 hidden" src="../../assets/raisin/guineapig2.png" alt="Guinea Pig Eating">
+        
+        <!-- Guinea pig 1 (moves right to left) -->
+        <img id="guineaPig1" class="guinea-pig guinea-pig-1 hidden" src="../../assets/raisin/guineapig1.png" alt="Guinea Pig Eating">
+        
+        <!-- Raisins will be added here by JavaScript -->
+    </div>
+    
+    <!-- Number selection buttons -->
+    <div class="number-buttons">
+        <button class="number-btn" data-number="1">1</button>
+        <button class="number-btn" data-number="2">2</button>
+        <button class="number-btn" data-number="3">3</button>
+        <button class="number-btn" data-number="4">4</button>
+        <button class="number-btn" data-number="5">5</button>
+        <button class="number-btn" data-number="6">6</button>
+        <button class="number-btn" data-number="7">7</button>
+        <button class="number-btn" data-number="8">8</button>
+        <button class="number-btn" data-number="9">9</button>
+        <button class="number-btn" data-number="10">10</button>
+    </div>
+    
+    <!-- Game completion modal -->
+    <div class="modal hidden" id="gameModal">
+        <div class="modal-content">
+            <h2>🌈 Well Done! 🌈</h2>
+            <button class="play-again-btn" id="playAgainBtn">PLAY AGAIN</button>
+        </div>
+    </div>
+    
+    <!-- JavaScript files -->
+    <script src="js/raisinconfig.js"></script>
+    <script src="../../js/shared/rainbow.js"></script>
+    <script src="../../js/shared/Bear.js"></script>
+    <script src="js/raisinrenderer.js"></script>
+    <script src="js/raisingamecontroller.js"></script>
+</body>
+</html>
