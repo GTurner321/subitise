@@ -48,24 +48,24 @@ body {
     );
 }
 
-/* Game area - now full height with no margins */
+/* Game area - full height with no margins */
 .game-area {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh; /* Full height */
-    width: 100vw; /* Full width */
-    padding: 0; /* No padding */
-    margin: 0; /* No margins */
+    height: 100vh;
+    width: 100vw;
+    padding: 0;
+    margin: 0;
     z-index: 2;
 }
 
 /* Rainbow container - positioned at bottom above grass */
 .rainbow-container {
     position: absolute;
-    bottom: 80px; /* Above grass band */
+    bottom: 80px;
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
@@ -77,8 +77,8 @@ body {
 /* Main balloon container - full height with no margins */
 .balloon-container {
     position: relative;
-    width: 100vw; /* Full width */
-    height: 100vh; /* Full height */
+    width: 100vw;
+    height: 100vh;
     background: transparent;
     border-radius: 0;
     box-shadow: none;
@@ -87,8 +87,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0; /* No margins */
-    padding: 0; /* No padding */
+    margin: 0;
+    padding: 0;
 }
 
 /* SVG styling */
@@ -102,17 +102,17 @@ body {
     -ms-user-select: none;
 }
 
-/* Balloon elements */
+/* Balloon elements - streamlined hover effects */
 .balloon-group {
-    transition: none !important; /* Remove all hover transitions */
+    transition: none !important;
 }
 
 .balloon-group:hover {
-    transform: none !important; /* Remove hover scaling */
+    transform: none !important;
 }
 
 .balloon-group:active {
-    transform: scale(0.95); /* Keep only click feedback */
+    transform: scale(0.95);
 }
 
 /* Balloon string animation */
@@ -126,7 +126,7 @@ body {
     50% { transform: rotate(2deg); }
 }
 
-/* Falling number animations - COMPLETELY DISABLE ALL ANIMATIONS AND TRANSFORMS */
+/* Falling number animations - COMPLETELY DISABLE ALL SWING ANIMATIONS */
 .falling-number-group,
 .falling-number-group *,
 svg .falling-number-group,
@@ -134,7 +134,7 @@ svg .falling-number-group * {
     animation: none !important;
     transform: none !important;
     transition: none !important;
-    transform-origin: initial !important; /* Remove any transform-origin that causes swinging */
+    transform-origin: initial !important;
     -webkit-animation: none !important;
     -webkit-transform: none !important;
     -webkit-transition: none !important;
@@ -145,42 +145,16 @@ svg .falling-number-group * {
     -moz-transform-origin: initial !important;
 }
 
-/* Override any swing animations completely */
-@keyframes swing {
+/* Override any swing/rotation/pendulum animations completely */
+@keyframes swing, rotate, pendulum {
     0%, 100% { transform: none !important; }
 }
 
-@-webkit-keyframes swing {
+@-webkit-keyframes swing, rotate, pendulum {
     0%, 100% { -webkit-transform: none !important; }
 }
 
-@-moz-keyframes swing {
-    0%, 100% { -moz-transform: none !important; }
-}
-
-/* Override any rotation animations */
-@keyframes rotate {
-    0%, 100% { transform: none !important; }
-}
-
-@-webkit-keyframes rotate {
-    0%, 100% { -webkit-transform: none !important; }
-}
-
-@-moz-keyframes rotate {
-    0%, 100% { -moz-transform: none !important; }
-}
-
-/* Override any pendulum animations */
-@keyframes pendulum {
-    0%, 100% { transform: none !important; }
-}
-
-@-webkit-keyframes pendulum {
-    0%, 100% { -webkit-transform: none !important; }
-}
-
-@-moz-keyframes pendulum {
+@-moz-keyframes swing, rotate, pendulum {
     0%, 100% { -moz-transform: none !important; }
 }
 
@@ -235,12 +209,8 @@ svg .falling-number-group * {
 }
 
 @keyframes titleBounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-5px);
-    }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
 }
 
 .modal p {
@@ -288,7 +258,7 @@ svg .falling-number-group * {
     display: none;
 }
 
-/* Back button styling - Override shared styles with maximum specificity */
+/* Back button styling - Maximum specificity override */
 html body .game-area .back-button,
 html body .back-button,
 body .back-button,
@@ -296,7 +266,7 @@ body .back-button,
     position: fixed !important;
     bottom: 20px !important;
     left: 20px !important;
-    top: unset !important; /* Explicitly unset top positioning */
+    top: unset !important;
     background: rgba(0, 0, 0, 0.7) !important;
     color: white !important;
     text-decoration: none !important;
@@ -304,7 +274,7 @@ body .back-button,
     border-radius: 25px !important;
     font-size: 1rem !important;
     font-weight: bold !important;
-    z-index: 1004 !important; /* Higher than shared styles z-index: 1003 */
+    z-index: 1004 !important;
     transition: all 0.3s ease !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -330,15 +300,11 @@ body .back-button,
 
 /* Touch feedback and accessibility */
 .balloon-container {
-    touch-action: none; /* Prevent scrolling/zooming on touch */
+    touch-action: none;
 }
 
 /* Focus states for accessibility */
-.play-again-btn:focus {
-    outline: 3px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
-}
-
+.play-again-btn:focus,
 .back-button:focus {
     outline: 3px solid rgba(255, 255, 255, 0.8);
     outline-offset: 2px;
@@ -362,16 +328,6 @@ body .back-button,
         bottom: 60px;
     }
     
-    .target-number {
-        font-size: 1.8rem;
-        padding: 12px 24px;
-    }
-    
-    .progress-info, .level-info {
-        font-size: 0.9rem;
-        padding: 6px 12px;
-    }
-    
     .modal h2 {
         font-size: 2.5rem;
     }
@@ -393,16 +349,6 @@ body .back-button,
     
     .rainbow-container {
         bottom: 50px;
-    }
-    
-    .target-number {
-        font-size: 1.5rem;
-        padding: 10px 20px;
-    }
-    
-    .progress-info, .level-info {
-        font-size: 0.8rem;
-        padding: 5px 10px;
     }
     
     .modal-content {
@@ -442,36 +388,19 @@ body .back-button,
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-    .balloon-group {
+    .balloon-group,
+    .modal-content,
+    .modal h2,
+    .balloon-string,
+    .falling-number-group,
+    .back-button,
+    .play-again-btn {
+        animation: none;
         transition: none;
     }
     
     .balloon-group:hover {
         transform: none;
-    }
-    
-    .modal-content {
-        animation: none;
-    }
-    
-    .modal h2 {
-        animation: none;
-    }
-    
-    .balloon-string {
-        animation: none;
-    }
-    
-    .falling-number-group {
-        animation: none;
-    }
-    
-    .back-button {
-        transition: none;
-    }
-    
-    .play-again-btn {
-        transition: none;
     }
 }
 
@@ -490,14 +419,10 @@ body .back-button,
     }
 }
 
-/* Special balloon animations */
+/* Balloon animations and effects */
 @keyframes balloonBob {
-    0%, 100% {
-        transform: translateY(0px);
-    }
-    50% {
-        transform: translateY(-5px);
-    }
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
 }
 
 .balloon-group.floating {
@@ -514,21 +439,13 @@ body .back-button,
 }
 
 @keyframes successFlash {
-    0%, 100% {
-        background-color: transparent;
-    }
-    50% {
-        background-color: rgba(76, 175, 80, 0.3);
-    }
+    0%, 100% { background-color: transparent; }
+    50% { background-color: rgba(76, 175, 80, 0.3); }
 }
 
 @keyframes failureFlash {
-    0%, 100% {
-        background-color: transparent;
-    }
-    50% {
-        background-color: rgba(244, 67, 54, 0.3);
-    }
+    0%, 100% { background-color: transparent; }
+    50% { background-color: rgba(244, 67, 54, 0.3); }
 }
 
 /* Level progression indicators */
@@ -619,7 +536,5 @@ body .back-button,
 }
 
 @keyframes loading-spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
