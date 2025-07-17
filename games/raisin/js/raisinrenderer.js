@@ -97,10 +97,10 @@ class RaisinRenderer {
         // Generate new positions
         this.raisins = this.generateRaisinPositions();
         
-        // Create raisin elements
+        // Create raisin elements using exactly the 10 different PNG files
         this.raisins.forEach((raisin, index) => {
             const raisinElement = document.createElement('img');
-            raisinElement.src = `../../assets/raisin/raisin${(index % 10) + 1}.png`;
+            raisinElement.src = `../../assets/raisin/raisin${index + 1}.png`; // Use raisin1.png through raisin10.png
             raisinElement.className = 'raisin fade-in';
             raisinElement.style.left = `${raisin.x}px`;
             raisinElement.style.top = `${raisin.y}px`;
@@ -164,18 +164,16 @@ class RaisinRenderer {
     async moveGuineaPig1(raisinsToEat) {
         return new Promise((resolve) => {
             const gameAreaRect = this.gameArea.getBoundingClientRect();
-            const startX = gameAreaRect.width;
-            const endX = -this.guineaPig1.offsetWidth;
             
-            // Show guinea pig 1
+            // Show guinea pig 1 and position it on the right side
             this.guineaPig1.classList.remove('hidden');
             this.guineaPig1.classList.add('moving');
             this.guineaPig1.style.right = `${-this.guineaPig1.offsetWidth}px`;
             this.guineaPig1.style.left = 'auto';
             
-            // Start moving
+            // Start moving from right to left
             setTimeout(() => {
-                this.guineaPig1.style.right = `${gameAreaRect.width}px`;
+                this.guineaPig1.style.right = `${gameAreaRect.width + this.guineaPig1.offsetWidth}px`;
             }, 100);
             
             // Eat raisins as guinea pig passes over them
@@ -235,10 +233,7 @@ class RaisinRenderer {
         if (raisinElement && !raisinElement.classList.contains('eaten')) {
             raisinElement.classList.add('eaten');
             
-            // Add visual "nom" effect
-            this.addNomEffect(raisinRect);
-            
-            // Remove from DOM after animation
+            // Remove from DOM after animation (no visual "nom" effect)
             setTimeout(() => {
                 if (raisinElement.parentNode) {
                     raisinElement.parentNode.removeChild(raisinElement);
@@ -248,20 +243,7 @@ class RaisinRenderer {
     }
     
     addNomEffect(raisinRect) {
-        const nomElement = document.createElement('div');
-        nomElement.className = 'nom-effect';
-        nomElement.textContent = 'NOM!';
-        nomElement.style.left = `${raisinRect.left - this.gameArea.getBoundingClientRect().left}px`;
-        nomElement.style.top = `${raisinRect.top - this.gameArea.getBoundingClientRect().top}px`;
-        
-        this.gameArea.appendChild(nomElement);
-        
-        // Remove after animation
-        setTimeout(() => {
-            if (nomElement.parentNode) {
-                nomElement.parentNode.removeChild(nomElement);
-            }
-        }, 1000);
+        // Remove this method - no visual nom effects
     }
     
     reset() {
@@ -271,8 +253,8 @@ class RaisinRenderer {
         this.showGuineaPig3();
         
         // Reset guinea pig positions
-        this.guineaPig2.style.left = '-20%';
-        this.guineaPig1.style.right = '-20%';
+        this.guineaPig2.style.left = '-25%';
+        this.guineaPig1.style.right = '-25%';
         
         // Clear any remaining nom effects
         const nomEffects = this.gameArea.querySelectorAll('.nom-effect');
