@@ -236,7 +236,10 @@ class BalloonGameController {
     
     updateSVGDimensions() {
         if (this.svg) {
-            this.svg.setAttribute('viewBox', `0 0 ${BALLOON_CONFIG.SVG_WIDTH} ${BALLOON_CONFIG.SVG_HEIGHT}`);
+            const gameWidth = window.innerWidth;
+            const gameHeight = window.innerHeight; // Full window height
+            
+            this.svg.setAttribute('viewBox', `0 0 ${gameWidth} ${gameHeight}`);
             this.svg.setAttribute('width', '100%');
             this.svg.setAttribute('height', '100%');
         }
@@ -466,15 +469,16 @@ class BalloonGameController {
         }
         
         // Generate random position across game width
-        const gameAreaWidth = BALLOON_CONFIG.SVG_WIDTH;
+        const gameAreaWidth = window.innerWidth;
         const constrainedWidth = gameAreaWidth * 0.9;
         const startOffset = (gameAreaWidth - constrainedWidth) / 2;
         const x = startOffset + (Math.random() * (constrainedWidth - BALLOON_CONFIG.BALLOON_RADIUS * 2));
         
         // Start approximately 20% above the bottom of the game area, extend range upward by 50%
-        const baseMinStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.65;  // 65% from top = 35% from bottom
-        const baseMaxStartHeight = BALLOON_CONFIG.SVG_HEIGHT * 0.85;  // 85% from top = 15% from bottom
-        const rangeExtension = (baseMaxStartHeight - baseMinStartHeight) * 0.5; // 50% extension
+        const gameAreaHeight = window.innerHeight; // Use full window height
+        const baseMinStartHeight = gameAreaHeight * 0.65;
+        const baseMaxStartHeight = gameAreaHeight * 0.85;
+        const rangeExtension = (baseMaxStartHeight - baseMinStartHeight) * 0.5;
         const minStartHeight = baseMinStartHeight - rangeExtension;
         const maxStartHeight = baseMaxStartHeight;
         const y = minStartHeight + Math.random() * (maxStartHeight - minStartHeight);
@@ -760,7 +764,7 @@ class BalloonGameController {
                 balloon.x += balloon.sidewaysSpeed * balloon.sidewaysDirection * deltaTime;
                 
                 // Bounce off walls
-                const gameAreaWidth = BALLOON_CONFIG.SVG_WIDTH;
+                const gameAreaWidth = window.innerWidth;
                 const balloonWidth = balloon.radius * 2;
                 if (balloon.x <= 0) {
                     balloon.x = 0;
