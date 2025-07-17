@@ -104,15 +104,15 @@ body {
 
 /* Balloon elements */
 .balloon-group {
-    transition: transform 0.1s ease;
+    transition: none !important; /* Remove all hover transitions */
 }
 
 .balloon-group:hover {
-    transform: scale(1.05);
+    transform: none !important; /* Remove hover scaling */
 }
 
 .balloon-group:active {
-    transform: scale(0.95);
+    transform: scale(0.95); /* Keep only click feedback */
 }
 
 /* Balloon string animation */
@@ -253,8 +253,8 @@ body {
 /* Back button styling - positioned bottom left */
 .back-button {
     position: fixed !important;
-    bottom: 20px !important; /* Bottom positioning */
-    left: 20px !important; /* Left positioning */
+    bottom: 20px !important;
+    left: 20px !important;
     background: rgba(0, 0, 0, 0.7) !important;
     color: white !important;
     text-decoration: none !important;
@@ -264,12 +264,14 @@ body {
     font-weight: bold !important;
     z-index: 1000 !important;
     transition: all 0.3s ease !important;
-    display: flex !important;
+    display: inline-flex !important;
     align-items: center !important;
     gap: 8px !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-    height: auto !important; /* Ensure height is auto, not full screen */
-    width: auto !important; /* Ensure width is auto */
+    height: auto !important;
+    width: auto !important;
+    max-height: 50px !important;
+    max-width: 200px !important;
 }
 
 .back-button:hover {
