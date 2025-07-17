@@ -849,3 +849,90 @@
         font-size: 0.9rem !important;
     }
 }
+
+
+<!-- Add this CSS to your landing.css file for the raisin game preview -->
+<style>
+/* Raisin Game preview specific styles */
+.raisin-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 100%;
+    padding: 0 8px;
+}
+
+.preview-raisin {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-raisin i {
+    font-size: 0.9rem !important;
+    color: #8B4513 !important; /* Brown color for raisins */
+    animation: raisinFloat 3s ease-in-out infinite !important;
+}
+
+.preview-raisin.eaten i {
+    color: #D2691E !important; /* Lighter brown for eaten raisins */
+    animation: raisinEaten 2s ease-in-out infinite !important;
+}
+
+.preview-guinea-pig i {
+    font-size: 1.2rem !important;
+    color: #FF69B4 !important; /* Pink color for guinea pig */
+    animation: guineaPigMove 2s ease-in-out infinite !important;
+}
+
+@keyframes raisinFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes raisinEaten {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.3;
+        transform: scale(0.7);
+    }
+}
+
+@keyframes guineaPigMove {
+    0%, 100% {
+        transform: translateX(0px);
+    }
+    50% {
+        transform: translateX(5px);
+    }
+}
+
+/* Responsive adjustments for raisin preview */
+@media (max-width: 768px) {
+    .preview-raisin i {
+        font-size: 0.8rem !important;
+    }
+    
+    .preview-guinea-pig i {
+        font-size: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .preview-raisin i {
+        font-size: 0.7rem !important;
+    }
+    
+    .preview-guinea-pig i {
+        font-size: 0.9rem !important;
+    }
+}
+</style>
