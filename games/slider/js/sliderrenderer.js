@@ -43,8 +43,8 @@ class SliderRenderer {
             };
         }
         
-        // Calculate bead diameter as 12% of frame image height
-        this.beadDiameter = this.frameImageRect.height * 0.12;
+        // Calculate bead diameter as 12% of frame image height, then make it 20% larger
+        this.beadDiameter = this.frameImageRect.height * 0.12 * 1.2; // 20% larger
         this.beadRadius = this.beadDiameter / 2;
         
         // Update bar dimensions
@@ -435,7 +435,7 @@ class SliderRenderer {
     }
     
     playSnapSound() {
-        // Simple click sound using Web Audio API
+        // Metallic clicking sound like two metal balls tapping
         if (CONFIG.AUDIO_ENABLED) {
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -445,14 +445,19 @@ class SliderRenderer {
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
                 
-                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+                // Create a sharp metallic click - high frequency, quick decay
+                oscillator.frequency.setValueAtTime(2000, audioContext.currentTime); // High pitched
+                oscillator.frequency.exponentialRampToValueAtTime(1500, audioContext.currentTime + 0.02);
+                oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.05);
                 
-                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                // Sharp attack, quick decay like metal balls tapping
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.005); // Quick attack
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08); // Quick decay
                 
+                oscillator.type = 'triangle'; // Softer than square, more metallic than sine
                 oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.1);
+                oscillator.stop(audioContext.currentTime + 0.08);
             } catch (error) {
                 // Silent failure
             }
