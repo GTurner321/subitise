@@ -92,24 +92,25 @@ body {
     pointer-events: none;
 }
 
-/* Slider bars */
+/* Slider bars - positioned relative to the slider frame */
 .slider-bar {
     position: absolute;
-    left: 6%;
-    width: 86%; /* From 6% to 92% */
-    height: 5%;
+    left: 6%; /* Updated: 6% from left edge of slider container */
+    width: 86%; /* Updated: spans from 6% to 92% */
+    height: 5%; /* Updated: 5% of slider container height */
     background: #808080;
     border-top: 2px solid #333;
     border-bottom: 2px solid #333;
     border-radius: 0;
+    pointer-events: none; /* Bars shouldn't interfere with bead interaction */
 }
 
 .top-bar {
-    top: 34%;
+    top: 34%; /* Updated: 34% down from top of slider container */
 }
 
 .bottom-bar {
-    top: 60%;
+    top: 60%; /* Updated: 60% down from top of slider container */
 }
 
 /* Beads */
@@ -136,6 +137,8 @@ body {
 
 .bead.dragging {
     z-index: 100;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4), 
+                inset 0 1px 3px rgba(255,255,255,0.5);
 }
 
 /* Blue beads */
