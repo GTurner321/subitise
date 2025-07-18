@@ -1,7 +1,5 @@
 class SliderGameController {
     constructor() {
-        console.log('SliderGameController constructor started');
-        
         this.sliderRenderer = new SliderRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
@@ -37,14 +35,11 @@ class SliderGameController {
         this.muteButton = null;
         this.muteContainer = null;
         
-        console.log('Initializing event listeners...');
         this.initializeEventListeners();
         this.initializeAudio();
         this.createMuteButton();
         this.shuffleButtons();
         this.startNewQuestion();
-        
-        console.log('SliderGameController constructor completed');
     }
     
     async initializeAudio() {
@@ -180,9 +175,6 @@ class SliderGameController {
     }
     
     initializeEventListeners() {
-        console.log('Setting up event listeners...');
-        console.log('Slider container:', this.sliderRenderer.sliderContainer);
-        
         // Number button clicks
         this.numberButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -200,27 +192,19 @@ class SliderGameController {
         
         // Mouse events
         this.sliderRenderer.sliderContainer.addEventListener('mousedown', (e) => {
-            console.log('Mouse down event:', e.clientX, e.clientY);
             this.handlePointerDown(e.clientX, e.clientY, 'mouse');
         });
         
         document.addEventListener('mousemove', (e) => {
-            if (this.dragState.isDragging) {
-                console.log('Mouse move event during drag:', e.clientX, e.clientY);
-            }
             this.handlePointerMove(e.clientX, e.clientY, 'mouse');
         });
         
         document.addEventListener('mouseup', (e) => {
-            if (this.dragState.isDragging) {
-                console.log('Mouse up event during drag:', e.clientX, e.clientY);
-            }
             this.handlePointerUp(e.clientX, e.clientY, 'mouse');
         });
         
         // Touch events
         this.sliderRenderer.sliderContainer.addEventListener('touchstart', (e) => {
-            console.log('Touch start event:', e.touches.length, 'touches');
             e.preventDefault();
             Array.from(e.changedTouches).forEach(touch => {
                 this.handlePointerDown(touch.clientX, touch.clientY, touch.identifier);
@@ -228,9 +212,6 @@ class SliderGameController {
         });
         
         document.addEventListener('touchmove', (e) => {
-            if (this.dragState.isDragging) {
-                console.log('Touch move event during drag:', e.touches.length, 'touches');
-            }
             e.preventDefault();
             Array.from(e.changedTouches).forEach(touch => {
                 this.handlePointerMove(touch.clientX, touch.clientY, touch.identifier);
@@ -238,16 +219,11 @@ class SliderGameController {
         });
         
         document.addEventListener('touchend', (e) => {
-            if (this.dragState.isDragging) {
-                console.log('Touch end event during drag:', e.touches.length, 'touches');
-            }
             e.preventDefault();
             Array.from(e.changedTouches).forEach(touch => {
                 this.handlePointerUp(touch.clientX, touch.clientY, touch.identifier);
             });
         });
-        
-        console.log('Event listeners setup completed');
     }
     
     handlePointerDown(x, y, pointerId) {
@@ -255,11 +231,11 @@ class SliderGameController {
         
         const bead = this.sliderRenderer.getBeadAtPosition(x, y);
         if (!bead) {
-            console.log('No bead found at pointer position');
+            console.log('No bead found at position');
             return;
         }
         
-        console.log('Bead found:', bead.id, 'starting drag');
+        console.log('Bead found:', bead.id, 'at position:', bead.position);
         
         // Start new drag or add to existing multi-touch
         const touchData = {
@@ -280,28 +256,23 @@ class SliderGameController {
         this.dragState.activeTouches.push(touchData);
         this.dragState.isDragging = true;
         
-        console.log('Drag state updated:', this.dragState);
+        console.log('Drag started for bead:', bead.id);
     }
     
     handlePointerMove(x, y, pointerId) {
         if (!this.dragState.isDragging) return;
         
-        console.log('handlePointerMove called:', x, y, pointerId);
-        
         const touch = this.dragState.activeTouches.find(t => t.id === pointerId);
-        if (!touch) {
-            console.log('No matching touch found for pointerId:', pointerId);
-            return;
-        }
+        if (!touch) return;
         
         const deltaX = x - touch.startX;
         const totalDistance = Math.abs(deltaX);
         
-        console.log('Movement delta:', deltaX, 'total distance:', totalDistance);
+        console.log('handlePointerMove - deltaX:', deltaX, 'totalDistance:', totalDistance);
         
         // Check if we've moved enough to start dragging
         if (!touch.hasStartedMoving && totalDistance < touch.dragThreshold) {
-            console.log('Movement below threshold, not starting drag yet');
+            console.log('Below drag threshold:', touch.dragThreshold);
             return;
         }
         
@@ -312,14 +283,14 @@ class SliderGameController {
         
         // Determine direction
         const direction = deltaX > 0 ? 1 : -1;
-        console.log('Movement direction:', direction > 0 ? 'right' : 'left');
+        console.log('Direction:', direction > 0 ? 'right' : 'left');
         
         // Calculate movement in terms of bead positions
         const containerRect = this.sliderRenderer.sliderContainer.getBoundingClientRect();
         const beadDiameter = this.sliderRenderer.beadDiameter;
-        const positionDelta = deltaX / beadDiameter; // Each position is one bead diameter apart
+        const positionDelta = deltaX / beadDiameter;
         
-        console.log('Position delta:', positionDelta);
+        console.log('Position delta:', positionDelta, 'bead diameter:', beadDiameter);
         
         // Get the block of beads that should move with this bead
         const movingBlock = this.sliderRenderer.getBeadBlockInDirection(touch.bead, direction);
@@ -346,15 +317,17 @@ class SliderGameController {
         if (validPosition !== null) {
             // Move the block to the valid position
             this.sliderRenderer.moveBlockToPosition(movingBlock, validPosition);
-            console.log('Moved block to position:', validPosition);
+            console.log('Moved block to valid position:', validPosition);
             
             // Check for magnetic snapping
             const snapPosition = this.sliderRenderer.checkMagneticSnapping(movingBlock, direction);
             if (snapPosition !== null) {
-                console.log('Magnetic snap to position:', snapPosition);
+                console.log('Magnetic snap to:', snapPosition);
                 this.sliderRenderer.moveBlockToPosition(movingBlock, snapPosition);
                 this.sliderRenderer.playSnapSound();
             }
+        } else {
+            console.log('No valid position found - movement blocked');
         }
         
         touch.lastX = x;
@@ -362,16 +335,10 @@ class SliderGameController {
     }
     
     handlePointerUp(x, y, pointerId) {
-        console.log('handlePointerUp called:', x, y, pointerId);
-        
         const touchIndex = this.dragState.activeTouches.findIndex(t => t.id === pointerId);
-        if (touchIndex === -1) {
-            console.log('No matching touch found for pointer up');
-            return;
-        }
+        if (touchIndex === -1) return;
         
         const touch = this.dragState.activeTouches[touchIndex];
-        console.log('Ending drag for bead:', touch.bead.id);
         
         // Clean up dragging state
         touch.bead.isDragging = false;
@@ -382,7 +349,6 @@ class SliderGameController {
             const direction = touch.lastX > touch.startX ? 1 : -1;
             const movingBlock = this.sliderRenderer.getBeadBlockInDirection(touch.bead, direction);
             
-            console.log('Snapping block to integer positions');
             // Snap all beads to integer positions
             movingBlock.forEach((bead, index) => {
                 const snappedPosition = Math.round(bead.position);
@@ -396,7 +362,6 @@ class SliderGameController {
         // If no more active touches, end dragging
         if (this.dragState.activeTouches.length === 0) {
             this.dragState.isDragging = false;
-            console.log('All drags ended, checking game state');
             
             // Check if game state has changed
             setTimeout(() => {
@@ -408,8 +373,6 @@ class SliderGameController {
     checkGameState() {
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
-        
-        console.log('Game state check - Right side count:', rightSideCount, 'Has middle beads:', hasMiddleBeads);
         
         if (hasMiddleBeads) {
             this.speakText('Arrange beads onto one side or the other, don\'t leave any in the middle');
@@ -491,8 +454,6 @@ class SliderGameController {
     startNewQuestion() {
         if (this.gameComplete) return;
         
-        console.log('Starting new question:', this.currentQuestion);
-        
         if (this.currentQuestion === 1) {
             this.speakText('Slide 2 beads to the right side, then choose the number button for 2');
         } else {
@@ -501,8 +462,6 @@ class SliderGameController {
     }
     
     startNewGame() {
-        console.log('Starting new game');
-        
         this.currentQuestion = 1;
         this.expectedBeadsOnRight = 2;
         this.gameComplete = false;
@@ -613,7 +572,6 @@ class SliderGameController {
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing game...');
     window.sliderGame = new SliderGameController();
 });
 
