@@ -13,10 +13,10 @@ class RaisinRenderer {
     setupGuineaPigSizes() {
         const screenWidth = window.innerWidth;
         
-        // Set guinea pig sizes - guinea pig 2 and 1 are now 10% larger
+        // Set guinea pig sizes - guinea pig 2 and 1 are now 20% larger
         const gp3Size = screenWidth * CONFIG.GUINEA_PIG_3_SIZE;
-        const gp2Size = screenWidth * CONFIG.GUINEA_PIG_2_SIZE * 1.1; // 10% larger
-        const gp1Size = screenWidth * CONFIG.GUINEA_PIG_1_SIZE * 1.1; // 10% larger
+        const gp2Size = screenWidth * CONFIG.GUINEA_PIG_2_SIZE * 1.2; // 20% larger
+        const gp1Size = screenWidth * CONFIG.GUINEA_PIG_1_SIZE * 1.2; // 20% larger
         
         this.guineaPig3.style.cssText = `
             width: ${gp3Size}px;
@@ -50,6 +50,11 @@ class RaisinRenderer {
         const exclusionWidth = gameAreaRect.width * exclusionZone.width;
         const exclusionHeight = gameAreaRect.height * exclusionZone.height;
         
+        // Add margin to prevent raisins from going off-screen
+        const margin = raisinSize / 2;
+        const usableWidth = gameAreaRect.width - (2 * margin);
+        const usableHeight = gameAreaRect.height - (2 * margin);
+        
         const positions = [];
         let attempts = 0;
         const maxAttempts = 2000;
@@ -58,9 +63,9 @@ class RaisinRenderer {
         while (positions.length < 10 && attempts < maxAttempts) {
             attempts++;
             
-            // Generate random position within game area
-            const x = Math.random() * (gameAreaRect.width - raisinSize);
-            const y = Math.random() * (gameAreaRect.height - raisinSize);
+            // Generate random position within usable area (with margin)
+            const x = margin + (Math.random() * usableWidth);
+            const y = margin + (Math.random() * usableHeight);
             
             // Check if position is in exclusion zone (guinea pig 3 area)
             const inExclusionZone = (
@@ -112,8 +117,8 @@ class RaisinRenderer {
             while (positions.length < 10 && attempts < maxAttempts + 1000) {
                 attempts++;
                 
-                const x = Math.random() * (gameAreaRect.width - raisinSize);
-                const y = Math.random() * (gameAreaRect.height - raisinSize);
+                const x = margin + (Math.random() * usableWidth);
+                const y = margin + (Math.random() * usableHeight);
                 
                 const inExclusionZone = (
                     x < exclusionX + exclusionWidth &&
@@ -360,7 +365,6 @@ class RaisinRenderer {
                         }
                     } else {
                         // Second guinea pig eats raisins in bottom half (50% to 100%)
-                        // Changed from 58% to 60% as requested
                         if (raisinGameAreaY > 0.5) {
                             // Check if guinea pig's left edge has passed raisin's center
                             const raisinCenterX = raisinRect.left + raisinRect.width / 2;
