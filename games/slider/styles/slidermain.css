@@ -115,8 +115,8 @@ body {
 /* Beads */
 .bead {
     position: absolute;
-    width: 12%; /* Circular - same as height */
-    height: 12%;
+    width: 8%; /* Smaller width to fit 10 beads properly */
+    height: 8%; /* Same as width for circular shape */
     border-radius: 50%;
     cursor: grab;
     user-select: none;
