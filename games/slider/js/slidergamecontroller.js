@@ -238,16 +238,13 @@ class SliderGameController {
             lastX: x,
             lastY: y,
             bead: bead,
-            connectedBeads: this.sliderRenderer.getConnectedBeads(bead),
-            startPositions: {}
+            startPosition: bead.position,
+            hasStartedMoving: false,
+            dragThreshold: CONFIG.DRAG_THRESHOLD
         };
         
-        // Store starting positions
-        touchData.connectedBeads.forEach(b => {
-            touchData.startPositions[b.id] = b.position;
-            b.isDragging = true;
-            b.element.classList.add('dragging');
-        });
+        bead.isDragging = true;
+        bead.element.classList.add('dragging');
         
         this.dragState.activeTouches.push(touchData);
         this.dragState.isDragging = true;
@@ -259,17 +256,50 @@ class SliderGameController {
         const touch = this.dragState.activeTouches.find(t => t.id === pointerId);
         if (!touch) return;
         
-        const deltaX = x - touch.lastX;
-        touch.lastX = x;
-        touch.lastY = y;
+        const deltaX = x - touch.startX;
+        const totalDistance = Math.abs(deltaX);
+        
+        // Check if we've moved enough to start dragging
+        if (!touch.hasStartedMoving && totalDistance < touch.dragThreshold) {
+            return;
+        }
+        
+        if (!touch.hasStartedMoving) {
+            touch.hasStartedMoving = true;
+        }
+        
+        // Determine direction
+        const direction = deltaX > 0 ? 1 : -1;
         
         // Calculate movement in terms of bead positions
         const containerRect = this.sliderRenderer.sliderContainer.getBoundingClientRect();
-        const barWidth = containerRect.width * 0.84; // 84% of container width
-        const positionDelta = (deltaX / barWidth) * (CONFIG.BEADS_PER_BAR - 1);
+        const beadWidth = containerRect.width * 0.12; // 12% bead width
+        const positionDelta = deltaX / beadWidth;
         
-        // Move all connected beads
-        this.moveConnectedBeads(touch.connectedBeads, positionDelta);
+        // Get the block of beads that should move with this bead
+        const movingBlock = this.sliderRenderer.getBeadBlockInDirection(touch.bead, direction);
+        
+        // Calculate target position for the block
+        const blockStartPosition = Math.min(...movingBlock.map(b => b.startPosition || b.position));
+        let targetPosition = blockStartPosition + positionDelta;
+        
+        // Check if the block can move to this position
+        const validPosition = this.sliderRenderer.findNearestValidPosition(movingBlock, targetPosition, direction);
+        
+        if (validPosition !== null) {
+            // Move the block to the valid position
+            this.sliderRenderer.moveBlockToPosition(movingBlock, validPosition);
+            
+            // Check for magnetic snapping
+            const snapPosition = this.sliderRenderer.checkMagneticSnapping(movingBlock, direction);
+            if (snapPosition !== null) {
+                this.sliderRenderer.moveBlockToPosition(movingBlock, snapPosition);
+                this.sliderRenderer.playSnapSound();
+            }
+        }
+        
+        touch.lastX = x;
+        touch.lastY = y;
     }
     
     handlePointerUp(x, y, pointerId) {
@@ -279,13 +309,20 @@ class SliderGameController {
         const touch = this.dragState.activeTouches[touchIndex];
         
         // Clean up dragging state
-        touch.connectedBeads.forEach(bead => {
-            bead.isDragging = false;
-            bead.element.classList.remove('dragging');
+        touch.bead.isDragging = false;
+        touch.bead.element.classList.remove('dragging');
+        
+        // Snap to integer positions
+        if (touch.hasStartedMoving) {
+            const direction = touch.lastX > touch.startX ? 1 : -1;
+            const movingBlock = this.sliderRenderer.getBeadBlockInDirection(touch.bead, direction);
             
-            // Snap to nearest position and resolve collisions
-            this.snapBeadToPosition(bead);
-        });
+            // Snap all beads to integer positions
+            movingBlock.forEach((bead, index) => {
+                const snappedPosition = Math.round(bead.position);
+                this.sliderRenderer.moveBeadToPosition(bead, snappedPosition, true);
+            });
+        }
         
         // Remove this touch
         this.dragState.activeTouches.splice(touchIndex, 1);
@@ -301,83 +338,9 @@ class SliderGameController {
         }
     }
     
-    moveConnectedBeads(beads, positionDelta) {
-        // Sort beads by position to handle collisions properly
-        const sortedBeads = [...beads].sort((a, b) => a.position - b.position);
-        
-        if (positionDelta > 0) {
-            // Moving right - process from right to left
-            for (let i = sortedBeads.length - 1; i >= 0; i--) {
-                const bead = sortedBeads[i];
-                let newPosition = bead.position + positionDelta;
-                
-                // Check for collisions and push other beads
-                newPosition = this.resolveCollisions(bead, newPosition);
-                this.sliderRenderer.moveBeadToPosition(bead, newPosition, false);
-            }
-        } else {
-            // Moving left - process from left to right
-            for (let i = 0; i < sortedBeads.length; i++) {
-                const bead = sortedBeads[i];
-                let newPosition = bead.position + positionDelta;
-                
-                // Check for collisions and push other beads
-                newPosition = this.resolveCollisions(bead, newPosition);
-                this.sliderRenderer.moveBeadToPosition(bead, newPosition, false);
-            }
-        }
-    }
-    
-    resolveCollisions(movingBead, targetPosition) {
-        const barBeads = this.sliderRenderer.getBeadsOnBar(movingBead.barIndex)
-            .filter(b => b !== movingBead && !b.isDragging);
-        
-        for (let otherBead of barBeads) {
-            const distance = Math.abs(targetPosition - otherBead.position);
-            
-            if (distance < 1) {
-                // Collision detected - push the other bead
-                const pushDirection = targetPosition > otherBead.position ? 1 : -1;
-                const pushDistance = 1 - distance;
-                
-                let newOtherPosition = otherBead.position + (pushDirection * pushDistance);
-                newOtherPosition = Math.max(0, Math.min(CONFIG.BEADS_PER_BAR - 1, newOtherPosition));
-                
-                // Recursively resolve collisions for the pushed bead
-                newOtherPosition = this.resolveCollisions(otherBead, newOtherPosition);
-                this.sliderRenderer.moveBeadToPosition(otherBead, newOtherPosition, false);
-            }
-        }
-        
-        return Math.max(0, Math.min(CONFIG.BEADS_PER_BAR - 1, targetPosition));
-    }
-    
-    snapBeadToPosition(bead) {
-        const barBeads = this.sliderRenderer.getBeadsOnBar(bead.barIndex);
-        let snapPosition = Math.round(bead.position);
-        
-        // Check for magnetic snapping to nearby beads
-        for (let otherBead of barBeads) {
-            if (otherBead === bead) continue;
-            
-            const distance = Math.abs(bead.position - otherBead.position);
-            if (distance < 1.5 && distance > 0.5) {
-                // Snap to adjacent position
-                if (bead.position > otherBead.position) {
-                    snapPosition = Math.ceil(otherBead.position + 1);
-                } else {
-                    snapPosition = Math.floor(otherBead.position - 1);
-                }
-                
-                // Play snap sound
-                this.sliderRenderer.playSnapSound();
-                break;
-            }
-        }
-        
-        snapPosition = Math.max(0, Math.min(CONFIG.BEADS_PER_BAR - 1, snapPosition));
-        this.sliderRenderer.moveBeadToPosition(bead, snapPosition, true);
-    }
+    // Remove the old collision resolution methods since we're using the new block-based approach
+    // The old moveConnectedBeads, resolveCollisions, and snapBeadToPosition methods are replaced
+    // by the new block-based movement logic in the pointer event handlers
     
     checkGameState() {
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
