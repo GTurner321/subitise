@@ -65,16 +65,21 @@ class SliderRenderer {
     
     positionBead(bead) {
         const barY = bead.barIndex === 0 ? CONFIG.TOP_BAR_POSITION : CONFIG.BOTTOM_BAR_POSITION;
-        const beadSize = 12; // Percentage of container (circular)
+        const beadSize = 8; // Percentage of container (circular)
         
         // Calculate X position - beads are positioned from left with no gaps
         const barStartX = CONFIG.BAR_LEFT_MARGIN;
-        const beadWidth = beadSize; // Circular bead
+        const barWidth = 100 - CONFIG.BAR_LEFT_MARGIN - CONFIG.BAR_RIGHT_MARGIN; // Available bar width
+        const maxBeadWidth = barWidth / CONFIG.BEADS_PER_BAR; // Maximum width per bead position
         
-        // Position beads consecutively from left with no gaps
-        const xPercent = barStartX + (bead.position * beadWidth);
+        // Position beads consecutively from left, but respect bar boundaries
+        const xPercent = barStartX + (bead.position * maxBeadWidth);
         
-        bead.element.style.left = `${xPercent}%`;
+        // Ensure bead doesn't go beyond bar boundaries
+        const maxX = barStartX + barWidth - beadSize;
+        const finalX = Math.min(xPercent, maxX);
+        
+        bead.element.style.left = `${finalX}%`;
         bead.element.style.top = `${barY - (beadSize / 2)}%`;
     }
     
@@ -171,10 +176,10 @@ class SliderRenderer {
         const startIndex = allConnected.indexOf(startBead);
         
         if (direction > 0) {
-            // Moving right - include startBead and all beads to the right
+            // Moving right - include startBead and all beads to the right of it
             return allConnected.slice(startIndex);
         } else {
-            // Moving left - include startBead and all beads to the left
+            // Moving left - include startBead and all beads to the left of it
             return allConnected.slice(0, startIndex + 1);
         }
     }
@@ -189,7 +194,7 @@ class SliderRenderer {
         // Calculate the positions the block would occupy
         const blockPositions = [];
         for (let i = 0; i < block.length; i++) {
-            const newPos = targetPosition + (i * (direction > 0 ? 1 : -1));
+            const newPos = targetPosition + i; // Consecutive positions
             if (newPos < 0 || newPos >= CONFIG.BEADS_PER_BAR) {
                 return false; // Out of bounds
             }
@@ -210,20 +215,25 @@ class SliderRenderer {
     
     findNearestValidPosition(block, targetPosition, direction) {
         // Find the nearest valid position where the block can be placed
-        let testPosition = targetPosition;
-        const step = direction > 0 ? -0.1 : 0.1; // Move away from collision
+        let testPosition = Math.round(targetPosition);
         
-        for (let attempts = 0; attempts < 100; attempts++) {
-            if (this.canBlockMoveToPosition(block, testPosition, direction)) {
-                return testPosition;
-            }
-            testPosition += step;
+        // First try the exact position
+        if (this.canBlockMoveToPosition(block, testPosition, direction)) {
+            return testPosition;
+        }
+        
+        // Try positions in both directions to find the closest valid spot
+        for (let offset = 1; offset <= CONFIG.BEADS_PER_BAR; offset++) {
+            // Try position closer to the direction of movement first
+            let primaryTest = testPosition + (offset * Math.sign(direction));
+            let secondaryTest = testPosition - (offset * Math.sign(direction));
             
-            // Check bounds
-            if (direction > 0) {
-                if (testPosition + block.length - 1 >= CONFIG.BEADS_PER_BAR) break;
-            } else {
-                if (testPosition < 0) break;
+            if (this.canBlockMoveToPosition(block, primaryTest, direction)) {
+                return primaryTest;
+            }
+            
+            if (this.canBlockMoveToPosition(block, secondaryTest, direction)) {
+                return secondaryTest;
             }
         }
         
@@ -256,13 +266,19 @@ class SliderRenderer {
                 // Moving right - check if we should snap to bead on the right
                 const distance = otherBead.position - blockEnd;
                 if (distance > 0 && distance <= magneticRange) {
-                    return otherBead.position - block.length; // Snap position
+                    const snapPos = otherBead.position - block.length;
+                    if (this.canBlockMoveToPosition(block, snapPos, direction)) {
+                        return snapPos;
+                    }
                 }
             } else {
                 // Moving left - check if we should snap to bead on the left
                 const distance = blockStart - otherBead.position;
                 if (distance > 0 && distance <= magneticRange) {
-                    return otherBead.position + 1; // Snap position
+                    const snapPos = otherBead.position + 1;
+                    if (this.canBlockMoveToPosition(block, snapPos, direction)) {
+                        return snapPos;
+                    }
                 }
             }
         }
