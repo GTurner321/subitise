@@ -279,56 +279,33 @@ class SliderGameController {
         if (!touch.hasStartedMoving) {
             touch.hasStartedMoving = true;
             console.log('Started moving bead:', touch.bead.id);
+            // Store the initial position when movement starts
+            touch.initialPosition = touch.bead.position;
         }
         
-        // Determine direction
-        const direction = deltaX > 0 ? 1 : -1;
-        console.log('Direction:', direction > 0 ? 'right' : 'left');
-        
-        // Calculate movement in terms of bead positions
+        // Calculate new position based on ACTUAL drag distance, not bead diameter
+        // Use the frame width to calculate movement ratio
         const containerRect = this.sliderRenderer.sliderContainer.getBoundingClientRect();
-        const beadDiameter = this.sliderRenderer.beadDiameter;
-        const positionDelta = deltaX / beadDiameter;
+        const frameImageRect = this.sliderRenderer.frameImageRect;
+        const availableWidth = frameImageRect.width * 0.86; // 86% of frame width available
         
-        console.log('Position delta:', positionDelta, 'bead diameter:', beadDiameter);
+        // Convert pixel movement to position movement (1:1 ratio with available positions)
+        const pixelToPositionRatio = 15 / availableWidth; // 15 positions across available width
+        const positionDelta = deltaX * pixelToPositionRatio;
+        
+        console.log('Position delta (1:1 with drag):', positionDelta);
         
         // Get the block of beads that should move with this bead
-        const movingBlock = this.sliderRenderer.getBeadBlockInDirection(touch.bead, direction);
+        const direction = deltaX > 0 ? 1 : -1;
+        const movingBlock = this.sliderRenderer.getConnectedBeadsForDrag(touch.bead, direction);
         console.log('Moving block size:', movingBlock.length);
         
-        // Calculate target position for the block
-        let targetPosition;
-        if (direction > 0) {
-            // Moving right - base position on the leftmost bead in the block
-            const blockStartPosition = Math.min(...movingBlock.map(b => b.startPosition || b.position));
-            targetPosition = blockStartPosition + positionDelta;
-        } else {
-            // Moving left - base position on the rightmost bead in the block, but account for block length
-            const blockEndPosition = Math.max(...movingBlock.map(b => b.startPosition || b.position));
-            targetPosition = blockEndPosition + positionDelta - (movingBlock.length - 1);
-        }
+        // Calculate target position based on initial position + drag delta
+        const targetPosition = touch.initialPosition + positionDelta;
+        console.log('Target position:', targetPosition, 'from initial:', touch.initialPosition);
         
-        console.log('Target position:', targetPosition);
-        
-        // Check if the block can move to this position
-        const validPosition = this.sliderRenderer.findNearestValidPosition(movingBlock, targetPosition, direction);
-        console.log('Valid position:', validPosition);
-        
-        if (validPosition !== null) {
-            // Move the block to the valid position
-            this.sliderRenderer.moveBlockToPosition(movingBlock, validPosition);
-            console.log('Moved block to valid position:', validPosition);
-            
-            // Check for magnetic snapping
-            const snapPosition = this.sliderRenderer.checkMagneticSnapping(movingBlock, direction);
-            if (snapPosition !== null) {
-                console.log('Magnetic snap to:', snapPosition);
-                this.sliderRenderer.moveBlockToPosition(movingBlock, snapPosition);
-                this.sliderRenderer.playSnapSound();
-            }
-        } else {
-            console.log('No valid position found - movement blocked');
-        }
+        // Move the block directly to the target position (no "valid position" clamping)
+        this.sliderRenderer.moveBlockDirectly(movingBlock, targetPosition);
         
         touch.lastX = x;
         touch.lastY = y;
