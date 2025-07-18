@@ -18,9 +18,9 @@ class SliderRenderer {
     
     updateContainerRect() {
         this.containerRect = this.sliderContainer.getBoundingClientRect();
-        // Calculate bead size based on container height
-        this.beadSize = this.containerRect.height * 0.12; // 12% of container height
-        this.beadSizePercent = (this.beadSize / this.containerRect.width) * 100; // Convert to percentage of width
+        // Calculate bead diameter as 12% of container height (which represents the slider frame image)
+        this.beadDiameter = this.containerRect.height * 0.12;
+        this.beadRadius = this.beadDiameter / 2;
     }
     
     initializeBeads() {
@@ -45,9 +45,9 @@ class SliderRenderer {
         const beadElement = document.createElement('div');
         beadElement.className = 'bead';
         
-        // Set circular size in pixels based on container height
-        beadElement.style.width = `${this.beadSize}px`;
-        beadElement.style.height = `${this.beadSize}px`;
+        // Set circular size - diameter is 12% of image height
+        beadElement.style.width = `${this.beadDiameter}px`;
+        beadElement.style.height = `${this.beadDiameter}px`;
         
         // Color: first 5 blue, last 5 red on each bar
         const isBlue = beadIndex < 5;
@@ -73,25 +73,34 @@ class SliderRenderer {
     positionBead(bead) {
         const barY = bead.barIndex === 0 ? CONFIG.TOP_BAR_POSITION : CONFIG.BOTTOM_BAR_POSITION;
         
-        // Calculate positions in pixels for accuracy
-        const containerRect = this.containerRect;
-        const barStartX = containerRect.width * (CONFIG.BAR_LEFT_MARGIN / 100);
-        const barWidth = containerRect.width * ((100 - CONFIG.BAR_LEFT_MARGIN - CONFIG.BAR_RIGHT_MARGIN) / 100);
+        // Calculate positions based on the slider frame image dimensions
+        const containerHeight = this.containerRect.height;
+        const containerWidth = this.containerRect.width;
         
-        // Position beads consecutively from left with no gaps or overlaps
-        const xPixels = barStartX + (bead.position * this.beadSize);
+        // First bead center is 6% from left (one radius), subsequent beads are spaced by diameter (12%)
+        const leftMarginPixels = containerWidth * (CONFIG.BAR_LEFT_MARGIN / 100);
+        const beadCenterX = leftMarginPixels + this.beadRadius + (bead.position * this.beadDiameter);
+        const beadCenterY = containerHeight * (barY / 100);
         
-        // Convert back to percentages for CSS
-        const xPercent = (xPixels / containerRect.width) * 100;
-        const yPercent = barY - ((this.beadSize / containerRect.height) * 100 / 2);
+        // Position bead so its center is at the calculated position
+        const beadLeft = beadCenterX - this.beadRadius;
+        const beadTop = beadCenterY - this.beadRadius;
         
-        bead.element.style.left = `${xPercent}%`;
-        bead.element.style.top = `${yPercent}%`;
+        // Convert to percentages for CSS
+        const leftPercent = (beadLeft / containerWidth) * 100;
+        const topPercent = (beadTop / containerHeight) * 100;
+        
+        bead.element.style.left = `${leftPercent}%`;
+        bead.element.style.top = `${topPercent}%`;
     }
     
     repositionAllBeads() {
+        this.updateContainerRect(); // Recalculate dimensions
         this.beads.forEach(bead => {
             if (!bead.isDragging) {
+                // Update bead size for new container dimensions
+                bead.element.style.width = `${this.beadDiameter}px`;
+                bead.element.style.height = `${this.beadDiameter}px`;
                 this.positionBead(bead);
             }
         });
