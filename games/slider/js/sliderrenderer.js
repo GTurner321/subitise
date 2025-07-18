@@ -77,21 +77,31 @@ class SliderRenderer {
         const containerHeight = this.containerRect.height;
         const containerWidth = this.containerRect.width;
         
-        // First bead center is 6% from left (one radius), subsequent beads are spaced by diameter (12%)
-        const leftMarginPixels = containerWidth * (CONFIG.BAR_LEFT_MARGIN / 100);
-        const beadCenterX = leftMarginPixels + this.beadRadius + (bead.position * this.beadDiameter);
+        // Calculate bead center position
+        // First bead center is at 6% + 6% (left margin + radius) = 12% from left
+        // Each subsequent bead is spaced by one diameter (12% of image height)
+        const leftMarginPercent = CONFIG.BAR_LEFT_MARGIN / 100;
+        const beadRadiusPercent = 0.06; // 6% of image height
+        const beadDiameterPercent = 0.12; // 12% of image height
+        
+        // Calculate bead center X position as percentage of container width
+        const beadCenterXPercent = leftMarginPercent + beadRadiusPercent + (bead.position * beadDiameterPercent);
+        const beadCenterX = containerWidth * beadCenterXPercent;
+        
+        // Calculate bead center Y position
         const beadCenterY = containerHeight * (barY / 100);
         
         // Position bead so its center is at the calculated position
         const beadLeft = beadCenterX - this.beadRadius;
         const beadTop = beadCenterY - this.beadRadius;
         
-        // Convert to percentages for CSS
+        // Convert to percentages for CSS positioning
         const leftPercent = (beadLeft / containerWidth) * 100;
         const topPercent = (beadTop / containerHeight) * 100;
         
         bead.element.style.left = `${leftPercent}%`;
         bead.element.style.top = `${topPercent}%`;
+        bead.element.style.position = 'absolute';
     }
     
     repositionAllBeads() {
