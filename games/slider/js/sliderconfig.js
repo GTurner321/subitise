@@ -30,9 +30,9 @@ const CONFIG = {
     MAGNETIC_RANGE: 15, // Range for magnetic attraction
     
     // Layout (percentages of container)
-    TOP_BAR_POSITION: 30, // 30% down from top
-    BOTTOM_BAR_POSITION: 70, // 70% down from top
-    BAR_LEFT_MARGIN: 8, // 8% from left
+    TOP_BAR_POSITION: 34, // 34% down from top
+    BOTTOM_BAR_POSITION: 60, // 60% down from top
+    BAR_LEFT_MARGIN: 6, // 6% from left
     BAR_RIGHT_MARGIN: 8, // 8% from right (so bar goes to 92%)
     BAR_THICKNESS: 5, // 1/20th of container height
     
