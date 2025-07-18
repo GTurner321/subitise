@@ -230,20 +230,49 @@ class SliderRenderer {
         return connectedBeads;
     }
     
-    getBeadBlockInDirection(startBead, direction) {
-        // Get the block of beads that should move together in the given direction
-        // According to specs: if connected beads exist on the drag side, move the whole block
+    getConnectedBeadsForDrag(startBead, direction) {
+        // Get beads that are magnetically connected (within magnetic range)
+        const connectedBeads = [startBead];
+        const barBeads = this.getBeadsOnBar(startBead.barIndex);
+        const magneticRange = 0.8; // Beads within 0.8 positions are "connected"
         
-        const connectedBeads = this.getConnectedBeads(startBead);
-        const startIndex = connectedBeads.indexOf(startBead);
-        
-        if (direction > 0) {
-            // Moving right - include startBead and all connected beads to the right
-            return connectedBeads.slice(startIndex);
-        } else {
-            // Moving left - include startBead and all connected beads to the left
-            return connectedBeads.slice(0, startIndex + 1);
+        // Find beads to the left that are magnetically connected
+        for (let otherBead of barBeads) {
+            if (otherBead === startBead) continue;
+            
+            const distance = Math.abs(otherBead.position - startBead.position);
+            if (distance <= magneticRange) {
+                if (otherBead.position < startBead.position && !connectedBeads.includes(otherBead)) {
+                    connectedBeads.unshift(otherBead); // Add to beginning
+                } else if (otherBead.position > startBead.position && !connectedBeads.includes(otherBead)) {
+                    connectedBeads.push(otherBead); // Add to end
+                }
+            }
         }
+        
+        // Sort by position
+        connectedBeads.sort((a, b) => a.position - b.position);
+        
+        console.log('Connected beads for drag:', connectedBeads.map(b => b.id));
+        return connectedBeads;
+    }
+    
+    moveBlockDirectly(block, targetPosition) {
+        // Move beads directly to the target position without collision checking
+        // This allows free movement during dragging
+        
+        console.log('moveBlockDirectly:', block.length, 'beads to position', targetPosition);
+        
+        // Move each bead in the block
+        block.forEach((bead, index) => {
+            const newPosition = targetPosition + index;
+            // Only clamp to prevent going completely off-screen
+            const clampedPosition = Math.max(-2, Math.min(17, newPosition)); // Allow some overhang
+            
+            console.log(`Moving bead ${bead.id} to position ${clampedPosition}`);
+            bead.position = clampedPosition;
+            this.positionBead(bead);
+        });
     }
     
     canBlockMoveToPosition(block, targetPosition, direction) {
@@ -354,41 +383,62 @@ class SliderRenderer {
         });
     }
     
-    checkMagneticSnapping(block, direction) {
-        // Check if the block should snap to nearby beads
-        if (block.length === 0) return null;
+    applyMagneticSnapping(movingBlock) {
+        // Apply magnetic snapping only to nearby beads within magnetic range
+        const magneticRange = 0.7; // Magnetic attraction range
+        const barIndex = movingBlock[0].barIndex;
+        const barBeads = this.getBeadsOnBar(barIndex);
+        const otherBeads = barBeads.filter(b => !movingBlock.includes(b));
         
-        const barBeads = this.getBeadsOnBar(block[0].barIndex);
-        const otherBeads = barBeads.filter(b => !block.includes(b));
-        
-        const blockStart = Math.min(...block.map(b => b.position));
-        const blockEnd = Math.max(...block.map(b => b.position));
-        
-        const magneticRange = 1.5; // Distance for magnetic snapping
-        
-        for (let otherBead of otherBeads) {
-            if (direction > 0) {
-                // Moving right - check if we should snap to bead on the right
-                const distance = otherBead.position - blockEnd;
-                if (distance > 0 && distance <= magneticRange) {
-                    const snapPos = otherBead.position - block.length;
-                    if (this.canBlockMoveToPosition(block, snapPos, direction)) {
-                        return snapPos;
+        for (let movingBead of movingBlock) {
+            for (let otherBead of otherBeads) {
+                const distance = Math.abs(movingBead.position - otherBead.position);
+                
+                if (distance <= magneticRange && distance > 0.1) {
+                    console.log(`Magnetic snap: ${movingBead.id} to ${otherBead.id}, distance: ${distance}`);
+                    
+                    // Snap to the other bead's position (with small offset to avoid overlap)
+                    if (movingBead.position < otherBead.position) {
+                        movingBead.position = otherBead.position - 1.0; // Snap to left side
+                    } else {
+                        movingBead.position = otherBead.position + 1.0; // Snap to right side
                     }
-                }
-            } else {
-                // Moving left - check if we should snap to bead on the left
-                const distance = blockStart - otherBead.position;
-                if (distance > 0 && distance <= magneticRange) {
-                    const snapPos = otherBead.position + 1;
-                    if (this.canBlockMoveToPosition(block, snapPos, direction)) {
-                        return snapPos;
-                    }
+                    
+                    this.playSnapSound();
+                    break; // Only snap to one bead
                 }
             }
         }
+    }
+    
+    resolveOverlaps(barIndex) {
+        // Resolve any overlapping beads by pushing them apart
+        const barBeads = this.getBeadsOnBar(barIndex);
+        const sortedBeads = barBeads.sort((a, b) => a.position - b.position);
         
-        return null; // No magnetic snap
+        for (let i = 0; i < sortedBeads.length - 1; i++) {
+            const currentBead = sortedBeads[i];
+            const nextBead = sortedBeads[i + 1];
+            const distance = nextBead.position - currentBead.position;
+            
+            // If beads are too close (overlapping), push them apart
+            if (distance < 0.9) {
+                const overlap = 0.9 - distance;
+                const pushDistance = overlap / 2;
+                
+                console.log(`Resolving overlap between ${currentBead.id} and ${nextBead.id}`);
+                
+                // Push beads apart equally
+                currentBead.position -= pushDistance;
+                nextBead.position += pushDistance;
+                
+                // Make sure we don't push beads too far left
+                currentBead.position = Math.max(0, currentBead.position);
+            }
+        }
+        
+        // Update visual positions
+        sortedBeads.forEach(bead => this.positionBead(bead));
     }
     
     countBeadsOnRightSide() {
