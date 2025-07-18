@@ -65,18 +65,16 @@ class SliderRenderer {
     
     positionBead(bead) {
         const barY = bead.barIndex === 0 ? CONFIG.TOP_BAR_POSITION : CONFIG.BOTTOM_BAR_POSITION;
-        const beadSize = 12; // Percentage of container
+        const beadSize = 12; // Percentage of container (circular)
         
-        // Calculate X position based on bead position
+        // Calculate X position - beads are positioned from left with no gaps
         const barStartX = CONFIG.BAR_LEFT_MARGIN;
-        const barWidth = 100 - CONFIG.BAR_LEFT_MARGIN - CONFIG.BAR_RIGHT_MARGIN;
-        const beadWidth = beadSize;
-        const usableBarWidth = barWidth - beadWidth;
+        const beadWidth = beadSize; // Circular bead
         
-        // Position beads from left, accounting for bead width
-        const xPercent = barStartX + (bead.position * (usableBarWidth / (CONFIG.BEADS_PER_BAR - 1)));
+        // Position beads consecutively from left with no gaps
+        const xPercent = barStartX + (bead.position * beadWidth);
         
-        bead.element.style.left = `${Math.min(xPercent, barStartX + usableBarWidth)}%`;
+        bead.element.style.left = `${xPercent}%`;
         bead.element.style.top = `${barY - (beadSize / 2)}%`;
     }
     
@@ -145,18 +143,18 @@ class SliderRenderer {
         
         const startIndex = barBeads.indexOf(startBead);
         
-        // Check left connected beads
+        // Check left connected beads (consecutive positions)
         for (let i = startIndex - 1; i >= 0; i--) {
-            if (Math.abs(barBeads[i].position - barBeads[i + 1].position) <= 1.1) {
+            if (Math.abs(barBeads[i].position - barBeads[i + 1].position) < 1.1) {
                 connectedBeads.unshift(barBeads[i]);
             } else {
                 break;
             }
         }
         
-        // Check right connected beads
+        // Check right connected beads (consecutive positions)
         for (let i = startIndex + 1; i < barBeads.length; i++) {
-            if (Math.abs(barBeads[i].position - barBeads[i - 1].position) <= 1.1) {
+            if (Math.abs(barBeads[i].position - barBeads[i - 1].position) < 1.1) {
                 connectedBeads.push(barBeads[i]);
             } else {
                 break;
@@ -164,6 +162,112 @@ class SliderRenderer {
         }
         
         return connectedBeads;
+    }
+    
+    getBeadBlockInDirection(startBead, direction) {
+        // Get the block of beads that should move together in the given direction
+        // direction: 1 for right, -1 for left
+        const allConnected = this.getConnectedBeads(startBead);
+        const startIndex = allConnected.indexOf(startBead);
+        
+        if (direction > 0) {
+            // Moving right - include startBead and all beads to the right
+            return allConnected.slice(startIndex);
+        } else {
+            // Moving left - include startBead and all beads to the left
+            return allConnected.slice(0, startIndex + 1);
+        }
+    }
+    
+    canBlockMoveToPosition(block, targetPosition, direction) {
+        // Check if the entire block can move to the target position
+        if (block.length === 0) return false;
+        
+        const barBeads = this.getBeadsOnBar(block[0].barIndex);
+        const otherBeads = barBeads.filter(b => !block.includes(b));
+        
+        // Calculate the positions the block would occupy
+        const blockPositions = [];
+        for (let i = 0; i < block.length; i++) {
+            const newPos = targetPosition + (i * (direction > 0 ? 1 : -1));
+            if (newPos < 0 || newPos >= CONFIG.BEADS_PER_BAR) {
+                return false; // Out of bounds
+            }
+            blockPositions.push(newPos);
+        }
+        
+        // Check for collisions with other beads
+        for (let otherBead of otherBeads) {
+            for (let blockPos of blockPositions) {
+                if (Math.abs(otherBead.position - blockPos) < 0.9) {
+                    return false; // Collision detected
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    findNearestValidPosition(block, targetPosition, direction) {
+        // Find the nearest valid position where the block can be placed
+        let testPosition = targetPosition;
+        const step = direction > 0 ? -0.1 : 0.1; // Move away from collision
+        
+        for (let attempts = 0; attempts < 100; attempts++) {
+            if (this.canBlockMoveToPosition(block, testPosition, direction)) {
+                return testPosition;
+            }
+            testPosition += step;
+            
+            // Check bounds
+            if (direction > 0) {
+                if (testPosition + block.length - 1 >= CONFIG.BEADS_PER_BAR) break;
+            } else {
+                if (testPosition < 0) break;
+            }
+        }
+        
+        return null; // No valid position found
+    }
+    
+    moveBlockToPosition(block, targetPosition) {
+        // Move all beads in the block to consecutive positions starting from targetPosition
+        block.forEach((bead, index) => {
+            const newPosition = targetPosition + index;
+            bead.position = Math.max(0, Math.min(CONFIG.BEADS_PER_BAR - 1, newPosition));
+            this.positionBead(bead);
+        });
+    }
+    
+    checkMagneticSnapping(block, direction) {
+        // Check if the block should snap to nearby beads
+        if (block.length === 0) return null;
+        
+        const barBeads = this.getBeadsOnBar(block[0].barIndex);
+        const otherBeads = barBeads.filter(b => !block.includes(b));
+        
+        const blockStart = Math.min(...block.map(b => b.position));
+        const blockEnd = Math.max(...block.map(b => b.position));
+        
+        const magneticRange = 1.5; // Distance for magnetic snapping
+        
+        for (let otherBead of otherBeads) {
+            if (direction > 0) {
+                // Moving right - check if we should snap to bead on the right
+                const distance = otherBead.position - blockEnd;
+                if (distance > 0 && distance <= magneticRange) {
+                    return otherBead.position - block.length; // Snap position
+                }
+            } else {
+                // Moving left - check if we should snap to bead on the left
+                const distance = blockStart - otherBead.position;
+                if (distance > 0 && distance <= magneticRange) {
+                    return otherBead.position + 1; // Snap position
+                }
+            }
+        }
+        
+        return null; // No magnetic snap
     }
     
     countBeadsOnRightSide() {
