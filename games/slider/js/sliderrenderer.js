@@ -251,12 +251,13 @@ class SliderRenderer {
         // They can push other beads forward
         if (block.length === 0) return false;
         
-        // Check bounds only
+        // Check bounds with extended range
+        const maxAvailablePositions = 15; // Allow more positions for movement
         const leftmostPosition = targetPosition;
         const rightmostPosition = targetPosition + block.length - 1;
         
         // Make sure we don't go out of bounds
-        if (leftmostPosition < 0 || rightmostPosition >= CONFIG.BEADS_PER_BAR) {
+        if (leftmostPosition < 0 || rightmostPosition >= maxAvailablePositions) {
             return false;
         }
         
@@ -265,13 +266,19 @@ class SliderRenderer {
     
     findNearestValidPosition(block, targetPosition, direction) {
         // Allow movement to the target position, just ensure it's within bounds
-        let testPosition = targetPosition; // Don't round immediately
+        let testPosition = targetPosition;
         
-        // Ensure the block fits within bounds
-        const maxPosition = CONFIG.BEADS_PER_BAR - block.length;
+        // The bar has positions 0 through 9, but we need to allow beads to move
+        // beyond the initial 10 positions. Let's increase the available space.
+        const maxAvailablePositions = 15; // Allow more positions for movement
+        const maxPosition = maxAvailablePositions - block.length;
+        
+        // Only clamp if we're really going out of bounds
         testPosition = Math.max(0, Math.min(maxPosition, testPosition));
         
-        return testPosition; // Return the actual position, not rounded
+        console.log(`findNearestValidPosition: target=${targetPosition}, clamped=${testPosition}, maxPos=${maxPosition}`);
+        
+        return testPosition;
     }
     
     moveBlockToPosition(block, targetPosition) {
@@ -340,7 +347,7 @@ class SliderRenderer {
         console.log('Moving block to target positions starting at:', targetPosition);
         block.forEach((bead, index) => {
             const newPosition = targetPosition + index;
-            const clampedPosition = Math.max(0, Math.min(CONFIG.BEADS_PER_BAR - 1, newPosition));
+            const clampedPosition = Math.max(0, Math.min(14, newPosition)); // Allow positions 0-14
             console.log(`Moving bead ${bead.id} from ${bead.position} to ${clampedPosition}`);
             bead.position = clampedPosition;
             this.positionBead(bead);
