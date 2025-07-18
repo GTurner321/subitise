@@ -230,49 +230,116 @@ class SliderRenderer {
         return connectedBeads;
     }
     
-    getConnectedBeadsForDrag(startBead, direction) {
-        // Get beads that are magnetically connected (within magnetic range)
-        const connectedBeads = [startBead];
-        const barBeads = this.getBeadsOnBar(startBead.barIndex);
-        const magneticRange = 0.8; // Beads within 0.8 positions are "connected"
+    getInitialMovingBlock(draggedBead, direction) {
+        // Determine which beads form the initial block that should move together
+        // This includes the dragged bead and any beads it's directly touching
+        const block = [draggedBead];
+        const barBeads = this.getBeadsOnBar(draggedBead.barIndex);
+        const touchDistance = 1.1; // Beads within 1.1 positions are considered touching
         
-        // Find beads to the left that are magnetically connected
+        // Find beads that are touching the dragged bead
         for (let otherBead of barBeads) {
-            if (otherBead === startBead) continue;
+            if (otherBead === draggedBead) continue;
             
-            const distance = Math.abs(otherBead.position - startBead.position);
-            if (distance <= magneticRange) {
-                if (otherBead.position < startBead.position && !connectedBeads.includes(otherBead)) {
-                    connectedBeads.unshift(otherBead); // Add to beginning
-                } else if (otherBead.position > startBead.position && !connectedBeads.includes(otherBead)) {
-                    connectedBeads.push(otherBead); // Add to end
-                }
+            const distance = Math.abs(otherBead.position - draggedBead.position);
+            if (distance <= touchDistance) {
+                block.push(otherBead);
             }
         }
         
-        // Sort by position
-        connectedBeads.sort((a, b) => a.position - b.position);
+        // Sort block by position
+        block.sort((a, b) => a.position - b.position);
         
-        console.log('Connected beads for drag:', connectedBeads.map(b => b.id));
-        return connectedBeads;
+        console.log('Initial moving block:', block.map(b => `${b.id}(${b.position.toFixed(1)})`));
+        return block;
     }
     
-    moveBlockDirectly(block, targetPosition) {
-        // Move beads directly to the target position without collision checking
-        // This allows free movement during dragging
+    moveBlockWithCollisions(block, targetPosition) {
+        // Move the block while checking for collisions
+        // Rule: beads cannot pass through other beads
         
-        console.log('moveBlockDirectly:', block.length, 'beads to position', targetPosition);
+        const barIndex = block[0].barIndex;
+        const barBeads = this.getBeadsOnBar(barIndex);
+        const otherBeads = barBeads.filter(b => !block.includes(b));
         
-        // Move each bead in the block
-        block.forEach((bead, index) => {
-            const newPosition = targetPosition + index;
-            // Only clamp to prevent going completely off-screen
-            const clampedPosition = Math.max(-2, Math.min(17, newPosition)); // Allow some overhang
+        // Calculate where the block wants to go
+        const blockStartPos = Math.min(...block.map(b => b.position));
+        const blockEndPos = Math.max(...block.map(b => b.position));
+        const blockLength = block.length;
+        
+        const newBlockStartPos = targetPosition;
+        const newBlockEndPos = targetPosition + blockLength - 1;
+        
+        console.log(`Trying to move block from ${blockStartPos.toFixed(1)}-${blockEndPos.toFixed(1)} to ${newBlockStartPos.toFixed(1)}-${newBlockEndPos.toFixed(1)}`);
+        
+        // Check for collisions with other beads
+        let canMove = true;
+        let collisionBeads = [];
+        
+        for (let otherBead of otherBeads) {
+            const otherPos = otherBead.position;
             
-            console.log(`Moving bead ${bead.id} to position ${clampedPosition}`);
-            bead.position = clampedPosition;
-            this.positionBead(bead);
-        });
+            // Check if the block would overlap with this bead
+            if (newBlockStartPos <= otherPos && otherPos <= newBlockEndPos) {
+                canMove = false;
+                collisionBeads.push(otherBead);
+                console.log(`Collision detected with bead ${otherBead.id} at position ${otherPos.toFixed(1)}`);
+            }
+        }
+        
+        if (canMove) {
+            // No collisions - move freely
+            console.log('No collisions - moving freely');
+            this.moveBlockDirectly(block, targetPosition);
+        } else {
+            // Collision detected - check if we can push the colliding beads
+            const direction = targetPosition > blockStartPos ? 1 : -1;
+            console.log('Collision detected - checking if we can push beads');
+            
+            // Try to expand the block to include colliding beads
+            const expandedBlock = [...block];
+            for (let collisionBead of collisionBeads) {
+                if (!expandedBlock.includes(collisionBead)) {
+                    expandedBlock.push(collisionBead);
+                }
+            }
+            
+            // Sort expanded block
+            expandedBlock.sort((a, b) => a.position - b.position);
+            
+            // Check if the expanded block can move
+            const expandedLength = expandedBlock.length;
+            const expandedNewStartPos = targetPosition;
+            const expandedNewEndPos = targetPosition + expandedLength - 1;
+            
+            console.log(`Trying to move expanded block (${expandedLength} beads) to ${expandedNewStartPos.toFixed(1)}-${expandedNewEndPos.toFixed(1)}`);
+            
+            // Check if expanded block would collide with remaining beads
+            const remainingBeads = barBeads.filter(b => !expandedBlock.includes(b));
+            let expandedCanMove = true;
+            
+            for (let remainingBead of remainingBeads) {
+                if (expandedNewStartPos <= remainingBead.position && remainingBead.position <= expandedNewEndPos) {
+                    expandedCanMove = false;
+                    console.log(`Expanded block would collide with ${remainingBead.id}`);
+                    break;
+                }
+            }
+            
+            // Also check bounds
+            if (expandedNewStartPos < 0 || expandedNewEndPos > 14) {
+                expandedCanMove = false;
+                console.log('Expanded block would go out of bounds');
+            }
+            
+            if (expandedCanMove) {
+                console.log('Moving expanded block');
+                this.moveBlockDirectly(expandedBlock, targetPosition);
+            } else {
+                console.log('Cannot move - blocked by other beads or bounds');
+                // Block is stopped - beads stay where they are
+            }
+        }
     }
     
     canBlockMoveToPosition(block, targetPosition, direction) {
