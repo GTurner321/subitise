@@ -65,7 +65,7 @@ class SliderRenderer {
     
     positionBead(bead) {
         const barY = bead.barIndex === 0 ? CONFIG.TOP_BAR_POSITION : CONFIG.BOTTOM_BAR_POSITION;
-        const beadSize = 8; // Percentage of container (circular)
+        const beadSize = 12; // Percentage of container height
         
         // Calculate X position - beads are positioned from left with no gaps
         const barStartX = CONFIG.BAR_LEFT_MARGIN;
