@@ -106,14 +106,14 @@ class SliderRenderer {
         const isBlue = beadIndex < 5;
         beadElement.classList.add(isBlue ? 'blue' : 'red');
         
-        // Initial position: All beads start stacked on the LEFT side at position 0
-        // This ensures they can all move right and aren't blocked by collision detection
-        const startPosition = 0;
+        // Initial position: All beads start on the left, aligned with no gaps
+        // Positions 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (consecutive, no overlapping)
+        const startPosition = beadIndex;
         
         const bead = {
             element: beadElement,
             barIndex: barIndex, // 0 = top, 1 = bottom
-            position: startPosition, // All beads start at position 0
+            position: startPosition, // Consecutive positions 0-9
             id: `bead-${barIndex}-${beadIndex}`,
             isDragging: false,
             isBlue: isBlue
@@ -232,77 +232,102 @@ class SliderRenderer {
     
     getBeadBlockInDirection(startBead, direction) {
         // Get the block of beads that should move together in the given direction
-        // direction: 1 for right, -1 for left
-        const allConnected = this.getConnectedBeads(startBead);
-        const startIndex = allConnected.indexOf(startBead);
+        // According to specs: if connected beads exist on the drag side, move the whole block
+        
+        const connectedBeads = this.getConnectedBeads(startBead);
+        const startIndex = connectedBeads.indexOf(startBead);
         
         if (direction > 0) {
-            // Moving right - include startBead and all beads to the right of it
-            return allConnected.slice(startIndex);
+            // Moving right - include startBead and all connected beads to the right
+            return connectedBeads.slice(startIndex);
         } else {
-            // Moving left - include startBead and all beads to the left of it
-            return allConnected.slice(0, startIndex + 1);
+            // Moving left - include startBead and all connected beads to the left
+            return connectedBeads.slice(0, startIndex + 1);
         }
     }
     
     canBlockMoveToPosition(block, targetPosition, direction) {
-        // Check if the entire block can move to the target position
+        // Simplified logic: beads can always move if there's physical space
+        // They can push other beads forward
         if (block.length === 0) return false;
         
-        const barBeads = this.getBeadsOnBar(block[0].barIndex);
-        const otherBeads = barBeads.filter(b => !block.includes(b));
+        // Check bounds only
+        const leftmostPosition = targetPosition;
+        const rightmostPosition = targetPosition + block.length - 1;
         
-        // Calculate the positions the block would occupy
-        const blockPositions = [];
-        for (let i = 0; i < block.length; i++) {
-            const newPos = targetPosition + i; // Consecutive positions
-            if (newPos < 0 || newPos >= CONFIG.BEADS_PER_BAR) {
-                return false; // Out of bounds
-            }
-            blockPositions.push(newPos);
+        // Make sure we don't go out of bounds
+        if (leftmostPosition < 0 || rightmostPosition >= CONFIG.BEADS_PER_BAR) {
+            return false;
         }
         
-        // Check for collisions with other beads
-        for (let otherBead of otherBeads) {
-            for (let blockPos of blockPositions) {
-                if (Math.abs(otherBead.position - blockPos) < 0.9) {
-                    return false; // Collision detected
-                }
-            }
-        }
-        
-        return true;
+        return true; // Always allow movement within bounds
     }
     
     findNearestValidPosition(block, targetPosition, direction) {
-        // Find the nearest valid position where the block can be placed
+        // Simplified: just clamp to bounds
         let testPosition = Math.round(targetPosition);
         
-        // First try the exact position
-        if (this.canBlockMoveToPosition(block, testPosition, direction)) {
-            return testPosition;
-        }
+        // Ensure the block fits within bounds
+        const maxPosition = CONFIG.BEADS_PER_BAR - block.length;
+        testPosition = Math.max(0, Math.min(maxPosition, testPosition));
         
-        // Try positions in both directions to find the closest valid spot
-        for (let offset = 1; offset <= CONFIG.BEADS_PER_BAR; offset++) {
-            // Try position closer to the direction of movement first
-            let primaryTest = testPosition + (offset * Math.sign(direction));
-            let secondaryTest = testPosition - (offset * Math.sign(direction));
-            
-            if (this.canBlockMoveToPosition(block, primaryTest, direction)) {
-                return primaryTest;
-            }
-            
-            if (this.canBlockMoveToPosition(block, secondaryTest, direction)) {
-                return secondaryTest;
-            }
-        }
-        
-        return null; // No valid position found
+        return testPosition;
     }
     
     moveBlockToPosition(block, targetPosition) {
         // Move all beads in the block to consecutive positions starting from targetPosition
+        // Also handle pushing other beads out of the way
+        
+        const barIndex = block[0].barIndex;
+        const barBeads = this.getBeadsOnBar(barIndex);
+        const otherBeads = barBeads.filter(b => !block.includes(b));
+        
+        // Calculate the positions this block will occupy
+        const blockPositions = [];
+        for (let i = 0; i < block.length; i++) {
+            blockPositions.push(targetPosition + i);
+        }
+        
+        // Find any beads that would be displaced and push them
+        for (let otherBead of otherBeads) {
+            const otherPosition = Math.round(otherBead.position);
+            
+            // Check if this bead is in the way
+            if (blockPositions.includes(otherPosition)) {
+                // Push the bead out of the way
+                // Find the nearest free position
+                let newPosition = otherPosition;
+                
+                // Try to push right first
+                while (newPosition < CONFIG.BEADS_PER_BAR) {
+                    if (!blockPositions.includes(newPosition) && 
+                        !otherBeads.some(b => b !== otherBead && Math.round(b.position) === newPosition)) {
+                        break;
+                    }
+                    newPosition++;
+                }
+                
+                // If couldn't push right, try left
+                if (newPosition >= CONFIG.BEADS_PER_BAR) {
+                    newPosition = otherPosition;
+                    while (newPosition >= 0) {
+                        if (!blockPositions.includes(newPosition) && 
+                            !otherBeads.some(b => b !== otherBead && Math.round(b.position) === newPosition)) {
+                            break;
+                        }
+                        newPosition--;
+                    }
+                }
+                
+                // Move the displaced bead
+                if (newPosition >= 0 && newPosition < CONFIG.BEADS_PER_BAR) {
+                    otherBead.position = newPosition;
+                    this.positionBead(otherBead);
+                }
+            }
+        }
+        
+        // Now move the block to its target position
         block.forEach((bead, index) => {
             const newPosition = targetPosition + index;
             bead.position = Math.max(0, Math.min(CONFIG.BEADS_PER_BAR - 1, newPosition));
