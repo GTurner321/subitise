@@ -25,7 +25,7 @@ const CONFIG = {
     RAISIN_STAGGER_START: 1000, // 1 second after game loads
     RAISIN_STAGGER_WINDOW: 3000, // 3 second window for raisins to appear
     RAISIN_FADE_DURATION: 500, // 0.5 seconds fade in
-    GUINEA_PIG_ANIMATION_DURATION: 3000, // 3 seconds for each guinea pig to cross
+    GUINEA_PIG_ANIMATION_DURATION: 2000, // 2 seconds for each guinea pig to cross (50% faster)
     GUINEA_PIG_PAUSE_DURATION: 500, // Pause between guinea pigs
     
     // Guinea pig sizes (relative to screen width)
