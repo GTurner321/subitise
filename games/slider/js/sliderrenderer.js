@@ -18,6 +18,9 @@ class SliderRenderer {
     
     updateContainerRect() {
         this.containerRect = this.sliderContainer.getBoundingClientRect();
+        // Calculate bead size based on container height
+        this.beadSize = this.containerRect.height * 0.12; // 12% of container height
+        this.beadSizePercent = (this.beadSize / this.containerRect.width) * 100; // Convert to percentage of width
     }
     
     initializeBeads() {
@@ -42,6 +45,10 @@ class SliderRenderer {
         const beadElement = document.createElement('div');
         beadElement.className = 'bead';
         
+        // Set circular size in pixels based on container height
+        beadElement.style.width = `${this.beadSize}px`;
+        beadElement.style.height = `${this.beadSize}px`;
+        
         // Color: first 5 blue, last 5 red on each bar
         const isBlue = beadIndex < 5;
         beadElement.classList.add(isBlue ? 'blue' : 'red');
@@ -65,22 +72,21 @@ class SliderRenderer {
     
     positionBead(bead) {
         const barY = bead.barIndex === 0 ? CONFIG.TOP_BAR_POSITION : CONFIG.BOTTOM_BAR_POSITION;
-        const beadSize = 12; // Percentage of container height
         
-        // Calculate X position - beads are positioned from left with no gaps
-        const barStartX = CONFIG.BAR_LEFT_MARGIN;
-        const barWidth = 100 - CONFIG.BAR_LEFT_MARGIN - CONFIG.BAR_RIGHT_MARGIN; // Available bar width
-        const maxBeadWidth = barWidth / CONFIG.BEADS_PER_BAR; // Maximum width per bead position
+        // Calculate positions in pixels for accuracy
+        const containerRect = this.containerRect;
+        const barStartX = containerRect.width * (CONFIG.BAR_LEFT_MARGIN / 100);
+        const barWidth = containerRect.width * ((100 - CONFIG.BAR_LEFT_MARGIN - CONFIG.BAR_RIGHT_MARGIN) / 100);
         
-        // Position beads consecutively from left, but respect bar boundaries
-        const xPercent = barStartX + (bead.position * maxBeadWidth);
+        // Position beads consecutively from left with no gaps or overlaps
+        const xPixels = barStartX + (bead.position * this.beadSize);
         
-        // Ensure bead doesn't go beyond bar boundaries
-        const maxX = barStartX + barWidth - beadSize;
-        const finalX = Math.min(xPercent, maxX);
+        // Convert back to percentages for CSS
+        const xPercent = (xPixels / containerRect.width) * 100;
+        const yPercent = barY - ((this.beadSize / containerRect.height) * 100 / 2);
         
-        bead.element.style.left = `${finalX}%`;
-        bead.element.style.top = `${barY - (beadSize / 2)}%`;
+        bead.element.style.left = `${xPercent}%`;
+        bead.element.style.top = `${yPercent}%`;
     }
     
     repositionAllBeads() {
