@@ -264,17 +264,19 @@ class SliderRenderer {
     }
     
     findNearestValidPosition(block, targetPosition, direction) {
-        // Simplified: just clamp to bounds
-        let testPosition = Math.round(targetPosition);
+        // Allow movement to the target position, just ensure it's within bounds
+        let testPosition = targetPosition; // Don't round immediately
         
         // Ensure the block fits within bounds
         const maxPosition = CONFIG.BEADS_PER_BAR - block.length;
         testPosition = Math.max(0, Math.min(maxPosition, testPosition));
         
-        return testPosition;
+        return testPosition; // Return the actual position, not rounded
     }
     
     moveBlockToPosition(block, targetPosition) {
+        console.log('moveBlockToPosition called with:', block.length, 'beads, target:', targetPosition);
+        
         // Move all beads in the block to consecutive positions starting from targetPosition
         // Also handle pushing other beads out of the way
         
@@ -282,11 +284,15 @@ class SliderRenderer {
         const barBeads = this.getBeadsOnBar(barIndex);
         const otherBeads = barBeads.filter(b => !block.includes(b));
         
+        console.log('Other beads on bar:', otherBeads.length);
+        
         // Calculate the positions this block will occupy
         const blockPositions = [];
         for (let i = 0; i < block.length; i++) {
             blockPositions.push(targetPosition + i);
         }
+        
+        console.log('Block will occupy positions:', blockPositions);
         
         // Find any beads that would be displaced and push them
         for (let otherBead of otherBeads) {
@@ -294,6 +300,8 @@ class SliderRenderer {
             
             // Check if this bead is in the way
             if (blockPositions.includes(otherPosition)) {
+                console.log('Pushing bead', otherBead.id, 'from position', otherPosition);
+                
                 // Push the bead out of the way
                 // Find the nearest free position
                 let newPosition = otherPosition;
@@ -321,6 +329,7 @@ class SliderRenderer {
                 
                 // Move the displaced bead
                 if (newPosition >= 0 && newPosition < CONFIG.BEADS_PER_BAR) {
+                    console.log('Moved displaced bead to position:', newPosition);
                     otherBead.position = newPosition;
                     this.positionBead(otherBead);
                 }
@@ -328,9 +337,12 @@ class SliderRenderer {
         }
         
         // Now move the block to its target position
+        console.log('Moving block to target positions starting at:', targetPosition);
         block.forEach((bead, index) => {
             const newPosition = targetPosition + index;
-            bead.position = Math.max(0, Math.min(CONFIG.BEADS_PER_BAR - 1, newPosition));
+            const clampedPosition = Math.max(0, Math.min(CONFIG.BEADS_PER_BAR - 1, newPosition));
+            console.log(`Moving bead ${bead.id} from ${bead.position} to ${clampedPosition}`);
+            bead.position = clampedPosition;
             this.positionBead(bead);
         });
     }
