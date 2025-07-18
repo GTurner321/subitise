@@ -115,16 +115,12 @@ body {
 /* Beads */
 .bead {
     position: absolute;
-    width: 12%;
-    height: 12%;
+    /* Size will be set dynamically in JavaScript based on container height */
     border-radius: 50%;
     cursor: grab;
     user-select: none;
     transition: none;
     z-index: 10;
-    
-    /* Force circular shape regardless of container aspect ratio */
-    aspect-ratio: 1;
     
     /* 3D appearance */
     background: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.8), transparent 50%),
