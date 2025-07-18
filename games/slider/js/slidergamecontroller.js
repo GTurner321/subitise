@@ -273,15 +273,24 @@ class SliderGameController {
         
         // Calculate movement in terms of bead positions
         const containerRect = this.sliderRenderer.sliderContainer.getBoundingClientRect();
-        const beadWidth = containerRect.width * 0.12; // 12% bead width
-        const positionDelta = deltaX / beadWidth;
+        const barWidth = containerRect.width * 0.86; // 86% of container width (bar width)
+        const beadPositionWidth = barWidth / CONFIG.BEADS_PER_BAR; // Width per bead position
+        const positionDelta = deltaX / beadPositionWidth;
         
         // Get the block of beads that should move with this bead
         const movingBlock = this.sliderRenderer.getBeadBlockInDirection(touch.bead, direction);
         
         // Calculate target position for the block
-        const blockStartPosition = Math.min(...movingBlock.map(b => b.startPosition || b.position));
-        let targetPosition = blockStartPosition + positionDelta;
+        let targetPosition;
+        if (direction > 0) {
+            // Moving right - base position on the leftmost bead in the block
+            const blockStartPosition = Math.min(...movingBlock.map(b => b.startPosition || b.position));
+            targetPosition = blockStartPosition + positionDelta;
+        } else {
+            // Moving left - base position on the rightmost bead in the block, but account for block length
+            const blockEndPosition = Math.max(...movingBlock.map(b => b.startPosition || b.position));
+            targetPosition = blockEndPosition + positionDelta - (movingBlock.length - 1);
+        }
         
         // Check if the block can move to this position
         const validPosition = this.sliderRenderer.findNearestValidPosition(movingBlock, targetPosition, direction);
