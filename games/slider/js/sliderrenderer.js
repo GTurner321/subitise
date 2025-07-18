@@ -158,6 +158,8 @@ class SliderRenderer {
     }
     
     getBeadAtPosition(x, y) {
+        console.log('getBeadAtPosition called with:', x, y);
+        
         // Convert screen coordinates to check against bead positions
         for (let bead of this.beads) {
             const beadRect = bead.element.getBoundingClientRect();
@@ -166,9 +168,11 @@ class SliderRenderer {
                 x <= beadRect.right &&
                 y >= beadRect.top && 
                 y <= beadRect.bottom) {
+                console.log('Found bead at position:', bead.id, 'rect:', beadRect);
                 return bead;
             }
         }
+        console.log('No bead found at position');
         return null;
     }
     
