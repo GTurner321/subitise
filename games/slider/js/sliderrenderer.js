@@ -5,6 +5,7 @@ class SliderRenderer {
         this.bottomBar = document.getElementById('bottomBar');
         this.beads = [];
         this.containerRect = null;
+        this.frameImageRect = null;
         
         this.updateContainerRect();
         this.initializeBeads();
@@ -18,9 +19,60 @@ class SliderRenderer {
     
     updateContainerRect() {
         this.containerRect = this.sliderContainer.getBoundingClientRect();
-        // Calculate bead diameter as 12% of container height (which represents the slider frame image)
-        this.beadDiameter = this.containerRect.height * 0.12;
+        
+        // Calculate the actual frame image dimensions within the container
+        // The frame image uses "contain" so we need to find its actual rendered size
+        const containerAspectRatio = this.containerRect.width / this.containerRect.height;
+        const imageAspectRatio = 1516 / 475; // Exact aspect ratio of slider frame (1516x475)
+        
+        if (containerAspectRatio > imageAspectRatio) {
+            // Container is wider than image - image is constrained by height
+            this.frameImageRect = {
+                width: this.containerRect.height * imageAspectRatio,
+                height: this.containerRect.height,
+                x: (this.containerRect.width - this.containerRect.height * imageAspectRatio) / 2,
+                y: 0
+            };
+        } else {
+            // Container is taller than image - image is constrained by width
+            this.frameImageRect = {
+                width: this.containerRect.width,
+                height: this.containerRect.width / imageAspectRatio,
+                x: 0,
+                y: (this.containerRect.height - this.containerRect.width / imageAspectRatio) / 2
+            };
+        }
+        
+        // Calculate bead diameter as 12% of frame image height
+        this.beadDiameter = this.frameImageRect.height * 0.12;
         this.beadRadius = this.beadDiameter / 2;
+        
+        // Update bar dimensions
+        this.updateBarDimensions();
+    }
+    
+    updateBarDimensions() {
+        if (!this.frameImageRect) return;
+        
+        const barHeight = this.frameImageRect.height * 0.05; // 5% of frame height
+        const barWidth = this.frameImageRect.width * 0.86; // 86% of frame width
+        const barLeft = this.frameImageRect.x + (this.frameImageRect.width * 0.06); // 6% from left of frame
+        
+        // Top bar at 34% of frame height
+        const topBarTop = this.frameImageRect.y + (this.frameImageRect.height * 0.34);
+        this.topBar.style.position = 'absolute';
+        this.topBar.style.left = `${barLeft}px`;
+        this.topBar.style.top = `${topBarTop}px`;
+        this.topBar.style.width = `${barWidth}px`;
+        this.topBar.style.height = `${barHeight}px`;
+        
+        // Bottom bar at 60% of frame height
+        const bottomBarTop = this.frameImageRect.y + (this.frameImageRect.height * 0.60);
+        this.bottomBar.style.position = 'absolute';
+        this.bottomBar.style.left = `${barLeft}px`;
+        this.bottomBar.style.top = `${bottomBarTop}px`;
+        this.bottomBar.style.width = `${barWidth}px`;
+        this.bottomBar.style.height = `${barHeight}px`;
     }
     
     initializeBeads() {
@@ -45,9 +97,10 @@ class SliderRenderer {
         const beadElement = document.createElement('div');
         beadElement.className = 'bead';
         
-        // Set circular size - diameter is 12% of image height
+        // Set circular size - diameter is 12% of frame image height
         beadElement.style.width = `${this.beadDiameter}px`;
         beadElement.style.height = `${this.beadDiameter}px`;
+        beadElement.style.position = 'absolute';
         
         // Color: first 5 blue, last 5 red on each bar
         const isBlue = beadIndex < 5;
@@ -71,37 +124,25 @@ class SliderRenderer {
     }
     
     positionBead(bead) {
-        const barY = bead.barIndex === 0 ? CONFIG.TOP_BAR_POSITION : CONFIG.BOTTOM_BAR_POSITION;
+        if (!this.frameImageRect) return;
         
-        // Calculate positions based on the slider frame image dimensions
-        const containerHeight = this.containerRect.height;
-        const containerWidth = this.containerRect.width;
+        const barY = bead.barIndex === 0 ? 0.34 : 0.60; // 34% or 60% of frame height
         
-        // Calculate bead center position
-        // First bead center is at 6% + 6% (left margin + radius) = 12% from left
-        // Each subsequent bead is spaced by one diameter (12% of image height)
-        const leftMarginPercent = CONFIG.BAR_LEFT_MARGIN / 100;
-        const beadRadiusPercent = 0.06; // 6% of image height
-        const beadDiameterPercent = 0.12; // 12% of image height
+        // Calculate bead center position based on frame image dimensions
+        // First bead center is at 6% margin + 6% radius = 12% from left edge of frame
+        const beadCenterX = this.frameImageRect.x + 
+                           (this.frameImageRect.width * 0.06) + // Left margin
+                           this.beadRadius + // Half bead width to center
+                           (bead.position * this.beadDiameter); // Spacing between beads
         
-        // Calculate bead center X position as percentage of container width
-        const beadCenterXPercent = leftMarginPercent + beadRadiusPercent + (bead.position * beadDiameterPercent);
-        const beadCenterX = containerWidth * beadCenterXPercent;
-        
-        // Calculate bead center Y position
-        const beadCenterY = containerHeight * (barY / 100);
+        const beadCenterY = this.frameImageRect.y + (this.frameImageRect.height * barY);
         
         // Position bead so its center is at the calculated position
         const beadLeft = beadCenterX - this.beadRadius;
         const beadTop = beadCenterY - this.beadRadius;
         
-        // Convert to percentages for CSS positioning
-        const leftPercent = (beadLeft / containerWidth) * 100;
-        const topPercent = (beadTop / containerHeight) * 100;
-        
-        bead.element.style.left = `${leftPercent}%`;
-        bead.element.style.top = `${topPercent}%`;
-        bead.element.style.position = 'absolute';
+        bead.element.style.left = `${beadLeft}px`;
+        bead.element.style.top = `${beadTop}px`;
     }
     
     repositionAllBeads() {
@@ -117,22 +158,14 @@ class SliderRenderer {
     }
     
     getBeadAtPosition(x, y) {
-        // Convert screen coordinates to container coordinates
-        const containerRect = this.sliderContainer.getBoundingClientRect();
-        const relativeX = x - containerRect.left;
-        const relativeY = y - containerRect.top;
-        
+        // Convert screen coordinates to check against bead positions
         for (let bead of this.beads) {
             const beadRect = bead.element.getBoundingClientRect();
-            const beadRelativeX = beadRect.left - containerRect.left;
-            const beadRelativeY = beadRect.top - containerRect.top;
-            const beadWidth = beadRect.width;
-            const beadHeight = beadRect.height;
             
-            if (relativeX >= beadRelativeX && 
-                relativeX <= beadRelativeX + beadWidth &&
-                relativeY >= beadRelativeY && 
-                relativeY <= beadRelativeY + beadHeight) {
+            if (x >= beadRect.left && 
+                x <= beadRect.right &&
+                y >= beadRect.top && 
+                y <= beadRect.bottom) {
                 return bead;
             }
         }
@@ -157,7 +190,7 @@ class SliderRenderer {
         bead.position = newPosition;
         
         if (animate) {
-            bead.element.style.transition = 'left 0.2s ease-out';
+            bead.element.style.transition = 'left 0.2s ease-out, top 0.2s ease-out';
             setTimeout(() => {
                 bead.element.style.transition = 'none';
             }, 200);
