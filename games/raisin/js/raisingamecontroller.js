@@ -206,17 +206,17 @@ class RaisinGameController {
             oscillator.connect(gainNode);
             gainNode.connect(this.audioContext.destination);
             
-            // Create a squeaky guinea pig sound
+            // Create a faster squeaky guinea pig sound (3x faster)
             oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(1200, this.audioContext.currentTime + 0.1);
-            oscillator.frequency.exponentialRampToValueAtTime(600, this.audioContext.currentTime + 0.2);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, this.audioContext.currentTime + 0.033);
+            oscillator.frequency.exponentialRampToValueAtTime(600, this.audioContext.currentTime + 0.067);
             oscillator.type = 'sawtooth';
             
             gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.25);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.083);
             
             oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.25);
+            oscillator.stop(this.audioContext.currentTime + 0.083);
         } catch (error) {
             // Silent failure
         }
@@ -230,10 +230,10 @@ class RaisinGameController {
         // Play first sound immediately
         this.playGuineaPigSound();
         
-        // Continue playing sounds at intervals
+        // Continue playing sounds at intervals (3x faster)
         this.guineaPigSoundInterval = setInterval(() => {
             this.playGuineaPigSound();
-        }, 600); // Play every 600ms
+        }, 200); // Play every 200ms (was 600ms)
     }
     
     stopGuineaPigSounds() {
@@ -244,46 +244,13 @@ class RaisinGameController {
     }
     
     startFlashing() {
-        this.stopFlashing(); // Clear any existing interval
-        
-        const flashElements = () => {
-            // Flash the game area to draw attention to counting
-            const gameArea = document.querySelector('.game-area');
-            if (gameArea) {
-                gameArea.classList.add('area-flash');
-                
-                // Remove flash class after flash duration
-                setTimeout(() => {
-                    gameArea.classList.remove('area-flash');
-                }, 1000);
-            }
-        };
-        
-        // Start flashing after 5 seconds
-        this.flashingTimeout = setTimeout(() => {
-            flashElements();
-            
-            // Set up interval to repeat every 5 seconds
-            this.flashingInterval = setInterval(flashElements, 5000);
-        }, 5000);
+        // No flashing prompts needed for raisin game
+        return;
     }
     
     stopFlashing() {
-        if (this.flashingInterval) {
-            clearInterval(this.flashingInterval);
-            this.flashingInterval = null;
-        }
-        
-        if (this.flashingTimeout) {
-            clearTimeout(this.flashingTimeout);
-            this.flashingTimeout = null;
-        }
-        
-        // Remove any existing flash classes
-        const gameArea = document.querySelector('.game-area');
-        if (gameArea) {
-            gameArea.classList.remove('area-flash');
-        }
+        // No flashing prompts needed for raisin game
+        return;
     }
     
     startInactivityTimer() {
