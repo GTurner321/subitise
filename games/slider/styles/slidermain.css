@@ -92,31 +92,18 @@ body {
     pointer-events: none;
 }
 
-/* Slider bars - positioned relative to the slider frame */
+/* Slider bars - positioning will be handled by JavaScript */
 .slider-bar {
-    position: absolute;
-    left: 6%; /* Updated: 6% from left edge of slider container */
-    width: 86%; /* Updated: spans from 6% to 92% */
-    height: 5%; /* Updated: 5% of slider container height */
     background: #808080;
     border-top: 2px solid #333;
     border-bottom: 2px solid #333;
     border-radius: 0;
     pointer-events: none; /* Bars shouldn't interfere with bead interaction */
-}
-
-.top-bar {
-    top: 34%; /* Updated: 34% down from top of slider container */
-}
-
-.bottom-bar {
-    top: 60%; /* Updated: 60% down from top of slider container */
+    z-index: 5;
 }
 
 /* Beads */
 .bead {
-    position: absolute;
-    /* Size will be set dynamically in JavaScript based on container height */
     border-radius: 50%;
     cursor: grab;
     user-select: none;
