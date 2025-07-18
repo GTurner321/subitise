@@ -106,11 +106,14 @@ class SliderRenderer {
         const isBlue = beadIndex < 5;
         beadElement.classList.add(isBlue ? 'blue' : 'red');
         
-        // Initial position on left side of bar
+        // Initial position: All beads start stacked on the LEFT side at position 0
+        // This ensures they can all move right and aren't blocked by collision detection
+        const startPosition = 0;
+        
         const bead = {
             element: beadElement,
             barIndex: barIndex, // 0 = top, 1 = bottom
-            position: beadIndex, // Position along the bar (0-based from left)
+            position: startPosition, // All beads start at position 0
             id: `bead-${barIndex}-${beadIndex}`,
             isDragging: false,
             isBlue: isBlue
@@ -158,8 +161,6 @@ class SliderRenderer {
     }
     
     getBeadAtPosition(x, y) {
-        console.log('getBeadAtPosition called with:', x, y);
-        
         // Convert screen coordinates to check against bead positions
         for (let bead of this.beads) {
             const beadRect = bead.element.getBoundingClientRect();
@@ -168,11 +169,9 @@ class SliderRenderer {
                 x <= beadRect.right &&
                 y >= beadRect.top && 
                 y <= beadRect.bottom) {
-                console.log('Found bead at position:', bead.id, 'rect:', beadRect);
                 return bead;
             }
         }
-        console.log('No bead found at position');
         return null;
     }
     
