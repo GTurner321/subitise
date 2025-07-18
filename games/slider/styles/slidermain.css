@@ -95,8 +95,8 @@ body {
 /* Slider bars */
 .slider-bar {
     position: absolute;
-    left: 8%;
-    width: 84%; /* From 8% to 92% */
+    left: 6%;
+    width: 86%; /* From 6% to 92% */
     height: 5%;
     background: #808080;
     border-top: 2px solid #333;
@@ -105,17 +105,17 @@ body {
 }
 
 .top-bar {
-    top: 30%;
+    top: 34%;
 }
 
 .bottom-bar {
-    top: 70%;
+    top: 60%;
 }
 
 /* Beads */
 .bead {
     position: absolute;
-    width: 12%; /* Slightly larger than double bar thickness */
+    width: 12%; /* Circular - same as height */
     height: 12%;
     border-radius: 50%;
     cursor: grab;
@@ -129,6 +129,7 @@ body {
     border: 2px solid rgba(0,0,0,0.3);
     box-shadow: 0 3px 6px rgba(0,0,0,0.3), 
                 inset 0 1px 3px rgba(255,255,255,0.5);
+    aspect-ratio: 1; /* Ensure circular shape */
 }
 
 .bead:active {
