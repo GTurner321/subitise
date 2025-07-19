@@ -311,14 +311,23 @@ class SliderRenderer {
     
     moveBlock(block, distance) {
         // Move all beads in the block by the given distance
-        console.log(`Moving block of ${block.length} beads by ${distance.toFixed(3)}`);
+        console.log(`moveBlock: Moving ${block.length} beads by ${distance.toFixed(3)}`);
         
         block.forEach(bead => {
+            const oldPosition = bead.position;
             bead.position += distance;
+            console.log(`  ${bead.id}: ${oldPosition.toFixed(3)} → ${bead.position.toFixed(3)}`);
             this.positionBead(bead);
         });
         
         this.updateBarState();
+        
+        // Log all bead positions after movement
+        console.log('All bead positions after movement:');
+        this.beads.forEach(bead => {
+            const beadRect = bead.element.getBoundingClientRect();
+            console.log(`  ${bead.id}: position ${bead.position.toFixed(3)}, screen coords (${beadRect.left.toFixed(1)}, ${beadRect.top.toFixed(1)}), visible: ${beadRect.width > 0 && beadRect.height > 0}`);
+        });
     }
     
     snapToNearbyBeads(bead, snapRadius = 1.0) {
@@ -338,40 +347,75 @@ class SliderRenderer {
         
         console.log(`Snap check for ${bead.id}: position ${bead.position.toFixed(2)}, max position ${maxPosition.toFixed(2)}`);
         
-        // First priority: Check for snapping to nearby beads (they take precedence over bar ends)
+        // CRITICAL: First check if there are any beads that would block movement
+        // Don't allow snapping if it would cause overlap
         
-        // Check bead to the left - snap to its right side
+        // Check bead to the left - snap to its right side if within range
         if (currentIndex > 0) {
             const leftBead = barBeads[currentIndex - 1];
             const distance = bead.position - leftBead.position;
+            console.log(`  Distance to left bead ${leftBead.bead.id}: ${distance.toFixed(3)}`);
+            
             if (distance > 1.0 && distance <= 1.0 + snapRadius) {
-                bead.position = leftBead.position + 1.0;
-                this.positionBead(bead);
-                snapped = true;
-                console.log(`Snapped ${bead.id} to right of ${leftBead.bead.id} at position ${bead.position.toFixed(2)}`);
+                const targetPosition = leftBead.position + 1.0;
+                console.log(`  Would snap to position ${targetPosition.toFixed(3)} (right of ${leftBead.bead.id})`);
+                
+                // Check if this position is safe (no bead to our right would be too close)
+                let isSafe = true;
+                if (currentIndex < barBeads.length - 1) {
+                    const rightBead = barBeads[currentIndex + 1];
+                    if (rightBead.position - targetPosition < 1.0) {
+                        console.log(`  BLOCKED: Right bead ${rightBead.bead.id} at ${rightBead.position.toFixed(3)} too close`);
+                        isSafe = false;
+                    }
+                }
+                
+                if (isSafe) {
+                    bead.position = targetPosition;
+                    this.positionBead(bead);
+                    snapped = true;
+                    console.log(`  SNAPPED ${bead.id} to right of ${leftBead.bead.id} at position ${bead.position.toFixed(2)}`);
+                }
             }
         }
         
-        // Check bead to the right - snap to its left side
+        // Check bead to the right - snap to its left side if within range
         if (!snapped && currentIndex < barBeads.length - 1) {
             const rightBead = barBeads[currentIndex + 1];
             const distance = rightBead.position - bead.position;
+            console.log(`  Distance to right bead ${rightBead.bead.id}: ${distance.toFixed(3)}`);
+            
             if (distance > 1.0 && distance <= 1.0 + snapRadius) {
-                bead.position = rightBead.position - 1.0;
-                this.positionBead(bead);
-                snapped = true;
-                console.log(`Snapped ${bead.id} to left of ${rightBead.bead.id} at position ${bead.position.toFixed(2)}`);
+                const targetPosition = rightBead.position - 1.0;
+                console.log(`  Would snap to position ${targetPosition.toFixed(3)} (left of ${rightBead.bead.id})`);
+                
+                // Check if this position is safe (no bead to our left would be too close)
+                let isSafe = true;
+                if (currentIndex > 0) {
+                    const leftBead = barBeads[currentIndex - 1];
+                    if (targetPosition - leftBead.position < 1.0) {
+                        console.log(`  BLOCKED: Left bead ${leftBead.bead.id} at ${leftBead.position.toFixed(3)} too close`);
+                        isSafe = false;
+                    }
+                }
+                
+                if (isSafe) {
+                    bead.position = targetPosition;
+                    this.positionBead(bead);
+                    snapped = true;
+                    console.log(`  SNAPPED ${bead.id} to left of ${rightBead.bead.id} at position ${bead.position.toFixed(2)}`);
+                }
             }
         }
         
-        // Only snap to bar ends if no nearby beads to snap to
+        // Only snap to bar ends if no nearby beads AND it's safe to do so
         if (!snapped) {
             // Check for snapping to bar start (left end)
             if (bead.position <= snapRadius) {
                 bead.position = 0;
                 this.positionBead(bead);
                 snapped = true;
-                console.log(`Snapped ${bead.id} to bar start`);
+                console.log(`  SNAPPED ${bead.id} to bar start`);
             }
             
             // Check for snapping to bar end (right end) - only if no other beads are in the way
@@ -379,17 +423,18 @@ class SliderRenderer {
                 // Make sure there are no beads to the right that would block this
                 let canSnapToEnd = true;
                 for (let beadInfo of barBeads) {
-                    if (beadInfo.bead !== bead && beadInfo.position > bead.position) {
+                    if (beadInfo.bead !== bead && beadInfo.position >= maxPosition - 1.0) {
+                        console.log(`  BLOCKED from bar end: Bead ${beadInfo.bead.id} at ${beadInfo.position.toFixed(3)} too close to end`);
                         canSnapToEnd = false;
                         break;
                     }
                 }
                 
                 if (canSnapToEnd) {
-                    bead.position = Math.min(maxPosition, bead.position);
+                    bead.position = Math.min(maxPosition - 0.1, bead.position); // Leave small margin from edge
                     this.positionBead(bead);
                     snapped = true;
-                    console.log(`Snapped ${bead.id} to bar end at position ${bead.position.toFixed(2)}`);
+                    console.log(`  SNAPPED ${bead.id} to bar end at position ${bead.position.toFixed(2)}`);
                 }
             }
         }
