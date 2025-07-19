@@ -231,7 +231,8 @@ class SliderGameController {
             startY: y,
             startPosition: bead.position,
             hasStartedMoving: false,
-            connectedBlock: [bead] // Start with just the single bead
+            connectedBlock: [bead], // Start with just the single bead
+            lastProcessedX: x // Track the last position we processed movement from
         };
         
         this.dragState.activeTouches.set(touchId, dragState);
@@ -254,36 +255,39 @@ class SliderGameController {
         
         if (!dragState.hasStartedMoving) {
             dragState.hasStartedMoving = true;
+            dragState.lastProcessedX = dragState.startX; // Track where we last processed movement
             console.log(`Started moving ${dragState.draggedBead.id} (touch: ${touchId})`);
             // Update connected beads at the moment movement starts
             dragState.connectedBlock = this.sliderRenderer.getConnectedBeads(dragState.draggedBead);
         }
         
-        // Calculate movement direction and distance from the threshold point
-        const direction = deltaX > 0 ? 1 : -1;
-        const movementBeyondThreshold = Math.abs(deltaX) - dragThreshold;
-        const positionDelta = (movementBeyondThreshold / this.sliderRenderer.beadDiameter) * direction;
+        // Calculate movement based on the CHANGE since last processed position, not total from start
+        const currentDeltaX = x - (dragState.lastProcessedX || dragState.startX);
         
-        // Calculate target position based ONLY on horizontal drag component
-        const targetPosition = dragState.startPosition + positionDelta;
+        // Only process movement if there's meaningful change
+        if (Math.abs(currentDeltaX) < 1) return; // Ignore tiny movements
         
-        console.log(`Touch ${touchId} - Drag delta: ${deltaX.toFixed(1)}, position delta: ${positionDelta.toFixed(3)}, target: ${targetPosition.toFixed(3)}`);
+        const direction = currentDeltaX > 0 ? 1 : -1;
+        const movementDistance = Math.abs(currentDeltaX) / this.sliderRenderer.beadDiameter;
         
-        // Check how far the block can actually move
+        console.log(`Touch ${touchId} - Current delta: ${currentDeltaX.toFixed(1)}, direction: ${direction > 0 ? 'right' : 'left'}, distance: ${movementDistance.toFixed(3)}`);
+        
+        // Check how far the block can actually move in the current direction
         const block = dragState.connectedBlock;
-        const requestedDistance = Math.abs(targetPosition - dragState.draggedBead.position);
-        const maxMovement = this.sliderRenderer.canMoveBlock(block, direction, requestedDistance);
+        const maxMovement = this.sliderRenderer.canMoveBlock(block, direction, movementDistance);
         
-        // Apply the movement if there's space - but limit to the actual drag amount
+        // Apply the movement if there's space
         if (maxMovement > 0.001) {
-            const actualDelta = direction > 0 ? 
-                Math.min(maxMovement, positionDelta) : 
-                Math.max(-maxMovement, positionDelta);
+            const actualDelta = direction > 0 ? maxMovement : -maxMovement;
+            this.sliderRenderer.moveBlock(block, actualDelta);
             
-            // Only move if the movement aligns with our drag
-            if ((direction > 0 && actualDelta > 0) || (direction < 0 && actualDelta < 0)) {
-                this.sliderRenderer.moveBlock(block, actualDelta);
-            }
+            // Update the last processed position based on actual movement
+            dragState.lastProcessedX = x;
+            console.log(`Moved ${actualDelta.toFixed(3)}, updated lastProcessedX to ${dragState.lastProcessedX}`);
+        } else {
+            // No movement possible - still update position to prevent accumulation
+            dragState.lastProcessedX = x;
+            console.log(`No movement possible in direction ${direction > 0 ? 'right' : 'left'}`);
         }
     }
     
