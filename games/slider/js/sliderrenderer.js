@@ -63,10 +63,10 @@ class SliderRenderer {
         
         const barHeight = this.frameImageRect.height * 0.05;
         const barWidth = this.frameImageRect.width * 0.86;
-        const barLeft = this.frameImageRect.x + (this.frameImageRect.width * 0.06);
+        const barLeft = this.frameImageRect.x + (this.frameImageRect.width * 0.07); // Changed from 0.06 to 0.07
         
-        // Top bar at 34% of frame height
-        const topBarTop = this.frameImageRect.y + (this.frameImageRect.height * 0.34);
+        // Top bar at 34% of frame height - positioned so bead centers align with bar center
+        const topBarTop = this.frameImageRect.y + (this.frameImageRect.height * 0.34) - (barHeight / 2);
         this.topBar.style.cssText = `
             position: absolute;
             left: ${barLeft}px;
@@ -75,8 +75,8 @@ class SliderRenderer {
             height: ${barHeight}px;
         `;
         
-        // Bottom bar at 60% of frame height
-        const bottomBarTop = this.frameImageRect.y + (this.frameImageRect.height * 0.60);
+        // Bottom bar at 60% of frame height - positioned so bead centers align with bar center
+        const bottomBarTop = this.frameImageRect.y + (this.frameImageRect.height * 0.60) - (barHeight / 2);
         this.bottomBar.style.cssText = `
             position: absolute;
             left: ${barLeft}px;
@@ -139,9 +139,9 @@ class SliderRenderer {
         const barY = bead.barIndex === 0 ? 0.34 : 0.60;
         
         // Calculate bead center position
-        // Bar starts at 6% margin, bead centers start at 6% + radius
+        // Bar starts at 7% margin, bead centers start at 7% + radius
         const beadCenterX = this.frameImageRect.x + 
-                           (this.frameImageRect.width * 0.06) + 
+                           (this.frameImageRect.width * 0.07) + // Changed from 0.06 to 0.07
                            this.beadRadius + 
                            (bead.position * this.beadDiameter);
         
@@ -223,8 +223,15 @@ class SliderRenderer {
         for (let bead of this.beads) {
             const beadRect = bead.element.getBoundingClientRect();
             
-            if (x >= beadRect.left && x <= beadRect.right &&
-                y >= beadRect.top && y <= beadRect.bottom) {
+            // Create square touch target with side length = bead diameter
+            const touchSize = this.beadDiameter;
+            const touchLeft = beadRect.left + beadRect.width/2 - touchSize/2;
+            const touchTop = beadRect.top + beadRect.height/2 - touchSize/2;
+            const touchRight = touchLeft + touchSize;
+            const touchBottom = touchTop + touchSize;
+            
+            if (x >= touchLeft && x <= touchRight &&
+                y >= touchTop && y <= touchBottom) {
                 return bead;
             }
         }
@@ -248,8 +255,9 @@ class SliderRenderer {
         const blockStart = blockPositions[0];
         const blockEnd = blockPositions[blockPositions.length - 1];
         
-        // Calculate bar bounds - beads can move from position 0 to a reasonable maximum
-        const barStartX = this.frameImageRect.width * 0.06;
+        // Calculate bar bounds - beads can move from position 0 to maximum position
+        // Bar goes from 7% to 92% of frame width
+        const barStartX = this.frameImageRect.width * 0.07;
         const barEndX = this.frameImageRect.width * 0.92;
         const usableLength = barEndX - barStartX - (2 * this.beadRadius);
         const maxPosition = usableLength / this.beadDiameter;
@@ -305,7 +313,7 @@ class SliderRenderer {
     }
     
     snapToNearbyBeads(bead, snapRadius = 1.0) {
-        // Check for magnetic snapping to nearby beads
+        // Check for magnetic snapping to nearby beads or bar ends
         const barBeads = this.barState[bead.barIndex];
         const currentIndex = barBeads.findIndex(item => item.bead === bead);
         
@@ -313,8 +321,30 @@ class SliderRenderer {
         
         let snapped = false;
         
+        // Calculate bar bounds for end snapping
+        const barStartX = this.frameImageRect.width * 0.07;
+        const barEndX = this.frameImageRect.width * 0.92;
+        const usableLength = barEndX - barStartX - (2 * this.beadRadius);
+        const maxPosition = usableLength / this.beadDiameter;
+        
+        // Check for snapping to bar start (left end)
+        if (bead.position <= snapRadius) {
+            bead.position = 0;
+            this.positionBead(bead);
+            snapped = true;
+            console.log(`Snapped ${bead.id} to bar start`);
+        }
+        
+        // Check for snapping to bar end (right end)
+        else if (bead.position >= maxPosition - snapRadius) {
+            bead.position = maxPosition;
+            this.positionBead(bead);
+            snapped = true;
+            console.log(`Snapped ${bead.id} to bar end`);
+        }
+        
         // Check bead to the left
-        if (currentIndex > 0) {
+        else if (currentIndex > 0) {
             const leftBead = barBeads[currentIndex - 1];
             const distance = bead.position - leftBead.position;
             if (distance > 1.0 && distance <= 1.0 + snapRadius) {
@@ -326,7 +356,7 @@ class SliderRenderer {
         }
         
         // Check bead to the right
-        if (currentIndex < barBeads.length - 1) {
+        else if (currentIndex < barBeads.length - 1) {
             const rightBead = barBeads[currentIndex + 1];
             const distance = rightBead.position - bead.position;
             if (distance > 1.0 && distance <= 1.0 + snapRadius) {
