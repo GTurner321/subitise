@@ -309,9 +309,37 @@ class SliderRenderer {
     }
     
     moveBlock(block, distance) {
-        // Move all beads in the block by the given distance
+        // Move all beads in the block by the given distance, but check for conflicts first
         console.log(`moveBlock: Moving ${block.length} beads by ${distance.toFixed(3)}`);
         
+        // CRITICAL: Before moving, check if this would cause any overlaps
+        const barIndex = block[0].barIndex;
+        const barBeads = this.barState[barIndex];
+        const otherBeads = barBeads.filter(item => !block.includes(item.bead));
+        
+        // Calculate where each bead in the block would end up
+        let wouldOverlap = false;
+        for (let bead of block) {
+            const newPosition = bead.position + distance;
+            
+            // Check against all other beads on the same bar
+            for (let otherBeadInfo of otherBeads) {
+                const distanceToOther = Math.abs(newPosition - otherBeadInfo.position);
+                if (distanceToOther < 0.9) { // Too close!
+                    console.log(`  OVERLAP PREVENTED: ${bead.id} would be ${distanceToOther.toFixed(3)} from ${otherBeadInfo.bead.id}`);
+                    wouldOverlap = true;
+                    break;
+                }
+            }
+            if (wouldOverlap) break;
+        }
+        
+        if (wouldOverlap) {
+            console.log(`  ❌ MOVEMENT BLOCKED: Would cause overlap`);
+            return; // Don't move at all if it would cause overlap
+        }
+        
+        // Safe to move - apply the movement
         block.forEach(bead => {
             const oldPosition = bead.position;
             bead.position += distance;
@@ -321,7 +349,7 @@ class SliderRenderer {
         
         this.updateBarState();
         
-        // Log all bead positions after movement
+        // Log all bead positions after movement for debugging
         console.log('All bead positions after movement:');
         this.beads.forEach(bead => {
             const beadRect = bead.element.getBoundingClientRect();
