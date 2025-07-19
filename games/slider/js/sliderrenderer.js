@@ -232,39 +232,10 @@ class SliderRenderer {
     }
     
     getConnectedBeads(bead) {
-        // Find beads that are directly connected (within 1.1 diameters)
-        // Initially, beads start at positions 0,1,2,3,4,5,6,7,8,9 so they are all connected
-        // But we only want to move individual beads unless they're truly touching
-        const connected = [bead];
-        const barBeads = this.barState[bead.barIndex];
-        const beadIndex = barBeads.findIndex(item => item.bead === bead);
-        
-        if (beadIndex === -1) return connected;
-        
-        const connectionThreshold = 1.05; // Only truly touching beads (just over 1 diameter)
-        
-        // Check left connections
-        for (let i = beadIndex - 1; i >= 0; i--) {
-            const distance = Math.abs(barBeads[i].position - barBeads[i + 1].position);
-            if (distance <= connectionThreshold) {
-                connected.unshift(barBeads[i].bead);
-            } else {
-                break;
-            }
-        }
-        
-        // Check right connections
-        for (let i = beadIndex + 1; i < barBeads.length; i++) {
-            const distance = Math.abs(barBeads[i].position - barBeads[i - 1].position);
-            if (distance <= connectionThreshold) {
-                connected.push(barBeads[i].bead);
-            } else {
-                break;
-            }
-        }
-        
-        console.log(`Connected beads for ${bead.id}:`, connected.map(b => b.id));
-        return connected;
+        // For simplified individual bead movement, only return the single bead
+        // This ensures each bead moves independently
+        console.log(`Moving only individual bead: ${bead.id}`);
+        return [bead];
     }
     
     canMoveBlock(block, direction, distance) {
