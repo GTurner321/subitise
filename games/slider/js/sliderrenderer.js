@@ -450,6 +450,22 @@ class SliderRenderer {
         });
     }
     
+    moveBlockDirectly(block, targetPosition) {
+        // Move beads directly to the target position 
+        console.log('moveBlockDirectly:', block.length, 'beads to position', targetPosition);
+        
+        // Move each bead in the block to consecutive positions
+        block.forEach((bead, index) => {
+            const newPosition = targetPosition + index;
+            // Clamp to reasonable bounds
+            const clampedPosition = Math.max(0, Math.min(14, newPosition));
+            
+            console.log(`Moving bead ${bead.id} to position ${clampedPosition.toFixed(1)}`);
+            bead.position = clampedPosition;
+            this.positionBead(bead);
+        });
+    }
+    
     applyMagneticSnapping(movingBlock) {
         // Apply magnetic snapping only to nearby beads within magnetic range
         const magneticRange = 0.7; // Magnetic attraction range
