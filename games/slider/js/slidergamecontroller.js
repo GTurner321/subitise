@@ -1,87 +1,4 @@
-handleDragStart(x, y, touchId = 'mouse') {
-        const bead = this.sliderRenderer.getBeadAtPosition(x, y);
-        if (!bead) return;
-        
-        console.log(`Drag started on ${bead.id} at position ${bead.position.toFixed(3)} (touch: ${touchId})`);
-        
-        // Create individual drag state for this touch
-        const dragState = {
-            isDragging: true,
-            draggedBead: bead,
-            startX: x,
-            startY: y,
-            startPosition: bead.position,
-            hasStartedMoving: false,
-            connectedBlock: [bead] // Start with just the single bead
-        };
-        
-        this.dragState.activeTouches.set(touchId, dragState);
-        
-        bead.isDragging = true;
-        bead.element.classList.add('dragging');
-    }
-    
-    handleDragMove(x, y, touchId = 'mouse') {
-        const dragState = this.dragState.activeTouches.get(touchId);
-        if (!dragState || !dragState.isDragging || !dragState.draggedBead) return;
-        
-        const deltaX = x - dragState.startX;
-        const dragThreshold = this.sliderRenderer.beadDiameter; // Changed from radius to diameter
-        
-        // Check if we've moved enough to start dragging
-        if (!dragState.hasStartedMoving && Math.abs(deltaX) < dragThreshold) {
-            return;
-        }
-        
-        if (!dragState.hasStartedMoving) {
-            dragState.hasStartedMoving = true;
-            console.log(`Started moving ${dragState.draggedBead.id} (touch: ${touchId})`);
-            // Update connected beads at the moment movement starts
-            dragState.connectedBlock = this.sliderRenderer.getConnectedBeads(dragState.draggedBead);
-        }
-        
-        // Calculate movement direction and distance from the threshold point
-        const direction = deltaX > 0 ? 1 : -1;
-        const movementBeyondThreshold = Math.abs(deltaX) - dragThreshold;
-        const positionDelta = (movementBeyondThreshold / this.sliderRenderer.beadDiameter) * direction;
-        
-        // Calculate target position based ONLY on horizontal drag component
-        const targetPosition = dragState.startPosition + positionDelta;
-        
-        console.log(`Touch ${touchId} - Drag delta: ${deltaX.toFixed(1)}, position delta: ${positionDelta.toFixed(3)}, target: ${targetPosition.toFixed(3)}`);
-        
-        // Check how far the block can actually move
-        const block = dragState.connectedBlock;
-        const requestedDistance = Math.abs(targetPosition - dragState.draggedBead.position);
-        const maxMovement = this.sliderRenderer.canMoveBlock(block, direction, requestedDistance);
-        
-        // Apply the movement if there's space - but limit to the actual drag amount
-        if (maxMovement > 0.001) {
-            const actualDelta = direction > 0 ? 
-                Math.min(maxMovement, positionDelta) : 
-                Math.max(-maxMovement, positionDelta);
-            
-            // Only move if the movement aligns with our drag
-            if ((direction > 0 && actualDelta > 0) || (direction < 0 && actualDelta < 0)) {
-                this.sliderRenderer.moveBlock(block, actualDelta);
-            }
-        }
-    }
-    
-    handleDragEnd(x, y, touchId = 'mouse') {
-        const dragState = this.dragState.activeTouches.get(touchId);
-        if (!dragState || !dragState.isDragging) return;
-        
-        const bead = dragState.draggedBead;
-        console.log(`Drag ended for ${bead.id} (touch: ${touchId})`);
-        
-        // Clean up dragging state
-        bead.isDragging = false;
-        bead.element.classList.remove('dragging');
-        
-        // Snap to integer positions if we moved
-        if (dragState.hasStartedMoving) {
-            const snclass SliderGameController {
+class SliderGameController {
     constructor() {
         this.sliderRenderer = new SliderRenderer();
         this.rainbow = new Rainbow();
@@ -94,7 +11,7 @@ handleDragStart(x, y, touchId = 'mouse') {
         this.buttonsDisabled = false;
         this.awaitingButtonPress = false;
         
-        // Simple drag state - support multiple touches for simultaneous bar interaction
+        // Multi-touch drag state - support for simultaneous bar interaction
         this.dragState = {
             activeTouches: new Map() // Map of touchId/mouseId to individual drag states
         };
@@ -107,6 +24,10 @@ handleDragStart(x, y, touchId = 'mouse') {
         this.numberButtons = document.querySelectorAll('.number-btn');
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
+        
+        // Mute button references
+        this.muteButton = null;
+        this.muteContainer = null;
         
         this.initializeEventListeners();
         this.initializeAudio();
@@ -159,7 +80,29 @@ handleDragStart(x, y, touchId = 'mouse') {
         
         this.updateMuteButtonIcon();
         
-        this.muteButton.addEventListener('click', () => this.toggleAudio());
+        // Add both click and touch event listeners
+        const toggleAudio = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleAudio();
+        };
+        
+        this.muteButton.addEventListener('click', toggleAudio);
+        this.muteButton.addEventListener('touchstart', toggleAudio);
+        muteContainer.addEventListener('click', toggleAudio);
+        muteContainer.addEventListener('touchstart', toggleAudio);
+        
+        // Hover effects for mouse
+        muteContainer.addEventListener('mouseenter', () => {
+            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            muteContainer.style.transform = 'scale(1.1)';
+        });
+        
+        muteContainer.addEventListener('mouseleave', () => {
+            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            muteContainer.style.transform = 'scale(1)';
+        });
+        
         muteContainer.appendChild(this.muteButton);
         document.body.appendChild(muteContainer);
         
@@ -274,6 +217,76 @@ handleDragStart(x, y, touchId = 'mouse') {
         });
     }
     
+    handleDragStart(x, y, touchId = 'mouse') {
+        const bead = this.sliderRenderer.getBeadAtPosition(x, y);
+        if (!bead) return;
+        
+        console.log(`Drag started on ${bead.id} at position ${bead.position.toFixed(3)} (touch: ${touchId})`);
+        
+        // Create individual drag state for this touch
+        const dragState = {
+            isDragging: true,
+            draggedBead: bead,
+            startX: x,
+            startY: y,
+            startPosition: bead.position,
+            hasStartedMoving: false,
+            connectedBlock: [bead] // Start with just the single bead
+        };
+        
+        this.dragState.activeTouches.set(touchId, dragState);
+        
+        bead.isDragging = true;
+        bead.element.classList.add('dragging');
+    }
+    
+    handleDragMove(x, y, touchId = 'mouse') {
+        const dragState = this.dragState.activeTouches.get(touchId);
+        if (!dragState || !dragState.isDragging || !dragState.draggedBead) return;
+        
+        const deltaX = x - dragState.startX;
+        const dragThreshold = this.sliderRenderer.beadDiameter; // Must drag one diameter to start
+        
+        // Check if we've moved enough to start dragging
+        if (!dragState.hasStartedMoving && Math.abs(deltaX) < dragThreshold) {
+            return;
+        }
+        
+        if (!dragState.hasStartedMoving) {
+            dragState.hasStartedMoving = true;
+            console.log(`Started moving ${dragState.draggedBead.id} (touch: ${touchId})`);
+            // Update connected beads at the moment movement starts
+            dragState.connectedBlock = this.sliderRenderer.getConnectedBeads(dragState.draggedBead);
+        }
+        
+        // Calculate movement direction and distance from the threshold point
+        const direction = deltaX > 0 ? 1 : -1;
+        const movementBeyondThreshold = Math.abs(deltaX) - dragThreshold;
+        const positionDelta = (movementBeyondThreshold / this.sliderRenderer.beadDiameter) * direction;
+        
+        // Calculate target position based ONLY on horizontal drag component
+        const targetPosition = dragState.startPosition + positionDelta;
+        
+        console.log(`Touch ${touchId} - Drag delta: ${deltaX.toFixed(1)}, position delta: ${positionDelta.toFixed(3)}, target: ${targetPosition.toFixed(3)}`);
+        
+        // Check how far the block can actually move
+        const block = dragState.connectedBlock;
+        const requestedDistance = Math.abs(targetPosition - dragState.draggedBead.position);
+        const maxMovement = this.sliderRenderer.canMoveBlock(block, direction, requestedDistance);
+        
+        // Apply the movement if there's space - but limit to the actual drag amount
+        if (maxMovement > 0.001) {
+            const actualDelta = direction > 0 ? 
+                Math.min(maxMovement, positionDelta) : 
+                Math.max(-maxMovement, positionDelta);
+            
+            // Only move if the movement aligns with our drag
+            if ((direction > 0 && actualDelta > 0) || (direction < 0 && actualDelta < 0)) {
+                this.sliderRenderer.moveBlock(block, actualDelta);
+            }
+        }
+    }
+    
     handleDragEnd(x, y, touchId = 'mouse') {
         const dragState = this.dragState.activeTouches.get(touchId);
         if (!dragState || !dragState.isDragging) return;
@@ -311,15 +324,26 @@ handleDragStart(x, y, touchId = 'mouse') {
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
         
+        console.log(`Game state check: ${rightSideCount} beads on right, expected: ${this.expectedBeadsOnRight}, has middle beads: ${hasMiddleBeads}`);
+        
         if (hasMiddleBeads) {
             this.speakText('Arrange beads onto one side or the other, don\'t leave any in the middle');
             this.awaitingButtonPress = false;
             return;
         }
         
+        // Check if we have the expected number of beads on the right side
         if (rightSideCount === this.expectedBeadsOnRight && !this.awaitingButtonPress) {
             this.awaitingButtonPress = true;
-            this.speakText(`How many beads do you have on the right side? Select the button below.`);
+            this.speakText(`Now select the button underneath for the number of beads on the right side.`);
+        }
+        // If we have more than expected, let them continue but don't prompt yet
+        else if (rightSideCount > this.expectedBeadsOnRight) {
+            this.awaitingButtonPress = false;
+        }
+        // If we have fewer than expected, they need to move more beads
+        else if (rightSideCount < this.expectedBeadsOnRight) {
+            this.awaitingButtonPress = false;
         }
     }
     
@@ -328,7 +352,10 @@ handleDragStart(x, y, touchId = 'mouse') {
         
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         
-        if (selectedNumber === rightSideCount && selectedNumber === this.expectedBeadsOnRight) {
+        console.log(`Button clicked: ${selectedNumber}, actual count: ${rightSideCount}, expected: ${this.expectedBeadsOnRight}`);
+        
+        // Check if the selected number matches the actual count on the right
+        if (selectedNumber === rightSideCount) {
             this.handleCorrectAnswer(buttonElement);
         } else {
             this.handleIncorrectAnswer(buttonElement);
@@ -354,16 +381,18 @@ handleDragStart(x, y, touchId = 'mouse') {
         }
         
         this.currentQuestion++;
-        this.expectedBeadsOnRight += 2;
+        this.expectedBeadsOnRight += 2; // Always increment by 2
         this.awaitingButtonPress = false;
         
-        // Check if game complete
-        if (this.rainbow.isComplete()) {
+        console.log(`Question ${this.currentQuestion}, now expecting ${this.expectedBeadsOnRight} beads on right`);
+        
+        // Check if game complete (all 20 beads on right side)
+        if (this.expectedBeadsOnRight > 20) {
             setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
             return;
         }
         
-        // Start next question
+        // Start next question - but don't reset bead positions
         setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY);
     }
     
@@ -381,10 +410,12 @@ handleDragStart(x, y, touchId = 'mouse') {
     startNewQuestion() {
         if (this.gameComplete) return;
         
+        console.log(`Starting question ${this.currentQuestion}, expecting ${this.expectedBeadsOnRight} beads on right`);
+        
         if (this.currentQuestion === 1) {
-            this.speakText('Slide 2 beads to the right side, then choose the number button for 2');
+            this.speakText('Slide 2 beads to the right side of the slider');
         } else {
-            this.speakText('Slide two more beads to the right side, then choose the button for the new total on the right');
+            this.speakText('Now slide 2 more beads to the right side of the slider');
         }
     }
     
@@ -410,10 +441,12 @@ handleDragStart(x, y, touchId = 'mouse') {
     
     completeGame() {
         this.gameComplete = true;
-        this.modal.classList.remove('hidden');
         
-        // Start bear celebration
+        // Start bear celebration first
         this.bear.startCelebration();
+        
+        // Show modal with transparent background
+        this.modal.classList.remove('hidden');
         
         // Give completion message
         if (this.audioEnabled) {
