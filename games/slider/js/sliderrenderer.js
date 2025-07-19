@@ -233,13 +233,15 @@ class SliderRenderer {
     
     getConnectedBeads(bead) {
         // Find beads that are directly connected (within 1.1 diameters)
+        // Initially, beads start at positions 0,1,2,3,4,5,6,7,8,9 so they are all connected
+        // But we only want to move individual beads unless they're truly touching
         const connected = [bead];
         const barBeads = this.barState[bead.barIndex];
         const beadIndex = barBeads.findIndex(item => item.bead === bead);
         
         if (beadIndex === -1) return connected;
         
-        const connectionThreshold = 1.1; // Within 1.1 diameters
+        const connectionThreshold = 1.05; // Only truly touching beads (just over 1 diameter)
         
         // Check left connections
         for (let i = beadIndex - 1; i >= 0; i--) {
@@ -268,27 +270,54 @@ class SliderRenderer {
     canMoveBlock(block, direction, distance) {
         // Check if a block can move in the given direction by the given distance
         const barIndex = block[0].barIndex;
-        const spaces = this.calculateSpaces(barIndex);
+        const barBeads = this.barState[barIndex];
         
-        // Find the space in the direction of movement
+        // Find the leftmost and rightmost positions of the block
         const blockPositions = block.map(b => b.position).sort((a, b) => a - b);
         const blockStart = blockPositions[0];
         const blockEnd = blockPositions[blockPositions.length - 1];
         
+        // Calculate bar bounds - beads can move from position 0 to a reasonable maximum
+        const barStartX = this.frameImageRect.width * 0.06;
+        const barEndX = this.frameImageRect.width * 0.92;
+        const usableLength = barEndX - barStartX - (2 * this.beadRadius);
+        const maxPosition = usableLength / this.beadDiameter;
+        
+        console.log(`Block bounds: ${blockStart.toFixed(2)} to ${blockEnd.toFixed(2)}, max position: ${maxPosition.toFixed(2)}`);
+        
         if (direction > 0) {
-            // Moving right - find space after the block
-            const spaceAfter = spaces.find(s => 
-                (s.type === 'between' && s.afterBead && block.includes(s.afterBead)) ||
-                (s.type === 'end' && s.afterBead && block.includes(s.afterBead))
-            );
-            return spaceAfter ? Math.min(distance, spaceAfter.size) : 0;
+            // Moving right - check space to the right of the block
+            let availableSpace = maxPosition - blockEnd;
+            
+            // Find the nearest bead to the right that's not in our block
+            for (let beadInfo of barBeads) {
+                if (!block.includes(beadInfo.bead) && beadInfo.position > blockEnd) {
+                    const spaceToNextBead = beadInfo.position - blockEnd - 1.0; // Need 1 diameter gap
+                    availableSpace = Math.min(availableSpace, spaceToNextBead);
+                    break; // Only check the nearest bead
+                }
+            }
+            
+            const allowedMovement = Math.max(0, Math.min(distance, availableSpace));
+            console.log(`Moving right: available space ${availableSpace.toFixed(3)}, allowed movement ${allowedMovement.toFixed(3)}`);
+            return allowedMovement;
         } else {
-            // Moving left - find space before the block
-            const spaceBefore = spaces.find(s =>
-                (s.type === 'between' && s.beforeBead && block.includes(s.beforeBead)) ||
-                (s.type === 'start' && s.beforeBead && block.includes(s.beforeBead))
-            );
-            return spaceBefore ? Math.min(distance, spaceBefore.size) : 0;
+            // Moving left - check space to the left of the block
+            let availableSpace = blockStart;
+            
+            // Find the nearest bead to the left that's not in our block
+            for (let i = barBeads.length - 1; i >= 0; i--) {
+                const beadInfo = barBeads[i];
+                if (!block.includes(beadInfo.bead) && beadInfo.position < blockStart) {
+                    const spaceToNextBead = blockStart - beadInfo.position - 1.0; // Need 1 diameter gap
+                    availableSpace = Math.min(availableSpace, spaceToNextBead);
+                    break; // Only check the nearest bead
+                }
+            }
+            
+            const allowedMovement = Math.max(0, Math.min(distance, availableSpace));
+            console.log(`Moving left: available space ${availableSpace.toFixed(3)}, allowed movement ${allowedMovement.toFixed(3)}`);
+            return allowedMovement;
         }
     }
     
