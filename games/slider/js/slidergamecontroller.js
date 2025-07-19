@@ -380,17 +380,24 @@ class SliderGameController {
             setTimeout(() => this.speakText(randomEncouragement), 400);
         }
         
+        // Check if this was the final answer (20 beads)
+        const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
+        
+        console.log(`Correct answer: selected button had ${buttonElement.dataset.number}, actual count: ${rightSideCount}, current question: ${this.currentQuestion}`);
+        
+        if (rightSideCount === 20 && parseInt(buttonElement.dataset.number) === 20) {
+            // Game is complete - all 20 beads are on right and 20 button was pressed
+            console.log('GAME COMPLETE - All 20 beads on right and 20 button pressed');
+            setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
+            return;
+        }
+        
+        // Otherwise, continue to next question
         this.currentQuestion++;
         this.expectedBeadsOnRight += 2; // Always increment by 2
         this.awaitingButtonPress = false;
         
         console.log(`Question ${this.currentQuestion}, now expecting ${this.expectedBeadsOnRight} beads on right`);
-        
-        // Check if game complete - only when we've reached 20 beads and pressed the 20 button
-        if (this.expectedBeadsOnRight > 20) {
-            setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
-            return;
-        }
         
         // Start next question - but don't reset bead positions
         setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY);
