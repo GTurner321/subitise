@@ -346,7 +346,7 @@ class SliderRenderer {
         
         console.log(`\nSnap check for ${bead.id}: position ${bead.position.toFixed(2)}, max position ${maxPosition.toFixed(2)}`);
         
-        // CRITICAL: First check if there are any beads that would block movement
+        // PRIORITY 1: Check for snapping to nearby beads FIRST (most important)
         
         // Check bead to the left - snap to its right side if within range
         if (currentIndex > 0) {
@@ -406,33 +406,70 @@ class SliderRenderer {
             }
         }
         
-        // Only snap to bar ends if no nearby beads AND it's safe to do so
+        // PRIORITY 2: Only snap to bar ends if NO nearby beads AND position is truly available
         if (!snapped) {
             // Check for snapping to bar start (left end)
             if (bead.position <= snapRadius) {
-                bead.position = 0;
-                this.positionBead(bead);
-                snapped = true;
-                console.log(`  ✓ SNAPPED ${bead.id} to bar start`);
-            }
-            
-            // Check for snapping to bar end (right end) - CRITICAL FOR GAME PROGRESSION
-            else if (bead.position >= maxPosition - snapRadius) {
-                // Make sure there are no beads to the right that would block this
-                let canSnapToEnd = true;
+                // Make sure no other bead is at position 0
+                let positionFree = true;
                 for (let beadInfo of barBeads) {
-                    if (beadInfo.bead !== bead && beadInfo.position > bead.position) {
-                        console.log(`  BLOCKED from bar end: Bead ${beadInfo.bead.id} in the way`);
-                        canSnapToEnd = false;
+                    if (beadInfo.bead !== bead && Math.abs(beadInfo.position - 0) < 0.5) {
+                        positionFree = false;
                         break;
                     }
                 }
                 
-                if (canSnapToEnd) {
-                    bead.position = maxPosition; // Snap exactly to the end
+                if (positionFree) {
+                    bead.position = 0;
                     this.positionBead(bead);
                     snapped = true;
-                    console.log(`  ✓ SNAPPED ${bead.id} to bar END at position ${bead.position.toFixed(2)}`);
+                    console.log(`  ✓ SNAPPED ${bead.id} to bar start`);
+                }
+            }
+            
+            // Check for snapping to bar end (right end) - CRITICAL: Check if end position is actually free
+            else if (bead.position >= maxPosition - snapRadius) {
+                console.log(`  Checking if bar end is available...`);
+                
+                // Find the rightmost available position by checking existing beads
+                let rightmostOccupiedPosition = -1;
+                for (let beadInfo of barBeads) {
+                    if (beadInfo.bead !== bead) {
+                        rightmostOccupiedPosition = Math.max(rightmostOccupiedPosition, beadInfo.position);
+                    }
+                }
+                
+                let targetEndPosition;
+                if (rightmostOccupiedPosition >= 0) {
+                    // There are other beads - position to the left of the rightmost one
+                    targetEndPosition = rightmostOccupiedPosition - 1.0;
+                    console.log(`  Other beads present, rightmost at ${rightmostOccupiedPosition.toFixed(2)}, targeting ${targetEndPosition.toFixed(2)}`);
+                    
+                    // But if we're very close to the actual end, and end is free, use the actual end
+                    let endIsFree = true;
+                    for (let beadInfo of barBeads) {
+                        if (beadInfo.bead !== bead && Math.abs(beadInfo.position - maxPosition) < 0.5) {
+                            endIsFree = false;
+                            break;
+                        }
+                    }
+                    
+                    if (endIsFree && bead.position >= maxPosition - 0.5) {
+                        targetEndPosition = maxPosition;
+                        console.log(`  End position is free and bead is very close, snapping to actual end`);
+                    }
+                } else {
+                    // No other beads - can use the actual end
+                    targetEndPosition = maxPosition;
+                    console.log(`  No other beads, snapping to actual end`);
+                }
+                
+                // Make sure target position is valid
+                if (targetEndPosition >= 0 && targetEndPosition <= maxPosition) {
+                    bead.position = targetEndPosition;
+                    this.positionBead(bead);
+                    snapped = true;
+                    console.log(`  ✓ SNAPPED ${bead.id} to position ${bead.position.toFixed(2)} (end area)`);
                 }
             }
         }
