@@ -328,9 +328,16 @@ class SliderGameController {
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
         
-        console.log(`Game state check: ${rightSideCount} beads on right, expected: ${this.expectedBeadsOnRight}, has middle beads: ${hasMiddleBeads}`);
+        console.log(`\n=== GAME STATE CHECK ===`);
+        console.log(`Right side count: ${rightSideCount}`);
+        console.log(`Expected beads on right: ${this.expectedBeadsOnRight}`);
+        console.log(`Has middle beads: ${hasMiddleBeads}`);
+        console.log(`Currently awaiting button press: ${this.awaitingButtonPress}`);
+        console.log(`Game complete: ${this.gameComplete}`);
+        console.log(`Current question: ${this.currentQuestion}`);
         
         if (hasMiddleBeads) {
+            console.log(`❌ BLOCKED: Beads in middle - cannot progress`);
             this.speakText('Arrange beads onto one side or the other, don\'t leave any in the middle');
             this.awaitingButtonPress = false;
             return;
@@ -338,21 +345,36 @@ class SliderGameController {
         
         // Check if we have the expected number of beads on the right side
         if (rightSideCount === this.expectedBeadsOnRight && !this.awaitingButtonPress) {
+            console.log(`✅ READY: ${rightSideCount} beads on right matches expected ${this.expectedBeadsOnRight}`);
             this.awaitingButtonPress = true;
             this.speakText(`Now select the button underneath for the number of beads on the right side.`);
         }
         // If we have more than expected, let them continue but don't prompt yet
         else if (rightSideCount > this.expectedBeadsOnRight) {
+            console.log(`⏳ WAITING: Have ${rightSideCount} beads, but expecting ${this.expectedBeadsOnRight} - too many`);
             this.awaitingButtonPress = false;
         }
         // If we have fewer than expected, they need to move more beads
         else if (rightSideCount < this.expectedBeadsOnRight) {
+            console.log(`⏳ WAITING: Have ${rightSideCount} beads, but expecting ${this.expectedBeadsOnRight} - need more`);
             this.awaitingButtonPress = false;
         }
+        else if (this.awaitingButtonPress) {
+            console.log(`✅ STILL READY: Already awaiting button press for ${this.expectedBeadsOnRight} beads`);
+        }
+        
+        console.log(`=== END GAME STATE CHECK ===\n`);
     }
     
     handleNumberClick(selectedNumber, buttonElement) {
-        if (!this.awaitingButtonPress) return;
+        console.log(`\n=== BUTTON CLICK ===`);
+        console.log(`Button clicked: ${selectedNumber}`);
+        console.log(`Awaiting button press: ${this.awaitingButtonPress}`);
+        
+        if (!this.awaitingButtonPress) {
+            console.log(`❌ IGNORED: Not currently awaiting button press`);
+            return;
+        }
         
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         
@@ -360,10 +382,14 @@ class SliderGameController {
         
         // Check if the selected number matches the actual count on the right
         if (selectedNumber === rightSideCount) {
+            console.log(`✅ CORRECT: Button ${selectedNumber} matches actual count ${rightSideCount}`);
             this.handleCorrectAnswer(buttonElement);
         } else {
+            console.log(`❌ INCORRECT: Button ${selectedNumber} does not match actual count ${rightSideCount}`);
             this.handleIncorrectAnswer(buttonElement);
         }
+        
+        console.log(`=== END BUTTON CLICK ===\n`);
     }
     
     handleCorrectAnswer(buttonElement) {
