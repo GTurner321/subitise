@@ -7,14 +7,145 @@ class SliderRenderer {
         this.containerRect = null;
         this.frameImageRect = null;
         
+        // Position tracking for both bars
+        this.beadPositions = {
+            0: [], // Top bar bead positions
+            1: []  // Bottom bar bead positions
+        };
+        
         this.updateContainerRect();
         this.initializeBeads();
+        this.updateBeadPositionTracking();
         
         // Update container rect on window resize
         window.addEventListener('resize', () => {
             this.updateContainerRect();
             this.repositionAllBeads();
         });
+    }
+    
+    updateBeadPositionTracking() {
+        // Update the position tracking arrays for both bars
+        for (let barIndex = 0; barIndex < 2; barIndex++) {
+            const barBeads = this.getBeadsOnBar(barIndex);
+            this.beadPositions[barIndex] = barBeads
+                .map(bead => ({
+                    id: bead.id,
+                    position: bead.position,
+                    bead: bead
+                }))
+                .sort((a, b) => a.position - b.position);
+        }
+        
+        console.log('Updated bead positions:');
+        console.log('Top bar:', this.beadPositions[0].map(b => `${b.id}(${b.position.toFixed(2)})`));
+        console.log('Bottom bar:', this.beadPositions[1].map(b => `${b.id}(${b.position.toFixed(2)})`));
+    }
+    
+    getConnectedBlock(startBead) {
+        // Find all beads connected to the start bead (within 1 diameter)
+        const barIndex = startBead.barIndex;
+        const barPositions = this.beadPositions[barIndex];
+        const beadDiameter = this.beadDiameter;
+        const connectionDistance = beadDiameter * 1.1; // Beads within 1.1 diameters are connected
+        
+        const connectedBeads = [startBead];
+        const startPosition = startBead.position;
+        
+        // Find connected beads to the left
+        for (let i = 0; i < barPositions.length; i++) {
+            const beadInfo = barPositions[i];
+            if (beadInfo.bead === startBead) continue;
+            
+            const distance = Math.abs(beadInfo.position - startPosition);
+            if (distance <= connectionDistance) {
+                connectedBeads.push(beadInfo.bead);
+            }
+        }
+        
+        // Sort the connected block by position
+        connectedBeads.sort((a, b) => a.position - b.position);
+        
+        console.log('Connected block:', connectedBeads.map(b => `${b.id}(${b.position.toFixed(2)})`));
+        return connectedBeads;
+    }
+    
+    calculateAvailableSpace(block, direction) {
+        // Calculate available space for the block to move in the given direction
+        const barIndex = block[0].barIndex;
+        const barPositions = this.beadPositions[barIndex];
+        const beadDiameter = this.beadDiameter;
+        
+        // Get block boundaries
+        const blockPositions = block.map(b => b.position).sort((a, b) => a - b);
+        const blockStart = blockPositions[0];
+        const blockEnd = blockPositions[blockPositions.length - 1];
+        
+        console.log(`Calculating space for block ${blockStart.toFixed(2)}-${blockEnd.toFixed(2)}, direction: ${direction > 0 ? 'right' : 'left'}`);
+        
+        // Calculate bar bounds
+        const barStartX = this.frameImageRect.x + (this.frameImageRect.width * 0.06);
+        const barEndX = this.frameImageRect.x + (this.frameImageRect.width * 0.92);
+        const usableBarLength = barEndX - barStartX - (2 * this.beadRadius);
+        const maxPosition = usableBarLength / beadDiameter;
+        
+        let availableSpace = 0;
+        
+        if (direction > 0) {
+            // Moving right - find nearest bead to the right
+            let nearestRightBead = null;
+            let nearestDistance = Infinity;
+            
+            for (let beadInfo of barPositions) {
+                if (!block.includes(beadInfo.bead) && beadInfo.position > blockEnd) {
+                    const distance = beadInfo.position - blockEnd;
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestRightBead = beadInfo;
+                    }
+                }
+            }
+            
+            if (nearestRightBead) {
+                // Space = distance between centers - diameter (to account for both bead radii)
+                availableSpace = nearestRightBead.position - blockEnd - beadDiameter;
+                console.log(`Nearest right bead: ${nearestRightBead.id} at ${nearestRightBead.position.toFixed(2)}, space: ${availableSpace.toFixed(2)}`);
+            } else {
+                // No bead to the right - space to bar end
+                availableSpace = maxPosition - blockEnd;
+                console.log(`No right bead - space to bar end: ${availableSpace.toFixed(2)}`);
+            }
+        } else {
+            // Moving left - find nearest bead to the left
+            let nearestLeftBead = null;
+            let nearestDistance = Infinity;
+            
+            for (let beadInfo of barPositions) {
+                if (!block.includes(beadInfo.bead) && beadInfo.position < blockStart) {
+                    const distance = blockStart - beadInfo.position;
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestLeftBead = beadInfo;
+                    }
+                }
+            }
+            
+            if (nearestLeftBead) {
+                // Space = distance between centers - diameter
+                availableSpace = blockStart - nearestLeftBead.position - beadDiameter;
+                console.log(`Nearest left bead: ${nearestLeftBead.id} at ${nearestLeftBead.position.toFixed(2)}, space: ${availableSpace.toFixed(2)}`);
+            } else {
+                // No bead to the left - space to bar start
+                availableSpace = blockStart - 0;
+                console.log(`No left bead - space to bar start: ${availableSpace.toFixed(2)}`);
+            }
+        }
+        
+        // Ensure space is not negative
+        availableSpace = Math.max(0, availableSpace);
+        console.log(`Final available space: ${availableSpace.toFixed(2)}`);
+        
+        return availableSpace;
     }
     
     updateContainerRect() {
@@ -255,12 +386,16 @@ class SliderRenderer {
     }
     
     moveBlockWithCollisions(block, targetPosition) {
-        // Move the block while checking for collisions
-        // Rule: beads cannot pass through other beads
-        
+        // Move the block while checking for collisions (continuous movement)
         const barIndex = block[0].barIndex;
         const barBeads = this.getBeadsOnBar(barIndex);
         const otherBeads = barBeads.filter(b => !block.includes(b));
+        
+        // Calculate bar bounds
+        const barStartX = this.frameImageRect.x + (this.frameImageRect.width * 0.06);
+        const barEndX = this.frameImageRect.x + (this.frameImageRect.width * 0.92);
+        const usableBarLength = barEndX - barStartX - (2 * this.beadRadius);
+        const maxPosition = usableBarLength / this.beadDiameter;
         
         // Calculate where the block wants to go
         const blockStartPos = Math.min(...block.map(b => b.position));
@@ -270,7 +405,15 @@ class SliderRenderer {
         const newBlockStartPos = targetPosition;
         const newBlockEndPos = targetPosition + blockLength - 1;
         
-        console.log(`Trying to move block from ${blockStartPos.toFixed(1)}-${blockEndPos.toFixed(1)} to ${newBlockStartPos.toFixed(1)}-${newBlockEndPos.toFixed(1)}`);
+        console.log(`Trying to move block from ${blockStartPos.toFixed(2)}-${blockEndPos.toFixed(2)} to ${newBlockStartPos.toFixed(2)}-${newBlockEndPos.toFixed(2)}`);
+        
+        // Check bounds first
+        if (newBlockStartPos < 0 || newBlockEndPos > maxPosition) {
+            console.log('Block would go out of bounds - clamping');
+            const clampedStart = Math.max(0, Math.min(maxPosition - blockLength + 1, targetPosition));
+            this.moveBlockDirectly(block, clampedStart);
+            return;
+        }
         
         // Check for collisions with other beads
         let canMove = true;
@@ -284,7 +427,7 @@ class SliderRenderer {
             if ((newBlockStartPos - collisionBuffer) <= otherPos && otherPos <= (newBlockEndPos + collisionBuffer)) {
                 canMove = false;
                 collisionBeads.push(otherBead);
-                console.log(`Collision detected with bead ${otherBead.id} at position ${otherPos.toFixed(1)}`);
+                console.log(`Collision detected with bead ${otherBead.id} at position ${otherPos.toFixed(2)}`);
             }
         }
         
@@ -293,63 +436,28 @@ class SliderRenderer {
             console.log('No collisions - moving freely');
             this.moveBlockDirectly(block, targetPosition);
         } else {
-            // Collision detected - check if we can push the colliding beads
+            // Collision detected - find maximum possible movement
             const direction = targetPosition > blockStartPos ? 1 : -1;
-            console.log('Collision detected - checking if we can push beads');
+            console.log('Collision detected - finding maximum movement');
             
-            // Calculate how much space we need for the expanded block
-            let expandedBlock = [...block];
-            for (let collisionBead of collisionBeads) {
-                if (!expandedBlock.includes(collisionBead)) {
-                    expandedBlock.push(collisionBead);
-                }
-            }
-            
-            // Sort expanded block by position
-            expandedBlock.sort((a, b) => a.position - b.position);
-            
-            // Check if the expanded block can move without further collisions
-            const expandedLength = expandedBlock.length;
-            let expandedTargetPos = targetPosition;
-            
-            // Adjust target position based on which bead was originally dragged
-            const originalBeadIndex = block.indexOf(block[0]);
-            const expandedOriginalIndex = expandedBlock.indexOf(block[0]);
-            expandedTargetPos = targetPosition - (expandedOriginalIndex - originalBeadIndex);
-            
-            const expandedNewStartPos = expandedTargetPos;
-            const expandedNewEndPos = expandedTargetPos + expandedLength - 1;
-            
-            console.log(`Trying to move expanded block (${expandedLength} beads) to ${expandedNewStartPos.toFixed(1)}-${expandedNewEndPos.toFixed(1)}`);
-            
-            // Check bounds first
-            if (expandedNewStartPos < 0 || expandedNewEndPos > 14) {
-                console.log('Expanded block would go out of bounds');
-                return; // Cannot move
-            }
-            
-            // Check if expanded block would collide with remaining beads
-            const remainingBeads = barBeads.filter(b => !expandedBlock.includes(b));
-            let expandedCanMove = true;
-            
-            for (let remainingBead of remainingBeads) {
-                if ((expandedNewStartPos - collisionBuffer) <= remainingBead.position && 
-                    remainingBead.position <= (expandedNewEndPos + collisionBuffer)) {
-                    expandedCanMove = false;
-                    console.log(`Expanded block would collide with ${remainingBead.id}`);
-                    break;
-                }
-            }
-            
-            if (expandedCanMove) {
-                console.log('Moving expanded block');
-                this.moveBlockDirectly(expandedBlock, expandedTargetPos);
-            } else {
-                console.log('Cannot move - blocked by other beads or bounds');
-                // Find the maximum position we can move to
-                this.findMaximumMovement(block, targetPosition, direction, otherBeads);
-            }
+            this.findMaximumMovement(block, targetPosition, direction, otherBeads);
         }
+    }
+    
+    moveBlockDirectly(block, targetPosition) {
+        // Move beads directly to the target position 
+        console.log('moveBlockDirectly:', block.length, 'beads to position', targetPosition);
+        
+        // Move each bead in the block to consecutive positions
+        block.forEach((bead, index) => {
+            const newPosition = targetPosition + index;
+            // Clamp to new bounds (0 to 19 positions, covering 6% to 92% of bar)
+            const clampedPosition = Math.max(0, Math.min(19, newPosition));
+            
+            console.log(`Moving bead ${bead.id} to position ${clampedPosition.toFixed(1)}`);
+            bead.position = clampedPosition;
+            this.positionBead(bead);
+        });
     }
     
     findMaximumMovement(block, targetPosition, direction, otherBeads) {
@@ -360,6 +468,7 @@ class SliderRenderer {
         
         let maxPosition = targetPosition;
         const collisionBuffer = 0.9;
+        const maxBarPosition = 19; // Updated to new maximum position
         
         if (direction > 0) {
             // Moving right - find the nearest bead on the right
@@ -380,8 +489,8 @@ class SliderRenderer {
                 maxPosition = Math.min(targetPosition, nearestRightBead.position - blockLength - collisionBuffer + blockStartPos);
             }
             
-            // Also check bounds
-            maxPosition = Math.min(maxPosition, 14 - blockLength + 1);
+            // Also check bounds (position 19 is at 92% of bar)
+            maxPosition = Math.min(maxPosition, maxBarPosition - blockLength + 1);
         } else {
             // Moving left - find the nearest bead on the left
             let nearestLeftBead = null;
@@ -604,12 +713,12 @@ class SliderRenderer {
                         nextBead.position = minSpacing;
                     }
                     
-                    if (newNextPos <= 14) {
+                    if (newNextPos <= 19) {
                         nextBead.position = newNextPos;
                     } else {
                         // If next bead can't move right, push current bead further left
-                        nextBead.position = 14;
-                        currentBead.position = 14 - minSpacing;
+                        nextBead.position = 19;
+                        currentBead.position = 19 - minSpacing;
                     }
                 }
             }
