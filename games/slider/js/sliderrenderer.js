@@ -256,46 +256,55 @@ class SliderRenderer {
         const blockEnd = blockPositions[blockPositions.length - 1];
         
         // Calculate bar bounds - beads can move from position 0 to maximum position
-        // Bar goes from 7% to 92% of frame width
+        // Bar goes from 7% to 92% of frame width, so we have 85% usable width
         const barStartX = this.frameImageRect.width * 0.07;
         const barEndX = this.frameImageRect.width * 0.92;
         const usableLength = barEndX - barStartX - (2 * this.beadRadius);
         const maxPosition = usableLength / this.beadDiameter;
         
-        console.log(`Block bounds: ${blockStart.toFixed(2)} to ${blockEnd.toFixed(2)}, max position: ${maxPosition.toFixed(2)}`);
+        console.log(`Block bounds: ${blockStart.toFixed(2)} to ${blockEnd.toFixed(2)}, max position: ${maxPosition.toFixed(2)}, usable length: ${usableLength.toFixed(1)}, bead diameter: ${this.beadDiameter.toFixed(1)}`);
         
         if (direction > 0) {
             // Moving right - check space to the right of the block
             let availableSpace = maxPosition - blockEnd;
             
-            // Find the nearest bead to the right that's not in our block
+            // Find ALL beads to the right that are not in our block, get the nearest one
+            let nearestObstacle = maxPosition;
             for (let beadInfo of barBeads) {
                 if (!block.includes(beadInfo.bead) && beadInfo.position > blockEnd) {
-                    const spaceToNextBead = beadInfo.position - blockEnd - 1.0; // Need 1 diameter gap
-                    availableSpace = Math.min(availableSpace, spaceToNextBead);
-                    break; // Only check the nearest bead
+                    // This bead is to our right - it's an obstacle
+                    nearestObstacle = Math.min(nearestObstacle, beadInfo.position);
                 }
             }
             
+            // Available space is from our end to the nearest obstacle, minus 1 diameter for safety
+            if (nearestObstacle < maxPosition) {
+                availableSpace = nearestObstacle - blockEnd - 1.0; // Must leave 1 diameter gap
+            }
+            
             const allowedMovement = Math.max(0, Math.min(distance, availableSpace));
-            console.log(`Moving right: available space ${availableSpace.toFixed(3)}, allowed movement ${allowedMovement.toFixed(3)}`);
+            console.log(`Moving right: nearest obstacle at ${nearestObstacle.toFixed(2)}, available space ${availableSpace.toFixed(3)}, allowed movement ${allowedMovement.toFixed(3)}`);
             return allowedMovement;
         } else {
             // Moving left - check space to the left of the block
             let availableSpace = blockStart;
             
-            // Find the nearest bead to the left that's not in our block
-            for (let i = barBeads.length - 1; i >= 0; i--) {
-                const beadInfo = barBeads[i];
+            // Find ALL beads to the left that are not in our block, get the nearest one
+            let nearestObstacle = 0;
+            for (let beadInfo of barBeads) {
                 if (!block.includes(beadInfo.bead) && beadInfo.position < blockStart) {
-                    const spaceToNextBead = blockStart - beadInfo.position - 1.0; // Need 1 diameter gap
-                    availableSpace = Math.min(availableSpace, spaceToNextBead);
-                    break; // Only check the nearest bead
+                    // This bead is to our left - it's an obstacle
+                    nearestObstacle = Math.max(nearestObstacle, beadInfo.position);
                 }
             }
             
+            // Available space is from the nearest obstacle to our start, minus 1 diameter for safety
+            if (nearestObstacle > 0) {
+                availableSpace = blockStart - nearestObstacle - 1.0; // Must leave 1 diameter gap
+            }
+            
             const allowedMovement = Math.max(0, Math.min(distance, availableSpace));
-            console.log(`Moving left: available space ${availableSpace.toFixed(3)}, allowed movement ${allowedMovement.toFixed(3)}`);
+            console.log(`Moving left: nearest obstacle at ${nearestObstacle.toFixed(2)}, available space ${availableSpace.toFixed(3)}, allowed movement ${allowedMovement.toFixed(3)}`);
             return allowedMovement;
         }
     }
@@ -327,43 +336,61 @@ class SliderRenderer {
         const usableLength = barEndX - barStartX - (2 * this.beadRadius);
         const maxPosition = usableLength / this.beadDiameter;
         
-        // Check for snapping to bar start (left end)
-        if (bead.position <= snapRadius) {
-            bead.position = 0;
-            this.positionBead(bead);
-            snapped = true;
-            console.log(`Snapped ${bead.id} to bar start`);
-        }
+        console.log(`Snap check for ${bead.id}: position ${bead.position.toFixed(2)}, max position ${maxPosition.toFixed(2)}`);
         
-        // Check for snapping to bar end (right end)
-        else if (bead.position >= maxPosition - snapRadius) {
-            bead.position = maxPosition;
-            this.positionBead(bead);
-            snapped = true;
-            console.log(`Snapped ${bead.id} to bar end`);
-        }
+        // First priority: Check for snapping to nearby beads (they take precedence over bar ends)
         
-        // Check bead to the left
-        else if (currentIndex > 0) {
+        // Check bead to the left - snap to its right side
+        if (currentIndex > 0) {
             const leftBead = barBeads[currentIndex - 1];
             const distance = bead.position - leftBead.position;
             if (distance > 1.0 && distance <= 1.0 + snapRadius) {
                 bead.position = leftBead.position + 1.0;
                 this.positionBead(bead);
                 snapped = true;
-                console.log(`Snapped ${bead.id} to left of ${leftBead.bead.id}`);
+                console.log(`Snapped ${bead.id} to right of ${leftBead.bead.id} at position ${bead.position.toFixed(2)}`);
             }
         }
         
-        // Check bead to the right
-        else if (currentIndex < barBeads.length - 1) {
+        // Check bead to the right - snap to its left side
+        if (!snapped && currentIndex < barBeads.length - 1) {
             const rightBead = barBeads[currentIndex + 1];
             const distance = rightBead.position - bead.position;
             if (distance > 1.0 && distance <= 1.0 + snapRadius) {
                 bead.position = rightBead.position - 1.0;
                 this.positionBead(bead);
                 snapped = true;
-                console.log(`Snapped ${bead.id} to right of ${rightBead.bead.id}`);
+                console.log(`Snapped ${bead.id} to left of ${rightBead.bead.id} at position ${bead.position.toFixed(2)}`);
+            }
+        }
+        
+        // Only snap to bar ends if no nearby beads to snap to
+        if (!snapped) {
+            // Check for snapping to bar start (left end)
+            if (bead.position <= snapRadius) {
+                bead.position = 0;
+                this.positionBead(bead);
+                snapped = true;
+                console.log(`Snapped ${bead.id} to bar start`);
+            }
+            
+            // Check for snapping to bar end (right end) - only if no other beads are in the way
+            else if (bead.position >= maxPosition - snapRadius) {
+                // Make sure there are no beads to the right that would block this
+                let canSnapToEnd = true;
+                for (let beadInfo of barBeads) {
+                    if (beadInfo.bead !== bead && beadInfo.position > bead.position) {
+                        canSnapToEnd = false;
+                        break;
+                    }
+                }
+                
+                if (canSnapToEnd) {
+                    bead.position = Math.min(maxPosition, bead.position);
+                    this.positionBead(bead);
+                    snapped = true;
+                    console.log(`Snapped ${bead.id} to bar end at position ${bead.position.toFixed(2)}`);
+                }
             }
         }
         
@@ -386,14 +413,18 @@ class SliderRenderer {
     
     countBeadsOnRightSide() {
         let count = 0;
-        const threshold = CONFIG.BEADS_PER_BAR / 2;
+        const threshold = CONFIG.BEADS_PER_BAR / 2; // Position 5 is the middle
+        
+        console.log(`Counting beads on right side (threshold: ${threshold}):`);
         
         this.beads.forEach(bead => {
+            console.log(`Bead ${bead.id}: position ${bead.position.toFixed(2)} - ${bead.position >= threshold ? 'RIGHT' : 'LEFT'}`);
             if (bead.position >= threshold) {
                 count++;
             }
         });
         
+        console.log(`Total beads on right side: ${count}`);
         return count;
     }
     
