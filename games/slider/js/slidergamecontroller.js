@@ -235,7 +235,7 @@ class SliderGameController {
             return;
         }
         
-        console.log('Bead found:', bead.id, 'at position:', bead.position);
+        console.log('Bead found:', bead.id, 'at position:', bead.position.toFixed(3));
         
         // Start new drag or add to existing multi-touch
         const touchData = {
@@ -248,7 +248,7 @@ class SliderGameController {
             startPosition: bead.position,
             hasStartedMoving: false,
             dragThreshold: this.sliderRenderer.beadRadius, // Must drag a full radius to start moving
-            initialBlock: null // Will store the initial block when movement starts
+            connectedBlock: null // Will store the connected block when movement starts
         };
         
         bead.isDragging = true;
@@ -257,7 +257,7 @@ class SliderGameController {
         this.dragState.activeTouches.push(touchData);
         this.dragState.isDragging = true;
         
-        console.log('Drag started for bead:', bead.id, 'threshold:', touchData.dragThreshold);
+        console.log('Drag started for bead:', bead.id, 'threshold:', touchData.dragThreshold.toFixed(2));
     }
     
     handlePointerMove(x, y, pointerId) {
@@ -281,30 +281,28 @@ class SliderGameController {
             touch.hasStartedMoving = true;
             console.log('Started moving bead:', touch.bead.id);
             
-            // Store the initial position and determine initial block
+            // Store the initial position and determine connected block
             touch.initialPosition = touch.bead.position;
-            const direction = deltaX > 0 ? 1 : -1;
-            touch.initialBlock = this.sliderRenderer.getInitialMovingBlock(touch.bead, direction);
-            console.log('Initial block size:', touch.initialBlock.length);
+            touch.connectedBlock = this.sliderRenderer.getConnectedBlock(touch.bead);
+            console.log('Connected block size:', touch.connectedBlock.length);
+            
+            // Update position tracking to ensure we have current state
+            this.sliderRenderer.updateBeadPositionTracking();
         }
         
         // Calculate new position based on ACTUAL drag distance from start of movement
-        const frameImageRect = this.sliderRenderer.frameImageRect;
-        const availableWidth = frameImageRect.width * 0.86; // 86% of frame width available
-        
-        // Convert pixel movement to position movement (1:1 ratio with available positions)
-        const pixelToPositionRatio = 15 / availableWidth; // 15 positions across available width
+        const beadDiameter = this.sliderRenderer.beadDiameter;
         const movementFromThreshold = deltaX - (touch.dragThreshold * Math.sign(deltaX));
-        const positionDelta = movementFromThreshold * pixelToPositionRatio;
+        const positionDelta = movementFromThreshold / beadDiameter; // Direct 1:1 conversion
         
-        console.log('Position delta (after threshold):', positionDelta);
+        console.log('Position delta (continuous):', positionDelta.toFixed(3));
         
         // Calculate target position based on initial position + drag delta
         const targetPosition = touch.initialPosition + positionDelta;
-        console.log('Target position:', targetPosition, 'from initial:', touch.initialPosition);
+        console.log('Target position:', targetPosition.toFixed(3), 'from initial:', touch.initialPosition.toFixed(3));
         
-        // Move the block with collision checking
-        this.sliderRenderer.moveBlockWithCollisions(touch.initialBlock, targetPosition);
+        // Move the connected block with proper space calculation
+        this.sliderRenderer.moveBlockWithCollisions(touch.connectedBlock, targetPosition);
         
         touch.lastX = x;
         touch.lastY = y;
