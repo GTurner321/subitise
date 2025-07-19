@@ -281,14 +281,19 @@ class SliderGameController {
             touch.hasStartedMoving = true;
             console.log('Started moving bead:', touch.bead.id);
             
-            // Store the initial position and determine connected block
+            // Store the initial position and movement direction
             touch.initialPosition = touch.bead.position;
-            touch.connectedBlock = this.sliderRenderer.getConnectedBlock(touch.bead);
-            console.log('Connected block size:', touch.connectedBlock.length);
             
             // Update position tracking to ensure we have current state
             this.sliderRenderer.updateBeadPositionTracking();
         }
+        
+        // Determine movement direction based on current drag
+        const direction = deltaX > 0 ? 1 : -1;
+        
+        // Get the moving block based on current direction
+        touch.movingBlock = this.sliderRenderer.getMovingBlock(touch.bead, direction);
+        console.log('Moving block size:', touch.movingBlock.length, 'direction:', direction > 0 ? 'right' : 'left');
         
         // Calculate new position based on ACTUAL drag distance from start of movement
         const beadDiameter = this.sliderRenderer.beadDiameter;
@@ -301,8 +306,8 @@ class SliderGameController {
         const targetPosition = touch.initialPosition + positionDelta;
         console.log('Target position:', targetPosition.toFixed(3), 'from initial:', touch.initialPosition.toFixed(3));
         
-        // Move the connected block with proper space calculation
-        this.sliderRenderer.moveBlockWithCollisions(touch.connectedBlock, targetPosition);
+        // Move the moving block with proper space calculation
+        this.sliderRenderer.moveBlockWithCollisions(touch.movingBlock, targetPosition);
         
         touch.lastX = x;
         touch.lastY = y;
