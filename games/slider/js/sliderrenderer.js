@@ -62,8 +62,8 @@ class SliderRenderer {
         if (!this.frameImageRect) return;
         
         const barHeight = this.frameImageRect.height * 0.05;
-        const barWidth = this.frameImageRect.width * 0.86;
-        const barLeft = this.frameImageRect.x + (this.frameImageRect.width * 0.07); // Changed from 0.06 to 0.07
+        const barWidth = this.frameImageRect.width * 0.85; // Now 85% width (7% to 92% = 85%)
+        const barLeft = this.frameImageRect.x + (this.frameImageRect.width * 0.07); // Start at 7%
         
         // Top bar at 34% of frame height - positioned so bead centers align with bar center
         const topBarTop = this.frameImageRect.y + (this.frameImageRect.height * 0.34) - (barHeight / 2);
@@ -255,14 +255,13 @@ class SliderRenderer {
         const blockStart = blockPositions[0];
         const blockEnd = blockPositions[blockPositions.length - 1];
         
-        // Calculate bar bounds - beads can move from position 0 to maximum position
-        // Bar goes from 7% to 92% of frame width, so we have 85% usable width
+        // Calculate bar bounds - Bar goes from 7% to 92% (85% total width)
         const barStartX = this.frameImageRect.width * 0.07;
-        const barEndX = this.frameImageRect.width * 0.92;
+        const barEndX = this.frameImageRect.width * 0.92; // End stays at 92%
         const usableLength = barEndX - barStartX - (2 * this.beadRadius);
         const maxPosition = usableLength / this.beadDiameter;
         
-        console.log(`Block bounds: ${blockStart.toFixed(2)} to ${blockEnd.toFixed(2)}, max position: ${maxPosition.toFixed(2)}, usable length: ${usableLength.toFixed(1)}, bead diameter: ${this.beadDiameter.toFixed(1)}`);
+        console.log(`Block bounds: ${blockStart.toFixed(2)} to ${blockEnd.toFixed(2)}, max position: ${maxPosition.toFixed(2)}, bar: 7%-92% (85% width), usable length: ${usableLength.toFixed(1)}, bead diameter: ${this.beadDiameter.toFixed(1)}`);
         
         if (direction > 0) {
             // Moving right - check space to the right of the block
@@ -339,13 +338,13 @@ class SliderRenderer {
         
         let snapped = false;
         
-        // Calculate bar bounds for end snapping
+        // Calculate bar bounds for end snapping - Bar goes from 7% to 92% (85% width)
         const barStartX = this.frameImageRect.width * 0.07;
-        const barEndX = this.frameImageRect.width * 0.92;
+        const barEndX = this.frameImageRect.width * 0.92; // End stays at 92%
         const usableLength = barEndX - barStartX - (2 * this.beadRadius);
         const maxPosition = usableLength / this.beadDiameter;
         
-        console.log(`Snap check for ${bead.id}: position ${bead.position.toFixed(2)}, max position ${maxPosition.toFixed(2)}`);
+        console.log(`Snap check for ${bead.id}: position ${bead.position.toFixed(2)}, max position ${maxPosition.toFixed(2)}, bar bounds: 7%-92% (85% width)`);
         
         // CRITICAL: First check if there are any beads that would block movement
         // Don't allow snapping if it would cause overlap
@@ -457,20 +456,52 @@ class SliderRenderer {
     }
     
     countBeadsOnRightSide() {
-        let count = 0;
-        const threshold = CONFIG.BEADS_PER_BAR / 2; // Position 5 is the middle
+        // Count beads that are properly arranged from the right end with no gaps
+        // Only beads in a continuous block starting from the bar end count as "on the right"
         
-        console.log(`Counting beads on right side (threshold: ${threshold}):`);
+        // Calculate the actual bar end position
+        const barStartX = this.frameImageRect.width * 0.07;
+        const barEndX = this.frameImageRect.width * 0.92;
+        const usableLength = barEndX - barStartX - (2 * this.beadRadius);
+        const maxPosition = usableLength / this.beadDiameter;
         
-        this.beads.forEach(bead => {
-            console.log(`Bead ${bead.id}: position ${bead.position.toFixed(2)} - ${bead.position >= threshold ? 'RIGHT' : 'LEFT'}`);
-            if (bead.position >= threshold) {
-                count++;
+        console.log(`Counting right-side beads. Bar end at position: ${maxPosition.toFixed(2)}`);
+        
+        let totalRightSideBeads = 0;
+        
+        // Check each bar separately
+        for (let barIndex = 0; barIndex < 2; barIndex++) {
+            const barBeads = this.beads.filter(bead => bead.barIndex === barIndex);
+            const sortedBeads = barBeads.sort((a, b) => b.position - a.position); // Sort right to left
+            
+            console.log(`Bar ${barIndex} beads (right to left):`, sortedBeads.map(b => `${b.id}(${b.position.toFixed(2)})`));
+            
+            let rightSideBeadsOnThisBar = 0;
+            
+            // Start from the rightmost bead and count continuous beads
+            for (let i = 0; i < sortedBeads.length; i++) {
+                const bead = sortedBeads[i];
+                const expectedPosition = maxPosition - i; // Expected position for i-th bead from right
+                
+                console.log(`  Checking ${bead.id}: position ${bead.position.toFixed(2)}, expected ${expectedPosition.toFixed(2)}`);
+                
+                // Check if this bead is in the correct position (within 0.2 tolerance for floating point)
+                if (Math.abs(bead.position - expectedPosition) <= 0.2) {
+                    rightSideBeadsOnThisBar++;
+                    console.log(`    ✓ Counts as right-side bead (${rightSideBeadsOnThisBar} on this bar)`);
+                } else {
+                    // Gap found - stop counting
+                    console.log(`    ✗ Gap found - stopping count at ${rightSideBeadsOnThisBar} beads`);
+                    break;
+                }
             }
-        });
+            
+            totalRightSideBeads += rightSideBeadsOnThisBar;
+            console.log(`Bar ${barIndex} contributes ${rightSideBeadsOnThisBar} right-side beads`);
+        }
         
-        console.log(`Total beads on right side: ${count}`);
-        return count;
+        console.log(`Total beads properly arranged on right side: ${totalRightSideBeads}`);
+        return totalRightSideBeads;
     }
     
     hasBeadsInMiddle() {
