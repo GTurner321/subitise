@@ -340,14 +340,13 @@ class SliderRenderer {
         
         // Calculate bar bounds for end snapping - Bar goes from 7% to 92% (85% width)
         const barStartX = this.frameImageRect.width * 0.07;
-        const barEndX = this.frameImageRect.width * 0.92; // End stays at 92%
+        const barEndX = this.frameImageRect.width * 0.92;
         const usableLength = barEndX - barStartX - (2 * this.beadRadius);
         const maxPosition = usableLength / this.beadDiameter;
         
-        console.log(`Snap check for ${bead.id}: position ${bead.position.toFixed(2)}, max position ${maxPosition.toFixed(2)}, bar bounds: 7%-92% (85% width)`);
+        console.log(`\nSnap check for ${bead.id}: position ${bead.position.toFixed(2)}, max position ${maxPosition.toFixed(2)}`);
         
         // CRITICAL: First check if there are any beads that would block movement
-        // Don't allow snapping if it would cause overlap
         
         // Check bead to the left - snap to its right side if within range
         if (currentIndex > 0) {
@@ -355,16 +354,16 @@ class SliderRenderer {
             const distance = bead.position - leftBead.position;
             console.log(`  Distance to left bead ${leftBead.bead.id}: ${distance.toFixed(3)}`);
             
-            if (distance > 1.0 && distance <= 1.0 + snapRadius) {
+            if (distance > 0.8 && distance <= 1.0 + snapRadius) {
                 const targetPosition = leftBead.position + 1.0;
                 console.log(`  Would snap to position ${targetPosition.toFixed(3)} (right of ${leftBead.bead.id})`);
                 
-                // Check if this position is safe (no bead to our right would be too close)
+                // Check if this position is safe
                 let isSafe = true;
                 if (currentIndex < barBeads.length - 1) {
                     const rightBead = barBeads[currentIndex + 1];
-                    if (rightBead.position - targetPosition < 1.0) {
-                        console.log(`  BLOCKED: Right bead ${rightBead.bead.id} at ${rightBead.position.toFixed(3)} too close`);
+                    if (rightBead.position - targetPosition < 0.8) {
+                        console.log(`  BLOCKED: Right bead ${rightBead.bead.id} too close`);
                         isSafe = false;
                     }
                 }
@@ -373,7 +372,7 @@ class SliderRenderer {
                     bead.position = targetPosition;
                     this.positionBead(bead);
                     snapped = true;
-                    console.log(`  SNAPPED ${bead.id} to right of ${leftBead.bead.id} at position ${bead.position.toFixed(2)}`);
+                    console.log(`  ✓ SNAPPED ${bead.id} to right of ${leftBead.bead.id} at ${bead.position.toFixed(2)}`);
                 }
             }
         }
@@ -384,16 +383,16 @@ class SliderRenderer {
             const distance = rightBead.position - bead.position;
             console.log(`  Distance to right bead ${rightBead.bead.id}: ${distance.toFixed(3)}`);
             
-            if (distance > 1.0 && distance <= 1.0 + snapRadius) {
+            if (distance > 0.8 && distance <= 1.0 + snapRadius) {
                 const targetPosition = rightBead.position - 1.0;
                 console.log(`  Would snap to position ${targetPosition.toFixed(3)} (left of ${rightBead.bead.id})`);
                 
-                // Check if this position is safe (no bead to our left would be too close)
+                // Check if this position is safe
                 let isSafe = true;
                 if (currentIndex > 0) {
                     const leftBead = barBeads[currentIndex - 1];
-                    if (targetPosition - leftBead.position < 1.0) {
-                        console.log(`  BLOCKED: Left bead ${leftBead.bead.id} at ${leftBead.position.toFixed(3)} too close`);
+                    if (targetPosition - leftBead.position < 0.8) {
+                        console.log(`  BLOCKED: Left bead ${leftBead.bead.id} too close`);
                         isSafe = false;
                     }
                 }
@@ -402,7 +401,7 @@ class SliderRenderer {
                     bead.position = targetPosition;
                     this.positionBead(bead);
                     snapped = true;
-                    console.log(`  SNAPPED ${bead.id} to left of ${rightBead.bead.id} at position ${bead.position.toFixed(2)}`);
+                    console.log(`  ✓ SNAPPED ${bead.id} to left of ${rightBead.bead.id} at ${bead.position.toFixed(2)}`);
                 }
             }
         }
@@ -414,26 +413,26 @@ class SliderRenderer {
                 bead.position = 0;
                 this.positionBead(bead);
                 snapped = true;
-                console.log(`  SNAPPED ${bead.id} to bar start`);
+                console.log(`  ✓ SNAPPED ${bead.id} to bar start`);
             }
             
-            // Check for snapping to bar end (right end) - only if no other beads are in the way
+            // Check for snapping to bar end (right end) - CRITICAL FOR GAME PROGRESSION
             else if (bead.position >= maxPosition - snapRadius) {
                 // Make sure there are no beads to the right that would block this
                 let canSnapToEnd = true;
                 for (let beadInfo of barBeads) {
-                    if (beadInfo.bead !== bead && beadInfo.position >= maxPosition - 1.0) {
-                        console.log(`  BLOCKED from bar end: Bead ${beadInfo.bead.id} at ${beadInfo.position.toFixed(3)} too close to end`);
+                    if (beadInfo.bead !== bead && beadInfo.position > bead.position) {
+                        console.log(`  BLOCKED from bar end: Bead ${beadInfo.bead.id} in the way`);
                         canSnapToEnd = false;
                         break;
                     }
                 }
                 
                 if (canSnapToEnd) {
-                    bead.position = Math.min(maxPosition - 0.1, bead.position); // Leave small margin from edge
+                    bead.position = maxPosition; // Snap exactly to the end
                     this.positionBead(bead);
                     snapped = true;
-                    console.log(`  SNAPPED ${bead.id} to bar end at position ${bead.position.toFixed(2)}`);
+                    console.log(`  ✓ SNAPPED ${bead.id} to bar END at position ${bead.position.toFixed(2)}`);
                 }
             }
         }
@@ -459,13 +458,20 @@ class SliderRenderer {
         // Count beads that are properly arranged from the right end with no gaps
         // Only beads in a continuous block starting from the bar end count as "on the right"
         
-        // Calculate the actual bar end position
+        // Calculate the actual bar end position where beads should be
         const barStartX = this.frameImageRect.width * 0.07;
         const barEndX = this.frameImageRect.width * 0.92;
         const usableLength = barEndX - barStartX - (2 * this.beadRadius);
         const maxPosition = usableLength / this.beadDiameter;
         
-        console.log(`Counting right-side beads. Bar end at position: ${maxPosition.toFixed(2)}`);
+        console.log(`\n=== COUNTING RIGHT-SIDE BEADS ===`);
+        console.log(`Bar: 7% to 92% of frame width`);
+        console.log(`Frame width: ${this.frameImageRect.width.toFixed(1)}px`);
+        console.log(`Bar start: ${(this.frameImageRect.width * 0.07).toFixed(1)}px`);
+        console.log(`Bar end: ${(this.frameImageRect.width * 0.92).toFixed(1)}px`);
+        console.log(`Usable length: ${usableLength.toFixed(1)}px`);
+        console.log(`Bead diameter: ${this.beadDiameter.toFixed(1)}px`);
+        console.log(`Max bead position: ${maxPosition.toFixed(2)}`);
         
         let totalRightSideBeads = 0;
         
@@ -474,24 +480,24 @@ class SliderRenderer {
             const barBeads = this.beads.filter(bead => bead.barIndex === barIndex);
             const sortedBeads = barBeads.sort((a, b) => b.position - a.position); // Sort right to left
             
-            console.log(`Bar ${barIndex} beads (right to left):`, sortedBeads.map(b => `${b.id}(${b.position.toFixed(2)})`));
+            console.log(`\nBar ${barIndex} beads (right to left):`, sortedBeads.map(b => `${b.id}(${b.position.toFixed(2)})`));
             
             let rightSideBeadsOnThisBar = 0;
             
-            // Start from the rightmost bead and count continuous beads
+            // Start from the rightmost bead and count continuous beads from the end
             for (let i = 0; i < sortedBeads.length; i++) {
                 const bead = sortedBeads[i];
                 const expectedPosition = maxPosition - i; // Expected position for i-th bead from right
                 
-                console.log(`  Checking ${bead.id}: position ${bead.position.toFixed(2)}, expected ${expectedPosition.toFixed(2)}`);
+                console.log(`  Checking ${bead.id}: actual=${bead.position.toFixed(2)}, expected=${expectedPosition.toFixed(2)}, diff=${Math.abs(bead.position - expectedPosition).toFixed(2)}`);
                 
-                // Check if this bead is in the correct position (within 0.2 tolerance for floating point)
-                if (Math.abs(bead.position - expectedPosition) <= 0.2) {
+                // Check if this bead is in the correct position (within 0.3 tolerance)
+                if (Math.abs(bead.position - expectedPosition) <= 0.3) {
                     rightSideBeadsOnThisBar++;
-                    console.log(`    ✓ Counts as right-side bead (${rightSideBeadsOnThisBar} on this bar)`);
+                    console.log(`    ✓ COUNTS as right-side bead #${rightSideBeadsOnThisBar} on this bar`);
                 } else {
                     // Gap found - stop counting
-                    console.log(`    ✗ Gap found - stopping count at ${rightSideBeadsOnThisBar} beads`);
+                    console.log(`    ✗ GAP DETECTED - stopping count (difference too large)`);
                     break;
                 }
             }
@@ -500,7 +506,7 @@ class SliderRenderer {
             console.log(`Bar ${barIndex} contributes ${rightSideBeadsOnThisBar} right-side beads`);
         }
         
-        console.log(`Total beads properly arranged on right side: ${totalRightSideBeads}`);
+        console.log(`\n*** TOTAL RIGHT-SIDE BEADS: ${totalRightSideBeads} ***\n`);
         return totalRightSideBeads;
     }
     
