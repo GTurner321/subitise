@@ -42,32 +42,48 @@ class SliderRenderer {
         console.log('Bottom bar:', this.beadPositions[1].map(b => `${b.id}(${b.position.toFixed(2)})`));
     }
     
-    getConnectedBlock(startBead) {
-        // Find all beads connected to the start bead (within 1 diameter)
+    getMovingBlock(startBead, direction) {
+        // Get only the beads that should move in the direction of drag
+        // If dragging right: startBead + all connected beads to its right
+        // If dragging left: startBead + all connected beads to its left
+        
         const barIndex = startBead.barIndex;
         const barPositions = this.beadPositions[barIndex];
         const beadDiameter = this.beadDiameter;
         const connectionDistance = beadDiameter * 1.1; // Beads within 1.1 diameters are connected
         
-        const connectedBeads = [startBead];
+        const movingBeads = [startBead];
         const startPosition = startBead.position;
         
-        // Find connected beads to the left
-        for (let i = 0; i < barPositions.length; i++) {
-            const beadInfo = barPositions[i];
+        console.log(`Getting moving block for ${startBead.id} at ${startPosition.toFixed(2)}, direction: ${direction > 0 ? 'right' : 'left'}`);
+        
+        // Find connected beads in the direction of movement
+        for (let beadInfo of barPositions) {
             if (beadInfo.bead === startBead) continue;
             
             const distance = Math.abs(beadInfo.position - startPosition);
-            if (distance <= connectionDistance) {
-                connectedBeads.push(beadInfo.bead);
+            const isConnected = distance <= connectionDistance;
+            
+            if (isConnected) {
+                if (direction > 0) {
+                    // Moving right - only include beads to the right of or at start bead
+                    if (beadInfo.position >= startPosition) {
+                        movingBeads.push(beadInfo.bead);
+                    }
+                } else {
+                    // Moving left - only include beads to the left of or at start bead  
+                    if (beadInfo.position <= startPosition) {
+                        movingBeads.push(beadInfo.bead);
+                    }
+                }
             }
         }
         
-        // Sort the connected block by position
-        connectedBeads.sort((a, b) => a.position - b.position);
+        // Sort the moving block by position
+        movingBeads.sort((a, b) => a.position - b.position);
         
-        console.log('Connected block:', connectedBeads.map(b => `${b.id}(${b.position.toFixed(2)})`));
-        return connectedBeads;
+        console.log('Moving block:', movingBeads.map(b => `${b.id}(${b.position.toFixed(2)})`));
+        return movingBeads;
     }
     
     calculateAvailableSpace(block, direction) {
@@ -90,61 +106,41 @@ class SliderRenderer {
         const maxPosition = usableBarLength / beadDiameter;
         
         let availableSpace = 0;
+        const minSpacing = 1.0; // Minimum spacing between bead centers
         
         if (direction > 0) {
-            // Moving right - find nearest bead to the right
-            let nearestRightBead = null;
-            let nearestDistance = Infinity;
+            // Moving right - find nearest non-moving bead to the right
+            let nearestObstacle = maxPosition; // Default to bar end
             
             for (let beadInfo of barPositions) {
                 if (!block.includes(beadInfo.bead) && beadInfo.position > blockEnd) {
-                    const distance = beadInfo.position - blockEnd;
-                    if (distance < nearestDistance) {
-                        nearestDistance = distance;
-                        nearestRightBead = beadInfo;
+                    const spaceToObstacle = beadInfo.position - blockEnd - minSpacing;
+                    if (spaceToObstacle >= 0 && beadInfo.position < nearestObstacle + minSpacing) {
+                        nearestObstacle = beadInfo.position - minSpacing;
                     }
                 }
             }
             
-            if (nearestRightBead) {
-                // Space = distance between centers - diameter (to account for both bead radii)
-                availableSpace = nearestRightBead.position - blockEnd - beadDiameter;
-                console.log(`Nearest right bead: ${nearestRightBead.id} at ${nearestRightBead.position.toFixed(2)}, space: ${availableSpace.toFixed(2)}`);
-            } else {
-                // No bead to the right - space to bar end
-                availableSpace = maxPosition - blockEnd;
-                console.log(`No right bead - space to bar end: ${availableSpace.toFixed(2)}`);
-            }
+            availableSpace = Math.max(0, nearestObstacle - blockEnd);
+            console.log(`Right movement: nearest obstacle at ${nearestObstacle.toFixed(2)}, space: ${availableSpace.toFixed(2)}`);
         } else {
-            // Moving left - find nearest bead to the left
-            let nearestLeftBead = null;
-            let nearestDistance = Infinity;
+            // Moving left - find nearest non-moving bead to the left
+            let nearestObstacle = 0; // Default to bar start
             
             for (let beadInfo of barPositions) {
                 if (!block.includes(beadInfo.bead) && beadInfo.position < blockStart) {
-                    const distance = blockStart - beadInfo.position;
-                    if (distance < nearestDistance) {
-                        nearestDistance = distance;
-                        nearestLeftBead = beadInfo;
+                    const spaceToObstacle = blockStart - beadInfo.position - minSpacing;
+                    if (spaceToObstacle >= 0 && beadInfo.position > nearestObstacle - minSpacing) {
+                        nearestObstacle = beadInfo.position + minSpacing;
                     }
                 }
             }
             
-            if (nearestLeftBead) {
-                // Space = distance between centers - diameter
-                availableSpace = blockStart - nearestLeftBead.position - beadDiameter;
-                console.log(`Nearest left bead: ${nearestLeftBead.id} at ${nearestLeftBead.position.toFixed(2)}, space: ${availableSpace.toFixed(2)}`);
-            } else {
-                // No bead to the left - space to bar start
-                availableSpace = blockStart - 0;
-                console.log(`No left bead - space to bar start: ${availableSpace.toFixed(2)}`);
-            }
+            availableSpace = Math.max(0, blockStart - nearestObstacle);
+            console.log(`Left movement: nearest obstacle at ${nearestObstacle.toFixed(2)}, space: ${availableSpace.toFixed(2)}`);
         }
         
-        // Ensure space is not negative
-        availableSpace = Math.max(0, availableSpace);
         console.log(`Final available space: ${availableSpace.toFixed(2)}`);
-        
         return availableSpace;
     }
     
@@ -676,15 +672,21 @@ class SliderRenderer {
     }
     
     resolveOverlaps(barIndex) {
-        // Resolve any overlapping beads by pushing them apart
+        // Resolve any overlapping beads by pushing them apart with proper spacing
         const barBeads = this.getBeadsOnBar(barIndex);
         const sortedBeads = barBeads.sort((a, b) => a.position - b.position);
-        const minSpacing = 1.0; // Minimum spacing between beads
+        const minSpacing = 1.0; // Minimum spacing between bead centers
         
-        console.log('Resolving overlaps for bar', barIndex);
+        console.log('Resolving overlaps for bar', barIndex, 'with', sortedBeads.length, 'beads');
+        
+        // Calculate bar bounds
+        const barStartX = this.frameImageRect.x + (this.frameImageRect.width * 0.06);
+        const barEndX = this.frameImageRect.x + (this.frameImageRect.width * 0.92);
+        const usableBarLength = barEndX - barStartX - (2 * this.beadRadius);
+        const maxPosition = usableBarLength / this.beadDiameter;
         
         // Multiple passes to ensure all overlaps are resolved
-        for (let pass = 0; pass < 3; pass++) {
+        for (let pass = 0; pass < 5; pass++) {
             let hasOverlaps = false;
             
             for (let i = 0; i < sortedBeads.length - 1; i++) {
@@ -696,43 +698,62 @@ class SliderRenderer {
                 if (distance < minSpacing) {
                     hasOverlaps = true;
                     const overlap = minSpacing - distance;
+                    
+                    console.log(`Pass ${pass}: Resolving overlap between ${currentBead.id}(${currentBead.position.toFixed(2)}) and ${nextBead.id}(${nextBead.position.toFixed(2)}), distance: ${distance.toFixed(2)}, overlap: ${overlap.toFixed(2)}`);
+                    
+                    // Try to push beads apart equally
                     const pushDistance = overlap / 2;
+                    let newCurrentPos = currentBead.position - pushDistance;
+                    let newNextPos = nextBead.position + pushDistance;
                     
-                    console.log(`Pass ${pass}: Resolving overlap between ${currentBead.id} and ${nextBead.id}, distance: ${distance.toFixed(2)}`);
-                    
-                    // Push beads apart equally, but respect bounds
-                    const newCurrentPos = currentBead.position - pushDistance;
-                    const newNextPos = nextBead.position + pushDistance;
-                    
-                    // Make sure we don't push beads out of bounds
-                    if (newCurrentPos >= 0) {
-                        currentBead.position = newCurrentPos;
-                    } else {
-                        // If current bead can't move left, push next bead further right
-                        currentBead.position = 0;
-                        nextBead.position = minSpacing;
+                    // Check bounds and adjust if necessary
+                    if (newCurrentPos < 0) {
+                        // Current bead can't move left, push next bead further right
+                        newCurrentPos = 0;
+                        newNextPos = newCurrentPos + minSpacing;
                     }
                     
-                    if (newNextPos <= 19) {
-                        nextBead.position = newNextPos;
-                    } else {
-                        // If next bead can't move right, push current bead further left
-                        nextBead.position = 19;
-                        currentBead.position = 19 - minSpacing;
+                    if (newNextPos > maxPosition) {
+                        // Next bead can't move right, push current bead further left
+                        newNextPos = maxPosition;
+                        newCurrentPos = newNextPos - minSpacing;
+                        
+                        // If current bead would go negative, compress spacing
+                        if (newCurrentPos < 0) {
+                            console.log('Warning: Cannot resolve overlap within bounds, compressing spacing');
+                            newCurrentPos = 0;
+                            newNextPos = minSpacing * 0.8; // Slightly compressed spacing
+                        }
                     }
+                    
+                    // Apply new positions
+                    currentBead.position = Math.max(0, newCurrentPos);
+                    nextBead.position = Math.min(maxPosition, newNextPos);
+                    
+                    console.log(`Moved ${currentBead.id} to ${currentBead.position.toFixed(2)}, ${nextBead.id} to ${nextBead.position.toFixed(2)}`);
                 }
             }
             
             // Re-sort after position changes
             sortedBeads.sort((a, b) => a.position - b.position);
             
-            if (!hasOverlaps) break; // No more overlaps found
+            if (!hasOverlaps) {
+                console.log(`Overlap resolution completed in ${pass + 1} passes`);
+                break;
+            }
         }
         
-        // Update visual positions
+        // Update visual positions and position tracking
         sortedBeads.forEach(bead => {
             this.positionBead(bead);
-            console.log(`Final position: ${bead.id} at ${bead.position.toFixed(2)}`);
+        });
+        
+        // Update position tracking after resolving overlaps
+        this.updateBeadPositionTracking();
+        
+        console.log('Final positions after overlap resolution:');
+        sortedBeads.forEach(bead => {
+            console.log(`${bead.id}: ${bead.position.toFixed(2)}`);
         });
     }
     
