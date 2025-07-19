@@ -386,6 +386,11 @@ body {
     pointer-events: none; /* Don't block interaction with game area */
 }
 
+/* CRITICAL: Ensure hidden modal is actually hidden */
+.modal.hidden {
+    display: none !important;
+}
+
 .modal-content {
     background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
     padding: 40px;
