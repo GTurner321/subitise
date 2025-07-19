@@ -1,4 +1,87 @@
-class SliderGameController {
+handleDragStart(x, y, touchId = 'mouse') {
+        const bead = this.sliderRenderer.getBeadAtPosition(x, y);
+        if (!bead) return;
+        
+        console.log(`Drag started on ${bead.id} at position ${bead.position.toFixed(3)} (touch: ${touchId})`);
+        
+        // Create individual drag state for this touch
+        const dragState = {
+            isDragging: true,
+            draggedBead: bead,
+            startX: x,
+            startY: y,
+            startPosition: bead.position,
+            hasStartedMoving: false,
+            connectedBlock: [bead] // Start with just the single bead
+        };
+        
+        this.dragState.activeTouches.set(touchId, dragState);
+        
+        bead.isDragging = true;
+        bead.element.classList.add('dragging');
+    }
+    
+    handleDragMove(x, y, touchId = 'mouse') {
+        const dragState = this.dragState.activeTouches.get(touchId);
+        if (!dragState || !dragState.isDragging || !dragState.draggedBead) return;
+        
+        const deltaX = x - dragState.startX;
+        const dragThreshold = this.sliderRenderer.beadDiameter; // Changed from radius to diameter
+        
+        // Check if we've moved enough to start dragging
+        if (!dragState.hasStartedMoving && Math.abs(deltaX) < dragThreshold) {
+            return;
+        }
+        
+        if (!dragState.hasStartedMoving) {
+            dragState.hasStartedMoving = true;
+            console.log(`Started moving ${dragState.draggedBead.id} (touch: ${touchId})`);
+            // Update connected beads at the moment movement starts
+            dragState.connectedBlock = this.sliderRenderer.getConnectedBeads(dragState.draggedBead);
+        }
+        
+        // Calculate movement direction and distance from the threshold point
+        const direction = deltaX > 0 ? 1 : -1;
+        const movementBeyondThreshold = Math.abs(deltaX) - dragThreshold;
+        const positionDelta = (movementBeyondThreshold / this.sliderRenderer.beadDiameter) * direction;
+        
+        // Calculate target position based ONLY on horizontal drag component
+        const targetPosition = dragState.startPosition + positionDelta;
+        
+        console.log(`Touch ${touchId} - Drag delta: ${deltaX.toFixed(1)}, position delta: ${positionDelta.toFixed(3)}, target: ${targetPosition.toFixed(3)}`);
+        
+        // Check how far the block can actually move
+        const block = dragState.connectedBlock;
+        const requestedDistance = Math.abs(targetPosition - dragState.draggedBead.position);
+        const maxMovement = this.sliderRenderer.canMoveBlock(block, direction, requestedDistance);
+        
+        // Apply the movement if there's space - but limit to the actual drag amount
+        if (maxMovement > 0.001) {
+            const actualDelta = direction > 0 ? 
+                Math.min(maxMovement, positionDelta) : 
+                Math.max(-maxMovement, positionDelta);
+            
+            // Only move if the movement aligns with our drag
+            if ((direction > 0 && actualDelta > 0) || (direction < 0 && actualDelta < 0)) {
+                this.sliderRenderer.moveBlock(block, actualDelta);
+            }
+        }
+    }
+    
+    handleDragEnd(x, y, touchId = 'mouse') {
+        const dragState = this.dragState.activeTouches.get(touchId);
+        if (!dragState || !dragState.isDragging) return;
+        
+        const bead = dragState.draggedBead;
+        console.log(`Drag ended for ${bead.id} (touch: ${touchId})`);
+        
+        // Clean up dragging state
+        bead.isDragging = false;
+        bead.element.classList.remove('dragging');
+        
+        // Snap to integer positions if we moved
+        if (dragState.hasStartedMoving) {
+            const snclass SliderGameController {
     constructor() {
         this.sliderRenderer = new SliderRenderer();
         this.rainbow = new Rainbow();
@@ -11,15 +94,9 @@ class SliderGameController {
         this.buttonsDisabled = false;
         this.awaitingButtonPress = false;
         
-        // Simple drag state - only one bead at a time
+        // Simple drag state - support multiple touches for simultaneous bar interaction
         this.dragState = {
-            isDragging: false,
-            draggedBead: null,
-            startX: 0,
-            startY: 0,
-            startPosition: 0,
-            hasStartedMoving: false,
-            connectedBlock: []
+            activeTouches: new Map() // Map of touchId/mouseId to individual drag states
         };
         
         // Audio
@@ -161,135 +238,73 @@ class SliderGameController {
         // Play again button
         this.playAgainBtn.addEventListener('click', () => this.startNewGame());
         
-        // Mouse events for dragging
+        // Mouse events for dragging - use 'mouse' as the touchId
         this.sliderRenderer.sliderContainer.addEventListener('mousedown', (e) => {
-            this.handleDragStart(e.clientX, e.clientY);
+            this.handleDragStart(e.clientX, e.clientY, 'mouse');
         });
         
         document.addEventListener('mousemove', (e) => {
-            this.handleDragMove(e.clientX, e.clientY);
+            this.handleDragMove(e.clientX, e.clientY, 'mouse');
         });
         
         document.addEventListener('mouseup', (e) => {
-            this.handleDragEnd(e.clientX, e.clientY);
+            this.handleDragEnd(e.clientX, e.clientY, 'mouse');
         });
         
-        // Touch events
+        // Touch events - support multi-touch
         this.sliderRenderer.sliderContainer.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            this.handleDragStart(touch.clientX, touch.clientY);
+            Array.from(e.changedTouches).forEach(touch => {
+                this.handleDragStart(touch.clientX, touch.clientY, touch.identifier);
+            });
         });
         
         document.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            if (e.touches[0]) {
-                this.handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
-            }
+            Array.from(e.changedTouches).forEach(touch => {
+                this.handleDragMove(touch.clientX, touch.clientY, touch.identifier);
+            });
         });
         
         document.addEventListener('touchend', (e) => {
             e.preventDefault();
-            this.handleDragEnd(0, 0); // Position doesn't matter for end
+            Array.from(e.changedTouches).forEach(touch => {
+                this.handleDragEnd(touch.clientX, touch.clientY, touch.identifier);
+            });
         });
     }
     
-    handleDragStart(x, y) {
-        const bead = this.sliderRenderer.getBeadAtPosition(x, y);
-        if (!bead) return;
+    handleDragEnd(x, y, touchId = 'mouse') {
+        const dragState = this.dragState.activeTouches.get(touchId);
+        if (!dragState || !dragState.isDragging) return;
         
-        console.log(`Drag started on ${bead.id} at position ${bead.position.toFixed(3)}`);
-        
-        this.dragState = {
-            isDragging: true,
-            draggedBead: bead,
-            startX: x,
-            startY: y,
-            startPosition: bead.position,
-            hasStartedMoving: false,
-            connectedBlock: this.sliderRenderer.getConnectedBeads(bead)
-        };
-        
-        bead.isDragging = true;
-        bead.element.classList.add('dragging');
-    }
-    
-    handleDragMove(x, y) {
-        if (!this.dragState.isDragging || !this.dragState.draggedBead) return;
-        
-        const deltaX = x - this.dragState.startX;
-        const dragThreshold = this.sliderRenderer.beadRadius;
-        
-        // Check if we've moved enough to start dragging
-        if (!this.dragState.hasStartedMoving && Math.abs(deltaX) < dragThreshold) {
-            return;
-        }
-        
-        if (!this.dragState.hasStartedMoving) {
-            this.dragState.hasStartedMoving = true;
-            console.log(`Started moving ${this.dragState.draggedBead.id}`);
-            // Update connected beads at the moment movement starts
-            this.dragState.connectedBlock = this.sliderRenderer.getConnectedBeads(this.dragState.draggedBead);
-        }
-        
-        // Calculate movement direction and distance from the threshold point
-        const direction = deltaX > 0 ? 1 : -1;
-        const movementBeyondThreshold = Math.abs(deltaX) - dragThreshold;
-        const positionDelta = (movementBeyondThreshold / this.sliderRenderer.beadDiameter) * direction;
-        
-        // Calculate target position
-        const targetPosition = this.dragState.startPosition + positionDelta;
-        
-        console.log(`Drag delta: ${deltaX.toFixed(1)}, position delta: ${positionDelta.toFixed(3)}, target: ${targetPosition.toFixed(3)}`);
-        
-        // Check how far the block can actually move
-        const block = this.dragState.connectedBlock;
-        const requestedDistance = Math.abs(targetPosition - this.dragState.draggedBead.position);
-        const maxMovement = this.sliderRenderer.canMoveBlock(block, direction, requestedDistance);
-        
-        // Apply the movement if there's space
-        if (maxMovement > 0.001) {
-            const actualDelta = direction > 0 ? maxMovement : -maxMovement;
-            this.sliderRenderer.moveBlock(block, actualDelta);
-        }
-    }
-    
-    handleDragEnd(x, y) {
-        if (!this.dragState.isDragging) return;
-        
-        const bead = this.dragState.draggedBead;
-        console.log(`Drag ended for ${bead.id}`);
+        const bead = dragState.draggedBead;
+        console.log(`Drag ended for ${bead.id} (touch: ${touchId})`);
         
         // Clean up dragging state
         bead.isDragging = false;
         bead.element.classList.remove('dragging');
         
         // Snap to integer positions if we moved
-        if (this.dragState.hasStartedMoving) {
+        if (dragState.hasStartedMoving) {
             const snappedPosition = Math.round(bead.position);
             const snapDelta = snappedPosition - bead.position;
             
             if (Math.abs(snapDelta) > 0.001) {
-                this.sliderRenderer.moveBlock(this.dragState.connectedBlock, snapDelta);
+                this.sliderRenderer.moveBlock(dragState.connectedBlock, snapDelta);
             }
             
-            // Check for magnetic snapping to nearby beads
+            // Check for magnetic snapping to nearby beads or bar ends
             this.sliderRenderer.snapToNearbyBeads(bead);
         }
         
-        // Reset drag state
-        this.dragState = {
-            isDragging: false,
-            draggedBead: null,
-            startX: 0,
-            startY: 0,
-            startPosition: 0,
-            hasStartedMoving: false,
-            connectedBlock: []
-        };
+        // Remove this touch from active touches
+        this.dragState.activeTouches.delete(touchId);
         
-        // Check game state after a delay
-        setTimeout(() => this.checkGameState(), 300);
+        // Check game state after a delay if no more active drags
+        if (this.dragState.activeTouches.size === 0) {
+            setTimeout(() => this.checkGameState(), 300);
+        }
     }
     
     checkGameState() {
@@ -381,13 +396,7 @@ class SliderGameController {
         this.awaitingButtonPress = false;
         
         this.dragState = {
-            isDragging: false,
-            draggedBead: null,
-            startX: 0,
-            startY: 0,
-            startPosition: 0,
-            hasStartedMoving: false,
-            connectedBlock: []
+            activeTouches: new Map()
         };
         
         this.rainbow.reset();
