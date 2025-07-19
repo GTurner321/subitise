@@ -275,12 +275,13 @@ class SliderRenderer {
         // Check for collisions with other beads
         let canMove = true;
         let collisionBeads = [];
+        const collisionBuffer = 0.9; // Beads need at least 0.9 units spacing
         
         for (let otherBead of otherBeads) {
             const otherPos = otherBead.position;
             
-            // Check if the block would overlap with this bead
-            if (newBlockStartPos <= otherPos && otherPos <= newBlockEndPos) {
+            // Check if the block would overlap or get too close to this bead
+            if ((newBlockStartPos - collisionBuffer) <= otherPos && otherPos <= (newBlockEndPos + collisionBuffer)) {
                 canMove = false;
                 collisionBeads.push(otherBead);
                 console.log(`Collision detected with bead ${otherBead.id} at position ${otherPos.toFixed(1)}`);
@@ -296,49 +297,120 @@ class SliderRenderer {
             const direction = targetPosition > blockStartPos ? 1 : -1;
             console.log('Collision detected - checking if we can push beads');
             
-            // Try to expand the block to include colliding beads
-            const expandedBlock = [...block];
+            // Calculate how much space we need for the expanded block
+            let expandedBlock = [...block];
             for (let collisionBead of collisionBeads) {
                 if (!expandedBlock.includes(collisionBead)) {
                     expandedBlock.push(collisionBead);
                 }
             }
             
-            // Sort expanded block
+            // Sort expanded block by position
             expandedBlock.sort((a, b) => a.position - b.position);
             
-            // Check if the expanded block can move
+            // Check if the expanded block can move without further collisions
             const expandedLength = expandedBlock.length;
-            const expandedNewStartPos = targetPosition;
-            const expandedNewEndPos = targetPosition + expandedLength - 1;
+            let expandedTargetPos = targetPosition;
+            
+            // Adjust target position based on which bead was originally dragged
+            const originalBeadIndex = block.indexOf(block[0]);
+            const expandedOriginalIndex = expandedBlock.indexOf(block[0]);
+            expandedTargetPos = targetPosition - (expandedOriginalIndex - originalBeadIndex);
+            
+            const expandedNewStartPos = expandedTargetPos;
+            const expandedNewEndPos = expandedTargetPos + expandedLength - 1;
             
             console.log(`Trying to move expanded block (${expandedLength} beads) to ${expandedNewStartPos.toFixed(1)}-${expandedNewEndPos.toFixed(1)}`);
+            
+            // Check bounds first
+            if (expandedNewStartPos < 0 || expandedNewEndPos > 14) {
+                console.log('Expanded block would go out of bounds');
+                return; // Cannot move
+            }
             
             // Check if expanded block would collide with remaining beads
             const remainingBeads = barBeads.filter(b => !expandedBlock.includes(b));
             let expandedCanMove = true;
             
             for (let remainingBead of remainingBeads) {
-                if (expandedNewStartPos <= remainingBead.position && remainingBead.position <= expandedNewEndPos) {
+                if ((expandedNewStartPos - collisionBuffer) <= remainingBead.position && 
+                    remainingBead.position <= (expandedNewEndPos + collisionBuffer)) {
                     expandedCanMove = false;
                     console.log(`Expanded block would collide with ${remainingBead.id}`);
                     break;
                 }
             }
             
-            // Also check bounds
-            if (expandedNewStartPos < 0 || expandedNewEndPos > 14) {
-                expandedCanMove = false;
-                console.log('Expanded block would go out of bounds');
-            }
-            
             if (expandedCanMove) {
                 console.log('Moving expanded block');
-                this.moveBlockDirectly(expandedBlock, targetPosition);
+                this.moveBlockDirectly(expandedBlock, expandedTargetPos);
             } else {
                 console.log('Cannot move - blocked by other beads or bounds');
-                // Block is stopped - beads stay where they are
+                // Find the maximum position we can move to
+                this.findMaximumMovement(block, targetPosition, direction, otherBeads);
             }
+        }
+    }
+    
+    findMaximumMovement(block, targetPosition, direction, otherBeads) {
+        // Find the maximum distance the block can move without collision
+        const blockStartPos = Math.min(...block.map(b => b.position));
+        const blockEndPos = Math.max(...block.map(b => b.position));
+        const blockLength = block.length;
+        
+        let maxPosition = targetPosition;
+        const collisionBuffer = 0.9;
+        
+        if (direction > 0) {
+            // Moving right - find the nearest bead on the right
+            let nearestRightBead = null;
+            let nearestDistance = Infinity;
+            
+            for (let otherBead of otherBeads) {
+                if (otherBead.position > blockEndPos) {
+                    const distance = otherBead.position - blockEndPos;
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestRightBead = otherBead;
+                    }
+                }
+            }
+            
+            if (nearestRightBead) {
+                maxPosition = Math.min(targetPosition, nearestRightBead.position - blockLength - collisionBuffer + blockStartPos);
+            }
+            
+            // Also check bounds
+            maxPosition = Math.min(maxPosition, 14 - blockLength + 1);
+        } else {
+            // Moving left - find the nearest bead on the left
+            let nearestLeftBead = null;
+            let nearestDistance = Infinity;
+            
+            for (let otherBead of otherBeads) {
+                if (otherBead.position < blockStartPos) {
+                    const distance = blockStartPos - otherBead.position;
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestLeftBead = otherBead;
+                    }
+                }
+            }
+            
+            if (nearestLeftBead) {
+                maxPosition = Math.max(targetPosition, nearestLeftBead.position + collisionBuffer);
+            }
+            
+            // Also check bounds
+            maxPosition = Math.max(maxPosition, 0);
+        }
+        
+        // Only move if there's actual movement possible
+        if (Math.abs(maxPosition - blockStartPos) > 0.1) {
+            console.log(`Moving to maximum position: ${maxPosition.toFixed(1)}`);
+            this.moveBlockDirectly(block, maxPosition);
+        } else {
+            console.log('No movement possible - already at maximum position');
         }
     }
     
@@ -498,30 +570,61 @@ class SliderRenderer {
         // Resolve any overlapping beads by pushing them apart
         const barBeads = this.getBeadsOnBar(barIndex);
         const sortedBeads = barBeads.sort((a, b) => a.position - b.position);
+        const minSpacing = 1.0; // Minimum spacing between beads
         
-        for (let i = 0; i < sortedBeads.length - 1; i++) {
-            const currentBead = sortedBeads[i];
-            const nextBead = sortedBeads[i + 1];
-            const distance = nextBead.position - currentBead.position;
+        console.log('Resolving overlaps for bar', barIndex);
+        
+        // Multiple passes to ensure all overlaps are resolved
+        for (let pass = 0; pass < 3; pass++) {
+            let hasOverlaps = false;
             
-            // If beads are too close (overlapping), push them apart
-            if (distance < 0.9) {
-                const overlap = 0.9 - distance;
-                const pushDistance = overlap / 2;
+            for (let i = 0; i < sortedBeads.length - 1; i++) {
+                const currentBead = sortedBeads[i];
+                const nextBead = sortedBeads[i + 1];
+                const distance = nextBead.position - currentBead.position;
                 
-                console.log(`Resolving overlap between ${currentBead.id} and ${nextBead.id}`);
-                
-                // Push beads apart equally
-                currentBead.position -= pushDistance;
-                nextBead.position += pushDistance;
-                
-                // Make sure we don't push beads too far left
-                currentBead.position = Math.max(0, currentBead.position);
+                // If beads are too close, push them apart
+                if (distance < minSpacing) {
+                    hasOverlaps = true;
+                    const overlap = minSpacing - distance;
+                    const pushDistance = overlap / 2;
+                    
+                    console.log(`Pass ${pass}: Resolving overlap between ${currentBead.id} and ${nextBead.id}, distance: ${distance.toFixed(2)}`);
+                    
+                    // Push beads apart equally, but respect bounds
+                    const newCurrentPos = currentBead.position - pushDistance;
+                    const newNextPos = nextBead.position + pushDistance;
+                    
+                    // Make sure we don't push beads out of bounds
+                    if (newCurrentPos >= 0) {
+                        currentBead.position = newCurrentPos;
+                    } else {
+                        // If current bead can't move left, push next bead further right
+                        currentBead.position = 0;
+                        nextBead.position = minSpacing;
+                    }
+                    
+                    if (newNextPos <= 14) {
+                        nextBead.position = newNextPos;
+                    } else {
+                        // If next bead can't move right, push current bead further left
+                        nextBead.position = 14;
+                        currentBead.position = 14 - minSpacing;
+                    }
+                }
             }
+            
+            // Re-sort after position changes
+            sortedBeads.sort((a, b) => a.position - b.position);
+            
+            if (!hasOverlaps) break; // No more overlaps found
         }
         
         // Update visual positions
-        sortedBeads.forEach(bead => this.positionBead(bead));
+        sortedBeads.forEach(bead => {
+            this.positionBead(bead);
+            console.log(`Final position: ${bead.id} at ${bead.position.toFixed(2)}`);
+        });
     }
     
     countBeadsOnRightSide() {
