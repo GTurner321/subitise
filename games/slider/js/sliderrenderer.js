@@ -547,6 +547,10 @@ class SliderRenderer {
         return totalRightSideBeads;
     }
     
+    getBeadsOnBar(barIndex) {
+        return this.beads.filter(bead => bead.barIndex === barIndex);
+    }
+    
     hasBeadsInMiddle() {
         const leftThreshold = 2;
         const rightThreshold = CONFIG.BEADS_PER_BAR - 3;
