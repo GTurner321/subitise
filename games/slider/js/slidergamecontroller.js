@@ -6,34 +6,30 @@ class SliderGameController {
         
         // Game state
         this.currentQuestion = 1;
-        this.expectedBeadsOnRight = 2; // Start with 2 beads
+        this.expectedBeadsOnRight = 2;
         this.gameComplete = false;
         this.buttonsDisabled = false;
         this.awaitingButtonPress = false;
         
-        // Drag state
+        // Simple drag state - only one bead at a time
         this.dragState = {
             isDragging: false,
-            draggedBeads: [],
+            draggedBead: null,
             startX: 0,
             startY: 0,
-            lastX: 0,
-            lastY: 0,
-            activeTouches: []
+            startPosition: 0,
+            hasStartedMoving: false,
+            connectedBlock: []
         };
         
-        // Audio functionality
-        this.audioEnabled = CONFIG.AUDIO_ENABLED || true;
+        // Audio
+        this.audioEnabled = CONFIG.AUDIO_ENABLED;
         this.audioContext = null;
         
         // DOM elements
         this.numberButtons = document.querySelectorAll('.number-btn');
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
-        
-        // Mute button references
-        this.muteButton = null;
-        this.muteContainer = null;
         
         this.initializeEventListeners();
         this.initializeAudio();
@@ -53,51 +49,40 @@ class SliderGameController {
     
     createMuteButton() {
         const muteContainer = document.createElement('div');
-        muteContainer.style.position = 'fixed';
-        muteContainer.style.top = '20px';
-        muteContainer.style.right = '20px';
-        muteContainer.style.zIndex = '1000';
-        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        muteContainer.style.borderRadius = '50%';
-        muteContainer.style.width = '60px';
-        muteContainer.style.height = '60px';
-        muteContainer.style.display = 'flex';
-        muteContainer.style.alignItems = 'center';
-        muteContainer.style.justifyContent = 'center';
-        muteContainer.style.cursor = 'pointer';
-        muteContainer.style.transition = 'all 0.3s ease';
-        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        muteContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        `;
         
         this.muteButton = document.createElement('button');
-        this.muteButton.style.background = 'none';
-        this.muteButton.style.border = 'none';
-        this.muteButton.style.color = 'white';
-        this.muteButton.style.fontSize = '24px';
-        this.muteButton.style.cursor = 'pointer';
-        this.muteButton.style.width = '100%';
-        this.muteButton.style.height = '100%';
-        this.muteButton.style.display = 'flex';
-        this.muteButton.style.alignItems = 'center';
-        this.muteButton.style.justifyContent = 'center';
+        this.muteButton.style.cssText = `
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
         
         this.updateMuteButtonIcon();
         
         this.muteButton.addEventListener('click', () => this.toggleAudio());
-        this.muteButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.toggleAudio();
-        });
-        
-        muteContainer.addEventListener('mouseenter', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-            muteContainer.style.transform = 'scale(1.1)';
-        });
-        
-        muteContainer.addEventListener('mouseleave', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            muteContainer.style.transform = 'scale(1)';
-        });
-        
         muteContainer.appendChild(this.muteButton);
         document.body.appendChild(muteContainer);
         
@@ -120,39 +105,22 @@ class SliderGameController {
         }
         
         if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText('Audio enabled');
-            }, 100);
+            setTimeout(() => this.speakText('Audio enabled'), 100);
         }
     }
     
     speakText(text) {
-        if (!this.audioEnabled) return;
+        if (!this.audioEnabled || !('speechSynthesis' in window)) return;
         
         try {
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.3;
-                utterance.volume = 0.8;
-                
-                const voices = speechSynthesis.getVoices();
-                let selectedVoice = voices.find(voice => 
-                    voice.name.toLowerCase().includes('male') ||
-                    voice.name.toLowerCase().includes('boy') ||
-                    voice.name.toLowerCase().includes('man') ||
-                    (!voice.name.toLowerCase().includes('female') && 
-                     !voice.name.toLowerCase().includes('woman') &&
-                     !voice.name.toLowerCase().includes('girl'))
-                );
-                
-                if (selectedVoice) utterance.voice = selectedVoice;
-                utterance.pitch = 1.3;
-                
-                speechSynthesis.speak(utterance);
-            }
+            speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1.3;
+            utterance.volume = 0.8;
+            
+            speechSynthesis.speak(utterance);
         } catch (error) {
             // Silent failure
         }
@@ -167,7 +135,7 @@ class SliderGameController {
             [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
         }
         
-        // Apply shuffled numbers to buttons
+        // Apply to buttons
         this.numberButtons.forEach((button, index) => {
             button.dataset.number = buttonNumbers[index];
             button.textContent = buttonNumbers[index];
@@ -186,167 +154,142 @@ class SliderGameController {
         });
         
         // Play again button
-        this.playAgainBtn.addEventListener('click', () => {
-            this.startNewGame();
-        });
+        this.playAgainBtn.addEventListener('click', () => this.startNewGame());
         
-        // Mouse events
+        // Mouse events for dragging
         this.sliderRenderer.sliderContainer.addEventListener('mousedown', (e) => {
-            this.handlePointerDown(e.clientX, e.clientY, 'mouse');
+            this.handleDragStart(e.clientX, e.clientY);
         });
         
         document.addEventListener('mousemove', (e) => {
-            this.handlePointerMove(e.clientX, e.clientY, 'mouse');
+            this.handleDragMove(e.clientX, e.clientY);
         });
         
         document.addEventListener('mouseup', (e) => {
-            this.handlePointerUp(e.clientX, e.clientY, 'mouse');
+            this.handleDragEnd(e.clientX, e.clientY);
         });
         
         // Touch events
         this.sliderRenderer.sliderContainer.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            Array.from(e.changedTouches).forEach(touch => {
-                this.handlePointerDown(touch.clientX, touch.clientY, touch.identifier);
-            });
+            const touch = e.touches[0];
+            this.handleDragStart(touch.clientX, touch.clientY);
         });
         
         document.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            Array.from(e.changedTouches).forEach(touch => {
-                this.handlePointerMove(touch.clientX, touch.clientY, touch.identifier);
-            });
+            if (e.touches[0]) {
+                this.handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
         });
         
         document.addEventListener('touchend', (e) => {
             e.preventDefault();
-            Array.from(e.changedTouches).forEach(touch => {
-                this.handlePointerUp(touch.clientX, touch.clientY, touch.identifier);
-            });
+            this.handleDragEnd(0, 0); // Position doesn't matter for end
         });
     }
     
-    handlePointerDown(x, y, pointerId) {
-        console.log('handlePointerDown called:', x, y, pointerId);
-        
+    handleDragStart(x, y) {
         const bead = this.sliderRenderer.getBeadAtPosition(x, y);
-        if (!bead) {
-            console.log('No bead found at position');
-            return;
-        }
+        if (!bead) return;
         
-        console.log('Bead found:', bead.id, 'at position:', bead.position.toFixed(3));
+        console.log(`Drag started on ${bead.id} at position ${bead.position.toFixed(3)}`);
         
-        // Start new drag or add to existing multi-touch
-        const touchData = {
-            id: pointerId,
+        this.dragState = {
+            isDragging: true,
+            draggedBead: bead,
             startX: x,
             startY: y,
-            lastX: x,
-            lastY: y,
-            bead: bead,
             startPosition: bead.position,
             hasStartedMoving: false,
-            dragThreshold: this.sliderRenderer.beadRadius, // Must drag a full radius to start moving
-            connectedBlock: null // Will store the connected block when movement starts
+            connectedBlock: this.sliderRenderer.getConnectedBeads(bead)
         };
         
         bead.isDragging = true;
         bead.element.classList.add('dragging');
-        
-        this.dragState.activeTouches.push(touchData);
-        this.dragState.isDragging = true;
-        
-        console.log('Drag started for bead:', bead.id, 'threshold:', touchData.dragThreshold.toFixed(2));
     }
     
-    handlePointerMove(x, y, pointerId) {
-        if (!this.dragState.isDragging) return;
+    handleDragMove(x, y) {
+        if (!this.dragState.isDragging || !this.dragState.draggedBead) return;
         
-        const touch = this.dragState.activeTouches.find(t => t.id === pointerId);
-        if (!touch) return;
+        const deltaX = x - this.dragState.startX;
+        const dragThreshold = this.sliderRenderer.beadRadius; // Must drag one radius to start
         
-        const deltaX = x - touch.startX;
-        const totalDistance = Math.abs(deltaX);
-        
-        console.log('handlePointerMove - deltaX:', deltaX, 'totalDistance:', totalDistance);
-        
-        // Check if we've moved enough to start dragging (full bead radius)
-        if (!touch.hasStartedMoving && totalDistance < touch.dragThreshold) {
-            console.log('Below drag threshold:', touch.dragThreshold);
+        // Check if we've moved enough to start dragging
+        if (!this.dragState.hasStartedMoving && Math.abs(deltaX) < dragThreshold) {
             return;
         }
         
-        if (!touch.hasStartedMoving) {
-            touch.hasStartedMoving = true;
-            console.log('Started moving bead:', touch.bead.id);
-            
-            // Store the initial position and movement direction
-            touch.initialPosition = touch.bead.position;
-            
-            // Update position tracking to ensure we have current state
-            this.sliderRenderer.updateBeadPositionTracking();
+        if (!this.dragState.hasStartedMoving) {
+            this.dragState.hasStartedMoving = true;
+            console.log(`Started moving ${this.dragState.draggedBead.id}`);
         }
         
-        // Determine movement direction based on current drag
+        // Calculate movement direction and distance
         const direction = deltaX > 0 ? 1 : -1;
+        const movementFromThreshold = deltaX - (dragThreshold * Math.sign(deltaX));
+        const positionDelta = movementFromThreshold / this.sliderRenderer.beadDiameter;
         
-        // Get the moving block based on current direction
-        touch.movingBlock = this.sliderRenderer.getMovingBlock(touch.bead, direction);
-        console.log('Moving block size:', touch.movingBlock.length, 'direction:', direction > 0 ? 'right' : 'left');
+        // Calculate target position
+        const targetPosition = this.dragState.startPosition + positionDelta;
         
-        // Calculate new position based on ACTUAL drag distance from start of movement
-        const beadDiameter = this.sliderRenderer.beadDiameter;
-        const movementFromThreshold = deltaX - (touch.dragThreshold * Math.sign(deltaX));
-        const positionDelta = movementFromThreshold / beadDiameter; // Direct 1:1 conversion
+        console.log(`Target position: ${targetPosition.toFixed(3)}, delta: ${positionDelta.toFixed(3)}`);
         
-        console.log('Position delta (continuous):', positionDelta.toFixed(3));
+        // Check how far the block can actually move
+        const block = this.dragState.connectedBlock;
+        const maxMovement = this.sliderRenderer.canMoveBlock(block, direction, Math.abs(positionDelta));
         
-        // Calculate target position based on initial position + drag delta
-        const targetPosition = touch.initialPosition + positionDelta;
-        console.log('Target position:', targetPosition.toFixed(3), 'from initial:', touch.initialPosition.toFixed(3));
-        
-        // Move the moving block with proper space calculation
-        this.sliderRenderer.moveBlockWithCollisions(touch.movingBlock, targetPosition);
-        
-        touch.lastX = x;
-        touch.lastY = y;
+        // Apply the movement
+        if (maxMovement > 0) {
+            const actualDelta = direction > 0 ? maxMovement : -maxMovement;
+            const newPosition = this.dragState.startPosition + actualDelta;
+            
+            // Move the entire connected block
+            const currentPosition = this.dragState.draggedBead.position;
+            const movementNeeded = newPosition - currentPosition;
+            
+            if (Math.abs(movementNeeded) > 0.001) { // Only move if there's a meaningful difference
+                this.sliderRenderer.moveBlock(block, movementNeeded);
+            }
+        }
     }
     
-    handlePointerUp(x, y, pointerId) {
-        const touchIndex = this.dragState.activeTouches.findIndex(t => t.id === pointerId);
-        if (touchIndex === -1) return;
+    handleDragEnd(x, y) {
+        if (!this.dragState.isDragging) return;
         
-        const touch = this.dragState.activeTouches[touchIndex];
+        const bead = this.dragState.draggedBead;
+        console.log(`Drag ended for ${bead.id}`);
         
         // Clean up dragging state
-        touch.bead.isDragging = false;
-        touch.bead.element.classList.remove('dragging');
+        bead.isDragging = false;
+        bead.element.classList.remove('dragging');
         
-        // Snap to integer positions
-        if (touch.hasStartedMoving) {
-            const direction = touch.lastX > touch.startX ? 1 : -1;
-            const movingBlock = this.sliderRenderer.getBeadBlockInDirection(touch.bead, direction);
+        // Snap to integer positions if we moved
+        if (this.dragState.hasStartedMoving) {
+            const snappedPosition = Math.round(bead.position);
+            const snapDelta = snappedPosition - bead.position;
             
-            // Snap all beads to integer positions
-            movingBlock.forEach((bead, index) => {
-                const snappedPosition = Math.round(bead.position);
-                this.sliderRenderer.moveBeadToPosition(bead, snappedPosition, true);
-            });
+            if (Math.abs(snapDelta) > 0.001) {
+                this.sliderRenderer.moveBlock(this.dragState.connectedBlock, snapDelta);
+            }
+            
+            // Check for magnetic snapping to nearby beads
+            this.sliderRenderer.snapToNearbyBeads(bead);
         }
         
-        // Remove this touch
-        this.dragState.activeTouches.splice(touchIndex, 1);
+        // Reset drag state
+        this.dragState = {
+            isDragging: false,
+            draggedBead: null,
+            startX: 0,
+            startY: 0,
+            startPosition: 0,
+            hasStartedMoving: false,
+            connectedBlock: []
+        };
         
-        // If no more active touches, end dragging
-        if (this.dragState.activeTouches.length === 0) {
-            this.dragState.isDragging = false;
-            
-            // Check if game state has changed
-            setTimeout(() => {
-                this.checkGameState();
-            }, 300);
-        }
+        // Check game state after a delay
+        setTimeout(() => this.checkGameState(), 300);
     }
     
     checkGameState() {
@@ -380,49 +323,39 @@ class SliderGameController {
     handleCorrectAnswer(buttonElement) {
         // Flash green
         buttonElement.classList.add('correct');
-        setTimeout(() => {
-            buttonElement.classList.remove('correct');
-        }, CONFIG.FLASH_DURATION);
+        setTimeout(() => buttonElement.classList.remove('correct'), CONFIG.FLASH_DURATION);
         
         // Add rainbow piece
         this.rainbow.addPiece();
         
-        // Play completion sound
+        // Play sound
         this.playCompletionSound();
         
         // Encouragement
         if (this.audioEnabled) {
             const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-            setTimeout(() => {
-                this.speakText(randomEncouragement);
-            }, 400);
+            setTimeout(() => this.speakText(randomEncouragement), 400);
         }
         
         this.currentQuestion++;
         this.expectedBeadsOnRight += 2;
         this.awaitingButtonPress = false;
         
-        // Check if game is complete
+        // Check if game complete
         if (this.rainbow.isComplete()) {
-            setTimeout(() => {
-                this.completeGame();
-            }, CONFIG.NEXT_QUESTION_DELAY);
+            setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
             return;
         }
         
         // Start next question
-        setTimeout(() => {
-            this.startNewQuestion();
-        }, CONFIG.NEXT_QUESTION_DELAY);
+        setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY);
     }
     
     handleIncorrectAnswer(buttonElement) {
         // Flash red
         buttonElement.classList.add('incorrect');
-        setTimeout(() => {
-            buttonElement.classList.remove('incorrect');
-        }, CONFIG.FLASH_DURATION);
+        setTimeout(() => buttonElement.classList.remove('incorrect'), CONFIG.FLASH_DURATION);
         
         // Play failure sound
         this.playFailureSound();
@@ -449,12 +382,12 @@ class SliderGameController {
         
         this.dragState = {
             isDragging: false,
-            draggedBeads: [],
+            draggedBead: null,
             startX: 0,
             startY: 0,
-            lastX: 0,
-            lastY: 0,
-            activeTouches: []
+            startPosition: 0,
+            hasStartedMoving: false,
+            connectedBlock: []
         };
         
         this.rainbow.reset();
@@ -463,9 +396,7 @@ class SliderGameController {
         this.shuffleButtons();
         this.modal.classList.add('hidden');
         
-        setTimeout(() => {
-            this.startNewQuestion();
-        }, 500);
+        setTimeout(() => this.startNewQuestion(), 500);
     }
     
     completeGame() {
@@ -475,7 +406,7 @@ class SliderGameController {
         // Start bear celebration
         this.bear.startCelebration();
         
-        // Give completion audio message
+        // Give completion message
         if (this.audioEnabled) {
             setTimeout(() => {
                 this.speakText('Well done! You have correctly counted all the beads. Play again or return to the home page.');
@@ -493,6 +424,7 @@ class SliderGameController {
             oscillator.connect(gainNode);
             gainNode.connect(this.audioContext.destination);
             
+            // Pleasant ascending tones
             oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
             oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
             oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
@@ -517,6 +449,7 @@ class SliderGameController {
             oscillator.connect(gainNode);
             gainNode.connect(this.audioContext.destination);
             
+            // Descending tone for incorrect answer
             oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
             
@@ -554,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.sliderGame = new SliderGameController();
 });
 
-// Clean up resources when page is about to unload
+// Clean up resources when page unloads
 window.addEventListener('beforeunload', () => {
     if (window.sliderGame) {
         window.sliderGame.destroy();
