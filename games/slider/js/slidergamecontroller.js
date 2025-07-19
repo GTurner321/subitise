@@ -386,7 +386,7 @@ class SliderGameController {
         
         console.log(`Question ${this.currentQuestion}, now expecting ${this.expectedBeadsOnRight} beads on right`);
         
-        // Check if game complete (all 20 beads on right side)
+        // Check if game complete - only when we've reached 20 beads and pressed the 20 button
         if (this.expectedBeadsOnRight > 20) {
             setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
             return;
