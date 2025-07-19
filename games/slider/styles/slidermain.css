@@ -27,9 +27,26 @@ body {
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     z-index: 1003;
+    
+    /* Touch support */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    pointer-events: auto;
+    cursor: pointer;
+    
+    /* Proper touch target size */
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.back-button:hover {
+.back-button:hover,
+.back-button:active,
+.back-button:focus {
     background: white;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.15);
@@ -92,7 +109,7 @@ body {
     pointer-events: none;
 }
 
-/* Slider bars - positioning will be handled by JavaScript */
+/* Slider bars - positioning handled by JavaScript */
 .slider-bar {
     background: #808080;
     border-top: 2px solid #333;
@@ -163,6 +180,13 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    
+    /* Touch support */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    pointer-events: auto;
 }
 
 .number-btn:hover {
@@ -219,19 +243,23 @@ body {
 .number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
 .number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
 
-/* Game over modal */
+/* Game completion modal */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: transparent;
+    background: transparent; /* Transparent to see bears behind */
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    pointer-events: none;
+    pointer-events: none; /* Don't block game interaction */
+}
+
+.modal.hidden {
+    display: none !important;
 }
 
 .modal-content {
@@ -240,7 +268,8 @@ body {
     border-radius: 20px;
     text-align: center;
     animation: modalAppear 0.5s ease;
-    pointer-events: auto;
+    pointer-events: auto; /* Only modal content is interactive */
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
 
 @keyframes modalAppear {
@@ -272,6 +301,10 @@ body {
     font-weight: bold;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
+    
+    /* Touch support */
+    touch-action: manipulation;
+    pointer-events: auto;
 }
 
 .play-again-btn:hover {
@@ -310,93 +343,4 @@ body {
 
 .completion-effect {
     pointer-events: none;
-}
-
-/* Add this to your slidermain.css file to fix touch events on the back button */
-
-.back-button {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    color: #333;
-    text-decoration: none;
-    padding: 10px 20px;
-    border-radius: 25px;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    z-index: 1003;
-    
-    /* Enable touch events */
-    touch-action: manipulation;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-.back-button:hover,
-.back-button:active {
-    background: white;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-}
-
-/* Ensure touch targets are large enough */
-.back-button {
-    min-height: 44px; /* iOS recommended minimum touch target */
-    min-width: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Fix for number buttons too */
-.number-btn {
-    width: 90px;
-    height: 90px;
-    border: none;
-    border-radius: 18px;
-    font-size: 3rem;
-    font-weight: bold;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    
-    /* Enable touch events */
-    touch-action: manipulation;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-/* Remove any background overlay from modal - keep game area fully visible */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: transparent; /* NO background overlay at all */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    pointer-events: none; /* Don't block interaction with game area */
-}
-
-/* CRITICAL: Ensure hidden modal is actually hidden */
-.modal.hidden {
-    display: none !important;
-}
-
-.modal-content {
-    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-    padding: 40px;
-    border-radius: 20px;
-    text-align: center;
-    animation: modalAppear 0.5s ease;
-    pointer-events: auto; /* Only the modal content itself is interactive */
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
