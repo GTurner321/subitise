@@ -98,6 +98,7 @@ class SliderGameController {
     
     toggleAudio() {
         this.audioEnabled = !this.audioEnabled;
+        CONFIG.AUDIO_ENABLED = this.audioEnabled; // Update the global config too
         this.updateMuteButtonIcon();
         
         if ('speechSynthesis' in window) {
@@ -113,14 +114,18 @@ class SliderGameController {
         if (!this.audioEnabled || !('speechSynthesis' in window)) return;
         
         try {
+            // Cancel any existing speech to prevent overlap
             speechSynthesis.cancel();
             
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 0.9;
-            utterance.pitch = 1.3;
-            utterance.volume = 0.8;
-            
-            speechSynthesis.speak(utterance);
+            // Wait a moment for cancellation to take effect
+            setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.3;
+                utterance.volume = 0.8;
+                
+                speechSynthesis.speak(utterance);
+            }, 50);
         } catch (error) {
             // Silent failure
         }
@@ -213,7 +218,7 @@ class SliderGameController {
         if (!this.dragState.isDragging || !this.dragState.draggedBead) return;
         
         const deltaX = x - this.dragState.startX;
-        const dragThreshold = this.sliderRenderer.beadRadius; // Must drag one radius to start
+        const dragThreshold = this.sliderRenderer.beadRadius;
         
         // Check if we've moved enough to start dragging
         if (!this.dragState.hasStartedMoving && Math.abs(deltaX) < dragThreshold) {
@@ -223,34 +228,29 @@ class SliderGameController {
         if (!this.dragState.hasStartedMoving) {
             this.dragState.hasStartedMoving = true;
             console.log(`Started moving ${this.dragState.draggedBead.id}`);
+            // Update connected beads at the moment movement starts
+            this.dragState.connectedBlock = this.sliderRenderer.getConnectedBeads(this.dragState.draggedBead);
         }
         
-        // Calculate movement direction and distance
+        // Calculate movement direction and distance from the threshold point
         const direction = deltaX > 0 ? 1 : -1;
-        const movementFromThreshold = deltaX - (dragThreshold * Math.sign(deltaX));
-        const positionDelta = movementFromThreshold / this.sliderRenderer.beadDiameter;
+        const movementBeyondThreshold = Math.abs(deltaX) - dragThreshold;
+        const positionDelta = (movementBeyondThreshold / this.sliderRenderer.beadDiameter) * direction;
         
         // Calculate target position
         const targetPosition = this.dragState.startPosition + positionDelta;
         
-        console.log(`Target position: ${targetPosition.toFixed(3)}, delta: ${positionDelta.toFixed(3)}`);
+        console.log(`Drag delta: ${deltaX.toFixed(1)}, position delta: ${positionDelta.toFixed(3)}, target: ${targetPosition.toFixed(3)}`);
         
         // Check how far the block can actually move
         const block = this.dragState.connectedBlock;
-        const maxMovement = this.sliderRenderer.canMoveBlock(block, direction, Math.abs(positionDelta));
+        const requestedDistance = Math.abs(targetPosition - this.dragState.draggedBead.position);
+        const maxMovement = this.sliderRenderer.canMoveBlock(block, direction, requestedDistance);
         
-        // Apply the movement
-        if (maxMovement > 0) {
+        // Apply the movement if there's space
+        if (maxMovement > 0.001) {
             const actualDelta = direction > 0 ? maxMovement : -maxMovement;
-            const newPosition = this.dragState.startPosition + actualDelta;
-            
-            // Move the entire connected block
-            const currentPosition = this.dragState.draggedBead.position;
-            const movementNeeded = newPosition - currentPosition;
-            
-            if (Math.abs(movementNeeded) > 0.001) { // Only move if there's a meaningful difference
-                this.sliderRenderer.moveBlock(block, movementNeeded);
-            }
+            this.sliderRenderer.moveBlock(block, actualDelta);
         }
     }
     
