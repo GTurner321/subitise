@@ -832,13 +832,6 @@ class SliderRenderer {
         
         return hasMiddleBeads;
     }
-        const leftThreshold = 2;
-        const rightThreshold = CONFIG.BEADS_PER_BAR - 3;
-        
-        return this.beads.some(bead => 
-            bead.position > leftThreshold && bead.position < rightThreshold
-        );
-    }
     
     reset() {
         this.initializeBeads();
