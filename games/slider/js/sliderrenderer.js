@@ -511,37 +511,38 @@ class SliderRenderer {
         console.log(`\n=== COUNTING RIGHT-SIDE BEADS (GAP METHOD) ===`);
         
         let totalRightSideBeads = 0;
-        const tolerance = 0.05; // Increased tolerance for floating-point precision
+        const tolerance = 0.15; // Same lenient tolerance as middle beads check
         
         for (let barIndex = 0; barIndex < 2; barIndex++) {
             const gaps = this.barGaps[barIndex];
             const zeroGaps = gaps.filter(g => Math.abs(g) < tolerance).length;
             
-            console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are zero (tolerance: ${tolerance})`);
-            console.log(`  Gap details:`, gaps.map((g, i) => `s${i}:${g.toFixed(3)}`));
+            console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are effectively zero (tolerance: ${tolerance})`);
+            console.log(`  Gap details:`, gaps.map((g, i) => `s${i}:${g.toFixed(4)}`));
             
-            if (zeroGaps === 10) {
-                // Valid arrangement - find which gap is non-zero to determine right-side count
-                const nonZeroGapIndex = gaps.findIndex(g => Math.abs(g) >= tolerance);
+            if (zeroGaps >= 10) {
+                // Valid arrangement - find the largest gap (should be the middle gap)
+                const gapSizes = gaps.map((g, i) => ({ index: i, value: Math.abs(g) }));
+                const largestGap = gapSizes.reduce((max, current) => 
+                    current.value > max.value ? current : max
+                );
                 
-                if (nonZeroGapIndex >= 0) {
-                    // Count beads to the right of the non-zero gap
-                    const beadsToRight = 10 - nonZeroGapIndex; // Total beads minus those to the left
-                    console.log(`  ✅ VALID: Non-zero gap at s${nonZeroGapIndex}, so ${beadsToRight} beads on right`);
-                    totalRightSideBeads += beadsToRight;
-                } else {
-                    console.log(`  ❌ ERROR: All gaps appear zero - impossible state!`);
-                }
+                console.log(`  ✅ VALID: Largest gap is s${largestGap.index} (${largestGap.value.toFixed(4)})`);
+                
+                // Count beads to the right of the largest gap
+                const beadsToRight = 10 - largestGap.index;
+                console.log(`  Beads to right of largest gap: ${beadsToRight}`);
+                totalRightSideBeads += beadsToRight;
             } else if (zeroGaps === 11) {
                 // All gaps zero - means all beads in one spot (error)
                 console.log(`  ❌ ERROR: All 11 gaps are zero - beads overlapping!`);
             } else {
-                console.log(`  ❌ INVALID: Beads scattered (only ${zeroGaps} zero gaps, need exactly 10)`);
+                console.log(`  ❌ INVALID: Beads scattered (only ${zeroGaps} zero gaps, need ≥ 10)`);
                 
                 // Debug: show which gaps are non-zero
                 const nonZeroGaps = gaps.map((g, i) => ({ index: i, value: g }))
                     .filter(item => Math.abs(item.value) >= tolerance);
-                console.log(`  Non-zero gaps:`, nonZeroGaps.map(item => `s${item.index}:${item.value.toFixed(3)}`));
+                console.log(`  Non-zero gaps:`, nonZeroGaps.map(item => `s${item.index}:${item.value.toFixed(4)}`));
             }
         }
         
@@ -559,30 +560,33 @@ class SliderRenderer {
         console.log(`\n=== MIDDLE BEADS CHECK (GAP METHOD) ===`);
         
         let hasMiddleBeads = false;
-        const tolerance = 0.05;
+        const tolerance = 0.15; // Much more lenient tolerance (1.5 mm if 1 unit = 1cm)
         
         for (let barIndex = 0; barIndex < 2; barIndex++) {
             const gaps = this.barGaps[barIndex];
+            
+            // Count gaps that are effectively zero (within tolerance)
             const zeroGaps = gaps.filter(g => Math.abs(g) < tolerance).length;
             
-            console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are zero`);
-            console.log(`  Gap details:`, gaps.map((g, i) => `s${i}:${g.toFixed(3)}`));
+            console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are effectively zero (tolerance: ${tolerance})`);
+            console.log(`  All gap values:`, gaps.map((g, i) => `s${i}:${g.toFixed(4)}`));
             
-            if (zeroGaps !== 10) {
-                // This bar has beads scattered/in middle
-                console.log(`  ❌ Bar ${barIndex} has middle beads (${zeroGaps} zero gaps, need exactly 10)`);
-                hasMiddleBeads = true;
-                
-                // Debug: show which gaps are problematic
-                const nonZeroGaps = gaps.map((g, i) => ({ index: i, value: g }))
-                    .filter(item => Math.abs(item.value) >= tolerance);
-                console.log(`    Non-zero gaps:`, nonZeroGaps.map(item => `s${item.index}:${item.value.toFixed(3)}`));
+            // Also show which gaps are considered "non-zero"
+            const nonZeroGaps = gaps.map((g, i) => ({ index: i, value: g }))
+                .filter(item => Math.abs(item.value) >= tolerance);
+            console.log(`  Non-zero gaps (>=${tolerance}):`, nonZeroGaps.map(item => `s${item.index}:${item.value.toFixed(4)}`));
+            
+            if (zeroGaps >= 10) {
+                // Valid: 10 or 11 gaps are effectively zero
+                console.log(`  ✅ Bar ${barIndex} is VALID (${zeroGaps} effectively zero gaps ≥ 10)`);
             } else {
-                console.log(`  ✅ Bar ${barIndex} is valid (exactly 10 zero gaps - beads in two groups)`);
+                // Invalid: too many significant gaps
+                console.log(`  ❌ Bar ${barIndex} has MIDDLE BEADS (only ${zeroGaps} zero gaps, need ≥ 10)`);
+                hasMiddleBeads = true;
             }
         }
         
-        console.log(`\n*** HAS MIDDLE BEADS: ${hasMiddleBeads ? 'YES' : 'NO'} ***`);
+        console.log(`\n*** FINAL RESULT: ${hasMiddleBeads ? 'HAS MIDDLE BEADS' : 'NO MIDDLE BEADS'} ***`);
         console.log(`=== END MIDDLE BEADS CHECK ===\n`);
         
         return hasMiddleBeads;
