@@ -255,33 +255,34 @@ class SliderGameController {
         
         if (!dragState.hasStartedMoving) {
             dragState.hasStartedMoving = true;
-            dragState.lastProcessedX = dragState.startX; // Track where we last processed movement
+            dragState.lastProcessedX = dragState.startX;
             console.log(`Started moving ${dragState.draggedBead.id} (touch: ${touchId})`);
-            // Update connected beads at the moment movement starts
-            dragState.connectedBlock = this.sliderRenderer.getConnectedBeads(dragState.draggedBead);
         }
         
-        // Calculate movement based on the CHANGE since last processed position, not total from start
+        // Calculate movement based on the CHANGE since last processed position
         const currentDeltaX = x - (dragState.lastProcessedX || dragState.startX);
         
         // Only process movement if there's meaningful change
-        if (Math.abs(currentDeltaX) < 1) return; // Ignore tiny movements
+        if (Math.abs(currentDeltaX) < 1) return;
         
         const direction = currentDeltaX > 0 ? 1 : -1;
         const movementDistance = Math.abs(currentDeltaX) / this.sliderRenderer.beadDiameter;
         
         console.log(`Touch ${touchId} - Current delta: ${currentDeltaX.toFixed(1)}, direction: ${direction > 0 ? 'right' : 'left'}, distance: ${movementDistance.toFixed(3)}`);
         
-        // Check how far the block can actually move in the current direction
-        const block = dragState.connectedBlock;
-        const maxMovement = this.sliderRenderer.canMoveBlock(block, direction, movementDistance);
+        // NEW: Use gap tracking to determine movable block and maximum distance
+        const blockInfo = this.sliderRenderer.getMovableBlockAndDistance(dragState.draggedBead, direction);
+        const maxMovement = Math.min(movementDistance, blockInfo.maxDistance);
         
         // Apply the movement if there's space
         if (maxMovement > 0.001) {
             const actualDelta = direction > 0 ? maxMovement : -maxMovement;
-            this.sliderRenderer.moveBlock(block, actualDelta);
+            this.sliderRenderer.moveBlock(blockInfo.beads, actualDelta);
             
-            // Update the last processed position based on actual movement
+            // Update the connected block for future movements in this drag
+            dragState.connectedBlock = blockInfo.beads;
+            
+            // Update the last processed position
             dragState.lastProcessedX = x;
             console.log(`Moved ${actualDelta.toFixed(3)}, updated lastProcessedX to ${dragState.lastProcessedX}`);
         } else {
