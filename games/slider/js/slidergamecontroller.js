@@ -318,9 +318,20 @@ class SliderGameController {
         // Remove this touch from active touches
         this.dragState.activeTouches.delete(touchId);
         
-        // Check game state after a delay if no more active drags
+        // CRITICAL: Always check game state when any drag ends, regardless of other active drags
+        console.log(`Scheduling game state check after drag end (remaining touches: ${this.dragState.activeTouches.size})`);
+        setTimeout(() => {
+            console.log(`Executing scheduled game state check...`);
+            this.checkGameState();
+        }, 300);
+        
+        // Also check immediately if no more active drags (belt and suspenders approach)
         if (this.dragState.activeTouches.size === 0) {
-            setTimeout(() => this.checkGameState(), 300);
+            console.log(`No more active touches - also checking game state immediately`);
+            setTimeout(() => {
+                console.log(`Executing immediate game state check (no active touches)...`);
+                this.checkGameState();
+            }, 100);
         }
     }
     
@@ -558,6 +569,24 @@ class SliderGameController {
         this.rainbow.reset();
         this.bear.reset();
         this.sliderRenderer.reset();
+    }
+    
+    // Debug function - call from console: window.sliderGame.debugGameState()
+    debugGameState() {
+        console.log(`\n=== MANUAL DEBUG CHECK ===`);
+        console.log(`Current game state:`);
+        console.log(`- Current question: ${this.currentQuestion}`);
+        console.log(`- Expected beads on right: ${this.expectedBeadsOnRight}`);
+        console.log(`- Game complete: ${this.gameComplete}`);
+        console.log(`- Buttons disabled: ${this.buttonsDisabled}`);
+        console.log(`- Awaiting button press: ${this.awaitingButtonPress}`);
+        
+        console.log(`\nForcing game state check...`);
+        this.checkGameState();
+        
+        console.log(`\nAfter check:`);
+        console.log(`- Awaiting button press: ${this.awaitingButtonPress}`);
+        console.log(`=== END MANUAL DEBUG ===\n`);
     }
 }
 
