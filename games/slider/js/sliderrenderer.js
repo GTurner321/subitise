@@ -9,6 +9,12 @@ class SliderRenderer {
         this.beadDiameter = 0;
         this.beadRadius = 0;
         
+        // NEW: Gap tracking system - 11 gaps per bar (s0 to s10)
+        this.barGaps = {
+            0: new Array(11).fill(0), // Top bar gaps
+            1: new Array(11).fill(0)  // Bottom bar gaps
+        };
+        
         // Bar state tracking - positions are continuous values along the bar
         this.barState = {
             0: [], // Top bar: array of {bead, position} sorted by position
@@ -18,12 +24,166 @@ class SliderRenderer {
         this.updateContainerRect();
         this.initializeBeads();
         this.updateBarState();
+        this.calculateAllGaps();
         
         // Update on window resize
         window.addEventListener('resize', () => {
             this.updateContainerRect();
             this.repositionAllBeads();
         });
+    }
+    
+    calculateAllGaps() {
+        // Calculate the 11 gaps for each bar after any bead movement
+        for (let barIndex = 0; barIndex < 2; barIndex++) {
+            this.barGaps[barIndex] = this.calculateBarGaps(barIndex);
+        }
+        
+        console.log('\n=== GAP TRACKING UPDATE ===');
+        console.log(`Top bar gaps:`, this.barGaps[0].map(g => g.toFixed(2)));
+        console.log(`Bottom bar gaps:`, this.barGaps[1].map(g => g.toFixed(2)));
+        
+        // Count zeros for validation
+        const topZeros = this.barGaps[0].filter(g => Math.abs(g) < 0.1).length;
+        const bottomZeros = this.barGaps[1].filter(g => Math.abs(g) < 0.1).length;
+        console.log(`Zero gaps - Top: ${topZeros}/11, Bottom: ${bottomZeros}/11`);
+        console.log(`Valid arrangement: ${topZeros === 10 && bottomZeros === 10 ? 'YES' : 'NO'}`);
+        console.log('=== END GAP TRACKING ===\n');
+    }
+    
+    calculateBarGaps(barIndex) {
+        const barBeads = this.barState[barIndex];
+        const gaps = new Array(11).fill(0);
+        
+        // Calculate playable bar bounds (bar length - 1 radius at each end)
+        const barStartX = this.frameImageRect.width * 0.07;
+        const barEndX = this.frameImageRect.width * 0.92;
+        const barLength = barEndX - barStartX;
+        const playableLength = barLength - this.beadRadius - this.beadRadius; // Subtract radius at each end
+        const playableStart = this.beadRadius / this.beadDiameter; // Start position in diameter units
+        const playableEnd = playableLength / this.beadDiameter + playableStart; // End position in diameter units
+        
+        console.log(`Bar ${barIndex}: playable from ${playableStart.toFixed(2)} to ${playableEnd.toFixed(2)} (diameter units)`);
+        
+        if (barBeads.length === 0) {
+            // No beads - entire playable length is one big gap at s0
+            gaps[0] = playableLength / this.beadDiameter;
+            return gaps;
+        }
+        
+        // Sort beads by position
+        const sortedBeads = [...barBeads].sort((a, b) => a.position - b.position);
+        
+        console.log(`Bar ${barIndex} bead positions:`, sortedBeads.map(b => `${b.bead.id}(${b.position.toFixed(2)})`));
+        
+        // s0: Gap from playable start to first bead
+        const firstBeadPos = sortedBeads[0].position;
+        gaps[0] = Math.max(0, firstBeadPos - playableStart - 0.5); // -0.5 for bead radius
+        
+        // s1 to s9: Gaps between consecutive beads
+        for (let i = 0; i < sortedBeads.length - 1; i++) {
+            const currentBead = sortedBeads[i];
+            const nextBead = sortedBeads[i + 1];
+            const gapSize = nextBead.position - currentBead.position - 1.0; // -1.0 for one diameter
+            gaps[i + 1] = Math.max(0, gapSize);
+        }
+        
+        // s10: Gap from last bead to playable end
+        const lastBeadPos = sortedBeads[sortedBeads.length - 1].position;
+        gaps[10] = Math.max(0, playableEnd - lastBeadPos - 0.5); // -0.5 for bead radius
+        
+        console.log(`Bar ${barIndex} calculated gaps:`, gaps.map((g, i) => `s${i}:${g.toFixed(2)}`));
+        
+        return gaps;
+    }
+    
+    getMovableBlockAndDistance(bead, direction) {
+        // Use gap tracking to determine which beads can move together and how far
+        const barIndex = bead.barIndex;
+        const barBeads = this.barState[barIndex];
+        const beadIndex = barBeads.findIndex(item => item.bead === bead);
+        
+        if (beadIndex === -1) return { beads: [bead], maxDistance: 0 };
+        
+        const gaps = this.barGaps[barIndex];
+        const movableBeads = [bead];
+        let maxDistance = 0;
+        
+        console.log(`\nAnalyzing movement for ${bead.id} in direction ${direction > 0 ? 'right' : 'left'}`);
+        console.log(`Bead is at index ${beadIndex} in sorted bar array`);
+        console.log(`Current gaps:`, gaps.map((g, i) => `s${i}:${g.toFixed(2)}`));
+        
+        if (direction > 0) {
+            // Moving right - check consecutive zeros to the right
+            console.log(`Checking gaps to the right starting from s${beadIndex + 1}...`);
+            
+            // Count consecutive zero gaps to the right
+            let consecutiveZeros = 0;
+            for (let i = beadIndex + 1; i < gaps.length - 1; i++) { // Don't include s10 in block detection
+                if (Math.abs(gaps[i]) < 0.1) { // Consider < 0.1 as zero (floating point tolerance)
+                    consecutiveZeros++;
+                    console.log(`  s${i} = ${gaps[i].toFixed(2)} (zero) - adding bead to block`);
+                } else {
+                    console.log(`  s${i} = ${gaps[i].toFixed(2)} (non-zero) - stopping block detection`);
+                    break;
+                }
+            }
+            
+            // Add connected beads to the right
+            for (let i = 1; i <= consecutiveZeros; i++) {
+                if (beadIndex + i < barBeads.length) {
+                    movableBeads.push(barBeads[beadIndex + i].bead);
+                }
+            }
+            
+            // Maximum distance is the first non-zero gap after the consecutive zeros
+            const limitingGapIndex = beadIndex + 1 + consecutiveZeros;
+            if (limitingGapIndex < gaps.length) {
+                maxDistance = gaps[limitingGapIndex];
+            }
+            
+            console.log(`Found ${consecutiveZeros} consecutive zero gaps to right`);
+            console.log(`Limiting gap s${limitingGapIndex} = ${maxDistance.toFixed(2)}`);
+            
+        } else {
+            // Moving left - check consecutive zeros to the left
+            console.log(`Checking gaps to the left starting from s${beadIndex}...`);
+            
+            // Count consecutive zero gaps to the left
+            let consecutiveZeros = 0;
+            for (let i = beadIndex; i > 0; i--) { // Don't include s0 in block detection
+                if (Math.abs(gaps[i]) < 0.1) { // Consider < 0.1 as zero
+                    consecutiveZeros++;
+                    console.log(`  s${i} = ${gaps[i].toFixed(2)} (zero) - adding bead to block`);
+                } else {
+                    console.log(`  s${i} = ${gaps[i].toFixed(2)} (non-zero) - stopping block detection`);
+                    break;
+                }
+            }
+            
+            // Add connected beads to the left
+            for (let i = 1; i <= consecutiveZeros; i++) {
+                if (beadIndex - i >= 0) {
+                    movableBeads.unshift(barBeads[beadIndex - i].bead);
+                }
+            }
+            
+            // Maximum distance is the first non-zero gap before the consecutive zeros
+            const limitingGapIndex = beadIndex - consecutiveZeros;
+            if (limitingGapIndex >= 0) {
+                maxDistance = gaps[limitingGapIndex];
+            }
+            
+            console.log(`Found ${consecutiveZeros} consecutive zero gaps to left`);
+            console.log(`Limiting gap s${limitingGapIndex} = ${maxDistance.toFixed(2)}`);
+        }
+        
+        console.log(`Movable block: ${movableBeads.map(b => b.id)}, max distance: ${maxDistance.toFixed(2)}`);
+        
+        return {
+            beads: movableBeads,
+            maxDistance: Math.max(0, maxDistance)
+        };
     }
     
     updateContainerRect() {
@@ -163,6 +323,9 @@ class SliderRenderer {
                 .map(bead => ({ bead, position: bead.position }))
                 .sort((a, b) => a.position - b.position);
         }
+        
+        // Update gaps after state change
+        this.calculateAllGaps();
         
         console.log('Bar state updated:');
         console.log('Top bar:', this.barState[0].map(item => `${item.bead.id}(${item.position.toFixed(2)})`));
@@ -309,37 +472,10 @@ class SliderRenderer {
     }
     
     moveBlock(block, distance) {
-        // Move all beads in the block by the given distance, but check for conflicts first
-        console.log(`moveBlock: Moving ${block.length} beads by ${distance.toFixed(3)}`);
+        // Move all beads in the block by the given distance using gap-tracking validation
+        console.log(`\nmoveBlock: Moving ${block.length} beads by ${distance.toFixed(3)}`);
         
-        // CRITICAL: Before moving, check if this would cause any overlaps
-        const barIndex = block[0].barIndex;
-        const barBeads = this.barState[barIndex];
-        const otherBeads = barBeads.filter(item => !block.includes(item.bead));
-        
-        // Calculate where each bead in the block would end up
-        let wouldOverlap = false;
-        for (let bead of block) {
-            const newPosition = bead.position + distance;
-            
-            // Check against all other beads on the same bar
-            for (let otherBeadInfo of otherBeads) {
-                const distanceToOther = Math.abs(newPosition - otherBeadInfo.position);
-                if (distanceToOther < 0.9) { // Too close!
-                    console.log(`  OVERLAP PREVENTED: ${bead.id} would be ${distanceToOther.toFixed(3)} from ${otherBeadInfo.bead.id}`);
-                    wouldOverlap = true;
-                    break;
-                }
-            }
-            if (wouldOverlap) break;
-        }
-        
-        if (wouldOverlap) {
-            console.log(`  ❌ MOVEMENT BLOCKED: Would cause overlap`);
-            return; // Don't move at all if it would cause overlap
-        }
-        
-        // Safe to move - apply the movement
+        // Move each bead in the block
         block.forEach(bead => {
             const oldPosition = bead.position;
             bead.position += distance;
@@ -347,14 +483,60 @@ class SliderRenderer {
             this.positionBead(bead);
         });
         
+        // Update bar state and recalculate gaps
         this.updateBarState();
+        this.calculateAllGaps();
+    }
+    
+    countBeadsOnRightSide() {
+        // Count beads that are properly arranged from the right end with no gaps
+        // Using gap tracking: valid arrangement has exactly 10 zero gaps per bar
         
-        // Log all bead positions after movement for debugging
-        console.log('All bead positions after movement:');
-        this.beads.forEach(bead => {
-            const beadRect = bead.element.getBoundingClientRect();
-            console.log(`  ${bead.id}: position ${bead.position.toFixed(3)}, screen coords (${beadRect.left.toFixed(1)}, ${beadRect.top.toFixed(1)}), visible: ${beadRect.width > 0 && beadRect.height > 0}`);
-        });
+        console.log(`\n=== COUNTING RIGHT-SIDE BEADS (GAP METHOD) ===`);
+        
+        let totalRightSideBeads = 0;
+        
+        for (let barIndex = 0; barIndex < 2; barIndex++) {
+            const gaps = this.barGaps[barIndex];
+            const zeroGaps = gaps.filter(g => Math.abs(g) < 0.1).length;
+            
+            console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are zero`);
+            
+            if (zeroGaps === 10) {
+                // Valid arrangement - find which gap is non-zero to determine right-side count
+                const nonZeroGapIndex = gaps.findIndex(g => Math.abs(g) >= 0.1);
+                
+                if (nonZeroGapIndex >= 0) {
+                    // Count beads to the right of the non-zero gap
+                    const beadsToRight = 10 - nonZeroGapIndex; // Total beads minus those to the left
+                    console.log(`  Non-zero gap at s${nonZeroGapIndex}, so ${beadsToRight} beads on right`);
+                    totalRightSideBeads += beadsToRight;
+                } else {
+                    console.log(`  All gaps zero - should not happen!`);
+                }
+            } else {
+                console.log(`  Invalid arrangement - beads scattered (only ${zeroGaps} zero gaps)`);
+            }
+        }
+        
+        console.log(`\n*** TOTAL RIGHT-SIDE BEADS: ${totalRightSideBeads} ***\n`);
+        return totalRightSideBeads;
+    }
+    
+    hasBeadsInMiddle() {
+        // Using gap tracking: if both bars have exactly 10 zero gaps, no beads are in middle
+        const topZeros = this.barGaps[0].filter(g => Math.abs(g) < 0.1).length;
+        const bottomZeros = this.barGaps[1].filter(g => Math.abs(g) < 0.1).length;
+        
+        const hasMiddleBeads = !(topZeros === 10 && bottomZeros === 10);
+        
+        console.log(`\n=== MIDDLE BEADS CHECK (GAP METHOD) ===`);
+        console.log(`Top bar zero gaps: ${topZeros}/11`);
+        console.log(`Bottom bar zero gaps: ${bottomZeros}/11`);
+        console.log(`Has middle beads: ${hasMiddleBeads ? 'YES' : 'NO'}`);
+        console.log(`=== END MIDDLE BEADS CHECK ===\n`);
+        
+        return hasMiddleBeads;
     }
     
     snapToNearbyBeads(bead, snapRadius = 1.0) {
