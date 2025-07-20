@@ -357,7 +357,7 @@ class SliderGameController {
         
         // Check if we have the expected number of beads on the right side
         if (rightSideCount === this.expectedBeadsOnRight && !this.awaitingButtonPress) {
-            console.log(`✅ READY: ${rightSideCount} beads on right matches expected ${this.expectedBeadsOnRight}`);
+            console.log(`✅ READY: ${rightSideCount} beads on right matches expected ${this.expectedBeadsOnRight} - ENABLING BUTTON`);
             this.awaitingButtonPress = true;
             this.speakText(`Now select the button underneath for the number of beads on the right side.`);
         }
@@ -375,6 +375,7 @@ class SliderGameController {
             console.log(`✅ STILL READY: Already awaiting button press for ${this.expectedBeadsOnRight} beads`);
         }
         
+        console.log(`FINAL STATE: awaitingButtonPress = ${this.awaitingButtonPress}`);
         console.log(`=== END GAME STATE CHECK ===\n`);
     }
     
