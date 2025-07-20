@@ -68,6 +68,7 @@ class SliderRenderer {
         if (barBeads.length === 0) {
             // No beads - entire playable length is one big gap at s0
             gaps[0] = playableLength / this.beadDiameter;
+            console.log(`Bar ${barIndex} empty - full gap at s0: ${gaps[0].toFixed(2)}`);
             return gaps;
         }
         
@@ -76,23 +77,38 @@ class SliderRenderer {
         
         console.log(`Bar ${barIndex} bead positions:`, sortedBeads.map(b => `${b.bead.id}(${b.position.toFixed(2)})`));
         
-        // s0: Gap from playable start to first bead
-        const firstBeadPos = sortedBeads[0].position;
-        gaps[0] = Math.max(0, firstBeadPos - playableStart - 0.5); // -0.5 for bead radius
+        // CRITICAL: Use exact bead edge positions for gap calculations
+        // s0: Gap from playable start to left edge of first bead
+        const firstBeadLeftEdge = sortedBeads[0].position - 0.5;
+        gaps[0] = Math.max(0, firstBeadLeftEdge - playableStart);
         
-        // s1 to s9: Gaps between consecutive beads
+        // s1 to s(n-1): Gaps between consecutive beads (edge to edge)
         for (let i = 0; i < sortedBeads.length - 1; i++) {
-            const currentBead = sortedBeads[i];
-            const nextBead = sortedBeads[i + 1];
-            const gapSize = nextBead.position - currentBead.position - 1.0; // -1.0 for one diameter
+            const currentBeadRightEdge = sortedBeads[i].position + 0.5;
+            const nextBeadLeftEdge = sortedBeads[i + 1].position - 0.5;
+            const gapSize = nextBeadLeftEdge - currentBeadRightEdge;
             gaps[i + 1] = Math.max(0, gapSize);
+            
+            console.log(`Gap s${i + 1}: from ${sortedBeads[i].bead.id} right edge (${currentBeadRightEdge.toFixed(2)}) to ${sortedBeads[i + 1].bead.id} left edge (${nextBeadLeftEdge.toFixed(2)}) = ${gapSize.toFixed(2)}`);
         }
         
-        // s10: Gap from last bead to playable end
-        const lastBeadPos = sortedBeads[sortedBeads.length - 1].position;
-        gaps[10] = Math.max(0, playableEnd - lastBeadPos - 0.5); // -0.5 for bead radius
+        // Fill remaining gaps with 0 (for bars with fewer than 10 beads)
+        for (let i = sortedBeads.length; i < 10; i++) {
+            gaps[i + 1] = 0;
+        }
+        
+        // s10: Gap from right edge of last bead to playable end
+        const lastBeadRightEdge = sortedBeads[sortedBeads.length - 1].position + 0.5;
+        gaps[10] = Math.max(0, playableEnd - lastBeadRightEdge);
         
         console.log(`Bar ${barIndex} calculated gaps:`, gaps.map((g, i) => `s${i}:${g.toFixed(2)}`));
+        
+        // VALIDATION: Check for any negative gaps (would indicate overlap)
+        const negativeGaps = gaps.filter(g => g < -0.01);
+        if (negativeGaps.length > 0) {
+            console.error(`❌ OVERLAP DETECTED: Negative gaps found on bar ${barIndex}!`);
+            console.error(`Gaps:`, gaps.map((g, i) => `s${i}:${g.toFixed(2)}`));
+        }
         
         return gaps;
     }
@@ -495,45 +511,78 @@ class SliderRenderer {
         console.log(`\n=== COUNTING RIGHT-SIDE BEADS (GAP METHOD) ===`);
         
         let totalRightSideBeads = 0;
+        const tolerance = 0.05; // Increased tolerance for floating-point precision
         
         for (let barIndex = 0; barIndex < 2; barIndex++) {
             const gaps = this.barGaps[barIndex];
-            const zeroGaps = gaps.filter(g => Math.abs(g) < 0.1).length;
+            const zeroGaps = gaps.filter(g => Math.abs(g) < tolerance).length;
             
-            console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are zero`);
+            console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are zero (tolerance: ${tolerance})`);
+            console.log(`  Gap details:`, gaps.map((g, i) => `s${i}:${g.toFixed(3)}`));
             
             if (zeroGaps === 10) {
                 // Valid arrangement - find which gap is non-zero to determine right-side count
-                const nonZeroGapIndex = gaps.findIndex(g => Math.abs(g) >= 0.1);
+                const nonZeroGapIndex = gaps.findIndex(g => Math.abs(g) >= tolerance);
                 
                 if (nonZeroGapIndex >= 0) {
                     // Count beads to the right of the non-zero gap
                     const beadsToRight = 10 - nonZeroGapIndex; // Total beads minus those to the left
-                    console.log(`  Non-zero gap at s${nonZeroGapIndex}, so ${beadsToRight} beads on right`);
+                    console.log(`  ✅ VALID: Non-zero gap at s${nonZeroGapIndex}, so ${beadsToRight} beads on right`);
                     totalRightSideBeads += beadsToRight;
                 } else {
-                    console.log(`  All gaps zero - should not happen!`);
+                    console.log(`  ❌ ERROR: All gaps appear zero - impossible state!`);
                 }
+            } else if (zeroGaps === 11) {
+                // All gaps zero - means all beads in one spot (error)
+                console.log(`  ❌ ERROR: All 11 gaps are zero - beads overlapping!`);
             } else {
-                console.log(`  Invalid arrangement - beads scattered (only ${zeroGaps} zero gaps)`);
+                console.log(`  ❌ INVALID: Beads scattered (only ${zeroGaps} zero gaps, need exactly 10)`);
+                
+                // Debug: show which gaps are non-zero
+                const nonZeroGaps = gaps.map((g, i) => ({ index: i, value: g }))
+                    .filter(item => Math.abs(item.value) >= tolerance);
+                console.log(`  Non-zero gaps:`, nonZeroGaps.map(item => `s${item.index}:${item.value.toFixed(3)}`));
             }
         }
         
-        console.log(`\n*** TOTAL RIGHT-SIDE BEADS: ${totalRightSideBeads} ***\n`);
+        console.log(`\n*** TOTAL RIGHT-SIDE BEADS: ${totalRightSideBeads} ***`);
+        console.log(`Expected for button activation: ${window.sliderGame ? window.sliderGame.expectedBeadsOnRight : 'unknown'}`);
+        console.log(`=== END COUNTING ===\n`);
+        
         return totalRightSideBeads;
     }
     
     hasBeadsInMiddle() {
-        // Using gap tracking: if both bars have exactly 10 zero gaps, no beads are in middle
-        const topZeros = this.barGaps[0].filter(g => Math.abs(g) < 0.1).length;
-        const bottomZeros = this.barGaps[1].filter(g => Math.abs(g) < 0.1).length;
-        
-        const hasMiddleBeads = !(topZeros === 10 && bottomZeros === 10);
+        // Using gap tracking: if EACH bar INDIVIDUALLY has exactly 10 zero gaps, 
+        // then that bar has no middle beads (beads are in two groups from the ends)
         
         console.log(`\n=== MIDDLE BEADS CHECK (GAP METHOD) ===`);
-        console.log(`Top bar zero gaps: ${topZeros}/11`);
-        console.log(`Bottom bar zero gaps: ${bottomZeros}/11`);
-        console.log(`Has middle beads: ${hasMiddleBeads ? 'YES' : 'NO'}`);
+        
+        let hasMiddleBeads = false;
+        const tolerance = 0.05;
+        
+        for (let barIndex = 0; barIndex < 2; barIndex++) {
+            const gaps = this.barGaps[barIndex];
+            const zeroGaps = gaps.filter(g => Math.abs(g) < tolerance).length;
+            
+            console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are zero`);
+            console.log(`  Gap details:`, gaps.map((g, i) => `s${i}:${g.toFixed(3)}`));
+            
+            if (zeroGaps !== 10) {
+                // This bar has beads scattered/in middle
+                console.log(`  ❌ Bar ${barIndex} has middle beads (${zeroGaps} zero gaps, need exactly 10)`);
+                hasMiddleBeads = true;
+                
+                // Debug: show which gaps are problematic
+                const nonZeroGaps = gaps.map((g, i) => ({ index: i, value: g }))
+                    .filter(item => Math.abs(item.value) >= tolerance);
+                console.log(`    Non-zero gaps:`, nonZeroGaps.map(item => `s${item.index}:${item.value.toFixed(3)}`));
+            } else {
+                console.log(`  ✅ Bar ${barIndex} is valid (exactly 10 zero gaps - beads in two groups)`);
+            }
+        }
+        
+        console.log(`\n*** HAS MIDDLE BEADS: ${hasMiddleBeads ? 'YES' : 'NO'} ***`);
         console.log(`=== END MIDDLE BEADS CHECK ===\n`);
         
         return hasMiddleBeads;
