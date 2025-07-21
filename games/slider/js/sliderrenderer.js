@@ -429,37 +429,76 @@ class SliderRenderer {
     }
     
     hasBeadsInMiddle() {
-        // Check if all beads are properly arranged in groups from the ends
-        const tolerance = 0.3;
+        // Check using the 11-gap criteria: valid arrangement has exactly 10 zero gaps per bar
+        // (10 beads can create at most 10 zero gaps, with 1 non-zero gap remaining)
+        const tolerance = 0.1; // Round zeros to nearest 0.1 diameter
         
         for (let barIndex = 0; barIndex < 2; barIndex++) {
-            const barBeads = this.beads.filter(bead => bead.barIndex === barIndex);
-            const sortedBeads = barBeads.sort((a, b) => a.position - b.position);
+            const gaps = this.calculateBarGaps(barIndex);
             
-            if (sortedBeads.length === 0) continue;
+            // Count gaps that are effectively zero (within tolerance)
+            const zeroGaps = gaps.filter(g => Math.abs(g) < tolerance).length;
             
-            // Check for gaps in the arrangement
-            let hasGap = false;
-            let lastValidPosition = -1;
+            console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are zero (tolerance: ${tolerance})`);
+            console.log(`  Gap values:`, gaps.map((g, i) => `s${i}:${g.toFixed(3)}`));
             
-            for (let i = 0; i < sortedBeads.length; i++) {
-                const bead = sortedBeads[i];
-                const expectedPosition = lastValidPosition + 1;
-                
-                if (lastValidPosition >= 0 && Math.abs(bead.position - expectedPosition) > tolerance) {
-                    hasGap = true;
-                    break;
-                }
-                
-                lastValidPosition = bead.position;
-            }
-            
-            if (hasGap) {
-                return true; // Found beads in middle
+            // Need exactly 10 zero gaps for valid arrangement
+            // (10 beads touching = 10 zero gaps, 1 remaining gap for unused space)
+            if (zeroGaps !== 10) {
+                console.log(`  ❌ Bar ${barIndex} has middle beads (${zeroGaps} zero gaps, need exactly 10)`);
+                return true; // Has middle beads
+            } else {
+                console.log(`  ✅ Bar ${barIndex} is valid (exactly 10 zero gaps)`);
             }
         }
         
-        return false;
+        console.log(`✅ No middle beads - all bars have valid arrangements`);
+        return false; // No middle beads
+    }
+    
+    calculateBarGaps(barIndex) {
+        const barBeads = this.barState[barIndex];
+        const gaps = new Array(11).fill(0);
+        
+        // Calculate playable bar bounds
+        const barStartX = this.frameImageRect.width * 0.07;
+        const barEndX = this.frameImageRect.width * 0.92;
+        const barLength = barEndX - barStartX;
+        const playableLength = barLength - (2 * this.beadRadius);
+        const playableStart = this.beadRadius / this.beadDiameter;
+        const playableEnd = playableLength / this.beadDiameter + playableStart;
+        
+        if (barBeads.length === 0) {
+            // No beads - entire playable length is one big gap at s0
+            gaps[0] = playableLength / this.beadDiameter;
+            return gaps;
+        }
+        
+        // Sort beads by position
+        const sortedBeads = [...barBeads].sort((a, b) => a.position - b.position);
+        
+        // s0: Gap from playable start to left edge of first bead
+        const firstBeadLeftEdge = sortedBeads[0].position - 0.5;
+        gaps[0] = Math.max(0, firstBeadLeftEdge - playableStart);
+        
+        // s1 to s(n-1): Gaps between consecutive beads (edge to edge)
+        for (let i = 0; i < sortedBeads.length - 1; i++) {
+            const currentBeadRightEdge = sortedBeads[i].position + 0.5;
+            const nextBeadLeftEdge = sortedBeads[i + 1].position - 0.5;
+            const gapSize = nextBeadLeftEdge - currentBeadRightEdge;
+            gaps[i + 1] = Math.max(0, gapSize);
+        }
+        
+        // Fill remaining gaps with 0 (for bars with fewer than 10 beads)
+        for (let i = sortedBeads.length; i < 10; i++) {
+            gaps[i + 1] = 0;
+        }
+        
+        // s10: Gap from right edge of last bead to playable end
+        const lastBeadRightEdge = sortedBeads[sortedBeads.length - 1].position + 0.5;
+        gaps[10] = Math.max(0, playableEnd - lastBeadRightEdge);
+        
+        return gaps;
     }
     
     repositionAllBeads() {
