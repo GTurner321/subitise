@@ -3,6 +3,7 @@ class SliderGameController {
         this.sliderRenderer = new SliderRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
+        this.guineaPigWave = new GuineaPigWave('../../assets/raisin/');
         
         // Game state
         this.currentQuestion = 1;
@@ -124,6 +125,11 @@ class SliderGameController {
         }
         this.invalidArrangementStartTime = null;
         this.readyForAnswerStartTime = null;
+        
+        // Also stop guinea pig animation if running
+        if (this.guineaPigWave) {
+            this.guineaPigWave.stopAnimation();
+        }
     }
         const muteContainer = document.createElement('div');
         muteContainer.style.cssText = `
@@ -464,6 +470,7 @@ class SliderGameController {
                     }
                     
                     this.showArrow();
+                    this.guineaPigWave.startAnimation(); // Start guinea pig animation
                     this.awaitingButtonPress = true;
                 }, 3000);
             }
