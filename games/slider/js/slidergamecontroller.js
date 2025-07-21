@@ -145,7 +145,7 @@ class SliderGameController {
     createArrowElement() {
         this.arrowElement = document.createElement('img');
         this.arrowElement.className = 'slider-arrow';
-        this.arrowElement.src = 'assets/slider/uparrow.png';
+        this.arrowElement.src = '../../assets/slider/uparrow.png'; // Fixed path from slider game folder
         this.arrowElement.alt = 'Up Arrow';
         
         this.arrowElement.style.cssText = `
@@ -158,6 +158,30 @@ class SliderGameController {
         
         this.positionArrow();
         document.body.appendChild(this.arrowElement);
+        
+        // Add error handling for missing image
+        this.arrowElement.addEventListener('error', () => {
+            console.error('Arrow image failed to load:', this.arrowElement.src);
+            // Fallback to text arrow if image fails
+            this.arrowElement.style.display = 'none';
+            const textArrow = document.createElement('div');
+            textArrow.innerHTML = '↑';
+            textArrow.className = 'slider-arrow';
+            textArrow.style.cssText = `
+                position: absolute;
+                font-size: 4rem;
+                color: #1a237e;
+                font-weight: bold;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                opacity: 0;
+                pointer-events: none;
+                z-index: 100;
+                transition: opacity 0.5s ease;
+            `;
+            this.arrowElement.parentNode.replaceChild(textArrow, this.arrowElement);
+            this.arrowElement = textArrow;
+            this.positionArrow();
+        });
         
         window.addEventListener('resize', () => this.positionArrow());
     }
@@ -179,7 +203,15 @@ class SliderGameController {
         const arrowY = frameRect.y + frameRect.height + 10; // 10px below frame
         
         // Center the arrow horizontally on the 75% point
-        this.arrowElement.style.left = `${arrowX - (arrowHeight * 0.3)}px`; // Estimate width as 60% of height
+        // Wait for image to load to get actual width
+        if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
+            const arrowWidth = this.arrowElement.offsetWidth || (arrowHeight * 0.6); // Estimate if not loaded
+            this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`;
+        } else {
+            // Fallback positioning if image not loaded yet
+            this.arrowElement.style.left = `${arrowX - (arrowHeight * 0.3)}px`;
+        }
+        
         this.arrowElement.style.top = `${arrowY}px`;
     }
     
