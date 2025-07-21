@@ -282,17 +282,19 @@ class SliderRenderer {
         this.updateBarState();
     }
     
-    // Enhanced touch target detection with larger areas
+    // Enhanced touch target detection - preserve width, double height
     getBeadAtPosition(x, y) {
         for (let bead of this.beads) {
             const beadRect = bead.element.getBoundingClientRect();
             
-            // Create extended touch target
-            const touchSize = this.beadDiameter * 1.5; // 50% larger touch area
-            const touchLeft = beadRect.left + beadRect.width/2 - touchSize/2;
-            const touchTop = beadRect.top + beadRect.height/2 - touchSize/2;
-            const touchRight = touchLeft + touchSize;
-            const touchBottom = touchTop + touchSize;
+            // Create rectangular touch target: 1 diameter wide × 2 diameters tall
+            const touchWidth = this.beadDiameter;
+            const touchHeight = this.beadDiameter * 2;
+            
+            const touchLeft = beadRect.left + beadRect.width/2 - touchWidth/2;
+            const touchTop = beadRect.top + beadRect.height/2 - touchHeight/2;
+            const touchRight = touchLeft + touchWidth;
+            const touchBottom = touchTop + touchHeight;
             
             if (x >= touchLeft && x <= touchRight &&
                 y >= touchTop && y <= touchBottom) {
