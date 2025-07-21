@@ -11,6 +11,7 @@ class SliderGameController {
         this.gameComplete = false;
         this.buttonsDisabled = false;
         this.awaitingButtonPress = false;
+        this.sliderDisabled = false;
         
         // Multi-touch drag state
         this.dragState = {
@@ -26,25 +27,25 @@ class SliderGameController {
         this.invalidArrangementStartTime = null;
         this.readyForAnswerTimer = null;
         this.readyForAnswerStartTime = null;
-        this.lastValidArrangement = false;
-        this.sliderDisabled = false; // Track if slider is paused
         
-        // Arrow element
+        // UI elements
         this.arrowElement = null;
+        this.muteButton = null;
+        this.muteContainer = null;
         
         // DOM elements
         this.numberButtons = document.querySelectorAll('.number-btn');
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         
-        // Mute button references
-        this.muteButton = null;
-        this.muteContainer = null;
-        
-        this.initializeEventListeners();
+        this.initializeGame();
+    }
+    
+    initializeGame() {
         this.initializeAudio();
         this.createMuteButton();
         this.createArrowElement();
+        this.initializeEventListeners();
         this.shuffleButtons();
         this.startNewQuestion();
     }
@@ -58,83 +59,7 @@ class SliderGameController {
         }
     }
     
-    createArrowElement() {
-        this.arrowElement = document.createElement('div');
-        this.arrowElement.className = 'slider-arrow';
-        this.arrowElement.innerHTML = '↑';
-        this.arrowElement.style.cssText = `
-            position: absolute;
-            font-size: 3rem;
-            color: #1a237e;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            opacity: 0;
-            pointer-events: none;
-            z-index: 100;
-            transition: opacity 0.5s ease;
-        `;
-        
-        // Position arrow at 75% horizontally through the frame image, below slider
-        this.positionArrow();
-        
-        document.body.appendChild(this.arrowElement);
-        
-        // Update arrow position on window resize
-        window.addEventListener('resize', () => this.positionArrow());
-    }
-    
-    positionArrow() {
-        if (!this.arrowElement || !this.sliderRenderer.frameImageRect) return;
-        
-        const frameRect = this.sliderRenderer.frameImageRect;
-        const containerRect = this.sliderRenderer.containerRect;
-        
-        // Position at 75% through the frame width, below the slider
-        const arrowX = frameRect.x + (frameRect.width * 0.75);
-        const arrowY = frameRect.y + (frameRect.height * 0.75); // Below the bottom bar
-        
-        this.arrowElement.style.left = `${arrowX - 24}px`; // Center the arrow (3rem ≈ 48px, so offset by 24px)
-        this.arrowElement.style.top = `${arrowY}px`;
-    }
-    
-    showArrow() {
-        if (!this.arrowElement) return;
-        
-        this.positionArrow();
-        this.arrowElement.style.opacity = '1';
-        
-        // Pulse animation for 4 seconds
-        this.arrowElement.style.animation = 'arrowPulse 1s ease-in-out infinite';
-        
-        // Stop pulsing and fade out after 4 seconds
-        setTimeout(() => {
-            if (this.arrowElement) {
-                this.arrowElement.style.animation = '';
-                this.arrowElement.style.opacity = '0';
-            }
-        }, 4000);
-    }
-    
-    clearTimers() {
-        if (this.invalidArrangementTimer) {
-            clearTimeout(this.invalidArrangementTimer);
-            this.invalidArrangementTimer = null;
-        }
-        if (this.readyForAnswerTimer) {
-            clearTimeout(this.readyForAnswerTimer);
-            this.readyForAnswerTimer = null;
-        }
-        this.invalidArrangementStartTime = null;
-        this.readyForAnswerStartTime = null;
-        
-        // Also stop guinea pig animation if running
-        if (this.guineaPigWave) {
-            this.guineaPigWave.stopAnimation();
-        }
-        
-        // Unpause slider when clearing timers
-        this.sliderDisabled = false;
-    }
+    createMuteButton() {
         const muteContainer = document.createElement('div');
         muteContainer.style.cssText = `
             position: fixed;
@@ -217,6 +142,55 @@ class SliderGameController {
         }
     }
     
+    createArrowElement() {
+        this.arrowElement = document.createElement('div');
+        this.arrowElement.className = 'slider-arrow';
+        this.arrowElement.innerHTML = '↑';
+        this.arrowElement.style.cssText = `
+            position: absolute;
+            font-size: 3rem;
+            color: #1a237e;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        `;
+        
+        this.positionArrow();
+        document.body.appendChild(this.arrowElement);
+        
+        window.addEventListener('resize', () => this.positionArrow());
+    }
+    
+    positionArrow() {
+        if (!this.arrowElement || !this.sliderRenderer.frameImageRect) return;
+        
+        const frameRect = this.sliderRenderer.frameImageRect;
+        
+        const arrowX = frameRect.x + (frameRect.width * 0.75);
+        const arrowY = frameRect.y + (frameRect.height * 0.75);
+        
+        this.arrowElement.style.left = `${arrowX - 24}px`;
+        this.arrowElement.style.top = `${arrowY}px`;
+    }
+    
+    showArrow() {
+        if (!this.arrowElement) return;
+        
+        this.positionArrow();
+        this.arrowElement.style.opacity = '1';
+        this.arrowElement.style.animation = 'arrowPulse 1s ease-in-out infinite';
+        
+        setTimeout(() => {
+            if (this.arrowElement) {
+                this.arrowElement.style.animation = '';
+                this.arrowElement.style.opacity = '0';
+            }
+        }, 4000);
+    }
+    
     speakText(text) {
         if (!this.audioEnabled || !('speechSynthesis' in window)) return;
         
@@ -239,13 +213,11 @@ class SliderGameController {
     shuffleButtons() {
         const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
         
-        // Fisher-Yates shuffle
         for (let i = buttonNumbers.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
         }
         
-        // Apply to buttons
         this.numberButtons.forEach((button, index) => {
             button.dataset.number = buttonNumbers[index];
             button.textContent = buttonNumbers[index];
@@ -253,7 +225,7 @@ class SliderGameController {
     }
     
     initializeEventListeners() {
-        // Number button clicks with enhanced feedback
+        // Number button clicks
         this.numberButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 if (this.buttonsDisabled) return;
@@ -274,7 +246,7 @@ class SliderGameController {
         // Play again button
         this.playAgainBtn.addEventListener('click', () => this.startNewGame());
         
-        // Enhanced drag events with no threshold and touch feedback
+        // Drag events
         this.sliderRenderer.sliderContainer.addEventListener('mousedown', (e) => {
             this.handleDragStart(e.clientX, e.clientY, 'mouse');
         });
@@ -287,7 +259,7 @@ class SliderGameController {
             this.handleDragEnd(e.clientX, e.clientY, 'mouse');
         });
         
-        // Touch events with immediate response
+        // Touch events
         this.sliderRenderer.sliderContainer.addEventListener('touchstart', (e) => {
             e.preventDefault();
             Array.from(e.changedTouches).forEach(touch => {
@@ -311,7 +283,6 @@ class SliderGameController {
     }
     
     handleDragStart(x, y, touchId = 'mouse') {
-        // Ignore drag attempts if slider is disabled
         if (this.sliderDisabled) {
             console.log('Slider disabled - ignoring drag start');
             return;
@@ -320,9 +291,6 @@ class SliderGameController {
         const bead = this.sliderRenderer.getBeadAtPosition(x, y);
         if (!bead) return;
         
-        console.log(`Drag started on ${bead.id} (touch: ${touchId})`);
-        
-        // Set visual feedback immediately
         this.sliderRenderer.setBeadTouchState(bead, true);
         bead.element.classList.add('dragging');
         
@@ -337,37 +305,26 @@ class SliderGameController {
         };
         
         this.dragState.activeTouches.set(touchId, dragState);
-        
         bead.isDragging = true;
     }
     
     handleDragMove(x, y, touchId = 'mouse') {
-        // Ignore drag movements if slider is disabled
-        if (this.sliderDisabled) {
-            return;
-        }
+        if (this.sliderDisabled) return;
         
         const dragState = this.dragState.activeTouches.get(touchId);
         if (!dragState || !dragState.isDragging || !dragState.draggedBead) return;
         
-        const deltaX = x - dragState.startX;
-        // Remove drag threshold - start moving immediately
-        
         if (!dragState.hasStartedMoving) {
             dragState.hasStartedMoving = true;
             dragState.lastProcessedX = dragState.startX;
-            console.log(`Started moving ${dragState.draggedBead.id} (touch: ${touchId})`);
         }
         
-        // Calculate movement based on change since last processed position
         const currentDeltaX = x - (dragState.lastProcessedX || dragState.startX);
         
-        // Process any movement, no minimum threshold
         if (Math.abs(currentDeltaX) >= 1) {
             const direction = currentDeltaX > 0 ? 1 : -1;
             const movementDistance = Math.abs(currentDeltaX) / this.sliderRenderer.beadDiameter;
             
-            // Get connected beads and calculate max movement
             const connectedBeads = this.sliderRenderer.getConnectedBeads(dragState.draggedBead, direction);
             const maxMovement = this.sliderRenderer.calculateBlockMaxMovement(connectedBeads, direction);
             const actualMovement = Math.min(movementDistance, maxMovement);
@@ -376,7 +333,6 @@ class SliderGameController {
                 const actualDelta = direction > 0 ? actualMovement : -actualMovement;
                 this.sliderRenderer.moveBeads(connectedBeads, actualDelta);
                 dragState.lastProcessedX = x;
-                console.log(`Moved ${actualDelta.toFixed(3)}`);
             } else {
                 dragState.lastProcessedX = x;
             }
@@ -388,14 +344,11 @@ class SliderGameController {
         if (!dragState || !dragState.isDragging) return;
         
         const bead = dragState.draggedBead;
-        console.log(`Drag ended for ${bead.id} (touch: ${touchId})`);
         
-        // Clean up visual feedback
         this.sliderRenderer.setBeadTouchState(bead, false);
         bead.isDragging = false;
         bead.element.classList.remove('dragging');
         
-        // Snap to integer positions and check for magnetic snapping
         if (dragState.hasStartedMoving) {
             const snappedPosition = Math.round(bead.position);
             const snapDelta = snappedPosition - bead.position;
@@ -406,46 +359,33 @@ class SliderGameController {
                 this.sliderRenderer.updateBarState();
             }
             
-            // Check for magnetic snapping
             this.sliderRenderer.snapToNearbyBeads(bead);
         }
         
-        // Remove this touch from active touches
         this.dragState.activeTouches.delete(touchId);
         
-        // Check game state after movement
-        setTimeout(() => {
-            this.checkGameState();
-        }, 300);
+        setTimeout(() => this.checkGameState(), 300);
     }
     
     checkGameState() {
+        const currentTime = Date.now();
+        const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
+        
         console.log(`\n=== GAME STATE CHECK ===`);
         console.log(`Expected beads on right: ${this.expectedBeadsOnRight}`);
-        console.log(`Currently awaiting button press: ${this.awaitingButtonPress}`);
-        console.log(`Buttons disabled: ${this.buttonsDisabled}`);
-        
-        // FIRST: Check if arrangement is valid (10 out of 11 gaps are zero on each bar)
-        console.log(`\n--- CALLING hasBeadsInMiddle() ---`);
-        const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
-        console.log(`--- hasBeadsInMiddle() returned: ${hasMiddleBeads} ---\n`);
-        
-        const currentTime = Date.now();
-        const isValidArrangement = !hasMiddleBeads;
+        console.log(`Has middle beads: ${hasMiddleBeads}`);
+        console.log(`Slider disabled: ${this.sliderDisabled}`);
         
         if (hasMiddleBeads) {
-            console.log(`❌ Invalid arrangement - beads not properly grouped`);
-            
-            // Start timer for invalid arrangement message (10 seconds)
+            // Invalid arrangement - start 10-second timer for message
             if (!this.invalidArrangementStartTime) {
                 this.invalidArrangementStartTime = currentTime;
                 this.invalidArrangementTimer = setTimeout(() => {
-                    console.log(`⏰ 10 seconds of invalid arrangement - giving message`);
                     this.speakText('Arrange beads onto one side or the other, don\'t leave any in the middle');
                 }, 10000);
             }
             
-            // Clear ready-for-answer timer since arrangement is invalid
+            // Clear ready timer
             if (this.readyForAnswerTimer) {
                 clearTimeout(this.readyForAnswerTimer);
                 this.readyForAnswerTimer = null;
@@ -453,84 +393,66 @@ class SliderGameController {
             }
             
             this.awaitingButtonPress = false;
-            this.lastValidArrangement = false;
-            console.log(`Set awaitingButtonPress = false due to invalid arrangement`);
+            this.sliderDisabled = false;
+            console.log(`❌ Invalid arrangement - buttons disabled`);
             console.log(`=== END GAME STATE CHECK ===\n`);
             return;
         }
         
-        // Valid arrangement - clear invalid arrangement timer
+        // Clear invalid arrangement timer
         if (this.invalidArrangementTimer) {
             clearTimeout(this.invalidArrangementTimer);
             this.invalidArrangementTimer = null;
             this.invalidArrangementStartTime = null;
         }
         
-        // ONLY if arrangement is valid: Count beads on right side
-        console.log(`✅ Valid arrangement - now counting right side beads`);
+        // Valid arrangement - count right side beads
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.expectedBeadsOnRight) {
-            // Correct number of beads - enable buttons immediately and start 3-second timer
+            // Correct - enable buttons immediately and start 3-second timer
             this.awaitingButtonPress = true;
             
             if (!this.readyForAnswerStartTime) {
                 this.readyForAnswerStartTime = currentTime;
                 this.readyForAnswerTimer = setTimeout(() => {
-                    console.log(`⏰ 3 seconds of correct arrangement - pausing slider and showing guinea pig`);
+                    console.log(`⏰ 3 seconds elapsed - pausing slider and showing guinea pig`);
                     
-                    // Pause slider after 3 seconds
                     this.sliderDisabled = true;
                     
-                    // Give audio instruction
                     if (this.currentQuestion === 1) {
                         this.speakText('Now select the button underneath for the number of beads on the right side');
                     } else {
                         this.speakText('Select the matching button underneath');
                     }
                     
-                    // Show visual cues
                     this.showArrow();
                     this.guineaPigWave.startAnimation();
                 }, 3000);
-                
-                console.log(`✅ Correct count (${rightSideCount}) - buttons enabled immediately, 3-second timer started`);
-            } else {
-                console.log(`✅ Correct count (${rightSideCount}) - buttons still enabled, 3-second timer already running`);
             }
+            
+            console.log(`✅ Correct count - buttons enabled immediately`);
         } else {
-            // Wrong number of beads - clear ready timer and unpause slider
+            // Wrong count - clear timer and disable buttons
             if (this.readyForAnswerTimer) {
                 clearTimeout(this.readyForAnswerTimer);
                 this.readyForAnswerTimer = null;
                 this.readyForAnswerStartTime = null;
-                console.log('Cleared 3-second timer due to incorrect count');
             }
             
             this.awaitingButtonPress = false;
-            this.sliderDisabled = false; // Unpause slider when arrangement changes
+            this.sliderDisabled = false;
             
-            if (rightSideCount > this.expectedBeadsOnRight) {
-                console.log(`⏳ WAITING: Have ${rightSideCount} beads, but expecting ${this.expectedBeadsOnRight} - too many`);
-            } else {
-                console.log(`⏳ WAITING: Have ${rightSideCount} beads, but expecting ${this.expectedBeadsOnRight} - need more`);
-            }
+            console.log(`⏳ Wrong count: ${rightSideCount}, need ${this.expectedBeadsOnRight}`);
         }
         
-        this.lastValidArrangement = isValidArrangement;
-        console.log(`FINAL STATE: awaitingButtonPress = ${this.awaitingButtonPress}`);
-        console.log(`FINAL STATE: buttonsDisabled = ${this.buttonsDisabled}`);
+        console.log(`Final state: awaiting=${this.awaitingButtonPress}, disabled=${this.sliderDisabled}`);
         console.log(`=== END GAME STATE CHECK ===\n`);
     }
     
     handleNumberClick(selectedNumber, buttonElement) {
-        console.log(`Button clicked: ${selectedNumber}, awaiting: ${this.awaitingButtonPress}`);
-        
-        if (!this.awaitingButtonPress) {
-            console.log(`Ignored: Not awaiting button press`);
-            return;
-        }
+        if (!this.awaitingButtonPress) return;
         
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         
@@ -542,56 +464,41 @@ class SliderGameController {
     }
     
     handleCorrectAnswer(buttonElement) {
-        // Enhanced correct answer feedback like subitise game
         this.buttonsDisabled = true;
-        
-        // Clear any active timers and re-enable slider
         this.clearTimers();
         
-        // Flash green and create star celebration
         buttonElement.classList.add('correct');
         setTimeout(() => buttonElement.classList.remove('correct'), CONFIG.FLASH_DURATION);
         
         this.createStarCelebration(buttonElement);
-        
-        // Add rainbow piece
         this.rainbow.addPiece();
-        
-        // Play completion sound
         this.playCompletionSound();
         
-        // Enhanced encouragement options
         if (this.audioEnabled) {
             const encouragements = ['Well done!', 'Excellent!', 'Perfect!', 'Great job!'];
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             setTimeout(() => this.speakText(randomEncouragement), 400);
         }
         
-        // Check if game complete
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         if (rightSideCount === 20 && parseInt(buttonElement.dataset.number) === 20) {
             setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
             return;
         }
         
-        // Progress to next question
         this.currentQuestion++;
         this.expectedBeadsOnRight += 2;
         this.awaitingButtonPress = false;
         this.buttonsDisabled = false;
-        this.sliderDisabled = false; // Unpause slider for new question
+        this.sliderDisabled = false;
         
         setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY);
     }
     
     handleIncorrectAnswer(buttonElement) {
-        // Enhanced incorrect answer feedback like subitise game
         this.buttonsDisabled = true;
-        
-        // Play failure sound
         this.playFailureSound();
         
-        // Flash red and add cross overlay
         buttonElement.classList.add('incorrect');
         setTimeout(() => buttonElement.classList.remove('incorrect'), CONFIG.FLASH_DURATION);
         
@@ -599,7 +506,6 @@ class SliderGameController {
         crossOverlay.className = 'cross-overlay';
         buttonElement.appendChild(crossOverlay);
         
-        // Fade out other buttons
         this.numberButtons.forEach(btn => {
             if (btn !== buttonElement) {
                 btn.style.transition = 'opacity 700ms ease-in-out';
@@ -607,7 +513,6 @@ class SliderGameController {
             }
         });
         
-        // After fade completes, fade back in
         setTimeout(() => {
             setTimeout(() => {
                 this.numberButtons.forEach(btn => {
@@ -617,13 +522,11 @@ class SliderGameController {
                     }
                 });
                 
-                // Start fading out the cross
                 if (crossOverlay && crossOverlay.parentNode) {
                     crossOverlay.style.transition = 'opacity 700ms ease-out';
                     crossOverlay.style.opacity = '0';
                 }
                 
-                // Clean up after fade completes
                 setTimeout(() => {
                     if (crossOverlay && crossOverlay.parentNode) {
                         crossOverlay.parentNode.removeChild(crossOverlay);
@@ -656,7 +559,6 @@ class SliderGameController {
             z-index: 1000;
         `;
         
-        // Star positions around button
         const starPositions = [
             { x: centerX - 60, y: centerY - 60 },
             { x: centerX + 60, y: centerY - 60 },
@@ -702,10 +604,7 @@ class SliderGameController {
     startNewQuestion() {
         if (this.gameComplete) return;
         
-        // Clear any existing timers
         this.clearTimers();
-        
-        console.log(`Starting question ${this.currentQuestion}, expecting ${this.expectedBeadsOnRight} beads on right`);
         
         if (this.currentQuestion === 1) {
             this.speakText('We\'re going to count in twos, so start by sliding 2 beads to the right side');
@@ -722,6 +621,9 @@ class SliderGameController {
         this.gameComplete = false;
         this.buttonsDisabled = false;
         this.awaitingButtonPress = false;
+        this.sliderDisabled = false;
+        
+        this.clearTimers();
         
         this.dragState = {
             activeTouches: new Map()
@@ -738,14 +640,35 @@ class SliderGameController {
     
     completeGame() {
         this.gameComplete = true;
+        this.clearTimers();
+        
         this.bear.startCelebration();
         this.modal.classList.remove('hidden');
         
         if (this.audioEnabled) {
             setTimeout(() => {
-                this.speakText('Well done! You have correctly counted all the beads. Play again or return to the home page.');
+                this.speakText('Well done! Play again or return to the home page.');
             }, 1000);
         }
+    }
+    
+    clearTimers() {
+        if (this.invalidArrangementTimer) {
+            clearTimeout(this.invalidArrangementTimer);
+            this.invalidArrangementTimer = null;
+        }
+        if (this.readyForAnswerTimer) {
+            clearTimeout(this.readyForAnswerTimer);
+            this.readyForAnswerTimer = null;
+        }
+        this.invalidArrangementStartTime = null;
+        this.readyForAnswerStartTime = null;
+        
+        if (this.guineaPigWave) {
+            this.guineaPigWave.stopAnimation();
+        }
+        
+        this.sliderDisabled = false;
     }
     
     playCompletionSound() {
@@ -796,6 +719,8 @@ class SliderGameController {
     }
     
     destroy() {
+        this.clearTimers();
+        
         if ('speechSynthesis' in window) {
             speechSynthesis.cancel();
         }
@@ -806,6 +731,14 @@ class SliderGameController {
         
         if (this.muteContainer && this.muteContainer.parentNode) {
             this.muteContainer.parentNode.removeChild(this.muteContainer);
+        }
+        
+        if (this.arrowElement && this.arrowElement.parentNode) {
+            this.arrowElement.parentNode.removeChild(this.arrowElement);
+        }
+        
+        if (this.guineaPigWave) {
+            this.guineaPigWave.destroy();
         }
         
         this.rainbow.reset();
