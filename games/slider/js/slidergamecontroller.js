@@ -320,25 +320,29 @@ class SliderGameController {
     }
     
     checkGameState() {
-        const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-        const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
-        
         console.log(`\n=== GAME STATE CHECK ===`);
-        console.log(`Right side count: ${rightSideCount}`);
         console.log(`Expected beads on right: ${this.expectedBeadsOnRight}`);
-        console.log(`Has middle beads: ${hasMiddleBeads}`);
         console.log(`Currently awaiting button press: ${this.awaitingButtonPress}`);
         console.log(`Buttons disabled: ${this.buttonsDisabled}`);
-        console.log(`Game complete: ${this.gameComplete}`);
+        
+        // FIRST: Check if arrangement is valid (10 out of 11 gaps are zero on each bar)
+        console.log(`\n--- CALLING hasBeadsInMiddle() ---`);
+        const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
+        console.log(`--- hasBeadsInMiddle() returned: ${hasMiddleBeads} ---\n`);
         
         if (hasMiddleBeads) {
-            console.log(`❌ BLOCKED: Beads in middle - cannot progress`);
+            console.log(`❌ BLOCKED: Invalid arrangement - beads not properly grouped`);
             this.speakText('Arrange beads onto one side or the other, don\'t leave any in the middle');
             this.awaitingButtonPress = false;
-            console.log(`Set awaitingButtonPress = false due to middle beads`);
+            console.log(`Set awaitingButtonPress = false due to invalid arrangement`);
             console.log(`=== END GAME STATE CHECK ===\n`);
             return;
         }
+        
+        // ONLY if arrangement is valid: Count beads on right side
+        console.log(`✅ Valid arrangement - now counting right side beads`);
+        const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
+        console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.expectedBeadsOnRight && !this.awaitingButtonPress) {
             console.log(`✅ READY: ${rightSideCount} beads on right matches expected ${this.expectedBeadsOnRight} - ENABLING BUTTON`);
