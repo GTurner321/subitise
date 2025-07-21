@@ -532,17 +532,16 @@ class SliderRenderer {
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
             
-            // Sharp click sound - higher frequency, shorter duration
-            oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.02);
+            // Crisp mechanical click sound - single frequency, very short
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
             
             gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.002);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.04);
+            gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.001);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.025);
             
-            oscillator.type = 'square'; // Changed from triangle to square for sharper click
+            oscillator.type = 'square'; // Square wave for sharp click
             oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.04); // Shorter duration
+            oscillator.stop(audioContext.currentTime + 0.025); // Very short duration
         } catch (error) {
             // Silent failure
         }
