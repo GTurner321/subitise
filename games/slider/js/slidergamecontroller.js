@@ -171,9 +171,36 @@ class SliderGameController {
         // Number button clicks
         this.numberButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                if (this.buttonsDisabled) return;
+                console.log(`\n=== BUTTON CLICK EVENT ===`);
+                console.log(`Button clicked: ${e.target.dataset.number}`);
+                console.log(`Buttons disabled: ${this.buttonsDisabled}`);
+                console.log(`Event target:`, e.target);
+                console.log(`Dataset:`, e.target.dataset);
+                
+                if (this.buttonsDisabled) {
+                    console.log(`❌ CLICK IGNORED: Buttons are disabled`);
+                    return;
+                }
                 
                 const selectedNumber = parseInt(e.target.dataset.number);
+                console.log(`Parsed number: ${selectedNumber}`);
+                console.log(`Calling handleNumberClick...`);
+                this.handleNumberClick(selectedNumber, e.target);
+            });
+            
+            // Also add touch event for mobile
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                console.log(`\n=== BUTTON TOUCH EVENT ===`);
+                console.log(`Button touched: ${e.target.dataset.number}`);
+                
+                if (this.buttonsDisabled) {
+                    console.log(`❌ TOUCH IGNORED: Buttons are disabled`);
+                    return;
+                }
+                
+                const selectedNumber = parseInt(e.target.dataset.number);
+                console.log(`Touch - parsed number: ${selectedNumber}`);
                 this.handleNumberClick(selectedNumber, e.target);
             });
         });
