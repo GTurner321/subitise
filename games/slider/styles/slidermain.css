@@ -10,7 +10,7 @@ body {
     display: flex;
     flex-direction: column;
     background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-    touch-action: none; /* Prevent default touch behaviors */
+    /* Removed touch-action: none from body - too aggressive */
 }
 
 /* Back button - shared across all games */
@@ -93,6 +93,7 @@ body {
     width: 80%;
     height: 60%;
     z-index: 2;
+    touch-action: none; /* Prevent touch behaviors only on slider area */
 }
 
 /* Slider frame background */
