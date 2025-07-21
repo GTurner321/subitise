@@ -27,6 +27,7 @@ class SliderGameController {
         this.readyForAnswerTimer = null;
         this.readyForAnswerStartTime = null;
         this.lastValidArrangement = false;
+        this.sliderDisabled = false; // Track if slider is paused
         
         // Arrow element
         this.arrowElement = null;
@@ -130,6 +131,9 @@ class SliderGameController {
         if (this.guineaPigWave) {
             this.guineaPigWave.stopAnimation();
         }
+        
+        // Unpause slider when clearing timers
+        this.sliderDisabled = false;
     }
         const muteContainer = document.createElement('div');
         muteContainer.style.cssText = `
@@ -307,6 +311,12 @@ class SliderGameController {
     }
     
     handleDragStart(x, y, touchId = 'mouse') {
+        // Ignore drag attempts if slider is disabled
+        if (this.sliderDisabled) {
+            console.log('Slider disabled - ignoring drag start');
+            return;
+        }
+        
         const bead = this.sliderRenderer.getBeadAtPosition(x, y);
         if (!bead) return;
         
@@ -332,6 +342,11 @@ class SliderGameController {
     }
     
     handleDragMove(x, y, touchId = 'mouse') {
+        // Ignore drag movements if slider is disabled
+        if (this.sliderDisabled) {
+            return;
+        }
+        
         const dragState = this.dragState.activeTouches.get(touchId);
         if (!dragState || !dragState.isDragging || !dragState.draggedBead) return;
         
@@ -457,34 +472,45 @@ class SliderGameController {
         console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.expectedBeadsOnRight) {
-            // Correct number of beads - start 3-second timer for ready message
+            // Correct number of beads - start 3-second timer
             if (!this.readyForAnswerStartTime) {
                 this.readyForAnswerStartTime = currentTime;
                 this.readyForAnswerTimer = setTimeout(() => {
-                    console.log(`⏰ 3 seconds of correct arrangement - giving ready message`);
+                    console.log(`⏰ 3 seconds of correct arrangement - pausing slider and showing guinea pig`);
                     
+                    // Pause slider
+                    this.sliderDisabled = true;
+                    
+                    // Give audio instruction
                     if (this.currentQuestion === 1) {
                         this.speakText('Now select the button underneath for the number of beads on the right side');
                     } else {
                         this.speakText('Select the matching button underneath');
                     }
                     
+                    // Show visual cues
                     this.showArrow();
-                    this.guineaPigWave.startAnimation(); // Start guinea pig animation
+                    this.guineaPigWave.startAnimation();
+                    
+                    // Enable button clicking
                     this.awaitingButtonPress = true;
                 }, 3000);
+                
+                console.log(`✅ Correct count (${rightSideCount}) - started 3-second timer`);
+            } else {
+                console.log(`✅ Correct count (${rightSideCount}) - 3-second timer already running`);
             }
-            
-            console.log(`✅ Correct count (${rightSideCount}) - waiting for 3-second timer`);
         } else {
-            // Wrong number of beads - clear ready timer
+            // Wrong number of beads - clear ready timer and unpause slider
             if (this.readyForAnswerTimer) {
                 clearTimeout(this.readyForAnswerTimer);
                 this.readyForAnswerTimer = null;
                 this.readyForAnswerStartTime = null;
+                console.log('Cleared 3-second timer due to incorrect count');
             }
             
             this.awaitingButtonPress = false;
+            this.sliderDisabled = false; // Unpause slider when arrangement changes
             
             if (rightSideCount > this.expectedBeadsOnRight) {
                 console.log(`⏳ WAITING: Have ${rightSideCount} beads, but expecting ${this.expectedBeadsOnRight} - too many`);
@@ -520,7 +546,7 @@ class SliderGameController {
         // Enhanced correct answer feedback like subitise game
         this.buttonsDisabled = true;
         
-        // Clear any active timers
+        // Clear any active timers and re-enable slider
         this.clearTimers();
         
         // Flash green and create star celebration
@@ -554,6 +580,7 @@ class SliderGameController {
         this.expectedBeadsOnRight += 2;
         this.awaitingButtonPress = false;
         this.buttonsDisabled = false;
+        this.sliderDisabled = false; // Unpause slider for new question
         
         setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY);
     }
