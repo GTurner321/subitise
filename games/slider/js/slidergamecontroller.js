@@ -25,6 +25,12 @@ class SliderGameController {
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         
+        // DEBUG: Check if buttons are found
+        console.log(`Found ${this.numberButtons.length} number buttons`);
+        this.numberButtons.forEach((btn, index) => {
+            console.log(`Button ${index}: dataset.number = ${btn.dataset.number}, text = ${btn.textContent}`);
+        });
+        
         // Mute button references
         this.muteButton = null;
         this.muteContainer = null;
@@ -598,6 +604,25 @@ class SliderGameController {
         this.rainbow.reset();
         this.bear.reset();
         this.sliderRenderer.reset();
+    }
+    
+    // Debug function - call from console: window.sliderGame.testButtonClick()
+    testButtonClick() {
+        console.log(`\n=== MANUAL BUTTON TEST ===`);
+        console.log(`Buttons disabled: ${this.buttonsDisabled}`);
+        console.log(`Awaiting button press: ${this.awaitingButtonPress}`);
+        
+        // Find the "2" button
+        const button2 = Array.from(this.numberButtons).find(btn => btn.dataset.number === '2');
+        if (button2) {
+            console.log(`Found button "2":`, button2);
+            console.log(`Button styles:`, window.getComputedStyle(button2));
+            console.log(`Manually calling handleNumberClick(2)...`);
+            this.handleNumberClick(2, button2);
+        } else {
+            console.log(`❌ Button "2" not found!`);
+        }
+        console.log(`=== END MANUAL TEST ===\n`);
     }
     
     // Debug function - call from console: window.sliderGame.debugGameState()
