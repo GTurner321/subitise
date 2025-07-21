@@ -472,13 +472,15 @@ class SliderGameController {
         console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.expectedBeadsOnRight) {
-            // Correct number of beads - start 3-second timer
+            // Correct number of beads - enable buttons immediately and start 3-second timer
+            this.awaitingButtonPress = true;
+            
             if (!this.readyForAnswerStartTime) {
                 this.readyForAnswerStartTime = currentTime;
                 this.readyForAnswerTimer = setTimeout(() => {
                     console.log(`⏰ 3 seconds of correct arrangement - pausing slider and showing guinea pig`);
                     
-                    // Pause slider
+                    // Pause slider after 3 seconds
                     this.sliderDisabled = true;
                     
                     // Give audio instruction
@@ -491,14 +493,11 @@ class SliderGameController {
                     // Show visual cues
                     this.showArrow();
                     this.guineaPigWave.startAnimation();
-                    
-                    // Enable button clicking
-                    this.awaitingButtonPress = true;
                 }, 3000);
                 
-                console.log(`✅ Correct count (${rightSideCount}) - started 3-second timer`);
+                console.log(`✅ Correct count (${rightSideCount}) - buttons enabled immediately, 3-second timer started`);
             } else {
-                console.log(`✅ Correct count (${rightSideCount}) - 3-second timer already running`);
+                console.log(`✅ Correct count (${rightSideCount}) - buttons still enabled, 3-second timer already running`);
             }
         } else {
             // Wrong number of beads - clear ready timer and unpause slider
