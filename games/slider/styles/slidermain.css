@@ -119,12 +119,12 @@ body {
     z-index: 5;
 }
 
-/* Beads */
+/* Beads with enhanced visual feedback */
 .bead {
     border-radius: 50%;
     cursor: grab;
     user-select: none;
-    transition: none;
+    transition: all 0.2s ease;
     z-index: 10;
     
     /* 3D appearance */
@@ -139,10 +139,26 @@ body {
     cursor: grabbing;
 }
 
+/* Enhanced bead states */
+.bead.touched {
+    transform: scale(1.05);
+    filter: brightness(0.8);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4), 
+                inset 0 1px 3px rgba(255,255,255,0.5);
+}
+
 .bead.dragging {
     z-index: 100;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.4), 
+    transform: scale(1.1);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5), 
                 inset 0 1px 3px rgba(255,255,255,0.5);
+    filter: brightness(1.1);
+}
+
+/* Bead pulse animation */
+@keyframes beadPulse {
+    0% { transform: scale(1.05); }
+    100% { transform: scale(1.15); }
 }
 
 /* Blue beads */
@@ -157,7 +173,7 @@ body {
     --bead-shadow: #c5221f;
 }
 
-/* Number buttons */
+/* Number buttons with enhanced feedback */
 .number-buttons {
     display: flex;
     justify-content: center;
@@ -180,6 +196,7 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    position: relative; /* For overlay positioning */
     
     /* Touch support */
     touch-action: manipulation;
@@ -199,6 +216,7 @@ body {
     transition: all 0.1s ease;
 }
 
+/* Enhanced button feedback animations */
 .number-btn.correct {
     animation: flashGreen 0.8s ease;
 }
@@ -242,6 +260,84 @@ body {
 .number-btn:nth-child(8) { background-color: #a29bfe; --btn-color: #a29bfe; }
 .number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
 .number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
+
+/* Cross overlay for incorrect answers (from subitise game) */
+.cross-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    pointer-events: none;
+    z-index: 10;
+    animation: crossAppear 0.3s ease-out;
+}
+
+.cross-overlay::before,
+.cross-overlay::after {
+    content: '';
+    position: absolute;
+    background-color: #dc143c; /* Crimson color */
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+}
+
+.cross-overlay::before {
+    width: 60px;
+    height: 8px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cross-overlay::after {
+    width: 60px;
+    height: 8px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@keyframes crossAppear {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.3);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Star celebration animation (from subitise game) */
+.completion-star {
+    animation: starSparkle 1.5s ease-out forwards;
+    transform-origin: center;
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes starSparkle {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8) rotate(360deg);
+    }
+}
+
+.completion-effect {
+    pointer-events: none;
+}
 
 /* Game completion modal */
 .modal {
@@ -314,33 +410,4 @@ body {
 
 .hidden {
     display: none;
-}
-
-/* Star celebration animation */
-.completion-star {
-    animation: starSparkle 1.5s ease-out forwards;
-    transform-origin: center;
-    position: absolute;
-    font-size: 24px;
-    pointer-events: none;
-    z-index: 1000;
-}
-
-@keyframes starSparkle {
-    0% {
-        opacity: 0;
-        transform: scale(0) rotate(0deg);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.2) rotate(180deg);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(0.8) rotate(360deg);
-    }
-}
-
-.completion-effect {
-    pointer-events: none;
 }
