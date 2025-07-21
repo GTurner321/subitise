@@ -18,7 +18,28 @@ class GuineaPigWave {
         this.gameAreaRect = null;
         this.screenWidth = 0;
         
+        this.addStyles();
         this.createGuineaPigElement();
+    }
+    
+    addStyles() {
+        // Check if styles already exist
+        if (document.querySelector('#guinea-pig-wave-styles')) return;
+        
+        const styleElement = document.createElement('style');
+        styleElement.id = 'guinea-pig-wave-styles';
+        styleElement.textContent = `
+            .guinea-pig-wave {
+                position: fixed !important; /* Fixed for full screen movement */
+                opacity: 1 !important; /* Always visible, no fade transitions */
+                z-index: 50 !important;
+                pointer-events: none !important;
+                image-rendering: crisp-edges !important; /* Better rendering for pixel art */
+                /* Height and width set dynamically by JavaScript based on state */
+            }
+        `;
+        
+        document.head.appendChild(styleElement);
     }
     
     createGuineaPigElement() {
@@ -26,18 +47,11 @@ class GuineaPigWave {
         this.guineaPigElement.className = 'guinea-pig-wave';
         this.guineaPigElement.src = `${this.imagePath}guineapig2.png`; // Start with facing right
         
-        // Initial size - will be updated in updateGuineaPigSize()
+        // Initial inline styles for positioning and basic setup
         this.guineaPigElement.style.cssText = `
-            position: fixed;
-            opacity: 1;
-            z-index: 50;
-            pointer-events: none;
-            image-rendering: crisp-edges;
+            left: -200px;
+            top: 0px;
         `;
-        
-        // Start completely off screen to the left
-        this.guineaPigElement.style.left = `-200px`;
-        this.guineaPigElement.style.top = `0px`;
         
         document.body.appendChild(this.guineaPigElement);
         
@@ -217,6 +231,12 @@ class GuineaPigWave {
         
         if (this.guineaPigElement && this.guineaPigElement.parentNode) {
             this.guineaPigElement.parentNode.removeChild(this.guineaPigElement);
+        }
+        
+        // Remove styles when destroying
+        const styleElement = document.querySelector('#guinea-pig-wave-styles');
+        if (styleElement && styleElement.parentNode) {
+            styleElement.parentNode.removeChild(styleElement);
         }
         
         this.guineaPigElement = null;
