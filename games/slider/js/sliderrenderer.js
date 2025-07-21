@@ -431,21 +431,26 @@ class SliderRenderer {
     hasBeadsInMiddle() {
         // Check using the 11-gap criteria: valid arrangement has exactly 10 zero gaps per bar
         // (10 beads can create at most 10 zero gaps, with 1 non-zero gap remaining)
-        const tolerance = 0.1; // Round zeros to nearest 0.1 diameter
+        const tolerance = 0.15; // Increased tolerance - 0.1 should definitely be accepted as zero
+        
+        console.log(`\n=== CHECKING FOR MIDDLE BEADS ===`);
         
         for (let barIndex = 0; barIndex < 2; barIndex++) {
             const gaps = this.calculateBarGaps(barIndex);
             
             // Count gaps that are effectively zero (within tolerance)
             const zeroGaps = gaps.filter(g => Math.abs(g) < tolerance).length;
+            const nonZeroGaps = gaps.filter(g => Math.abs(g) >= tolerance);
             
             console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are zero (tolerance: ${tolerance})`);
-            console.log(`  Gap values:`, gaps.map((g, i) => `s${i}:${g.toFixed(3)}`));
+            console.log(`  All gap values:`, gaps.map((g, i) => `s${i}:${g.toFixed(4)}`));
+            console.log(`  Zero gaps (< ${tolerance}):`, gaps.filter(g => Math.abs(g) < tolerance).map(g => g.toFixed(4)));
+            console.log(`  Non-zero gaps (>= ${tolerance}):`, nonZeroGaps.map(g => g.toFixed(4)));
             
             // Need exactly 10 zero gaps for valid arrangement
-            // (10 beads touching = 10 zero gaps, 1 remaining gap for unused space)
             if (zeroGaps !== 10) {
                 console.log(`  ❌ Bar ${barIndex} has middle beads (${zeroGaps} zero gaps, need exactly 10)`);
+                console.log(`=== END CHECK - HAS MIDDLE BEADS ===\n`);
                 return true; // Has middle beads
             } else {
                 console.log(`  ✅ Bar ${barIndex} is valid (exactly 10 zero gaps)`);
@@ -453,6 +458,7 @@ class SliderRenderer {
         }
         
         console.log(`✅ No middle beads - all bars have valid arrangements`);
+        console.log(`=== END CHECK - NO MIDDLE BEADS ===\n`);
         return false; // No middle beads
     }
     
@@ -526,17 +532,17 @@ class SliderRenderer {
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
             
-            // Metallic click sound
-            oscillator.frequency.setValueAtTime(2000, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.05);
+            // Sharp click sound - higher frequency, shorter duration
+            oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.02);
             
             gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.005);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
+            gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.002);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.04);
             
-            oscillator.type = 'triangle';
+            oscillator.type = 'square'; // Changed from triangle to square for sharper click
             oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.08);
+            oscillator.stop(audioContext.currentTime + 0.04); // Shorter duration
         } catch (error) {
             // Silent failure
         }
