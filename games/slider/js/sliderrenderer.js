@@ -128,15 +128,16 @@ class SliderRenderer {
         console.log(`\nAnalyzing movement for ${bead.id} in direction ${direction > 0 ? 'right' : 'left'}`);
         console.log(`Bead is at index ${beadIndex} in sorted bar array`);
         console.log(`Current gaps:`, gaps.map((g, i) => `s${i}:${g.toFixed(2)}`));
+        console.log(`All bead positions:`, barBeads.map(b => `${b.bead.id}:${b.position.toFixed(2)}`));
         
         if (direction > 0) {
             // Moving right - check consecutive zeros to the right
             console.log(`Checking gaps to the right starting from s${beadIndex + 1}...`);
             
-            // Count consecutive zero gaps to the right
+            // Count consecutive zero gaps to the right (connected beads)
             let consecutiveZeros = 0;
             for (let i = beadIndex + 1; i < gaps.length - 1; i++) { // Don't include s10 in block detection
-                if (Math.abs(gaps[i]) < 0.1) { // Consider < 0.1 as zero (floating point tolerance)
+                if (Math.abs(gaps[i]) < 0.1) {
                     consecutiveZeros++;
                     console.log(`  s${i} = ${gaps[i].toFixed(2)} (zero) - adding bead to block`);
                 } else {
@@ -152,14 +153,40 @@ class SliderRenderer {
                 }
             }
             
-            // Maximum distance is the first non-zero gap after the consecutive zeros
-            const limitingGapIndex = beadIndex + 1 + consecutiveZeros;
-            if (limitingGapIndex < gaps.length) {
-                maxDistance = gaps[limitingGapIndex];
+            // CRITICAL: Find the actual blocking bead position to prevent pass-through
+            const blockRightmostBead = barBeads[beadIndex + consecutiveZeros];
+            let actualMaxDistance = Infinity;
+            
+            // Check for beads to the right that would block movement
+            for (let i = beadIndex + consecutiveZeros + 1; i < barBeads.length; i++) {
+                const blockingBead = barBeads[i];
+                const blockRightEdge = blockRightmostBead.position + 0.5;
+                const blockingBeadLeftEdge = blockingBead.position - 0.5;
+                const availableSpace = blockingBeadLeftEdge - blockRightEdge;
+                
+                console.log(`  Checking blocking bead ${blockingBead.bead.id} at ${blockingBead.position.toFixed(2)}`);
+                console.log(`    Block right edge: ${blockRightEdge.toFixed(2)}, blocking bead left edge: ${blockingBeadLeftEdge.toFixed(2)}`);
+                console.log(`    Available space: ${availableSpace.toFixed(2)}`);
+                
+                actualMaxDistance = Math.min(actualMaxDistance, Math.max(0, availableSpace));
+                break; // Only check the nearest blocking bead
             }
             
+            // Also check bar end boundary
+            const barStartX = this.frameImageRect.width * 0.07;
+            const barEndX = this.frameImageRect.width * 0.92;
+            const barLength = barEndX - barStartX;
+            const playableLength = barLength - this.beadRadius - this.beadRadius;
+            const playableEnd = playableLength / this.beadDiameter + (this.beadRadius / this.beadDiameter);
+            
+            const blockRightEdge = blockRightmostBead.position + 0.5;
+            const spaceToBarEnd = playableEnd - blockRightEdge;
+            actualMaxDistance = Math.min(actualMaxDistance, Math.max(0, spaceToBarEnd));
+            
+            maxDistance = actualMaxDistance === Infinity ? 0 : actualMaxDistance;
+            
             console.log(`Found ${consecutiveZeros} consecutive zero gaps to right`);
-            console.log(`Limiting gap s${limitingGapIndex} = ${maxDistance.toFixed(2)}`);
+            console.log(`Actual max distance (preventing pass-through): ${maxDistance.toFixed(2)}`);
             
         } else {
             // Moving left - check consecutive zeros to the left
@@ -168,7 +195,7 @@ class SliderRenderer {
             // Count consecutive zero gaps to the left
             let consecutiveZeros = 0;
             for (let i = beadIndex; i > 0; i--) { // Don't include s0 in block detection
-                if (Math.abs(gaps[i]) < 0.1) { // Consider < 0.1 as zero
+                if (Math.abs(gaps[i]) < 0.1) {
                     consecutiveZeros++;
                     console.log(`  s${i} = ${gaps[i].toFixed(2)} (zero) - adding bead to block`);
                 } else {
@@ -184,17 +211,38 @@ class SliderRenderer {
                 }
             }
             
-            // Maximum distance is the first non-zero gap before the consecutive zeros
-            const limitingGapIndex = beadIndex - consecutiveZeros;
-            if (limitingGapIndex >= 0) {
-                maxDistance = gaps[limitingGapIndex];
+            // CRITICAL: Find the actual blocking bead position to prevent pass-through
+            const blockLeftmostBead = barBeads[beadIndex - consecutiveZeros];
+            let actualMaxDistance = Infinity;
+            
+            // Check for beads to the left that would block movement
+            for (let i = beadIndex - consecutiveZeros - 1; i >= 0; i--) {
+                const blockingBead = barBeads[i];
+                const blockLeftEdge = blockLeftmostBead.position - 0.5;
+                const blockingBeadRightEdge = blockingBead.position + 0.5;
+                const availableSpace = blockLeftEdge - blockingBeadRightEdge;
+                
+                console.log(`  Checking blocking bead ${blockingBead.bead.id} at ${blockingBead.position.toFixed(2)}`);
+                console.log(`    Block left edge: ${blockLeftEdge.toFixed(2)}, blocking bead right edge: ${blockingBeadRightEdge.toFixed(2)}`);
+                console.log(`    Available space: ${availableSpace.toFixed(2)}`);
+                
+                actualMaxDistance = Math.min(actualMaxDistance, Math.max(0, availableSpace));
+                break; // Only check the nearest blocking bead
             }
             
+            // Also check bar start boundary
+            const playableStart = this.beadRadius / this.beadDiameter;
+            const blockLeftEdge = blockLeftmostBead.position - 0.5;
+            const spaceToBarStart = blockLeftEdge - playableStart;
+            actualMaxDistance = Math.min(actualMaxDistance, Math.max(0, spaceToBarStart));
+            
+            maxDistance = actualMaxDistance === Infinity ? 0 : actualMaxDistance;
+            
             console.log(`Found ${consecutiveZeros} consecutive zero gaps to left`);
-            console.log(`Limiting gap s${limitingGapIndex} = ${maxDistance.toFixed(2)}`);
+            console.log(`Actual max distance (preventing pass-through): ${maxDistance.toFixed(2)}`);
         }
         
-        console.log(`Movable block: ${movableBeads.map(b => b.id)}, max distance: ${maxDistance.toFixed(2)}`);
+        console.log(`Final movable block: ${movableBeads.map(b => b.id)}, max distance: ${maxDistance.toFixed(2)}`);
         
         return {
             beads: movableBeads,
