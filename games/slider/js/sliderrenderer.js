@@ -312,11 +312,9 @@ class SliderRenderer {
         
         if (isTouched) {
             bead.element.classList.add('touched');
-            // Add pulse animation
-            bead.element.style.animation = 'beadPulse 0.6s ease-in-out infinite alternate';
+            // No pulse animation - just maintain the larger size and darker color
         } else {
             bead.element.classList.remove('touched');
-            bead.element.style.animation = '';
         }
     }
     
