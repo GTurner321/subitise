@@ -202,16 +202,8 @@ class SliderGameController {
         const arrowX = frameRect.x + (frameRect.width * 0.75);
         const arrowY = frameRect.y + frameRect.height + 10; // 10px below frame
         
-        // Center the arrow horizontally on the 75% point
-        // Wait for image to load to get actual width
-        if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
-            const arrowWidth = this.arrowElement.offsetWidth || (arrowHeight * 0.6); // Estimate if not loaded
-            this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`;
-        } else {
-            // Fallback positioning if image not loaded yet
-            this.arrowElement.style.left = `${arrowX - (arrowHeight * 0.3)}px`;
-        }
-        
+        // Position arrow so its LEFT EDGE is at the 75% point (not centered on it)
+        this.arrowElement.style.left = `${arrowX}px`;
         this.arrowElement.style.top = `${arrowY}px`;
     }
     
