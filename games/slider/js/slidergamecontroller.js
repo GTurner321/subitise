@@ -323,20 +323,40 @@ class SliderGameController {
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
         
-        console.log(`Game state check: ${rightSideCount} beads on right, expected: ${this.expectedBeadsOnRight}, has middle: ${hasMiddleBeads}`);
+        console.log(`\n=== GAME STATE CHECK ===`);
+        console.log(`Right side count: ${rightSideCount}`);
+        console.log(`Expected beads on right: ${this.expectedBeadsOnRight}`);
+        console.log(`Has middle beads: ${hasMiddleBeads}`);
+        console.log(`Currently awaiting button press: ${this.awaitingButtonPress}`);
+        console.log(`Buttons disabled: ${this.buttonsDisabled}`);
+        console.log(`Game complete: ${this.gameComplete}`);
         
         if (hasMiddleBeads) {
+            console.log(`❌ BLOCKED: Beads in middle - cannot progress`);
             this.speakText('Arrange beads onto one side or the other, don\'t leave any in the middle');
             this.awaitingButtonPress = false;
+            console.log(`Set awaitingButtonPress = false due to middle beads`);
+            console.log(`=== END GAME STATE CHECK ===\n`);
             return;
         }
         
         if (rightSideCount === this.expectedBeadsOnRight && !this.awaitingButtonPress) {
+            console.log(`✅ READY: ${rightSideCount} beads on right matches expected ${this.expectedBeadsOnRight} - ENABLING BUTTON`);
             this.awaitingButtonPress = true;
             this.speakText(`Now select the button underneath for the number of beads on the right side.`);
-        } else if (rightSideCount !== this.expectedBeadsOnRight) {
+        } else if (rightSideCount > this.expectedBeadsOnRight) {
+            console.log(`⏳ WAITING: Have ${rightSideCount} beads, but expecting ${this.expectedBeadsOnRight} - too many`);
             this.awaitingButtonPress = false;
+        } else if (rightSideCount < this.expectedBeadsOnRight) {
+            console.log(`⏳ WAITING: Have ${rightSideCount} beads, but expecting ${this.expectedBeadsOnRight} - need more`);
+            this.awaitingButtonPress = false;
+        } else if (this.awaitingButtonPress) {
+            console.log(`✅ STILL READY: Already awaiting button press for ${this.expectedBeadsOnRight} beads`);
         }
+        
+        console.log(`FINAL STATE: awaitingButtonPress = ${this.awaitingButtonPress}`);
+        console.log(`FINAL STATE: buttonsDisabled = ${this.buttonsDisabled}`);
+        console.log(`=== END GAME STATE CHECK ===\n`);
     }
     
     handleNumberClick(selectedNumber, buttonElement) {
