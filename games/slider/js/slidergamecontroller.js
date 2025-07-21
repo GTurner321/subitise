@@ -11,9 +11,9 @@ class SliderGameController {
         this.buttonsDisabled = false;
         this.awaitingButtonPress = false;
         
-        // Multi-touch drag state - support for simultaneous bar interaction
+        // Multi-touch drag state
         this.dragState = {
-            activeTouches: new Map() // Map of touchId/mouseId to individual drag states
+            activeTouches: new Map()
         };
         
         // Audio
@@ -24,12 +24,6 @@ class SliderGameController {
         this.numberButtons = document.querySelectorAll('.number-btn');
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
-        
-        // DEBUG: Check if buttons are found
-        console.log(`Found ${this.numberButtons.length} number buttons`);
-        this.numberButtons.forEach((btn, index) => {
-            console.log(`Button ${index}: dataset.number = ${btn.dataset.number}, text = ${btn.textContent}`);
-        });
         
         // Mute button references
         this.muteButton = null;
@@ -86,7 +80,6 @@ class SliderGameController {
         
         this.updateMuteButtonIcon();
         
-        // Add both click and touch event listeners
         const toggleAudio = (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -98,7 +91,6 @@ class SliderGameController {
         muteContainer.addEventListener('click', toggleAudio);
         muteContainer.addEventListener('touchstart', toggleAudio);
         
-        // Hover effects for mouse
         muteContainer.addEventListener('mouseenter', () => {
             muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
             muteContainer.style.transform = 'scale(1.1)';
@@ -124,7 +116,7 @@ class SliderGameController {
     
     toggleAudio() {
         this.audioEnabled = !this.audioEnabled;
-        CONFIG.AUDIO_ENABLED = this.audioEnabled; // Update the global config too
+        CONFIG.AUDIO_ENABLED = this.audioEnabled;
         this.updateMuteButtonIcon();
         
         if ('speechSynthesis' in window) {
@@ -140,10 +132,8 @@ class SliderGameController {
         if (!this.audioEnabled || !('speechSynthesis' in window)) return;
         
         try {
-            // Cancel any existing speech to prevent overlap
             speechSynthesis.cancel();
             
-            // Wait a moment for cancellation to take effect
             setTimeout(() => {
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = 0.9;
@@ -174,39 +164,20 @@ class SliderGameController {
     }
     
     initializeEventListeners() {
-        // Number button clicks
+        // Number button clicks with enhanced feedback
         this.numberButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                console.log(`\n=== BUTTON CLICK EVENT ===`);
-                console.log(`Button clicked: ${e.target.dataset.number}`);
-                console.log(`Buttons disabled: ${this.buttonsDisabled}`);
-                console.log(`Event target:`, e.target);
-                console.log(`Dataset:`, e.target.dataset);
-                
-                if (this.buttonsDisabled) {
-                    console.log(`❌ CLICK IGNORED: Buttons are disabled`);
-                    return;
-                }
+                if (this.buttonsDisabled) return;
                 
                 const selectedNumber = parseInt(e.target.dataset.number);
-                console.log(`Parsed number: ${selectedNumber}`);
-                console.log(`Calling handleNumberClick...`);
                 this.handleNumberClick(selectedNumber, e.target);
             });
             
-            // Also add touch event for mobile
             btn.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                console.log(`\n=== BUTTON TOUCH EVENT ===`);
-                console.log(`Button touched: ${e.target.dataset.number}`);
-                
-                if (this.buttonsDisabled) {
-                    console.log(`❌ TOUCH IGNORED: Buttons are disabled`);
-                    return;
-                }
+                if (this.buttonsDisabled) return;
                 
                 const selectedNumber = parseInt(e.target.dataset.number);
-                console.log(`Touch - parsed number: ${selectedNumber}`);
                 this.handleNumberClick(selectedNumber, e.target);
             });
         });
@@ -214,7 +185,7 @@ class SliderGameController {
         // Play again button
         this.playAgainBtn.addEventListener('click', () => this.startNewGame());
         
-        // Mouse events for dragging - use 'mouse' as the touchId
+        // Enhanced drag events with no threshold and touch feedback
         this.sliderRenderer.sliderContainer.addEventListener('mousedown', (e) => {
             this.handleDragStart(e.clientX, e.clientY, 'mouse');
         });
@@ -227,7 +198,7 @@ class SliderGameController {
             this.handleDragEnd(e.clientX, e.clientY, 'mouse');
         });
         
-        // Touch events - support multi-touch
+        // Touch events with immediate response
         this.sliderRenderer.sliderContainer.addEventListener('touchstart', (e) => {
             e.preventDefault();
             Array.from(e.changedTouches).forEach(touch => {
@@ -254,9 +225,12 @@ class SliderGameController {
         const bead = this.sliderRenderer.getBeadAtPosition(x, y);
         if (!bead) return;
         
-        console.log(`Drag started on ${bead.id} at position ${bead.position.toFixed(3)} (touch: ${touchId})`);
+        console.log(`Drag started on ${bead.id} (touch: ${touchId})`);
         
-        // Create individual drag state for this touch
+        // Set visual feedback immediately
+        this.sliderRenderer.setBeadTouchState(bead, true);
+        bead.element.classList.add('dragging');
+        
         const dragState = {
             isDragging: true,
             draggedBead: bead,
@@ -264,14 +238,12 @@ class SliderGameController {
             startY: y,
             startPosition: bead.position,
             hasStartedMoving: false,
-            connectedBlock: [bead], // Start with just the single bead
-            lastProcessedX: x // Track the last position we processed movement from
+            lastProcessedX: x
         };
         
         this.dragState.activeTouches.set(touchId, dragState);
         
         bead.isDragging = true;
-        bead.element.classList.add('dragging');
     }
     
     handleDragMove(x, y, touchId = 'mouse') {
@@ -279,12 +251,7 @@ class SliderGameController {
         if (!dragState || !dragState.isDragging || !dragState.draggedBead) return;
         
         const deltaX = x - dragState.startX;
-        const dragThreshold = this.sliderRenderer.beadDiameter; // Must drag one diameter to start
-        
-        // Check if we've moved enough to start dragging
-        if (!dragState.hasStartedMoving && Math.abs(deltaX) < dragThreshold) {
-            return;
-        }
+        // Remove drag threshold - start moving immediately
         
         if (!dragState.hasStartedMoving) {
             dragState.hasStartedMoving = true;
@@ -292,36 +259,27 @@ class SliderGameController {
             console.log(`Started moving ${dragState.draggedBead.id} (touch: ${touchId})`);
         }
         
-        // Calculate movement based on the CHANGE since last processed position
+        // Calculate movement based on change since last processed position
         const currentDeltaX = x - (dragState.lastProcessedX || dragState.startX);
         
-        // Only process movement if there's meaningful change
-        if (Math.abs(currentDeltaX) < 1) return;
-        
-        const direction = currentDeltaX > 0 ? 1 : -1;
-        const movementDistance = Math.abs(currentDeltaX) / this.sliderRenderer.beadDiameter;
-        
-        console.log(`Touch ${touchId} - Current delta: ${currentDeltaX.toFixed(1)}, direction: ${direction > 0 ? 'right' : 'left'}, distance: ${movementDistance.toFixed(3)}`);
-        
-        // NEW: Use gap tracking to determine movable block and maximum distance
-        const blockInfo = this.sliderRenderer.getMovableBlockAndDistance(dragState.draggedBead, direction);
-        const maxMovement = Math.min(movementDistance, blockInfo.maxDistance);
-        
-        // Apply the movement if there's space
-        if (maxMovement > 0.001) {
-            const actualDelta = direction > 0 ? maxMovement : -maxMovement;
-            this.sliderRenderer.moveBlock(blockInfo.beads, actualDelta);
+        // Process any movement, no minimum threshold
+        if (Math.abs(currentDeltaX) >= 1) {
+            const direction = currentDeltaX > 0 ? 1 : -1;
+            const movementDistance = Math.abs(currentDeltaX) / this.sliderRenderer.beadDiameter;
             
-            // Update the connected block for future movements in this drag
-            dragState.connectedBlock = blockInfo.beads;
+            // Get connected beads and calculate max movement
+            const connectedBeads = this.sliderRenderer.getConnectedBeads(dragState.draggedBead, direction);
+            const maxMovement = this.sliderRenderer.calculateBlockMaxMovement(connectedBeads, direction);
+            const actualMovement = Math.min(movementDistance, maxMovement);
             
-            // Update the last processed position
-            dragState.lastProcessedX = x;
-            console.log(`Moved ${actualDelta.toFixed(3)}, updated lastProcessedX to ${dragState.lastProcessedX}`);
-        } else {
-            // No movement possible - still update position to prevent accumulation
-            dragState.lastProcessedX = x;
-            console.log(`No movement possible in direction ${direction > 0 ? 'right' : 'left'}`);
+            if (actualMovement > 0.001) {
+                const actualDelta = direction > 0 ? actualMovement : -actualMovement;
+                this.sliderRenderer.moveBeads(connectedBeads, actualDelta);
+                dragState.lastProcessedX = x;
+                console.log(`Moved ${actualDelta.toFixed(3)}`);
+            } else {
+                dragState.lastProcessedX = x;
+            }
         }
     }
     
@@ -332,121 +290,86 @@ class SliderGameController {
         const bead = dragState.draggedBead;
         console.log(`Drag ended for ${bead.id} (touch: ${touchId})`);
         
-        // Clean up dragging state
+        // Clean up visual feedback
+        this.sliderRenderer.setBeadTouchState(bead, false);
         bead.isDragging = false;
         bead.element.classList.remove('dragging');
         
-        // Snap to integer positions if we moved
+        // Snap to integer positions and check for magnetic snapping
         if (dragState.hasStartedMoving) {
             const snappedPosition = Math.round(bead.position);
             const snapDelta = snappedPosition - bead.position;
             
             if (Math.abs(snapDelta) > 0.001) {
-                this.sliderRenderer.moveBlock(dragState.connectedBlock, snapDelta);
+                bead.position = snappedPosition;
+                this.sliderRenderer.positionBead(bead);
+                this.sliderRenderer.updateBarState();
             }
             
-            // Check for magnetic snapping to nearby beads or bar ends
+            // Check for magnetic snapping
             this.sliderRenderer.snapToNearbyBeads(bead);
         }
         
         // Remove this touch from active touches
         this.dragState.activeTouches.delete(touchId);
         
-        // CRITICAL: Always check game state when any drag ends, regardless of other active drags
-        console.log(`Scheduling game state check after drag end (remaining touches: ${this.dragState.activeTouches.size})`);
+        // Check game state after movement
         setTimeout(() => {
-            console.log(`Executing scheduled game state check...`);
             this.checkGameState();
         }, 300);
-        
-        // Also check immediately if no more active drags (belt and suspenders approach)
-        if (this.dragState.activeTouches.size === 0) {
-            console.log(`No more active touches - also checking game state immediately`);
-            setTimeout(() => {
-                console.log(`Executing immediate game state check (no active touches)...`);
-                this.checkGameState();
-            }, 100);
-        }
     }
     
     checkGameState() {
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
         
-        console.log(`\n=== GAME STATE CHECK ===`);
-        console.log(`Right side count: ${rightSideCount}`);
-        console.log(`Expected beads on right: ${this.expectedBeadsOnRight}`);
-        console.log(`Has middle beads: ${hasMiddleBeads}`);
-        console.log(`Currently awaiting button press: ${this.awaitingButtonPress}`);
-        console.log(`Game complete: ${this.gameComplete}`);
-        console.log(`Current question: ${this.currentQuestion}`);
+        console.log(`Game state check: ${rightSideCount} beads on right, expected: ${this.expectedBeadsOnRight}, has middle: ${hasMiddleBeads}`);
         
         if (hasMiddleBeads) {
-            console.log(`❌ BLOCKED: Beads in middle - cannot progress`);
             this.speakText('Arrange beads onto one side or the other, don\'t leave any in the middle');
             this.awaitingButtonPress = false;
             return;
         }
         
-        // Check if we have the expected number of beads on the right side
         if (rightSideCount === this.expectedBeadsOnRight && !this.awaitingButtonPress) {
-            console.log(`✅ READY: ${rightSideCount} beads on right matches expected ${this.expectedBeadsOnRight} - ENABLING BUTTON`);
             this.awaitingButtonPress = true;
             this.speakText(`Now select the button underneath for the number of beads on the right side.`);
-        }
-        // If we have more than expected, let them continue but don't prompt yet
-        else if (rightSideCount > this.expectedBeadsOnRight) {
-            console.log(`⏳ WAITING: Have ${rightSideCount} beads, but expecting ${this.expectedBeadsOnRight} - too many`);
+        } else if (rightSideCount !== this.expectedBeadsOnRight) {
             this.awaitingButtonPress = false;
         }
-        // If we have fewer than expected, they need to move more beads
-        else if (rightSideCount < this.expectedBeadsOnRight) {
-            console.log(`⏳ WAITING: Have ${rightSideCount} beads, but expecting ${this.expectedBeadsOnRight} - need more`);
-            this.awaitingButtonPress = false;
-        }
-        else if (this.awaitingButtonPress) {
-            console.log(`✅ STILL READY: Already awaiting button press for ${this.expectedBeadsOnRight} beads`);
-        }
-        
-        console.log(`FINAL STATE: awaitingButtonPress = ${this.awaitingButtonPress}`);
-        console.log(`=== END GAME STATE CHECK ===\n`);
     }
     
     handleNumberClick(selectedNumber, buttonElement) {
-        console.log(`\n=== BUTTON CLICK ===`);
-        console.log(`Button clicked: ${selectedNumber}`);
-        console.log(`Awaiting button press: ${this.awaitingButtonPress}`);
+        console.log(`Button clicked: ${selectedNumber}, awaiting: ${this.awaitingButtonPress}`);
         
         if (!this.awaitingButtonPress) {
-            console.log(`❌ IGNORED: Not currently awaiting button press`);
+            console.log(`Ignored: Not awaiting button press`);
             return;
         }
         
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         
-        console.log(`Button clicked: ${selectedNumber}, actual count: ${rightSideCount}, expected: ${this.expectedBeadsOnRight}`);
-        
-        // Check if the selected number matches the actual count on the right
         if (selectedNumber === rightSideCount) {
-            console.log(`✅ CORRECT: Button ${selectedNumber} matches actual count ${rightSideCount}`);
             this.handleCorrectAnswer(buttonElement);
         } else {
-            console.log(`❌ INCORRECT: Button ${selectedNumber} does not match actual count ${rightSideCount}`);
             this.handleIncorrectAnswer(buttonElement);
         }
-        
-        console.log(`=== END BUTTON CLICK ===\n`);
     }
     
     handleCorrectAnswer(buttonElement) {
-        // Flash green
+        // Enhanced correct answer feedback like subitise game
+        this.buttonsDisabled = true;
+        
+        // Flash green and create star celebration
         buttonElement.classList.add('correct');
         setTimeout(() => buttonElement.classList.remove('correct'), CONFIG.FLASH_DURATION);
+        
+        this.createStarCelebration(buttonElement);
         
         // Add rainbow piece
         this.rainbow.addPiece();
         
-        // Play sound
+        // Play completion sound
         this.playCompletionSound();
         
         // Encouragement
@@ -456,38 +379,135 @@ class SliderGameController {
             setTimeout(() => this.speakText(randomEncouragement), 400);
         }
         
-        // Check if this was the final answer (20 beads)
+        // Check if game complete
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-        
-        console.log(`Correct answer: selected button had ${buttonElement.dataset.number}, actual count: ${rightSideCount}, current question: ${this.currentQuestion}`);
-        
         if (rightSideCount === 20 && parseInt(buttonElement.dataset.number) === 20) {
-            // Game is complete - all 20 beads are on right and 20 button was pressed
-            console.log('GAME COMPLETE - All 20 beads on right and 20 button pressed');
             setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
             return;
         }
         
-        // Otherwise, continue to next question
+        // Progress to next question
         this.currentQuestion++;
-        this.expectedBeadsOnRight += 2; // Always increment by 2
+        this.expectedBeadsOnRight += 2;
         this.awaitingButtonPress = false;
+        this.buttonsDisabled = false;
         
-        console.log(`Question ${this.currentQuestion}, now expecting ${this.expectedBeadsOnRight} beads on right`);
-        
-        // Start next question - but don't reset bead positions
         setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY);
     }
     
     handleIncorrectAnswer(buttonElement) {
-        // Flash red
-        buttonElement.classList.add('incorrect');
-        setTimeout(() => buttonElement.classList.remove('incorrect'), CONFIG.FLASH_DURATION);
+        // Enhanced incorrect answer feedback like subitise game
+        this.buttonsDisabled = true;
         
         // Play failure sound
         this.playFailureSound();
         
-        // Don't progress - let them try again
+        // Flash red and add cross overlay
+        buttonElement.classList.add('incorrect');
+        setTimeout(() => buttonElement.classList.remove('incorrect'), CONFIG.FLASH_DURATION);
+        
+        const crossOverlay = document.createElement('div');
+        crossOverlay.className = 'cross-overlay';
+        buttonElement.appendChild(crossOverlay);
+        
+        // Fade out other buttons
+        this.numberButtons.forEach(btn => {
+            if (btn !== buttonElement) {
+                btn.style.transition = 'opacity 700ms ease-in-out';
+                btn.style.opacity = '0.1';
+            }
+        });
+        
+        // After fade completes, fade back in
+        setTimeout(() => {
+            setTimeout(() => {
+                this.numberButtons.forEach(btn => {
+                    if (btn !== buttonElement) {
+                        btn.style.transition = 'opacity 700ms ease-in-out';
+                        btn.style.opacity = '1';
+                    }
+                });
+                
+                // Start fading out the cross
+                if (crossOverlay && crossOverlay.parentNode) {
+                    crossOverlay.style.transition = 'opacity 700ms ease-out';
+                    crossOverlay.style.opacity = '0';
+                }
+                
+                // Clean up after fade completes
+                setTimeout(() => {
+                    if (crossOverlay && crossOverlay.parentNode) {
+                        crossOverlay.parentNode.removeChild(crossOverlay);
+                    }
+                    
+                    this.numberButtons.forEach(btn => {
+                        btn.style.transition = '';
+                    });
+                    
+                    this.buttonsDisabled = false;
+                }, 700);
+            }, 700);
+        }, 700);
+    }
+    
+    createStarCelebration(buttonElement) {
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const centerX = buttonRect.left + buttonRect.width / 2;
+        const centerY = buttonRect.top + buttonRect.height / 2;
+        
+        const starContainer = document.createElement('div');
+        starContainer.className = 'star-celebration-container completion-effect';
+        starContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        `;
+        
+        // Star positions around button
+        const starPositions = [
+            { x: centerX - 60, y: centerY - 60 },
+            { x: centerX + 60, y: centerY - 60 },
+            { x: centerX + 72, y: centerY },
+            { x: centerX + 60, y: centerY + 60 },
+            { x: centerX - 60, y: centerY + 60 },
+            { x: centerX - 72, y: centerY }
+        ];
+        
+        starPositions.forEach((pos, index) => {
+            const star = this.createStar(pos.x, pos.y);
+            star.style.animationDelay = `${index * 0.1}s`;
+            starContainer.appendChild(star);
+        });
+        
+        document.body.appendChild(starContainer);
+        
+        setTimeout(() => {
+            if (starContainer.parentNode) {
+                starContainer.parentNode.removeChild(starContainer);
+            }
+        }, 2000);
+    }
+    
+    createStar(x, y) {
+        const star = document.createElement('div');
+        star.className = 'completion-star';
+        star.innerHTML = '✨';
+        star.style.cssText = `
+            position: fixed;
+            left: ${x - 15}px;
+            top: ${y - 15}px;
+            font-size: 30px;
+            color: #FFD700;
+            text-align: center;
+            pointer-events: none;
+            z-index: 1000;
+        `;
+        
+        return star;
     }
     
     startNewQuestion() {
@@ -524,14 +544,9 @@ class SliderGameController {
     
     completeGame() {
         this.gameComplete = true;
-        
-        // Start bear celebration first
         this.bear.startCelebration();
-        
-        // Show modal with transparent background
         this.modal.classList.remove('hidden');
         
-        // Give completion message
         if (this.audioEnabled) {
             setTimeout(() => {
                 this.speakText('Well done! You have correctly counted all the beads. Play again or return to the home page.');
@@ -549,7 +564,6 @@ class SliderGameController {
             oscillator.connect(gainNode);
             gainNode.connect(this.audioContext.destination);
             
-            // Pleasant ascending tones
             oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
             oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
             oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
@@ -574,7 +588,6 @@ class SliderGameController {
             oscillator.connect(gainNode);
             gainNode.connect(this.audioContext.destination);
             
-            // Descending tone for incorrect answer
             oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
             
@@ -604,43 +617,6 @@ class SliderGameController {
         this.rainbow.reset();
         this.bear.reset();
         this.sliderRenderer.reset();
-    }
-    
-    // Debug function - call from console: window.sliderGame.testButtonClick()
-    testButtonClick() {
-        console.log(`\n=== MANUAL BUTTON TEST ===`);
-        console.log(`Buttons disabled: ${this.buttonsDisabled}`);
-        console.log(`Awaiting button press: ${this.awaitingButtonPress}`);
-        
-        // Find the "2" button
-        const button2 = Array.from(this.numberButtons).find(btn => btn.dataset.number === '2');
-        if (button2) {
-            console.log(`Found button "2":`, button2);
-            console.log(`Button styles:`, window.getComputedStyle(button2));
-            console.log(`Manually calling handleNumberClick(2)...`);
-            this.handleNumberClick(2, button2);
-        } else {
-            console.log(`❌ Button "2" not found!`);
-        }
-        console.log(`=== END MANUAL TEST ===\n`);
-    }
-    
-    // Debug function - call from console: window.sliderGame.debugGameState()
-    debugGameState() {
-        console.log(`\n=== MANUAL DEBUG CHECK ===`);
-        console.log(`Current game state:`);
-        console.log(`- Current question: ${this.currentQuestion}`);
-        console.log(`- Expected beads on right: ${this.expectedBeadsOnRight}`);
-        console.log(`- Game complete: ${this.gameComplete}`);
-        console.log(`- Buttons disabled: ${this.buttonsDisabled}`);
-        console.log(`- Awaiting button press: ${this.awaitingButtonPress}`);
-        
-        console.log(`\nForcing game state check...`);
-        this.checkGameState();
-        
-        console.log(`\nAfter check:`);
-        console.log(`- Awaiting button press: ${this.awaitingButtonPress}`);
-        console.log(`=== END MANUAL DEBUG ===\n`);
     }
 }
 
