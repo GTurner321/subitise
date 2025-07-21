@@ -1,191 +1,414 @@
-class GuineaPigWave {
-    constructor(imagePath = 'assets/raisin/') {
-        this.guineaPigElement = null;
-        this.gameArea = document.querySelector('.game-area');
-        this.animationId = null;
-        this.isAnimating = false;
-        
-        // Configurable image path for different game folders
-        this.imagePath = imagePath;
-        
-        // Animation parameters
-        this.totalDuration = 5000; // 1.5s + 2s + 1.5s = 5s total
-        this.firstHalfDuration = 1500; // 1.5 seconds to middle
-        this.pauseDuration = 2000; // 2 second pause
-        this.secondHalfDuration = 1500; // 1.5 seconds to exit
-        
-        this.startTime = null;
-        this.gameAreaRect = null;
-        
-        this.createGuineaPigElement();
-    }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    /* Removed touch-action: none from body - too aggressive */
+}
+
+/* Back button - shared across all games */
+.back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    z-index: 1003;
     
-    createGuineaPigElement() {
-        this.guineaPigElement = document.createElement('img');
-        this.guineaPigElement.className = 'guinea-pig-wave';
-        this.guineaPigElement.src = `${this.imagePath}guineapig2.png`; // Start with facing right
-        
-        // Scale to 15% of screen height
-        const screenHeight = window.innerHeight;
-        const guineaPigHeight = screenHeight * 0.15;
-        
-        this.guineaPigElement.style.cssText = `
-            position: absolute;
-            height: ${guineaPigHeight}px;
-            width: auto;
-            opacity: 0;
-            z-index: 50;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-            image-rendering: crisp-edges;
-        `;
-        
-        document.body.appendChild(this.guineaPigElement);
-        
-        // Update size on window resize
-        window.addEventListener('resize', () => {
-            const newScreenHeight = window.innerHeight;
-            const newGuineaPigHeight = newScreenHeight * 0.15;
-            this.guineaPigElement.style.height = `${newGuineaPigHeight}px`;
-            this.updateGameAreaRect();
-        });
-    }
+    /* Touch support */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    pointer-events: auto;
+    cursor: pointer;
     
-    updateGameAreaRect() {
-        if (this.gameArea) {
-            this.gameAreaRect = this.gameArea.getBoundingClientRect();
-        }
-    }
+    /* Proper touch target size */
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-button:hover,
+.back-button:active,
+.back-button:focus {
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.back-button i {
+    margin-right: 8px;
+}
+
+/* Game area */
+.game-area {
+    flex: 1;
+    position: relative;
+    background: white;
+    overflow: hidden;
+    width: 80%;
+    margin: 0 auto;
+}
+
+/* Rainbow background */
+.rainbow-container {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 50%;
+    z-index: 1;
+}
+
+.rainbow-arc {
+    border-style: solid;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    box-sizing: border-box;
+}
+
+/* Slider container */
+.slider-container {
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    width: 80%;
+    height: 60%;
+    z-index: 2;
+    touch-action: none; /* Prevent touch behaviors only on slider area */
+}
+
+/* Slider frame background */
+.slider-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../../../assets/slider/sliderframe.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+}
+
+/* Slider bars - positioning handled by JavaScript */
+.slider-bar {
+    background: #808080;
+    border-top: 2px solid #333;
+    border-bottom: 2px solid #333;
+    border-radius: 0;
+    pointer-events: none; /* Bars shouldn't interfere with bead interaction */
+    z-index: 5;
+}
+
+/* Beads with enhanced visual feedback */
+.bead {
+    border-radius: 50%;
+    cursor: grab;
+    user-select: none;
+    transition: all 0.2s ease;
+    z-index: 10;
     
-    calculatePosition(progress) {
-        if (!this.gameAreaRect) return { x: 0, y: 0 };
-        
-        // X position: linear progression from left to right
-        const x = this.gameAreaRect.left + (progress * this.gameAreaRect.width);
-        
-        // Y position: sine wave function
-        // y = 0.05 * gameAreaHeight * sin((5*π/gameAreaWidth) * relativeX)
-        // Start at 80% down the game area
-        const relativeX = progress * this.gameAreaRect.width;
-        const baseY = this.gameAreaRect.top + (this.gameAreaRect.height * 0.8);
-        const amplitude = 0.05 * this.gameAreaRect.height;
-        const frequency = (5 * Math.PI) / this.gameAreaRect.width;
-        
-        const sineOffset = amplitude * Math.sin(frequency * relativeX);
-        const y = baseY + sineOffset;
-        
-        return { x, y };
-    }
+    /* 3D appearance */
+    background: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.8), transparent 50%),
+                radial-gradient(ellipse at center, var(--bead-color), var(--bead-shadow));
+    border: 2px solid rgba(0,0,0,0.3);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3), 
+                inset 0 1px 3px rgba(255,255,255,0.5);
+}
+
+.bead:active {
+    cursor: grabbing;
+}
+
+/* Enhanced bead states */
+.bead.touched {
+    transform: scale(1.05);
+    filter: brightness(0.8);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4), 
+                inset 0 1px 3px rgba(255,255,255,0.5);
+}
+
+.bead.dragging {
+    z-index: 100;
+    transform: scale(1.1);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5), 
+                inset 0 1px 3px rgba(255,255,255,0.5);
+    filter: brightness(1.1);
+}
+
+/* Bead pulse animation */
+@keyframes beadPulse {
+    0% { transform: scale(1.05); }
+    100% { transform: scale(1.15); }
+}
+
+/* Blue beads */
+.bead.blue {
+    --bead-color: #4285f4;
+    --bead-shadow: #1a73e8;
+}
+
+/* Red beads */
+.bead.red {
+    --bead-color: #ea4335;
+    --bead-shadow: #c5221f;
+}
+
+/* Number buttons with enhanced feedback */
+.number-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: #f5f5f5;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-height: 120px;
+}
+
+.number-btn {
+    width: 90px;
+    height: 90px;
+    border: none;
+    border-radius: 18px;
+    font-size: 3rem;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    position: relative; /* For overlay positioning */
     
-    startAnimation() {
-        if (this.isAnimating) {
-            this.stopAnimation(); // Stop any existing animation
-        }
-        
-        console.log('Starting guinea pig wave animation');
-        
-        this.updateGameAreaRect();
-        this.isAnimating = true;
-        this.startTime = performance.now();
-        
-        // Start with guineapig2 (facing right) and make visible
-        this.guineaPigElement.src = `${this.imagePath}guineapig2.png`;
-        this.guineaPigElement.style.opacity = '1';
-        
-        // Start the animation loop
-        this.animate();
+    /* Touch support */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    pointer-events: auto;
+}
+
+.number-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.number-btn:active {
+    transform: translateY(0);
+    transition: all 0.1s ease;
+}
+
+/* Enhanced button feedback animations */
+.number-btn.correct {
+    animation: flashGreen 0.8s ease;
+}
+
+.number-btn.incorrect {
+    animation: flashRed 0.8s ease;
+}
+
+@keyframes flashGreen {
+    0%, 100% { 
+        background-color: var(--btn-color); 
+        transform: scale(1);
     }
+    50% { 
+        background-color: #4caf50; 
+        transform: scale(1.2);
+        box-shadow: 0 0 20px #4caf50;
+    }
+}
+
+@keyframes flashRed {
+    0%, 100% { 
+        background-color: var(--btn-color); 
+        transform: scale(1);
+    }
+    50% { 
+        background-color: #f44336; 
+        transform: scale(1.2);
+        box-shadow: 0 0 20px #f44336;
+    }
+}
+
+/* Button colors */
+.number-btn:nth-child(1) { background-color: #ff6b6b; --btn-color: #ff6b6b; }
+.number-btn:nth-child(2) { background-color: #4ecdc4; --btn-color: #4ecdc4; }
+.number-btn:nth-child(3) { background-color: #45b7d1; --btn-color: #45b7d1; }
+.number-btn:nth-child(4) { background-color: #f9ca24; --btn-color: #f9ca24; }
+.number-btn:nth-child(5) { background-color: #f0932b; --btn-color: #f0932b; }
+.number-btn:nth-child(6) { background-color: #eb4d4b; --btn-color: #eb4d4b; }
+.number-btn:nth-child(7) { background-color: #6c5ce7; --btn-color: #6c5ce7; }
+.number-btn:nth-child(8) { background-color: #a29bfe; --btn-color: #a29bfe; }
+.number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
+.number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
+
+/* Cross overlay for incorrect answers (from subitise game) */
+.cross-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    pointer-events: none;
+    z-index: 10;
+    animation: crossAppear 0.3s ease-out;
+}
+
+.cross-overlay::before,
+.cross-overlay::after {
+    content: '';
+    position: absolute;
+    background-color: #dc143c; /* Crimson color */
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+}
+
+.cross-overlay::before {
+    width: 60px;
+    height: 8px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cross-overlay::after {
+    width: 60px;
+    height: 8px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@keyframes crossAppear {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.3);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Star celebration animation (from subitise game) */
+.completion-star {
+    animation: starSparkle 1.5s ease-out forwards;
+    transform-origin: center;
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes starSparkle {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8) rotate(360deg);
+    }
+}
+
+.completion-effect {
+    pointer-events: none;
+}
+
+/* Game completion modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent; /* Transparent to see bears behind */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    pointer-events: none; /* Don't block game interaction */
+}
+
+.modal.hidden {
+    display: none !important;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    animation: modalAppear 0.5s ease;
+    pointer-events: auto; /* Only modal content is interactive */
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+@keyframes modalAppear {
+    from { 
+        opacity: 0; 
+        transform: scale(0.5); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+}
+
+.modal h2 {
+    color: white;
+    font-size: 3rem;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.play-again-btn {
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
     
-    animate() {
-        if (!this.isAnimating) return;
-        
-        const currentTime = performance.now();
-        const elapsed = currentTime - this.startTime;
-        
-        if (elapsed >= this.totalDuration) {
-            // Animation complete
-            this.completeAnimation();
-            return;
-        }
-        
-        let progress = 0;
-        let shouldUpdatePosition = true;
-        
-        if (elapsed <= this.firstHalfDuration) {
-            // First half: moving to middle
-            progress = elapsed / this.firstHalfDuration * 0.5; // 0 to 0.5
-            this.guineaPigElement.src = `${this.imagePath}guineapig2.png`;
-            
-        } else if (elapsed <= this.firstHalfDuration + this.pauseDuration) {
-            // Pause in middle: facing straight
-            progress = 0.5; // Stay at middle
-            this.guineaPigElement.src = `${this.imagePath}guineapig3.png`;
-            
-        } else {
-            // Second half: moving to right
-            const secondHalfElapsed = elapsed - this.firstHalfDuration - this.pauseDuration;
-            progress = 0.5 + (secondHalfElapsed / this.secondHalfDuration * 0.5); // 0.5 to 1.0
-            this.guineaPigElement.src = `${this.imagePath}guineapig2.png`;
-        }
-        
-        // Update position
-        const position = this.calculatePosition(progress);
-        this.guineaPigElement.style.left = `${position.x - (this.guineaPigElement.offsetWidth / 2)}px`;
-        this.guineaPigElement.style.top = `${position.y - (this.guineaPigElement.offsetHeight / 2)}px`;
-        
-        // Continue animation
-        this.animationId = requestAnimationFrame(() => this.animate());
-    }
-    
-    completeAnimation() {
-        console.log('Guinea pig wave animation complete');
-        
-        this.isAnimating = false;
-        
-        // Fade out the guinea pig
-        this.guineaPigElement.style.opacity = '0';
-        
-        // Clean up
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-            this.animationId = null;
-        }
-        
-        this.startTime = null;
-    }
-    
-    stopAnimation() {
-        if (!this.isAnimating) return;
-        
-        console.log('Stopping guinea pig wave animation');
-        
-        this.isAnimating = false;
-        
-        // Fade out immediately
-        this.guineaPigElement.style.opacity = '0';
-        
-        // Clean up
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-            this.animationId = null;
-        }
-        
-        this.startTime = null;
-    }
-    
-    isCurrentlyAnimating() {
-        return this.isAnimating;
-    }
-    
-    destroy() {
-        this.stopAnimation();
-        
-        if (this.guineaPigElement && this.guineaPigElement.parentNode) {
-            this.guineaPigElement.parentNode.removeChild(this.guineaPigElement);
-        }
-        
-        this.guineaPigElement = null;
-        this.gameArea = null;
-        this.gameAreaRect = null;
-    }
+    /* Touch support */
+    touch-action: manipulation;
+    pointer-events: auto;
+}
+
+.play-again-btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+}
+
+.hidden {
+    display: none;
 }
