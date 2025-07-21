@@ -143,15 +143,13 @@ class SliderGameController {
     }
     
     createArrowElement() {
-        this.arrowElement = document.createElement('div');
+        this.arrowElement = document.createElement('img');
         this.arrowElement.className = 'slider-arrow';
-        this.arrowElement.innerHTML = '↑';
+        this.arrowElement.src = 'assets/slider/uparrow.png';
+        this.arrowElement.alt = 'Up Arrow';
+        
         this.arrowElement.style.cssText = `
             position: absolute;
-            font-size: 3rem;
-            color: #1a237e;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             opacity: 0;
             pointer-events: none;
             z-index: 100;
@@ -168,11 +166,20 @@ class SliderGameController {
         if (!this.arrowElement || !this.sliderRenderer.frameImageRect) return;
         
         const frameRect = this.sliderRenderer.frameImageRect;
+        const gameArea = document.querySelector('.game-area');
+        const gameAreaRect = gameArea.getBoundingClientRect();
         
+        // Height = 20% of game area
+        const arrowHeight = gameAreaRect.height * 0.2;
+        this.arrowElement.style.height = `${arrowHeight}px`;
+        this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
+        
+        // Position at 75% from left of frame, underneath the frame
         const arrowX = frameRect.x + (frameRect.width * 0.75);
-        const arrowY = frameRect.y + (frameRect.height * 0.75);
+        const arrowY = frameRect.y + frameRect.height + 10; // 10px below frame
         
-        this.arrowElement.style.left = `${arrowX - 24}px`;
+        // Center the arrow horizontally on the 75% point
+        this.arrowElement.style.left = `${arrowX - (arrowHeight * 0.3)}px`; // Estimate width as 60% of height
         this.arrowElement.style.top = `${arrowY}px`;
     }
     
