@@ -287,13 +287,3 @@ body {
 .number-btn {
     position: relative;
 }
-
-/* Guinea pig wave animation - shared across games */
-.guinea-pig-wave {
-    position: fixed; /* Fixed for full screen movement */
-    opacity: 1; /* Always visible, no fade transitions */
-    z-index: 50;
-    pointer-events: none;
-    image-rendering: crisp-edges; /* Better rendering for pixel art */
-    /* Height and width set dynamically by JavaScript based on state */
-}
