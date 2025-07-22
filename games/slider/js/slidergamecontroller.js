@@ -187,32 +187,30 @@ class SliderGameController {
     }
     
     positionArrow() {
-        if (!this.arrowElement || !this.sliderRenderer.frameImageRect) return;
+        if (!this.arrowElement) return;
         
-        const frameRect = this.sliderRenderer.frameImageRect;
         const gameArea = document.querySelector('.game-area');
         const gameAreaRect = gameArea.getBoundingClientRect();
+        const frameRect = this.sliderRenderer.frameImageRect;
         
         // Height = 20% of game area
         const arrowHeight = gameAreaRect.height * 0.2;
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position relative to the BAR area (not the frame image)
-        // Bars go from 7% to 92% of frame width (85% total width)
-        const barStartX = frameRect.x + (frameRect.width * 0.07); // Bar left edge
-        const barWidth = frameRect.width * 0.85; // Bar width (85% of frame)
-        const barCenterAt75Percent = barStartX + (barWidth * 0.75); // 75% through the bar
+        // Position at 80% from left of GAME AREA (much simpler)
+        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.80);
         
-        const arrowY = frameRect.y + frameRect.height + 10; // 10px below frame
+        // Vertical position still relative to frame (underneath slider frame)
+        const arrowY = frameRect ? (frameRect.y + frameRect.height + 10) : (gameAreaRect.top + gameAreaRect.height * 0.7);
         
-        // Center the arrow horizontally on the 75% point of the BAR
+        // Center the arrow horizontally on the 80% point of the game area
         if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
             const arrowWidth = this.arrowElement.offsetWidth || (arrowHeight * 0.6);
-            this.arrowElement.style.left = `${barCenterAt75Percent - (arrowWidth / 2)}px`;
+            this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`;
         } else {
             // Fallback positioning if image not loaded yet
-            this.arrowElement.style.left = `${barCenterAt75Percent - (arrowHeight * 0.3)}px`;
+            this.arrowElement.style.left = `${arrowX - (arrowHeight * 0.3)}px`;
         }
         
         this.arrowElement.style.top = `${arrowY}px`;
