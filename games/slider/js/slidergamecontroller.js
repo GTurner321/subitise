@@ -198,12 +198,23 @@ class SliderGameController {
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position at 75% from left of frame, underneath the frame
-        const arrowX = frameRect.x + (frameRect.width * 0.75);
+        // Position relative to the BAR area (not the frame image)
+        // Bars go from 7% to 92% of frame width (85% total width)
+        const barStartX = frameRect.x + (frameRect.width * 0.07); // Bar left edge
+        const barWidth = frameRect.width * 0.85; // Bar width (85% of frame)
+        const barCenterAt75Percent = barStartX + (barWidth * 0.75); // 75% through the bar
+        
         const arrowY = frameRect.y + frameRect.height + 10; // 10px below frame
         
-        // Position arrow so its LEFT EDGE is at the 75% point (not centered on it)
-        this.arrowElement.style.left = `${arrowX}px`;
+        // Center the arrow horizontally on the 75% point of the BAR
+        if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
+            const arrowWidth = this.arrowElement.offsetWidth || (arrowHeight * 0.6);
+            this.arrowElement.style.left = `${barCenterAt75Percent - (arrowWidth / 2)}px`;
+        } else {
+            // Fallback positioning if image not loaded yet
+            this.arrowElement.style.left = `${barCenterAt75Percent - (arrowHeight * 0.3)}px`;
+        }
+        
         this.arrowElement.style.top = `${arrowY}px`;
     }
     
