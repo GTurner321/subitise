@@ -152,7 +152,7 @@ class SliderGameController {
             position: absolute;
             opacity: 0;
             pointer-events: none;
-            z-index: 100;
+            z-index: 10;
             transition: opacity 0.5s ease;
         `;
         
@@ -175,7 +175,7 @@ class SliderGameController {
                 text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
                 opacity: 0;
                 pointer-events: none;
-                z-index: 100;
+                z-index: 10;
                 transition: opacity 0.5s ease;
             `;
             this.arrowElement.parentNode.replaceChild(textArrow, this.arrowElement);
@@ -198,8 +198,8 @@ class SliderGameController {
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position at 80% from left of GAME AREA (much simpler)
-        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.80);
+        // Position at 75% from left of GAME AREA (not 80%)
+        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.75);
         
         // Vertical position still relative to frame (underneath slider frame)
         const arrowY = frameRect ? (frameRect.y + frameRect.height + 10) : (gameAreaRect.top + gameAreaRect.height * 0.7);
@@ -221,6 +221,8 @@ class SliderGameController {
         
         this.positionArrow();
         this.arrowElement.style.opacity = '1';
+        
+        // Pulse continuously throughout the entire 4-second duration
         this.arrowElement.style.animation = 'arrowPulse 1s ease-in-out infinite';
         
         setTimeout(() => {
@@ -648,10 +650,10 @@ class SliderGameController {
         
         if (this.currentQuestion === 1) {
             this.speakText('We\'re going to count in twos, so start by sliding 2 beads to the right side');
-            this.showArrow();
+            // Don't show arrow immediately - only after 3 seconds via timer
         } else {
             this.speakText('Now slide 2 more beads to the right side');
-            this.showArrow();
+            // Don't show arrow immediately - only after 3 seconds via timer
         }
     }
     
