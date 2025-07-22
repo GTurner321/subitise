@@ -248,8 +248,8 @@ class EnhancedGuineaPigWave {
     }
     
     calculateCircularPathPosition(progress) {
-        // Normalize to (0,0) bottom-left, (1,1) top-right coordinate system
-        // Then scale to actual screen dimensions
+        // Using circle equation: (2x-1)² + (y-0.55)² = 0.09
+        // Center: (0.5, 0.55), radius: 0.3, but compressed horizontally by factor of 2
         
         if (progress <= 0.3) {
             // Straight line from left to intersection point: y = 0.25, x < 0.5
@@ -265,17 +265,18 @@ class EnhancedGuineaPigWave {
             return { x, y };
             
         } else if (progress <= 0.9) {
-            // Circular path: (x-0.5)² + (y-0.55)² = 0.09
+            // Circular path: (2x-1)² + (y-0.55)² = 0.09
             const circleProgress = (progress - 0.3) / 0.6; // 0 to 1 for full circle
             const centerX = 0.5;
             const centerY = 0.55;
-            const radius = 0.3;
+            const radiusY = 0.3; // Vertical radius
+            const radiusX = 0.15; // Horizontal radius (compressed by factor of 2)
             
             const startAngle = -Math.PI / 2; // Bottom of circle (270°)
             const angle = startAngle + (circleProgress * 2 * Math.PI); // Anticlockwise
             
-            const normalizedX = centerX + radius * Math.cos(angle);
-            const normalizedY = centerY + radius * Math.sin(angle);
+            const normalizedX = centerX + radiusX * Math.cos(angle);
+            const normalizedY = centerY + radiusY * Math.sin(angle);
             
             // Convert to screen coordinates
             const x = -this.guineaPigElement.offsetWidth + 
@@ -300,7 +301,8 @@ class EnhancedGuineaPigWave {
     }
     
     calculateUTurnPosition(progress) {
-        // Normalize to (0,0) bottom-left, (1,1) top-right coordinate system
+        // Using circle equation: (2x-1)² + (y-0.55)² = 0.09
+        // Center: (0.5, 0.55), radius: 0.3, but compressed horizontally by factor of 2
         
         if (progress <= 0.3) {
             // Straight line from left to intersection point: y = 0.25, x < 0.5
@@ -316,17 +318,18 @@ class EnhancedGuineaPigWave {
             return { x, y };
             
         } else if (progress <= 0.8) {
-            // Half circle: (x-0.5)² + (y-0.55)² = 0.09
+            // Half circle: (2x-1)² + (y-0.55)² = 0.09
             const circleProgress = (progress - 0.3) / 0.5; // 0 to 1 for half circle
             const centerX = 0.5;
             const centerY = 0.55;
-            const radius = 0.3;
+            const radiusY = 0.3; // Vertical radius
+            const radiusX = 0.15; // Horizontal radius (compressed by factor of 2)
             
             const startAngle = -Math.PI / 2; // Bottom of circle (270°)
             const angle = startAngle + (circleProgress * Math.PI); // Half circle anticlockwise
             
-            const normalizedX = centerX + radius * Math.cos(angle);
-            const normalizedY = centerY + radius * Math.sin(angle);
+            const normalizedX = centerX + radiusX * Math.cos(angle);
+            const normalizedY = centerY + radiusY * Math.sin(angle);
             
             // Convert to screen coordinates
             const x = -this.guineaPigElement.offsetWidth + 
@@ -458,10 +461,10 @@ class EnhancedGuineaPigWave {
         // Determine image based on journey type and position
         switch (journey.type) {
             case 'u_turn':
-                // Change to left-facing when at quarter circle (0.8, 0.55) or beyond
+                // Change to left-facing when at rightmost point (0.65, 0.55)
                 // In progress terms: 30% + (25% of half-circle) = 42.5% 
-                const quarterCircleProgress = 0.3 + (0.5 * 0.25); // 0.425
-                if (progress >= quarterCircleProgress) {
+                const rightmostProgress = 0.3 + (0.5 * 0.25); // 0.425
+                if (progress >= rightmostProgress) {
                     this.guineaPigElement.src = `${this.imagePath}guineapig1.png`;
                 } else {
                     this.guineaPigElement.src = `${this.imagePath}guineapig2.png`;
