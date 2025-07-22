@@ -29,8 +29,8 @@ class EnhancedGuineaPigWave {
         
         // Multi-crossing state
         this.crossingIndex = 0;
-        this.crossingSizes = [0.2, 0.15, 0.1, 0.3]; // 20%, 15%, 10%, 30% of screen height
-        this.crossingHeights = [0.25, 0.45, 0.55, 0.3]; // Y positions in normalized coordinates
+        this.crossingSizes = [0.3, 0.2, 0.15, 0.4]; // 30%, 20%, 15%, 40% of screen height
+        this.crossingHeights = [0.3, 0.5, 0.6, 0.4]; // Y positions in normalized coordinates
         this.crossingDirections = ['right', 'left', 'right', 'left']; // Movement directions
         
         this.addStyles();
@@ -116,20 +116,20 @@ class EnhancedGuineaPigWave {
         // Set journey-specific parameters
         switch (journeyType) {
             case 'sine_wave':
-                this.currentJourney.duration = 5000;
+                this.currentJourney.duration = 3500; // Faster: was 5000
                 this.currentJourney.pausePoint = 0.3 + Math.random() * 0.3; // 30-60%
                 break;
             case 'circular_path':
-                this.currentJourney.duration = 4000;
-                this.currentJourney.pausePoint = 0.2 + Math.random() * 0.2; // 20-40% (before circle starts)
+                this.currentJourney.duration = 3000; // Faster: was 4000
+                this.currentJourney.pausePoint = 0.3; // Fixed at end of first straight section
                 break;
             case 'u_turn':
-                this.currentJourney.duration = 4000;
-                this.currentJourney.pausePoint = 0.2 + Math.random() * 0.2; // 20-40% (before turn starts)
+                this.currentJourney.duration = 3000; // Faster: was 4000
+                this.currentJourney.pausePoint = 0.3; // Fixed at end of first straight section
                 break;
             case 'multiple_crossings':
-                this.currentJourney.duration = 8000; // Longer for multiple crossings
-                this.currentJourney.pausePoint = 0.3 + Math.random() * 0.3; // Only applies to first crossing
+                this.currentJourney.duration = 6000; // Faster: was 8000
+                this.currentJourney.pausePoint = 0.3 + Math.random() * 0.3; // 30-60% of first crossing
                 this.crossingIndex = 0;
                 break;
         }
@@ -232,6 +232,7 @@ class EnhancedGuineaPigWave {
     }
     
     calculateSineWavePosition(progress) {
+        // Start off-screen left, end off-screen right
         const startX = -this.guineaPigElement.offsetWidth;
         const endX = this.screenWidth + this.guineaPigElement.offsetWidth;
         const x = startX + (progress * (endX - startX));
@@ -256,7 +257,7 @@ class EnhancedGuineaPigWave {
             const normalizedX = lineProgress * 0.5; // 0 to 0.5
             const normalizedY = 0.25;
             
-            // Convert to screen coordinates
+            // Convert to screen coordinates - start off-screen left
             const x = -this.guineaPigElement.offsetWidth + 
                      (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
             const y = this.screenHeight - (normalizedY * this.screenHeight);
@@ -265,19 +266,10 @@ class EnhancedGuineaPigWave {
             
         } else if (progress <= 0.9) {
             // Circular path: (x-0.5)² + (y-0.55)² = 0.09
-            // Circle center: (0.5, 0.55), radius: 0.3
-            // Start at (0.5, 0.25) and go anticlockwise for full circle
-            
             const circleProgress = (progress - 0.3) / 0.6; // 0 to 1 for full circle
             const centerX = 0.5;
             const centerY = 0.55;
             const radius = 0.3;
-            
-            // Starting angle: circle intersects y=0.25 at bottom
-            // (x-0.5)² + (0.25-0.55)² = 0.09
-            // (x-0.5)² + (-0.3)² = 0.09
-            // (x-0.5)² = 0 (since 0.3² = 0.09)
-            // So we start at (0.5, 0.25) which is bottom of circle
             
             const startAngle = -Math.PI / 2; // Bottom of circle (270°)
             const angle = startAngle + (circleProgress * 2 * Math.PI); // Anticlockwise
@@ -298,7 +290,7 @@ class EnhancedGuineaPigWave {
             const normalizedX = 0.5 + (lineProgress * 0.5); // 0.5 to 1.0
             const normalizedY = 0.25;
             
-            // Convert to screen coordinates
+            // Convert to screen coordinates - end off-screen right
             const x = -this.guineaPigElement.offsetWidth + 
                      (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
             const y = this.screenHeight - (normalizedY * this.screenHeight);
@@ -309,7 +301,6 @@ class EnhancedGuineaPigWave {
     
     calculateUTurnPosition(progress) {
         // Normalize to (0,0) bottom-left, (1,1) top-right coordinate system
-        // Then scale to actual screen dimensions
         
         if (progress <= 0.3) {
             // Straight line from left to intersection point: y = 0.25, x < 0.5
@@ -317,7 +308,7 @@ class EnhancedGuineaPigWave {
             const normalizedX = lineProgress * 0.5; // 0 to 0.5
             const normalizedY = 0.25;
             
-            // Convert to screen coordinates
+            // Convert to screen coordinates - start off-screen left
             const x = -this.guineaPigElement.offsetWidth + 
                      (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
             const y = this.screenHeight - (normalizedY * this.screenHeight);
@@ -326,15 +317,11 @@ class EnhancedGuineaPigWave {
             
         } else if (progress <= 0.8) {
             // Half circle: (x-0.5)² + (y-0.55)² = 0.09
-            // Circle center: (0.5, 0.55), radius: 0.3
-            // Start at (0.5, 0.25) and go anticlockwise for half circle to (0.5, 0.85)
-            
             const circleProgress = (progress - 0.3) / 0.5; // 0 to 1 for half circle
             const centerX = 0.5;
             const centerY = 0.55;
             const radius = 0.3;
             
-            // Starting angle: bottom of circle (-π/2), ending at top (+π/2)
             const startAngle = -Math.PI / 2; // Bottom of circle (270°)
             const angle = startAngle + (circleProgress * Math.PI); // Half circle anticlockwise
             
@@ -351,10 +338,10 @@ class EnhancedGuineaPigWave {
         } else {
             // Straight line from intersection point to left: y = 0.85, x < 0.5
             const lineProgress = (progress - 0.8) / 0.2; // 0 to 1
-            const normalizedX = 0.5 - (lineProgress * 0.5); // 0.5 to 0 (going left)
+            const normalizedX = 0.5 - (lineProgress * 1.5); // 0.5 to -1.0 (off-screen left)
             const normalizedY = 0.85;
             
-            // Convert to screen coordinates  
+            // Convert to screen coordinates - end off-screen left
             const x = -this.guineaPigElement.offsetWidth + 
                      (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
             const y = this.screenHeight - (normalizedY * this.screenHeight);
@@ -370,8 +357,11 @@ class EnhancedGuineaPigWave {
         const crossingIndex = Math.floor(progress / crossingDuration);
         
         if (crossingIndex >= this.crossingSizes.length) {
-            // Animation complete - exit off screen
-            return { x: this.screenWidth + 200, y: this.screenHeight * (1 - 0.6) };
+            // Animation complete - exit off-screen left (since last crossing goes right to left)
+            return { 
+                x: -this.guineaPigElement.offsetWidth - 50, 
+                y: this.screenHeight - (0.3 * this.screenHeight) 
+            };
         }
         
         // Update size if crossing changed
@@ -385,16 +375,15 @@ class EnhancedGuineaPigWave {
         
         let normalizedX;
         if (direction === 'right') {
-            // Left to right: x goes from 0 to 1
-            normalizedX = currentCrossingProgress;
+            // Left to right: start off-screen left, end off-screen right
+            normalizedX = -0.1 + (currentCrossingProgress * 1.2); // -0.1 to 1.1
         } else {
-            // Right to left: x goes from 1 to 0
-            normalizedX = 1 - currentCrossingProgress;
+            // Right to left: start off-screen right, end off-screen left
+            normalizedX = 1.1 - (currentCrossingProgress * 1.2); // 1.1 to -0.1
         }
         
         // Convert to screen coordinates
-        const x = -this.guineaPigElement.offsetWidth + 
-                 (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
+        const x = normalizedX * this.screenWidth;
         const y = this.screenHeight - (normalizedY * this.screenHeight);
         
         return { x, y };
@@ -407,8 +396,36 @@ class EnhancedGuineaPigWave {
             return { isPaused: false, showFrontFacing: false };
         }
         
+        // For multiple crossings, only pause during first crossing
+        if (journey.type === 'multiple_crossings') {
+            // Convert overall progress to first crossing progress
+            if (progress >= 0.25) {
+                // Past first crossing, no more pausing
+                return { isPaused: false, showFrontFacing: false };
+            }
+            const firstCrossingProgress = progress / 0.25; // 0 to 1 for first crossing
+            const pauseStart = journey.pausePoint; // 30-60% of first crossing
+            const pauseEnd = pauseStart + 0.3; // 30% of crossing duration for pause (1s + 2s)
+            
+            if (firstCrossingProgress >= pauseStart && firstCrossingProgress <= pauseEnd) {
+                const pauseProgress = (firstCrossingProgress - pauseStart) / (pauseEnd - pauseStart);
+                
+                if (pauseProgress <= 0.33) {
+                    // First 1/3: regular pause (1 second)
+                    return { isPaused: true, showFrontFacing: false };
+                } else {
+                    // Remaining 2/3: front-facing (2 seconds)
+                    return { isPaused: true, showFrontFacing: true };
+                }
+            }
+            
+            return { isPaused: false, showFrontFacing: false };
+        }
+        
+        // For other journey types
         const pauseStart = journey.pausePoint;
-        const pauseEnd = pauseStart + 0.1; // Pause duration in progress terms (1s pause + 2s front-facing)
+        const pauseDuration = journey.type === 'sine_wave' ? 0.15 : 0.2; // Relative to total duration
+        const pauseEnd = pauseStart + pauseDuration;
         
         if (progress >= pauseStart && progress <= pauseEnd) {
             const pauseProgress = (progress - pauseStart) / (pauseEnd - pauseStart);
