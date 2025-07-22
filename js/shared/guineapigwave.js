@@ -29,9 +29,9 @@ class EnhancedGuineaPigWave {
         
         // Multi-crossing state
         this.crossingIndex = 0;
-        this.crossingSizes = [1, 0.7, 0.55, 1]; // Normal, 30% smaller, 15% smaller again, normal
-        this.crossingHeights = [0.75, 0.55, 0.45, 0.40]; // Y positions as percentages
-        this.crossingDirections = ['right', 'left', 'right', 'right']; // Movement directions
+        this.crossingSizes = [0.2, 0.15, 0.1, 0.3]; // 20%, 15%, 10%, 30% of screen height
+        this.crossingHeights = [0.25, 0.45, 0.55, 0.3]; // Y positions in normalized coordinates
+        this.crossingDirections = ['right', 'left', 'right', 'left']; // Movement directions
         
         this.addStyles();
         this.createGuineaPigElement();
@@ -178,7 +178,7 @@ class EnhancedGuineaPigWave {
                 break;
             case 'multiple_crossings':
                 this.guineaPigElement.src = `${this.imagePath}guineapig2.png`;
-                this.updateGuineaPigSize(0.2, this.crossingSizes[0]);
+                this.updateGuineaPigSize(this.crossingSizes[0]);
                 this.crossingIndex = 0;
                 break;
         }
@@ -205,7 +205,7 @@ class EnhancedGuineaPigWave {
         const pauseState = this.handlePauseState(elapsed / journey.duration);
         
         // Update guinea pig image based on state
-        this.updateGuineaPigImage(pauseState, position);
+        this.updateGuineaPigImage(pauseState, position, elapsed / journey.duration);
         
         // Update position
         this.guineaPigElement.style.left = `${position.x - (this.guineaPigElement.offsetWidth / 2)}px`;
@@ -247,84 +247,155 @@ class EnhancedGuineaPigWave {
     }
     
     calculateCircularPathPosition(progress) {
-        const totalDistance = this.screenWidth + (2 * this.guineaPigElement.offsetWidth);
-        const straightDistance = totalDistance * 0.3; // 30% straight movement
-        const circleDistance = totalDistance * 0.7; // 70% circular movement
+        // Normalize to (0,0) bottom-left, (1,1) top-right coordinate system
+        // Then scale to actual screen dimensions
         
         if (progress <= 0.3) {
-            // Straight movement from left
-            const straightProgress = progress / 0.3;
-            const x = -this.guineaPigElement.offsetWidth + (straightProgress * straightDistance);
-            const y = this.screenHeight * 0.75;
-            return { x, y };
-        } else {
-            // Circular movement
-            const circleProgress = (progress - 0.3) / 0.7;
-            const centerX = straightDistance;
-            const centerY = this.screenHeight * 0.75;
-            const radius = this.gameAreaRect.height * 0.25;
+            // Straight line from left to intersection point: y = 0.25, x < 0.5
+            const lineProgress = progress / 0.3; // 0 to 1
+            const normalizedX = lineProgress * 0.5; // 0 to 0.5
+            const normalizedY = 0.25;
             
-            // Full circle: start from bottom, go clockwise
-            const angle = circleProgress * 2 * Math.PI - Math.PI / 2; // Start from bottom
-            const x = centerX + radius * Math.cos(angle);
-            const y = centerY + radius * Math.sin(angle);
+            // Convert to screen coordinates
+            const x = -this.guineaPigElement.offsetWidth + 
+                     (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
+            const y = this.screenHeight - (normalizedY * this.screenHeight);
+            
+            return { x, y };
+            
+        } else if (progress <= 0.9) {
+            // Circular path: (x-0.5)² + (y-0.55)² = 0.09
+            // Circle center: (0.5, 0.55), radius: 0.3
+            // Start at (0.5, 0.25) and go anticlockwise for full circle
+            
+            const circleProgress = (progress - 0.3) / 0.6; // 0 to 1 for full circle
+            const centerX = 0.5;
+            const centerY = 0.55;
+            const radius = 0.3;
+            
+            // Starting angle: circle intersects y=0.25 at bottom
+            // (x-0.5)² + (0.25-0.55)² = 0.09
+            // (x-0.5)² + (-0.3)² = 0.09
+            // (x-0.5)² = 0 (since 0.3² = 0.09)
+            // So we start at (0.5, 0.25) which is bottom of circle
+            
+            const startAngle = -Math.PI / 2; // Bottom of circle (270°)
+            const angle = startAngle + (circleProgress * 2 * Math.PI); // Anticlockwise
+            
+            const normalizedX = centerX + radius * Math.cos(angle);
+            const normalizedY = centerY + radius * Math.sin(angle);
+            
+            // Convert to screen coordinates
+            const x = -this.guineaPigElement.offsetWidth + 
+                     (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
+            const y = this.screenHeight - (normalizedY * this.screenHeight);
+            
+            return { x, y };
+            
+        } else {
+            // Straight line from intersection point to right: y = 0.25, x > 0.5
+            const lineProgress = (progress - 0.9) / 0.1; // 0 to 1
+            const normalizedX = 0.5 + (lineProgress * 0.5); // 0.5 to 1.0
+            const normalizedY = 0.25;
+            
+            // Convert to screen coordinates
+            const x = -this.guineaPigElement.offsetWidth + 
+                     (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
+            const y = this.screenHeight - (normalizedY * this.screenHeight);
             
             return { x, y };
         }
     }
     
     calculateUTurnPosition(progress) {
-        const halfScreenWidth = this.screenWidth * 0.5;
+        // Normalize to (0,0) bottom-left, (1,1) top-right coordinate system
+        // Then scale to actual screen dimensions
         
-        if (progress <= 0.5) {
-            // Straight movement to middle
-            const straightProgress = progress / 0.5;
-            const x = -this.guineaPigElement.offsetWidth + (straightProgress * halfScreenWidth);
-            const y = this.screenHeight * 0.75;
-            return { x, y };
-        } else {
-            // Semi-circular turn back
-            const turnProgress = (progress - 0.5) / 0.5;
-            const centerX = halfScreenWidth;
-            const centerY = this.screenHeight * 0.75;
-            const radius = this.gameAreaRect.height * 0.2;
+        if (progress <= 0.3) {
+            // Straight line from left to intersection point: y = 0.25, x < 0.5
+            const lineProgress = progress / 0.3; // 0 to 1
+            const normalizedX = lineProgress * 0.5; // 0 to 0.5
+            const normalizedY = 0.25;
             
-            // Semi-circle from bottom-right to bottom-left
-            const angle = turnProgress * Math.PI; // 180 degrees
-            const x = centerX + radius * Math.cos(angle);
-            const y = centerY - radius * Math.sin(angle);
+            // Convert to screen coordinates
+            const x = -this.guineaPigElement.offsetWidth + 
+                     (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
+            const y = this.screenHeight - (normalizedY * this.screenHeight);
+            
+            return { x, y };
+            
+        } else if (progress <= 0.8) {
+            // Half circle: (x-0.5)² + (y-0.55)² = 0.09
+            // Circle center: (0.5, 0.55), radius: 0.3
+            // Start at (0.5, 0.25) and go anticlockwise for half circle to (0.5, 0.85)
+            
+            const circleProgress = (progress - 0.3) / 0.5; // 0 to 1 for half circle
+            const centerX = 0.5;
+            const centerY = 0.55;
+            const radius = 0.3;
+            
+            // Starting angle: bottom of circle (-π/2), ending at top (+π/2)
+            const startAngle = -Math.PI / 2; // Bottom of circle (270°)
+            const angle = startAngle + (circleProgress * Math.PI); // Half circle anticlockwise
+            
+            const normalizedX = centerX + radius * Math.cos(angle);
+            const normalizedY = centerY + radius * Math.sin(angle);
+            
+            // Convert to screen coordinates
+            const x = -this.guineaPigElement.offsetWidth + 
+                     (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
+            const y = this.screenHeight - (normalizedY * this.screenHeight);
+            
+            return { x, y };
+            
+        } else {
+            // Straight line from intersection point to left: y = 0.85, x < 0.5
+            const lineProgress = (progress - 0.8) / 0.2; // 0 to 1
+            const normalizedX = 0.5 - (lineProgress * 0.5); // 0.5 to 0 (going left)
+            const normalizedY = 0.85;
+            
+            // Convert to screen coordinates  
+            const x = -this.guineaPigElement.offsetWidth + 
+                     (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
+            const y = this.screenHeight - (normalizedY * this.screenHeight);
             
             return { x, y };
         }
     }
     
     calculateMultipleCrossingsPosition(progress) {
-        const crossingDuration = 0.25; // Each crossing takes 25% of total time
+        // Each crossing takes 25% of total time
+        const crossingDuration = 0.25;
         const currentCrossingProgress = (progress % crossingDuration) / crossingDuration;
         const crossingIndex = Math.floor(progress / crossingDuration);
         
         if (crossingIndex >= this.crossingSizes.length) {
-            // Animation complete
-            return { x: this.screenWidth + 200, y: this.screenHeight * 0.4 };
+            // Animation complete - exit off screen
+            return { x: this.screenWidth + 200, y: this.screenHeight * (1 - 0.6) };
         }
         
         // Update size if crossing changed
         if (crossingIndex !== this.crossingIndex) {
             this.crossingIndex = crossingIndex;
-            this.updateGuineaPigSize(0.2, this.crossingSizes[crossingIndex]);
+            this.updateGuineaPigSize(this.crossingSizes[crossingIndex]);
         }
         
         const direction = this.crossingDirections[crossingIndex];
-        const y = this.screenHeight * this.crossingHeights[crossingIndex];
+        const normalizedY = this.crossingHeights[crossingIndex];
         
-        let x;
+        let normalizedX;
         if (direction === 'right') {
-            x = -this.guineaPigElement.offsetWidth + 
-                (currentCrossingProgress * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
+            // Left to right: x goes from 0 to 1
+            normalizedX = currentCrossingProgress;
         } else {
-            x = (this.screenWidth + this.guineaPigElement.offsetWidth) - 
-                (currentCrossingProgress * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
+            // Right to left: x goes from 1 to 0
+            normalizedX = 1 - currentCrossingProgress;
         }
+        
+        // Convert to screen coordinates
+        const x = -this.guineaPigElement.offsetWidth + 
+                 (normalizedX * (this.screenWidth + 2 * this.guineaPigElement.offsetWidth));
+        const y = this.screenHeight - (normalizedY * this.screenHeight);
         
         return { x, y };
     }
@@ -354,7 +425,7 @@ class EnhancedGuineaPigWave {
         return { isPaused: false, showFrontFacing: false };
     }
     
-    updateGuineaPigImage(pauseState, position) {
+    updateGuineaPigImage(pauseState, position, progress) {
         if (pauseState.showFrontFacing) {
             this.guineaPigElement.src = `${this.imagePath}guineapig3.png`;
             this.updateGuineaPigSize(0.3); // Larger when front-facing
@@ -370,8 +441,10 @@ class EnhancedGuineaPigWave {
         // Determine image based on journey type and position
         switch (journey.type) {
             case 'u_turn':
-                // Change to left-facing when turning around
-                if (position.x <= this.screenWidth * 0.5 && position.y < this.screenHeight * 0.75) {
+                // Change to left-facing when at quarter circle (0.8, 0.55) or beyond
+                // In progress terms: 30% + (25% of half-circle) = 42.5% 
+                const quarterCircleProgress = 0.3 + (0.5 * 0.25); // 0.425
+                if (progress >= quarterCircleProgress) {
                     this.guineaPigElement.src = `${this.imagePath}guineapig1.png`;
                 } else {
                     this.guineaPigElement.src = `${this.imagePath}guineapig2.png`;
@@ -386,7 +459,7 @@ class EnhancedGuineaPigWave {
                 } else {
                     this.guineaPigElement.src = `${this.imagePath}guineapig2.png`;
                 }
-                this.updateGuineaPigSize(0.2, this.crossingSizes[this.crossingIndex]);
+                this.updateGuineaPigSize(this.crossingSizes[this.crossingIndex]);
                 break;
             default:
                 this.guineaPigElement.src = `${this.imagePath}guineapig2.png`;
