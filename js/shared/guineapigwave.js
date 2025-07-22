@@ -20,9 +20,12 @@ class EnhancedGuineaPigWave {
         this.currentJourney = null;
         this.shouldPause = false;
         this.pausePoint = 0;
+        this.pauseState = null; // Track current pause state
         
         // Animation parameters
         this.startTime = null;
+        this.pauseStartTime = null;
+        this.totalPauseTime = 0;
         this.gameAreaRect = null;
         this.screenWidth = 0;
         this.screenHeight = 0;
@@ -153,6 +156,8 @@ class EnhancedGuineaPigWave {
         
         this.isAnimating = true;
         this.startTime = performance.now();
+        this.pauseStartTime = null;
+        this.totalPauseTime = 0;
         
         // Set initial image and size based on journey type
         this.setupInitialState();
@@ -190,7 +195,7 @@ class EnhancedGuineaPigWave {
         if (!this.isAnimating) return;
         
         const currentTime = performance.now();
-        const elapsed = currentTime - this.startTime;
+        const elapsed = currentTime - this.startTime - this.totalPauseTime;
         const journey = this.currentJourney;
         
         if (elapsed >= journey.duration) {
@@ -198,18 +203,33 @@ class EnhancedGuineaPigWave {
             return;
         }
         
-        // Calculate position based on journey type
-        const position = this.calculateJourneyPosition(elapsed / journey.duration);
-        
         // Handle pausing logic
-        const pauseState = this.handlePauseState(elapsed / journey.duration);
+        const pauseState = this.handlePauseState(currentTime - this.startTime, journey.duration);
         
-        // Update guinea pig image based on state
-        this.updateGuineaPigImage(pauseState, position, elapsed / journey.duration);
-        
-        // Update position
-        this.guineaPigElement.style.left = `${position.x - (this.guineaPigElement.offsetWidth / 2)}px`;
-        this.guineaPigElement.style.top = `${position.y - (this.guineaPigElement.offsetHeight / 2)}px`;
+        // Track pause time to exclude from movement calculations
+        if (pauseState.isPaused) {
+            if (!this.pauseStartTime) {
+                this.pauseStartTime = currentTime;
+            }
+            // Don't update position during pause, just update image
+            this.updateGuineaPigImage(pauseState, null, elapsed, journey.duration);
+        } else {
+            // Add completed pause time to total
+            if (this.pauseStartTime) {
+                this.totalPauseTime += currentTime - this.pauseStartTime;
+                this.pauseStartTime = null;
+            }
+            
+            // Calculate position based on journey type (excluding pause time)
+            const position = this.calculateJourneyPosition(elapsed / journey.duration);
+            
+            // Update guinea pig image based on state
+            this.updateGuineaPigImage(pauseState, position, elapsed, journey.duration);
+            
+            // Update position
+            this.guineaPigElement.style.left = `${position.x - (this.guineaPigElement.offsetWidth / 2)}px`;
+            this.guineaPigElement.style.top = `${position.y - (this.guineaPigElement.offsetHeight / 2)}px`;
+        }
         
         this.animationId = requestAnimationFrame(() => this.animate());
     }
@@ -392,60 +412,61 @@ class EnhancedGuineaPigWave {
         return { x, y };
     }
     
-    handlePauseState(progress) {
+    handlePauseState(elapsed, totalDuration) {
         const journey = this.currentJourney;
         
         if (!journey.shouldPause) {
             return { isPaused: false, showFrontFacing: false };
         }
         
-        // For multiple crossings, only pause during first crossing
+        // Calculate pause timing based on actual milliseconds
+        let pauseStartTime;
+        
         if (journey.type === 'multiple_crossings') {
-            // Convert overall progress to first crossing progress
-            if (progress >= 0.25) {
+            // For multiple crossings, only pause during first crossing
+            const firstCrossingDuration = totalDuration * 0.25; // First 25% of total time
+            const firstCrossingElapsed = Math.min(elapsed, firstCrossingDuration);
+            
+            if (elapsed >= firstCrossingDuration) {
                 // Past first crossing, no more pausing
+                this.pauseState = null;
                 return { isPaused: false, showFrontFacing: false };
             }
-            const firstCrossingProgress = progress / 0.25; // 0 to 1 for first crossing
-            const pauseStart = journey.pausePoint; // 30-60% of first crossing
-            const pauseEnd = pauseStart + 0.3; // 30% of crossing duration for pause (1s + 2s)
             
-            if (firstCrossingProgress >= pauseStart && firstCrossingProgress <= pauseEnd) {
-                const pauseProgress = (firstCrossingProgress - pauseStart) / (pauseEnd - pauseStart);
+            pauseStartTime = journey.pausePoint * firstCrossingDuration; // Pause point within first crossing
+            
+            if (firstCrossingElapsed >= pauseStartTime && firstCrossingElapsed <= pauseStartTime + 3000) {
+                const pauseElapsed = firstCrossingElapsed - pauseStartTime;
                 
-                if (pauseProgress <= 0.33) {
-                    // First 1/3: regular pause (1 second)
+                if (pauseElapsed <= 1000) {
+                    // First 1 second: regular pause
                     return { isPaused: true, showFrontFacing: false };
                 } else {
-                    // Remaining 2/3: front-facing (2 seconds)
+                    // Next 2 seconds: front-facing
                     return { isPaused: true, showFrontFacing: true };
                 }
             }
+        } else {
+            // For other journey types
+            pauseStartTime = journey.pausePoint * totalDuration;
             
-            return { isPaused: false, showFrontFacing: false };
-        }
-        
-        // For other journey types
-        const pauseStart = journey.pausePoint;
-        const pauseDuration = journey.type === 'sine_wave' ? 0.15 : 0.2; // Relative to total duration
-        const pauseEnd = pauseStart + pauseDuration;
-        
-        if (progress >= pauseStart && progress <= pauseEnd) {
-            const pauseProgress = (progress - pauseStart) / (pauseEnd - pauseStart);
-            
-            if (pauseProgress <= 0.33) {
-                // First 1/3: regular pause (1 second)
-                return { isPaused: true, showFrontFacing: false };
-            } else {
-                // Remaining 2/3: front-facing (2 seconds)
-                return { isPaused: true, showFrontFacing: true };
+            if (elapsed >= pauseStartTime && elapsed <= pauseStartTime + 3000) {
+                const pauseElapsed = elapsed - pauseStartTime;
+                
+                if (pauseElapsed <= 1000) {
+                    // First 1 second: regular pause
+                    return { isPaused: true, showFrontFacing: false };
+                } else {
+                    // Next 2 seconds: front-facing
+                    return { isPaused: true, showFrontFacing: true };
+                }
             }
         }
         
         return { isPaused: false, showFrontFacing: false };
     }
     
-    updateGuineaPigImage(pauseState, position, progress) {
+    updateGuineaPigImage(pauseState, position, elapsed, totalDuration) {
         if (pauseState.showFrontFacing) {
             this.guineaPigElement.src = `${this.imagePath}guineapig3.png`;
             this.updateGuineaPigSize(0.3); // Larger when front-facing
@@ -463,6 +484,7 @@ class EnhancedGuineaPigWave {
             case 'u_turn':
                 // Change to left-facing when at rightmost point (0.65, 0.55)
                 // In progress terms: 30% + (25% of half-circle) = 42.5% 
+                const progress = elapsed / totalDuration;
                 const rightmostProgress = 0.3 + (0.5 * 0.25); // 0.425
                 if (progress >= rightmostProgress) {
                     this.guineaPigElement.src = `${this.imagePath}guineapig1.png`;
@@ -501,6 +523,8 @@ class EnhancedGuineaPigWave {
         }
         
         this.startTime = null;
+        this.pauseStartTime = null;
+        this.totalPauseTime = 0;
         this.currentJourney = null;
         this.crossingIndex = 0;
     }
@@ -520,6 +544,8 @@ class EnhancedGuineaPigWave {
         }
         
         this.startTime = null;
+        this.pauseStartTime = null;
+        this.totalPauseTime = 0;
         this.currentJourney = null;
         this.crossingIndex = 0;
     }
