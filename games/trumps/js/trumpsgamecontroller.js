@@ -13,10 +13,105 @@ class TrumpsGameController {
         // Audio functionality
         this.audioEnabled = CONFIG.AUDIO_ENABLED;
         this.audioContext = null;
+        this.questionsCompleted = 0; // Track total questions for different instructions
+        
+        // Mute button references
+        this.muteButton = null;
+        this.muteContainer = null;
         
         this.initializeGame();
         this.initializeEventListeners();
         this.initializeAudio();
+        this.createMuteButton();
+    }
+
+    createMuteButton() {
+        // Create mute button container
+        const muteContainer = document.createElement('div');
+        muteContainer.style.position = 'fixed';
+        muteContainer.style.top = '20px';
+        muteContainer.style.right = '20px';
+        muteContainer.style.zIndex = '1000';
+        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        muteContainer.style.borderRadius = '50%';
+        muteContainer.style.width = '60px';
+        muteContainer.style.height = '60px';
+        muteContainer.style.display = 'flex';
+        muteContainer.style.alignItems = 'center';
+        muteContainer.style.justifyContent = 'center';
+        muteContainer.style.cursor = 'pointer';
+        muteContainer.style.transition = 'all 0.3s ease';
+        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        
+        // Create button
+        this.muteButton = document.createElement('button');
+        this.muteButton.style.background = 'none';
+        this.muteButton.style.border = 'none';
+        this.muteButton.style.color = 'white';
+        this.muteButton.style.fontSize = '24px';
+        this.muteButton.style.cursor = 'pointer';
+        this.muteButton.style.width = '100%';
+        this.muteButton.style.height = '100%';
+        this.muteButton.style.display = 'flex';
+        this.muteButton.style.alignItems = 'center';
+        this.muteButton.style.justifyContent = 'center';
+        
+        // Set initial icon
+        this.updateMuteButtonIcon();
+        
+        // Add event listeners
+        this.muteButton.addEventListener('click', () => this.toggleAudio());
+        this.muteButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.toggleAudio();
+        });
+        
+        // Hover effects
+        muteContainer.addEventListener('mouseenter', () => {
+            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            muteContainer.style.transform = 'scale(1.1)';
+        });
+        
+        muteContainer.addEventListener('mouseleave', () => {
+            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            muteContainer.style.transform = 'scale(1)';
+        });
+        
+        muteContainer.appendChild(this.muteButton);
+        document.body.appendChild(muteContainer);
+        
+        this.muteContainer = muteContainer;
+    }
+
+    updateMuteButtonIcon() {
+        if (this.muteButton) {
+            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
+            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
+        }
+    }
+
+    toggleAudio() {
+        this.audioEnabled = !this.audioEnabled;
+        this.updateMuteButtonIcon();
+        
+        // Stop any current speech
+        if ('speechSynthesis' in window) {
+            speechSynthesis.cancel();
+        }
+        
+        // Provide feedback
+        if (this.audioEnabled) {
+            setTimeout(() => {
+                this.speakText('Sound on');
+            }, 100);
+        }
+    }
+        if (!this.audioEnabled) return;
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (error) {
+            this.audioEnabled = false;
+        }
     }
 
     async initializeAudio() {
@@ -27,8 +122,6 @@ class TrumpsGameController {
             this.audioEnabled = false;
         }
     }
-
-    initializeGame() {
         // Initialize cards with original positions
         this.availableCards = CONFIG.CARDS.map((card, index) => ({
             ...card,
@@ -72,8 +165,8 @@ class TrumpsGameController {
         // Render the current card grid
         this.renderer.renderCardGrid(this.availableCards);
         
-        // Give instructions
-        this.speakText(`Round ${this.currentRound}. Choose a card to play.`);
+        // Give instructions - shortened message
+        this.speakText(`Round ${this.currentRound}. Choose a card.`);
     }
 
     async handleCardSelection(cardId) {
@@ -105,7 +198,22 @@ class TrumpsGameController {
         this.speakText('Choose a category: Fun, Cuddles, or Stars.');
     }
 
-    async handleCategorySelection(category) {
+    calculateSpeechDuration(text) {
+        // Estimate speech duration based on text length and speaking rate
+        // Average speaking rate is about 150-200 words per minute
+        // We use 180 WPM (3 words per second) for estimation
+        const words = text.split(' ').length;
+        const baseDuration = (words / 3) * 1000; // Convert to milliseconds
+        
+        // Add extra time for punctuation and natural pauses
+        const punctuationCount = (text.match(/[,.!?:;]/g) || []).length;
+        const pauseTime = punctuationCount * 300; // 300ms per punctuation mark
+        
+        // Add buffer time to ensure speech completes
+        const bufferTime = 1000; // 1 second buffer
+        
+        return Math.max(baseDuration + pauseTime + bufferTime, 2000); // Minimum 2 seconds
+    }
         if (this.gamePhase !== 'category') return;
         
         console.log(`User selected category: ${category}`);
@@ -163,6 +271,7 @@ class TrumpsGameController {
         } else {
             // Next round
             this.currentRound++;
+            this.questionsCompleted++; // Increment questions completed
             await this.renderer.wait(CONFIG.RESET_DELAY);
             this.startNewRound();
         }
@@ -193,15 +302,15 @@ class TrumpsGameController {
         // Give final message
         let finalMessage;
         if (this.scores.user > this.scores.computer) {
-            finalMessage = `Congratulations! You won ${this.scores.user} to ${this.scores.computer}!`;
+            finalMessage = `Congratulations! You won ${this.scores.user} to ${this.scores.computer}! Play again or return to the home page.`;
         } else if (this.scores.computer > this.scores.user) {
-            finalMessage = `Good game! The computer won ${this.scores.computer} to ${this.scores.user}.`;
+            finalMessage = `Good game! The computer won this time, ${this.scores.computer} to ${this.scores.user}. Play again or return to the home page.`;
         } else {
-            finalMessage = `Amazing! It's a ${this.scores.user} to ${this.scores.computer} draw!`;
+            finalMessage = `It's a ${this.scores.user} to ${this.scores.computer} draw! Play again or return to the home page.`;
         }
         
         setTimeout(() => {
-            this.speakText(finalMessage + ' Play again or return to the home page.');
+            this.speakText(finalMessage);
         }, 1000);
     }
 
@@ -212,6 +321,7 @@ class TrumpsGameController {
         this.gamePhase = 'selection';
         this.selectedCards = { user: null, computer: null };
         this.gameComplete = false;
+        this.questionsCompleted = 0; // Reset questions completed
         
         // Hide modal
         const modal = document.getElementById('gameModal');
@@ -322,7 +432,10 @@ class TrumpsGameController {
             this.audioContext.close();
         }
         
-        // Clean up renderer
+        // Clean up mute button
+        if (this.muteContainer && this.muteContainer.parentNode) {
+            this.muteContainer.parentNode.removeChild(this.muteContainer);
+        }
         this.renderer.reset();
     }
 }
