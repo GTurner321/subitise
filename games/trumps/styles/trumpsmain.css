@@ -162,11 +162,11 @@
 }
 
 .center-card {
-    width: 25vw; /* 25% of viewport width */
-    height: calc(25vw / 0.7); /* Maintain 0.7 aspect ratio */
+    width: 22vw; /* 22% of viewport width */
+    height: calc(22vw / 0.7); /* Maintain 0.7 aspect ratio */
     perspective: 1000px;
-    min-width: 200px; /* Minimum size for very small screens */
-    max-width: 350px; /* Maximum size for very large screens */
+    min-width: 180px; /* Minimum size for very small screens */
+    max-width: 300px; /* Maximum size for very large screens */
 }
 
 .card-inner {
@@ -207,41 +207,32 @@
     padding: 20px; /* Increased padding */
 }
 
-.card-image-window {
-    width: 100%;
-    height: 45%;
-    border-radius: 12px;
-    margin-bottom: 15px;
-    background: linear-gradient(135deg, #FFD700, #C0C0C0, #FFD700, #C0C0C0);
-    background-size: 200% 200%;
-    animation: shimmer 3s ease-in-out infinite;
-    padding: 8px;
-    box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+.card-name {
+    font-size: 1.3rem; /* Increased font size */
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    text-align: center;
+    line-height: 1.2;
 }
 
-@keyframes shimmer {
-    0%, 100% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
+.card-image-window {
+    width: 100%;
+    height: 60%; /* Increased from 45% to 60% (15% taller) */
+    border-radius: 12px;
+    margin-bottom: 10px;
+    background: #E6F3FF; /* Pale blue background */
+    padding: 8px;
+    box-shadow: inset 0 2px 8px rgba(135, 206, 250, 0.3); /* Blue border shadow */
+    border: 2px solid #B8D4F0; /* Subtle blue border */
 }
 
 .card-image {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain; /* Changed from cover to contain - no cropping */
     border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-
-.card-name {
-    font-size: 1.3rem; /* Increased font size */
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 20px;
-    text-align: center;
 }
 
 .card-stats {
@@ -495,10 +486,10 @@
     }
     
     .center-card {
-        width: 30vw;
-        height: calc(30vw / 0.7);
-        min-width: 180px;
-        max-width: 250px;
+        width: 26vw;
+        height: calc(26vw / 0.7);
+        min-width: 160px;
+        max-width: 220px;
     }
     
     .star {
