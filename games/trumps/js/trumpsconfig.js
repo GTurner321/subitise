@@ -7,7 +7,7 @@ const CONFIG = {
     GRID_COLS: 8,
     
     // Animation timings (milliseconds)
-    CARD_FADE_DURATION: 500,
+    CARD_FADE_DURATION: 2000, // Increased from 500ms to 2000ms
     CARD_MOVE_DURATION: 800,
     CARD_FLIP_DURATION: 600,
     RESULT_DISPLAY_DURATION: 2000,
