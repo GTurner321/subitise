@@ -39,9 +39,10 @@ class PlusOneGameController {
         this.currentAnswer = 0; // n+1
         this.buttonsDisabled = false;
         
-        // Box state tracking - levels 3+ only need total box
+        // Box state tracking - different logic for different levels
         this.leftFilled = false;
-        this.totalFilled = false; // Right box is always filled with "1"
+        this.rightFilled = true; // Always filled with "1" 
+        this.totalFilled = false;
         
         // Flashing intervals
         this.flashingInterval = null;
@@ -242,9 +243,9 @@ class PlusOneGameController {
                 hintText = `What is ${this.currentNumber} plus one?`;
             }
         } else {
-            // Levels 3+: only need to find the answer
+            // Levels 3+: focus on "what comes after" 
             if (!this.totalFilled) {
-                hintText = `What is ${this.currentNumber} plus one?`;
+                hintText = `What number comes after ${this.currentNumber}?`;
             }
         }
         
@@ -341,6 +342,7 @@ class PlusOneGameController {
 
     resetBoxState() {
         this.leftFilled = false;
+        this.rightFilled = true; // Always filled with "1"
         this.totalFilled = false;
         this.stopFlashing();
     }
@@ -430,18 +432,34 @@ class PlusOneGameController {
     }
 
     generatePlusOneQuestion() {
-        const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
-        const availableNumbers = levelNumbers.filter(num => !this.usedNumbersInLevel.has(num));
-        
-        // If all numbers used, reset the used numbers set
-        if (availableNumbers.length === 0) {
-            this.usedNumbersInLevel.clear();
-            this.currentNumber = levelNumbers[Math.floor(Math.random() * levelNumbers.length)];
+        if (this.currentLevel === 10) {
+            // Level 10: Choose from levels 6-9 randomly
+            const sourceLevels = [6, 7, 8, 9];
+            const randomSourceLevel = sourceLevels[Math.floor(Math.random() * sourceLevels.length)];
+            const sourceNumbers = CONFIG.LEVELS[randomSourceLevel].numbers;
+            
+            const availableNumbers = sourceNumbers.filter(num => !this.usedNumbersInLevel.has(num));
+            
+            if (availableNumbers.length === 0) {
+                this.usedNumbersInLevel.clear();
+                this.currentNumber = sourceNumbers[Math.floor(Math.random() * sourceNumbers.length)];
+            } else {
+                this.currentNumber = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
+            }
         } else {
-            this.currentNumber = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
+            // Normal level progression
+            const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
+            const availableNumbers = levelNumbers.filter(num => !this.usedNumbersInLevel.has(num));
+            
+            if (availableNumbers.length === 0) {
+                this.usedNumbersInLevel.clear();
+                this.currentNumber = levelNumbers[Math.floor(Math.random() * levelNumbers.length)];
+            } else {
+                this.currentNumber = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
+            }
         }
         
-        this.usedNumbersInLevel.add(this.currentNumber);
+        this.usedNumbersInLevel.add(this.currentNumber);  
         this.currentAnswer = this.currentNumber + 1;
     }
 
@@ -540,12 +558,18 @@ class PlusOneGameController {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
         setTimeout(() => {
-            if (this.questionsCompleted === 0) {
-                this.speakText('Complete the plus one sum');
-            } else if (this.questionsCompleted === 1) {
-                this.speakText('Try again and complete the sum');
+            if (this.currentLevel <= 2) {
+                // Levels 1-2: Basic instructions  
+                if (this.questionsCompleted === 0) {
+                    this.speakText('Complete the plus one sum');
+                } else if (this.questionsCompleted === 1) {
+                    this.speakText('Try again and complete the sum');
+                } else {
+                    this.speakText('Complete the sum');
+                }
             } else {
-                this.speakText('Complete the sum');
+                // Levels 3+: Ask the plus one question immediately
+                this.speakText(`What number is one more than ${this.currentNumber}?`);
             }
         }, 500);
     }
@@ -553,37 +577,37 @@ class PlusOneGameController {
     hideAllInputBoxes() {
         this.checkMark.classList.remove('visible');
         
+        // Clear and reset all boxes
         this.leftInputBox.textContent = '';
         this.totalInputBox.textContent = '';
         
         this.leftInputBox.classList.remove('flashing', 'filled');
         this.totalInputBox.classList.remove('flashing', 'filled');
         
-        // Right box always shows "1"
+        // Right box always shows "1" and is always filled
         this.rightInputBox.textContent = '1';
         this.rightInputBox.classList.add('filled');
         
-        // For levels 3+, pre-fill the left box
+        // For levels 3+, pre-fill the left box with the current number
         if (this.currentLevel >= 3) {
             this.leftInputBox.textContent = this.currentNumber;
             this.leftInputBox.classList.add('filled');
             this.leftFilled = true;
+        } else {
+            // For levels 1-2, left box starts empty
+            this.leftFilled = false;
         }
+        
+        // Total box always starts empty
+        this.totalFilled = false;
     }
 
     showInputBoxes() {
-        if (this.currentLevel <= 2) {
-            // Levels 1-2: show flashing based on what needs to be filled
-            if (!this.leftFilled) {
-                this.leftInputBox.classList.add('flashing');
-            } else if (!this.totalFilled) {
-                this.totalInputBox.classList.add('flashing');
-            }
-        } else {
-            // Levels 3+: only total box needs to be filled (left is pre-filled)
-            if (!this.totalFilled) {
-                this.totalInputBox.classList.add('flashing');
-            }
+        // Flash the first box that needs to be filled
+        if (!this.leftFilled) {
+            this.leftInputBox.classList.add('flashing');
+        } else if (!this.totalFilled) {
+            this.totalInputBox.classList.add('flashing');
         }
         this.startFlashing();
     }
@@ -593,22 +617,13 @@ class PlusOneGameController {
         
         let correctAnswer = false;
         
-        // Check which box should be filled based on level
-        if (this.currentLevel <= 2) {
-            // Levels 1-2: traditional left then total filling
-            if (!this.leftFilled && selectedNumber === this.currentNumber) {
-                this.fillBox('left', selectedNumber, buttonElement);
-                correctAnswer = true;
-            } else if (!this.totalFilled && selectedNumber === this.currentAnswer) {
-                this.fillBox('total', selectedNumber, buttonElement);
-                correctAnswer = true;
-            }
-        } else {
-            // Levels 3+: only total box needs to be filled (left is pre-filled)
-            if (!this.totalFilled && selectedNumber === this.currentAnswer) {
-                this.fillBox('total', selectedNumber, buttonElement);
-                correctAnswer = true;
-            }
+        // Check which box should be filled based on what's needed
+        if (!this.leftFilled && selectedNumber === this.currentNumber) {
+            this.fillBox('left', selectedNumber, buttonElement);
+            correctAnswer = true;
+        } else if (!this.totalFilled && selectedNumber === this.currentAnswer) {
+            this.fillBox('total', selectedNumber, buttonElement);
+            correctAnswer = true;
         }
         
         if (correctAnswer) {
@@ -660,33 +675,19 @@ class PlusOneGameController {
         this.leftInputBox.classList.remove('flashing');
         this.totalInputBox.classList.remove('flashing');
         
-        if (this.currentLevel <= 2) {
-            // Levels 1-2: traditional progression
-            if (!this.leftFilled) {
-                this.leftInputBox.classList.add('flashing');
-            } else if (!this.totalFilled) {
-                this.totalInputBox.classList.add('flashing');
-            }
-        } else {
-            // Levels 3+: only total box needs flashing (left is pre-filled)
-            if (!this.totalFilled) {
-                this.totalInputBox.classList.add('flashing');
-            }
+        // Flash the next box that needs to be filled
+        if (!this.leftFilled) {
+            this.leftInputBox.classList.add('flashing');
+        } else if (!this.totalFilled) {
+            this.totalInputBox.classList.add('flashing');
         }
         
         this.startFlashing();
     }
 
     checkQuestionCompletion() {
-        let questionComplete = false;
-        
-        if (this.currentLevel <= 2) {
-            // Levels 1-2: need both left and total filled
-            questionComplete = this.leftFilled && this.totalFilled;
-        } else {
-            // Levels 3+: only need total filled (left is pre-filled)
-            questionComplete = this.totalFilled;
-        }
+        // Question is complete when both left and total are filled
+        const questionComplete = this.leftFilled && this.totalFilled;
         
         if (questionComplete) {
             this.clearInactivityTimer();
@@ -701,10 +702,9 @@ class PlusOneGameController {
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}, new level: ${this.currentLevel}`);
             
+            // Give appropriate audio feedback
             if (this.audioEnabled && wasFirstAttempt) {
-                const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
-                const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-                this.speakText(randomEncouragement);
+                this.giveCompletionFeedback();
             }
             
             this.questionsCompleted++;
@@ -716,9 +716,30 @@ class PlusOneGameController {
                 return;
             }
 
+            // Different delays for different levels due to audio feedback
+            const delay = (this.currentLevel <= 2) ? 4000 : 2000; // Longer for levels 1-2 due to sum repetition
             setTimeout(() => {
                 this.fadeOutQuestion();
-            }, 2000);
+            }, delay);
+        }
+    }
+
+    giveCompletionFeedback() {
+        if (this.currentLevel <= 2) {
+            // Levels 1-2: Say encouraging word first, then repeat the sum
+            const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
+            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+            this.speakText(randomEncouragement);
+            
+            // Then repeat the sum after a short delay
+            setTimeout(() => {
+                this.speakText(`One more than ${this.currentNumber} is ${this.currentAnswer}`);
+            }, 1500);
+        } else {
+            // Levels 3+: Just encouragement
+            const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
+            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+            this.speakText(randomEncouragement);
         }
     }
 
@@ -757,9 +778,14 @@ class PlusOneGameController {
             this.playFailureSound();
         }
         
+        // Give specific audio feedback for levels 3+
         if (this.audioEnabled && this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Try again');
+                if (this.currentLevel >= 3) {
+                    this.speakText(`What number comes after ${this.currentNumber}?`);
+                } else {
+                    this.speakText('Try again');
+                }
             }, 800);
         }
         
