@@ -39,9 +39,9 @@ class PlusOneGameController {
         this.currentAnswer = 0; // n+1
         this.buttonsDisabled = false;
         
-        // Box state tracking - different logic for different levels
+        // Box state tracking - all boxes start empty for levels 1-2
         this.leftFilled = false;
-        this.rightFilled = true; // Always filled with "1" 
+        this.rightFilled = false; // Right box should also be fillable in levels 1-2
         this.totalFilled = false;
         
         // Flashing intervals
@@ -236,9 +236,11 @@ class PlusOneGameController {
         
         let hintText = '';
         if (this.currentLevel <= 2) {
-            // Levels 1-2: traditional hints
+            // Levels 1-2: hints for each box in order
             if (!this.leftFilled) {
                 hintText = 'Count the number of pictures on the left side';
+            } else if (!this.rightFilled) {
+                hintText = 'Count the number of pictures on the right side';
             } else if (!this.totalFilled) {
                 hintText = `What is ${this.currentNumber} plus one?`;
             }
@@ -342,7 +344,7 @@ class PlusOneGameController {
 
     resetBoxState() {
         this.leftFilled = false;
-        this.rightFilled = true; // Always filled with "1"
+        this.rightFilled = false; // Reset for levels 1-2
         this.totalFilled = false;
         this.stopFlashing();
     }
@@ -351,18 +353,21 @@ class PlusOneGameController {
         this.stopFlashing();
         
         const flashElements = () => {
-            // For levels 1-2: flash based on which box needs filling
             if (this.currentLevel <= 2) {
+                // Levels 1-2: flash based on which box needs filling (left → right → total)
                 if (!this.leftFilled) {
                     this.leftSide.classList.add('area-flash');
                     this.leftInputBox.classList.add('box-flash');
+                } else if (!this.rightFilled) {
+                    this.rightSide.classList.add('area-flash');
+                    this.rightInputBox.classList.add('box-flash');
                 } else if (!this.totalFilled) {
                     this.leftSide.classList.add('area-flash');
                     this.rightSide.classList.add('area-flash');
                     this.totalInputBox.classList.add('box-flash');
                 }
             } else {
-                // For levels 3+: only flash for total answer (left is pre-filled)
+                // Levels 3+: only flash for total answer (left and right are pre-filled)
                 if (!this.totalFilled) {
                     this.leftSide.classList.add('area-flash');
                     this.rightSide.classList.add('area-flash');
@@ -374,6 +379,7 @@ class PlusOneGameController {
                 this.leftSide.classList.remove('area-flash');
                 this.rightSide.classList.remove('area-flash');
                 this.leftInputBox.classList.remove('box-flash');
+                this.rightInputBox.classList.remove('box-flash');
                 this.totalInputBox.classList.remove('box-flash');
             }, 1000);
         };
@@ -577,35 +583,41 @@ class PlusOneGameController {
     hideAllInputBoxes() {
         this.checkMark.classList.remove('visible');
         
-        // Clear and reset all boxes
+        // Clear all boxes first
         this.leftInputBox.textContent = '';
+        this.rightInputBox.textContent = '';
         this.totalInputBox.textContent = '';
         
+        // Remove all classes
         this.leftInputBox.classList.remove('flashing', 'filled');
+        this.rightInputBox.classList.remove('flashing', 'filled');
         this.totalInputBox.classList.remove('flashing', 'filled');
         
-        // Right box always shows "1" and is always filled
-        this.rightInputBox.textContent = '1';
-        this.rightInputBox.classList.add('filled');
-        
-        // For levels 3+, pre-fill the left box with the current number
-        if (this.currentLevel >= 3) {
+        if (this.currentLevel <= 2) {
+            // Levels 1-2: All boxes start empty and need to be filled by user
+            this.leftFilled = false;
+            this.rightFilled = false;
+            this.totalFilled = false;
+        } else {
+            // Levels 3+: Pre-fill left and right boxes
             this.leftInputBox.textContent = this.currentNumber;
             this.leftInputBox.classList.add('filled');
             this.leftFilled = true;
-        } else {
-            // For levels 1-2, left box starts empty
-            this.leftFilled = false;
+            
+            this.rightInputBox.textContent = '1';
+            this.rightInputBox.classList.add('filled');
+            this.rightFilled = true;
+            
+            this.totalFilled = false;
         }
-        
-        // Total box always starts empty
-        this.totalFilled = false;
     }
 
     showInputBoxes() {
-        // Flash the first box that needs to be filled
+        // Flash the first box that needs to be filled (left → right → total)
         if (!this.leftFilled) {
             this.leftInputBox.classList.add('flashing');
+        } else if (!this.rightFilled) {
+            this.rightInputBox.classList.add('flashing');
         } else if (!this.totalFilled) {
             this.totalInputBox.classList.add('flashing');
         }
@@ -620,6 +632,9 @@ class PlusOneGameController {
         // Check which box should be filled based on what's needed
         if (!this.leftFilled && selectedNumber === this.currentNumber) {
             this.fillBox('left', selectedNumber, buttonElement);
+            correctAnswer = true;
+        } else if (!this.rightFilled && selectedNumber === 1) {
+            this.fillBox('right', selectedNumber, buttonElement);
             correctAnswer = true;
         } else if (!this.totalFilled && selectedNumber === this.currentAnswer) {
             this.fillBox('total', selectedNumber, buttonElement);
@@ -660,6 +675,12 @@ class PlusOneGameController {
                 this.leftInputBox.classList.add('filled');
                 this.leftFilled = true;
                 break;
+            case 'right':
+                this.rightInputBox.textContent = selectedNumber;
+                this.rightInputBox.classList.remove('flashing');
+                this.rightInputBox.classList.add('filled');
+                this.rightFilled = true;
+                break;
             case 'total':
                 this.totalInputBox.textContent = selectedNumber;
                 this.totalInputBox.classList.remove('flashing');
@@ -673,11 +694,14 @@ class PlusOneGameController {
 
     updateFlashingBoxes() {
         this.leftInputBox.classList.remove('flashing');
+        this.rightInputBox.classList.remove('flashing');
         this.totalInputBox.classList.remove('flashing');
         
-        // Flash the next box that needs to be filled
+        // Flash the next box that needs to be filled (left → right → total)
         if (!this.leftFilled) {
             this.leftInputBox.classList.add('flashing');
+        } else if (!this.rightFilled) {
+            this.rightInputBox.classList.add('flashing');
         } else if (!this.totalFilled) {
             this.totalInputBox.classList.add('flashing');
         }
