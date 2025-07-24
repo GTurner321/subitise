@@ -25,6 +25,39 @@ class TrumpsGameController {
         this.createMuteButton();
     }
 
+    async initializeAudio() {
+        if (!this.audioEnabled) return;
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (error) {
+            this.audioEnabled = false;
+        }
+    }
+
+    initializeGame() {
+        // Initialize cards with original positions
+        this.availableCards = CONFIG.CARDS.map((card, index) => ({
+            ...card,
+            originalPosition: index
+        }));
+        
+        this.startNewRound();
+    }
+
+    initializeEventListeners() {
+        // Handle card selection
+        document.addEventListener('click', (e) => {
+            this.handleClick(e);
+        });
+        
+        // Handle play again button (delegated event handling)
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'playAgainBtn') {
+                this.restartGame();
+            }
+        });
+    }
+
     createMuteButton() {
         // Create mute button container
         const muteContainer = document.createElement('div');
@@ -106,44 +139,6 @@ class TrumpsGameController {
             }, 100);
         }
     }
-        if (!this.audioEnabled) return;
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
-            this.audioEnabled = false;
-        }
-    }
-
-    async initializeAudio() {
-        if (!this.audioEnabled) return;
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
-            this.audioEnabled = false;
-        }
-    }
-        // Initialize cards with original positions
-        this.availableCards = CONFIG.CARDS.map((card, index) => ({
-            ...card,
-            originalPosition: index
-        }));
-        
-        this.startNewRound();
-    }
-
-    initializeEventListeners() {
-        // Handle card selection
-        document.addEventListener('click', (e) => {
-            this.handleClick(e);
-        });
-        
-        // Handle play again button (delegated event handling)
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'playAgainBtn') {
-                this.restartGame();
-            }
-        });
-    }
 
     handleClick(e) {
         const target = e.target.closest('[data-card-id], [data-category]');
@@ -194,8 +189,19 @@ class TrumpsGameController {
         // Flip user's card first
         await this.renderer.flipCard(userCard.id, 'user');
         
-        // Give instruction for category selection
-        this.speakText('Choose a category: Fun, Cuddles, or Stars.');
+        // Give instruction for category selection - different for first vs subsequent questions
+        if (this.questionsCompleted === 0) {
+            // First question - longer explanation
+            const longInstruction = 'Choose a category: Fun, Cuddly, or Stars. Fun goes up to 100%, cuddly goes up to 10, and the star rating is out of 5 stars';
+            this.speakText(longInstruction);
+            
+            // Calculate speech duration and wait before flipping computer card
+            const speechDuration = this.calculateSpeechDuration(longInstruction);
+            await this.renderer.wait(speechDuration);
+        } else {
+            // Subsequent questions - short instruction
+            this.speakText('Choose a category');
+        }
     }
 
     calculateSpeechDuration(text) {
@@ -214,6 +220,8 @@ class TrumpsGameController {
         
         return Math.max(baseDuration + pauseTime + bufferTime, 2000); // Minimum 2 seconds
     }
+
+    async handleCategorySelection(category) {
         if (this.gamePhase !== 'category') return;
         
         console.log(`User selected category: ${category}`);
@@ -436,6 +444,8 @@ class TrumpsGameController {
         if (this.muteContainer && this.muteContainer.parentNode) {
             this.muteContainer.parentNode.removeChild(this.muteContainer);
         }
+        
+        // Clean up renderer
         this.renderer.reset();
     }
 }
