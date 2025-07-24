@@ -441,6 +441,8 @@ class PlusOneGameController {
     }
 
     generatePlusOneQuestion() {
+        console.log(`BEFORE generatePlusOneQuestion: this.currentNumber = ${this.currentNumber}`);
+        
         if (this.currentLevel === 10) {
             // Level 10: Choose from levels 6-9 randomly
             const sourceLevels = [6, 7, 8, 9];
@@ -470,6 +472,8 @@ class PlusOneGameController {
         
         this.usedNumbersInLevel.add(this.currentNumber);  
         this.currentAnswer = this.currentNumber + 1;
+        
+        console.log(`AFTER generatePlusOneQuestion: this.currentNumber = ${this.currentNumber}, this.currentAnswer = ${this.currentAnswer}`);
     }
 
     createButtons() {
@@ -731,7 +735,12 @@ class PlusOneGameController {
             
             // Give appropriate audio feedback
             if (this.audioEnabled && wasFirstAttempt) {
+                console.log(`=== CALLING giveCompletionFeedback ===`);
+                console.log(`audioEnabled: ${this.audioEnabled}, wasFirstAttempt: ${wasFirstAttempt}`);
                 this.giveCompletionFeedback();
+            } else {
+                console.log(`=== NOT calling giveCompletionFeedback ===`);
+                console.log(`audioEnabled: ${this.audioEnabled}, wasFirstAttempt: ${wasFirstAttempt}`);
             }
             
             this.questionsCompleted++;
@@ -752,19 +761,23 @@ class PlusOneGameController {
     }
 
     giveCompletionFeedback() {
-        console.log(`Giving completion feedback for level ${this.currentLevel}`);
+        console.log(`=== AUDIO FEEDBACK: Level ${this.currentLevel}, wasFirstAttempt check ===`);
+        console.log(`Current number: ${this.currentNumber}, Current answer: ${this.currentAnswer}`);
         
-        if (this.currentLevel <= 2) {
+        if (this.currentLevel === 1 || this.currentLevel === 2) {
             // Levels 1 AND 2: Say encouraging word first, then repeat the sum
-            console.log(`Level ${this.currentLevel}: Will say sum repetition`);
+            console.log(`Level ${this.currentLevel}: Will provide sum repetition audio`);
             const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+            
+            console.log(`Speaking encouragement: ${randomEncouragement}`);
             this.speakText(randomEncouragement);
             
             // Then repeat the sum after a short delay for BOTH level 1 AND level 2
             setTimeout(() => {
-                console.log(`Speaking: One more than ${this.currentNumber} is ${this.currentAnswer}`);
-                this.speakText(`One more than ${this.currentNumber} is ${this.currentAnswer}`);
+                const sumMessage = `One more than ${this.currentNumber} is ${this.currentAnswer}`;
+                console.log(`Speaking sum repetition: ${sumMessage}`);
+                this.speakText(sumMessage);
             }, 1500);
         } else {
             // Levels 3+: Just encouragement
