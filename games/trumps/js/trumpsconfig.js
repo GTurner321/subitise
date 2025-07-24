@@ -1,570 +1,136 @@
-/* Teddy Trumps Game Styles */
-
-.game-area {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 0;
-    position: relative;
-    width: 100vw;
-    margin: 0;
-}
-
-/* Scores Container */
-.scores-container {
-    display: flex;
-    justify-content: center;
-    gap: 40px;
-    margin: 15px 0;
-    padding: 0 20px;
-}
-
-.score-box {
-    width: 70px;
-    height: 70px;
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.2rem;
-    font-weight: bold;
-    color: white;
-    transition: transform 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-.user-score {
-    background: linear-gradient(135deg, #4CAF50, #45a049);
-}
-
-.computer-score {
-    background: linear-gradient(135deg, #f44336, #da190b);
-}
-
-/* Card Grid - Full screen width layout */
-.card-grid {
-    display: grid;
-    grid-template-columns: 7% repeat(8, 9%) 7%;
-    grid-template-rows: repeat(2, 1fr);
-    grid-column-gap: 2%;
-    grid-row-gap: 15px;
-    width: 100vw;
-    flex: 1;
-    padding: 15px 0;
-    align-items: center;
-}
-
-.card-slot {
-    width: 100%;
-    /* Height calculated based on 0.7 aspect ratio */
-    aspect-ratio: 1 / 1.43; /* This gives us the 0.7 width/height ratio */
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    position: relative;
-    grid-column: span 1;
-}
-
-/* Empty slots in first and last columns for margins */
-.card-slot:nth-child(1),
-.card-slot:nth-child(10),
-.card-slot:nth-child(11),
-.card-slot:nth-child(20) {
-    visibility: hidden;
-}
-
-/* Position cards in correct grid columns (skipping margin columns) */
-.card-slot:nth-child(2) { grid-column: 2; grid-row: 1; }
-.card-slot:nth-child(3) { grid-column: 3; grid-row: 1; }
-.card-slot:nth-child(4) { grid-column: 4; grid-row: 1; }
-.card-slot:nth-child(5) { grid-column: 5; grid-row: 1; }
-.card-slot:nth-child(6) { grid-column: 6; grid-row: 1; }
-.card-slot:nth-child(7) { grid-column: 7; grid-row: 1; }
-.card-slot:nth-child(8) { grid-column: 8; grid-row: 1; }
-.card-slot:nth-child(9) { grid-column: 9; grid-row: 1; }
-
-.card-slot:nth-child(12) { grid-column: 2; grid-row: 2; }
-.card-slot:nth-child(13) { grid-column: 3; grid-row: 2; }
-.card-slot:nth-child(14) { grid-column: 4; grid-row: 2; }
-.card-slot:nth-child(15) { grid-column: 5; grid-row: 2; }
-.card-slot:nth-child(16) { grid-column: 6; grid-row: 2; }
-.card-slot:nth-child(17) { grid-column: 7; grid-row: 2; }
-.card-slot:nth-child(18) { grid-column: 8; grid-row: 2; }
-.card-slot:nth-child(19) { grid-column: 9; grid-row: 2; }
-
-.card-slot.card-back {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    cursor: pointer;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-}
-
-.card-slot.card-back:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.4);
-}
-
-.card-slot.empty-slot {
-    background: rgba(255,255,255,0.1);
-    border: 2px dashed rgba(255,255,255,0.3);
-}
-
-.card-back-design {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.card-pattern {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: repeating-linear-gradient(
-        45deg,
-        rgba(255,255,255,0.1) 0px,
-        rgba(255,255,255,0.1) 6px,
-        transparent 6px,
-        transparent 12px
-    );
-}
-
-.card-letters {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    z-index: 2;
-}
-
-/* Center Area - 25% of viewport width cards */
-.center-area {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    gap: 60px;
-    align-items: center;
-    justify-content: center;
-}
-
-.center-area.hidden {
-    display: none;
-}
-
-.center-card {
-    width: 25vw; /* 25% of viewport width */
-    height: calc(25vw / 0.7); /* Maintain 0.7 aspect ratio */
-    perspective: 1000px;
-    min-width: 200px; /* Minimum size for very small screens */
-    max-width: 350px; /* Maximum size for very large screens */
-}
-
-.card-inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    text-align: center;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
-}
-
-.card-face {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 15px; /* Increased border radius for larger cards */
-    backface-visibility: hidden;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-}
-
-.card-back-face {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.card-back-face .card-letters {
-    font-size: 2rem; /* Larger for center cards */
-}
-
-.card-front-face {
-    background: linear-gradient(135deg, #fff, #f8f9fa);
-    transform: rotateY(180deg);
-    display: flex;
-    flex-direction: column;
-    padding: 20px; /* Increased padding */
-}
-
-.card-image-window {
-    width: 100%;
-    height: 45%;
-    border-radius: 12px;
-    margin-bottom: 15px;
-    background: #E6F3FF; /* Pale blue background */
-    padding: 8px;
-    box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.card-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-
-.card-name {
-    font-size: 1.3rem; /* Increased font size */
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.card-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 12px; /* Increased gap */
-    flex: 1;
-}
-
-.card-stat {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px; /* Increased padding */
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-}
-
-.stat-button {
-    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-    cursor: pointer;
-}
-
-.stat-button:hover {
-    background: linear-gradient(135deg, #bbdefb, #e1bee7);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.stat-display {
-    background: linear-gradient(135deg, #f5f5f5, #eeeeee);
-}
-
-.selected-category {
-    border-color: #ff6b6b !important;
-    background: linear-gradient(135deg, #ffebee, #fce4ec) !important;
-    box-shadow: 0 0 15px rgba(255, 107, 107, 0.5) !important;
-}
-
-.stat-label {
-    font-weight: bold;
-    font-size: 1rem; /* Increased font size */
-    color: #555;
-}
-
-.stat-value {
-    font-weight: bold;
-    font-size: 1.2rem; /* Increased font size */
-    color: #333;
-}
-
-/* Winner/Loser Effects */
-.center-card.winner {
-    animation: pulse 1s infinite;
-}
-
-.center-card.winner .card-front-face {
-    background: linear-gradient(135deg, #c8e6c9, #4caf50);
-    box-shadow: 0 0 20px #4caf50;
-}
-
-.center-card.loser .card-front-face {
-    background: linear-gradient(135deg, #ffcdd2, #f44336);
-    opacity: 0.7;
-}
-
-.center-card.draw .card-front-face {
-    background: linear-gradient(135deg, #fff3e0, #ff9800);
-}
-
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-}
-
-/* Card Animations */
-@keyframes cardSlideIn {
-    0% {
-        opacity: 0;
-        transform: translateY(-100px) scale(0.8);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-@keyframes cardSlideOut {
-    0% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(0.8) translateY(50px);
-    }
-}
-
-/* Game Complete Modal */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-    padding: 40px;
-    border-radius: 20px;
-    text-align: center;
-    animation: modalAppear 0.5s ease;
-    max-width: 400px;
-}
-
-.modal-content h2 {
-    color: white;
-    font-size: 2rem;
-    margin-bottom: 20px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-}
-
-.final-scores {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    margin: 20px 0;
-    font-size: 1.5rem;
-    color: white;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-}
-
-.final-score {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.score-label {
-    font-size: 1rem;
-    margin-bottom: 5px;
-}
-
-.score-number {
-    font-size: 2rem;
-    font-weight: bold;
-}
-
-.score-divider {
-    font-size: 2rem;
-    font-weight: bold;
-}
-
-.play-again-btn {
-    background: #4caf50;
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    font-size: 1.2rem;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
-}
-
-.play-again-btn:hover {
-    background: #45a049;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-}
-
-@keyframes modalAppear {
-    from { 
-        opacity: 0; 
-        transform: scale(0.5); 
-    }
-    to { 
-        opacity: 1; 
-        transform: scale(1); 
-    }
-}
-
-.hidden {
-    display: none !important;
-}
-
-/* Star Rating Styles */
-.star {
-    color: #FFD700;
-    font-size: 1.2rem;
-    margin-right: 2px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-}
-
-.half-star {
-    position: relative;
-    overflow: hidden;
-}
-
-.half-star::after {
-    content: '★';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 50%;
-    overflow: hidden;
-    color: #FFD700;
-}
-
-.half-star {
-    color: #E0E0E0; /* Light gray for the empty part */
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .scores-container {
-        gap: 20px;
-        margin: 10px 0;
-    }
+// Teddy Trumps Game Configuration
+const CONFIG = {
+    // Game settings
+    TOTAL_CARDS: 16,
+    ROUNDS: 8,
+    GRID_ROWS: 2,
+    GRID_COLS: 8,
     
-    .score-box {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-    }
+    // Animation timings (milliseconds)
+    CARD_FADE_DURATION: 500,
+    CARD_MOVE_DURATION: 800,
+    CARD_FLIP_DURATION: 600,
+    RESULT_DISPLAY_DURATION: 2000,
+    RESET_DELAY: 1000,
     
-    .card-grid {
-        grid-row-gap: 10px;
-        padding: 10px 0;
-    }
+    // Categories
+    CATEGORIES: {
+        FUNNY: 'funny',
+        CUDDLY: 'cuddly', 
+        STARS: 'stars'
+    },
     
-    .card-letters {
-        font-size: 0.9rem;
-    }
+    // Category display info
+    CATEGORY_INFO: {
+        funny: { label: 'Funny', suffix: '%', max: 100 },
+        cuddly: { label: 'Cuddly', suffix: '/10', max: 10 },
+        stars: { label: 'Stars', suffix: '', max: 5 } // No suffix for star display
+    },
     
-    .center-area {
-        gap: 30px;
-    }
+    // Visual settings
+    CARD_ASPECT_RATIO: 0.7, // height/width
+    CENTER_CARD_WIDTH: 200, // pixels
     
-    .center-card {
-        width: 30vw;
-        height: calc(30vw / 0.7);
-        min-width: 180px;
-        max-width: 250px;
-    }
+    // Audio settings
+    AUDIO_ENABLED: true,
     
-    .star {
-        font-size: 1rem;
-    }
-    
-    .card-back-face .card-letters {
-        font-size: 1.5rem;
-    }
-    
-    .card-front-face {
-        padding: 15px;
-    }
-    
-    .card-name {
-        font-size: 1.1rem;
-        margin-bottom: 15px;
-    }
-    
-    .card-stats {
-        gap: 8px;
-    }
-    
-    .card-stat {
-        padding: 8px 12px;
-    }
-    
-    .stat-label {
-        font-size: 0.9rem;
-    }
-    
-    .stat-value {
-        font-size: 1rem;
-    }
-    
-    .modal-content {
-        margin: 20px;
-        padding: 30px;
-    }
-    
-    .modal-content h2 {
-        font-size: 1.5rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .card-grid {
-        grid-template-columns: 5% repeat(8, 11.25%) 5%;
-        grid-column-gap: 1.5%;
-    }
-    
-    .card-letters {
-        font-size: 0.8rem;
-    }
-    
-    .center-card {
-        width: 160px;
-        height: calc(160px / 0.7);
-    }
-    
-    .card-back-face .card-letters {
-        font-size: 1.2rem;
-    }
-    
-    .card-name {
-        font-size: 1rem;
-    }
-    
-    .stat-label {
-        font-size: 0.8rem;
-    }
-    
-    .stat-value {
-        font-size: 0.9rem;
-    }
-    
-    .center-area {
-        gap: 20px;
-    }
-}
+    // Card database - 16 different teddy bears and toys
+    CARDS: [
+        {
+            id: 1,
+            name: "Biscuit Bear",
+            image: "../../assets/trumps/biscuitbear.png",
+            stats: { funny: 24, cuddly: 3, stars: 1.5 }
+        },
+        {
+            id: 2,
+            name: "Black Bear",
+            image: "../../assets/trumps/blackbear.png", 
+            stats: { funny: 42, cuddly: 7, stars: 3.5 }
+        },
+        {
+            id: 3,
+            name: "Casper Rabbit",
+            image: "../../assets/trumps/casperrabbit.png",
+            stats: { funny: 31, cuddly: 7, stars: 3.5 }
+        },
+        {
+            id: 4,
+            name: "Chick",
+            image: "../../assets/trumps/chick.png",
+            stats: { funny: 40, cuddly: 6, stars: 3 }
+        },
+        {
+            id: 5,
+            name: "Dinosaur",
+            image: "../../assets/trumps/dinosaur.png",
+            stats: { funny: 54, cuddly: 5, stars: 4.5 }
+        },
+        {
+            id: 6,
+            name: "Elephant",
+            image: "../../assets/trumps/elephant.png",
+            stats: { funny: 15, cuddly: 8, stars: 1 }
+        },
+        {
+            id: 7,
+            name: "Flabber Jabber",
+            image: "../../assets/trumps/flabberjabber.png",
+            stats: { funny: 98, cuddly: 4, stars: 5 }
+        },
+        {
+            id: 8,
+            name: "Bear",
+            image: "../../assets/trumps/gemsbear.png",
+            stats: { funny: 57, cuddly: 8, stars: 4 }
+        },
+        {
+            id: 9,
+            name: "Knight Bear",
+            image: "../../assets/trumps/knightbear.png",
+            stats: { funny: 50, cuddly: 6, stars: 4.5 }
+        },
+        {
+            id: 10,
+            name: "Duck",
+            image: "../../assets/trumps/legoduck.png",
+            stats: { funny: 48, cuddly: 1, stars: 2.5 }
+        },
+        {
+            id: 11,
+            name: "Penguin",
+            image: "../../assets/trumps/penguin.png",
+            stats: { funny: 49, cuddly: 6, stars: 2.5 }
+        },
+        {
+            id: 12,
+            name: "Inflatable Sheep",
+            image: "../../assets/trumps/sheep.png",
+            stats: { funny: 75, cuddly: 2, stars: 3 }
+        },
+        {
+            id: 13,
+            name: "Soft Rabbit",
+            image: "../../assets/trumps/softrabbit.png",
+            stats: { funny: 16, cuddly: 9, stars: 2 }
+        },
+        {
+            id: 14,
+            name: "The Vowel Family",
+            image: "../../assets/trumps/vowels.png",
+            stats: { funny: 72, cuddly: 1, stars: 4 }
+        },
+        {
+            id: 15,
+            name: "Guinea Pig",
+            image: "../../assets/raisin/guineapig1.png",
+            stats: { funny: 80, cuddly: 7, stars: 5 }
+        },
+        {
+            id: 16,
+            name: "Raffles",
+            image: "../../assets/bear.png",
+            stats: { funny: 65, cuddly: 9, stars: 5 }
+        }
+    ]
+};
