@@ -17,11 +17,11 @@ class EnhancedGuineaPigWave {
             'three_guinea_pigs_with_reversal'
         ];
         
-        // Timing parameters (1s move + 1s pause + 2s forward + 1s move = 5s total)
-        this.moveDuration = 1000; // Time to reach pause point
+        // Timing parameters for pausing scenarios
+        this.baseMoveTime = 2000; // 2 seconds total movement time (like simple file)
         this.pauseDuration = 1000; // Regular pause duration
         this.frontFacingDuration = 2000; // Forward-facing duration
-        this.totalDuration = 5000; // Total animation time
+        this.nonPausingDuration = 2000; // Duration for non-pausing guinea pigs (2 seconds to cross page)
         
         this.startTime = null;
         this.screenWidth = 0;
@@ -165,7 +165,15 @@ class EnhancedGuineaPigWave {
         const currentTime = performance.now();
         const elapsed = currentTime - this.startTime;
         
-        if (elapsed >= this.totalDuration) {
+        // Check if all guinea pigs are done (different durations for different scenarios)
+        let allDone = true;
+        this.guineaPigs.forEach(guineaPig => {
+            if (guineaPig.element.style.opacity !== '0') {
+                allDone = false;
+            }
+        });
+        
+        if (allDone) {
             this.completeAnimation();
             return;
         }
@@ -180,13 +188,13 @@ class EnhancedGuineaPigWave {
     
     updateGuineaPig(guineaPig, elapsed) {
         if (!guineaPig.shouldPause) {
-            // Simple left-to-right movement
+            // Simple left-to-right movement (faster, like simple file)
             this.updateSimpleMovement(guineaPig, elapsed);
         } else if (!guineaPig.shouldReverse) {
-            // Movement with pause (scenarios 2 and 4)
+            // Movement with pause (scenarios 2 and 4) - proportional timing
             this.updateMovementWithPause(guineaPig, elapsed);
         } else {
-            // Movement with reversal (scenario 5)
+            // Movement with reversal (scenario 5) - fixed 50% pause point
             this.updateMovementWithReversal(guineaPig, elapsed);
         }
     }
@@ -207,7 +215,14 @@ class EnhancedGuineaPigWave {
     }
     
     updateSimpleMovement(guineaPig, elapsed) {
-        const progress = elapsed / this.totalDuration;
+        // Non-pausing guinea pigs cross the page in 2 seconds
+        if (elapsed >= this.nonPausingDuration) {
+            // Animation complete for this guinea pig
+            guineaPig.element.style.opacity = '0';
+            return;
+        }
+        
+        const progress = elapsed / this.nonPausingDuration;
         const position = this.calculatePosition(progress, guineaPig.yPosition);
         
         guineaPig.element.style.left = `${position.x - (guineaPig.element.offsetWidth / 2)}px`;
@@ -215,37 +230,45 @@ class EnhancedGuineaPigWave {
     }
     
     updateMovementWithPause(guineaPig, elapsed) {
-        // Using the working logic from your simple file
-        // Total duration breakdown: 1s to pause + 1s pause + 2s front-facing + 1s to exit = 5s
-        const firstHalfDuration = guineaPig.pausePoint * this.totalDuration; // Time to reach pause point
-        const pauseDuration = this.pauseDuration; // 1s pause
-        const frontFacingDuration = this.frontFacingDuration; // 2s front-facing
+        // Proportional timing based on pause point
+        // If pause at 30%: 30% of 2s before pause = 0.6s, 70% of 2s after pause = 1.4s
+        // Total: 0.6s + 1s pause + 2s front + 1.4s = 5s
+        
+        const firstHalfDuration = guineaPig.pausePoint * this.baseMoveTime; // e.g., 30% of 2s = 0.6s
+        const secondHalfDuration = (1 - guineaPig.pausePoint) * this.baseMoveTime; // e.g., 70% of 2s = 1.4s
+        const totalDuration = firstHalfDuration + this.pauseDuration + this.frontFacingDuration + secondHalfDuration;
+        
+        if (elapsed >= totalDuration) {
+            // Animation complete for this guinea pig
+            guineaPig.element.style.opacity = '0';
+            return;
+        }
         
         let progress = 0;
         
         if (elapsed <= firstHalfDuration) {
-            // First half: moving to pause point
+            // First part: moving to pause point
             progress = (elapsed / firstHalfDuration) * guineaPig.pausePoint;
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.updateGuineaPigSize(guineaPig, 'moving');
             
-        } else if (elapsed <= firstHalfDuration + pauseDuration) {
+        } else if (elapsed <= firstHalfDuration + this.pauseDuration) {
             // Regular pause: stay at pause point with same image and size
             progress = guineaPig.pausePoint;
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.updateGuineaPigSize(guineaPig, 'moving');
             
-        } else if (elapsed <= firstHalfDuration + pauseDuration + frontFacingDuration) {
+        } else if (elapsed <= firstHalfDuration + this.pauseDuration + this.frontFacingDuration) {
             // Front-facing pause: stay at pause point but change image and size
             progress = guineaPig.pausePoint;
             guineaPig.element.src = `${this.imagePath}guineapig3.png`;
             this.updateGuineaPigSize(guineaPig, 'static');
             
         } else {
-            // Second half: moving from pause point to exit
-            const secondHalfElapsed = elapsed - firstHalfDuration - pauseDuration - frontFacingDuration;
-            const secondHalfDuration = this.totalDuration - firstHalfDuration - pauseDuration - frontFacingDuration;
-            progress = guineaPig.pausePoint + ((secondHalfElapsed / secondHalfDuration) * (1 - guineaPig.pausePoint));
+            // Second part: moving from pause point to exit
+            const secondHalfElapsed = elapsed - firstHalfDuration - this.pauseDuration - this.frontFacingDuration;
+            const secondHalfProgress = secondHalfElapsed / secondHalfDuration;
+            progress = guineaPig.pausePoint + (secondHalfProgress * (1 - guineaPig.pausePoint));
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.updateGuineaPigSize(guineaPig, 'moving');
         }
@@ -257,37 +280,43 @@ class EnhancedGuineaPigWave {
     }
     
     updateMovementWithReversal(guineaPig, elapsed) {
-        // Similar logic but for reversal scenario
-        const firstHalfDuration = guineaPig.pausePoint * this.totalDuration; // Time to reach pause point (50%)
-        const pauseDuration = this.pauseDuration; // 1s pause
-        const frontFacingDuration = this.frontFacingDuration; // 2s front-facing
+        // Scenario 5: Fixed 50% pause point, then reverse
+        // 1s left to right (50% of 2s) + 1s pause + 2s front + 1s return = 5s total
+        const firstHalfDuration = 1000; // 1 second to reach 50%
+        const totalDuration = firstHalfDuration + this.pauseDuration + this.frontFacingDuration + 1000; // 5s total
+        
+        if (elapsed >= totalDuration) {
+            // Animation complete for this guinea pig
+            guineaPig.element.style.opacity = '0';
+            return;
+        }
         
         let progress = 0;
         
         if (elapsed <= firstHalfDuration) {
-            // First half: moving to pause point (50% of the way)
-            progress = (elapsed / firstHalfDuration) * guineaPig.pausePoint;
+            // First part: moving to 50% point
+            progress = (elapsed / firstHalfDuration) * 0.5; // 0 to 0.5
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.updateGuineaPigSize(guineaPig, 'moving');
             guineaPig.isReversing = false;
             
-        } else if (elapsed <= firstHalfDuration + pauseDuration) {
-            // Regular pause: stay at pause point with same image and size
-            progress = guineaPig.pausePoint;
+        } else if (elapsed <= firstHalfDuration + this.pauseDuration) {
+            // Regular pause: stay at 50% point with same image and size
+            progress = 0.5;
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.updateGuineaPigSize(guineaPig, 'moving');
             
-        } else if (elapsed <= firstHalfDuration + pauseDuration + frontFacingDuration) {
-            // Front-facing pause: stay at pause point but change image and size
-            progress = guineaPig.pausePoint;
+        } else if (elapsed <= firstHalfDuration + this.pauseDuration + this.frontFacingDuration) {
+            // Front-facing pause: stay at 50% point but change image and size
+            progress = 0.5;
             guineaPig.element.src = `${this.imagePath}guineapig3.png`;
             this.updateGuineaPigSize(guineaPig, 'static');
             
         } else {
-            // Reverse movement: moving from pause point back to start
-            const secondHalfElapsed = elapsed - firstHalfDuration - pauseDuration - frontFacingDuration;
-            const secondHalfDuration = this.totalDuration - firstHalfDuration - pauseDuration - frontFacingDuration;
-            progress = guineaPig.pausePoint - ((secondHalfElapsed / secondHalfDuration) * guineaPig.pausePoint);
+            // Reverse movement: moving from 50% back to 0%
+            const reverseElapsed = elapsed - firstHalfDuration - this.pauseDuration - this.frontFacingDuration;
+            const reverseProgress = reverseElapsed / 1000; // 1 second to reverse
+            progress = 0.5 - (reverseProgress * 0.5); // 0.5 to 0
             
             // Switch to left-facing image for reverse movement
             if (!guineaPig.isReversing) {
