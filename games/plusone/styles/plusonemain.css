@@ -1,0 +1,645 @@
+/* Plus One Game Styles - Based on Add Game but adapted for n+1 format */
+
+/* Import base styles from addmain.css patterns */
+.back-button:hover {
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.back-button i {
+    margin-right: 8px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+}
+
+/* Game area */
+.game-area {
+    flex: 1;
+    position: relative;
+    background: white;
+    overflow: hidden;
+    width: 80%;
+    margin: 0 auto;
+    display: flex;
+    align-items: stretch;
+}
+
+/* Left side for icons/numbers */
+.left-side {
+    position: relative;
+    width: 45%;
+    height: 100%;
+    border-right: 2px dashed #ddd;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Right side for "1" */
+.right-side {
+    position: relative;
+    width: 45%;
+    height: 100%;
+    border-left: 2px dashed #ddd;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Middle section with plus sign */
+.middle-section {
+    position: relative;
+    width: 10%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+.plus-sign {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 80px;
+    height: 80px;
+    background: #dc3545;
+    border-radius: 50%;
+    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+    z-index: 10;
+    position: relative;
+}
+
+.plus-sign i {
+    font-size: 3rem;
+    color: white;
+    font-weight: bold;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 12px 35px rgba(220, 53, 69, 0.5);
+    }
+}
+
+/* Area flashing styles - softer, longer duration, slower timing */
+.left-side.area-flash,
+.right-side.area-flash {
+    background-color: rgba(144, 238, 144, 0.2) !important;
+    transition: background-color 1s ease-in-out;
+}
+
+/* Rainbow background */
+.rainbow-container {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 50%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.rainbow-arc {
+    border-style: solid;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    box-sizing: border-box;
+}
+
+/* Icons for levels 1-2 */
+.game-icon {
+    position: absolute;
+    z-index: 5;
+    font-size: 5rem;
+    animation: fadeIn 0.5s ease-in;
+    pointer-events: none;
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: scale(0.5); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+}
+
+/* Large number display for levels 3+ (like balloon game) */
+.large-number-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 5;
+    animation: fadeIn 0.5s ease-in;
+}
+
+.large-number {
+    font-size: 8rem;
+    font-weight: bold;
+    color: #dc3545;
+    font-family: Arial, sans-serif;
+    line-height: 1;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(220, 53, 69, 0.3);
+}
+
+.number-text {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #dc3545;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    text-shadow: 1px 1px 2px rgba(220, 53, 69, 0.2);
+}
+
+/* Number buttons - Dynamic based on level */
+.number-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: #f5f5f5;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-height: 120px;
+}
+
+.number-btn {
+    width: 90px;
+    height: 90px;
+    border: none;
+    border-radius: 18px;
+    font-size: 3rem;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+/* Pseudo-element for larger touch target without affecting layout */
+.number-btn::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+}
+
+.number-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.number-btn:active {
+    transform: translateY(0);
+    transition: all 0.1s ease;
+}
+
+.number-btn.correct {
+    animation: flashGreen 0.8s ease;
+}
+
+.number-btn.incorrect {
+    animation: flashRed 0.8s ease;
+}
+
+@keyframes flashGreen {
+    0%, 100% { 
+        background-color: var(--btn-color); 
+        transform: scale(1);
+    }
+    50% { 
+        background-color: #4caf50; 
+        transform: scale(1.2);
+        box-shadow: 0 0 20px #4caf50;
+    }
+}
+
+@keyframes flashRed {
+    0%, 100% { 
+        background-color: var(--btn-color); 
+        transform: scale(1);
+    }
+    50% { 
+        background-color: #f44336; 
+        transform: scale(1.2);
+        box-shadow: 0 0 20px #f44336;
+    }
+}
+
+/* Button colors for levels 1-2 (1-10 buttons) */
+.number-btn:nth-child(1) { background-color: #ff6b6b; --btn-color: #ff6b6b; }
+.number-btn:nth-child(2) { background-color: #4ecdc4; --btn-color: #4ecdc4; }
+.number-btn:nth-child(3) { background-color: #45b7d1; --btn-color: #45b7d1; }
+.number-btn:nth-child(4) { background-color: #f9ca24; --btn-color: #f9ca24; }
+.number-btn:nth-child(5) { background-color: #f0932b; --btn-color: #f0932b; }
+.number-btn:nth-child(6) { background-color: #eb4d4b; --btn-color: #eb4d4b; }
+.number-btn:nth-child(7) { background-color: #6c5ce7; --btn-color: #6c5ce7; }
+.number-btn:nth-child(8) { background-color: #a29bfe; --btn-color: #a29bfe; }
+.number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
+.number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
+
+/* Button colors for levels 3+ (4 options) */
+.multiple-choice .number-btn:nth-child(1) { background-color: #ff6b6b; --btn-color: #ff6b6b; }
+.multiple-choice .number-btn:nth-child(2) { background-color: #4ecdc4; --btn-color: #4ecdc4; }
+.multiple-choice .number-btn:nth-child(3) { background-color: #45b7d1; --btn-color: #45b7d1; }
+.multiple-choice .number-btn:nth-child(4) { background-color: #f9ca24; --btn-color: #f9ca24; }
+
+/* Multiple choice buttons are larger for levels 3+ */
+.multiple-choice .number-btn {
+    width: 120px;
+    height: 90px;
+    font-size: 2.5rem;
+    margin: 5px;
+}
+
+/* Game over modal - transparent overlay, solid modal content */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent; /* Changed from dark overlay to transparent */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.modal:not(.hidden) {
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    animation: modalAppear 0.5s ease;
+    pointer-events: auto;
+    z-index: 1001;
+}
+
+@keyframes modalAppear {
+    from { 
+        opacity: 0; 
+        transform: scale(0.5); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+}
+
+.modal h2 {
+    color: white;
+    font-size: 3rem;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.play-again-btn {
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1002;
+}
+
+.play-again-btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+}
+
+.hidden {
+    display: none;
+}
+
+/* Cross overlay for incorrect answers */
+.cross-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.cross-overlay::before,
+.cross-overlay::after {
+    content: '';
+    position: absolute;
+    background-color: #dc143c;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+}
+
+.cross-overlay::before {
+    width: 60px;
+    height: 8px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cross-overlay::after {
+    width: 60px;
+    height: 8px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.cross-overlay {
+    animation: crossAppear 0.3s ease-out;
+}
+
+@keyframes crossAppear {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.3);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Sum row at bottom of game area */
+.sum-row {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 15;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 2px solid #e0e0e0;
+}
+
+/* Prevent sum row from fading */
+.sum-row.fade-out,
+.sum-row.fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: translateX(-50%) !important;
+}
+
+.sum-plus-sign,
+.sum-equals-sign {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #333;
+    min-width: 40px;
+    text-align: center;
+}
+
+.left-sum-box,
+.right-sum-box,
+.total-sum-box {
+    width: 70px;
+    height: 70px;
+}
+
+/* Right box shows "1" and is never empty */
+.right-sum-box.fixed-one {
+    background: #e8f5e8;
+    border-color: #28a745;
+    animation: none;
+}
+
+/* Input boxes for step-by-step addition */
+.input-box {
+    background: white;
+    border: 4px solid #007bff;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #333;
+    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.input-box.flashing {
+    animation: flashingBox 1s ease-in-out infinite;
+}
+
+.input-box.filled {
+    background: #e8f5e8;
+    border-color: #28a745;
+    animation: none;
+}
+
+/* Box flashing for hints */
+.input-box.box-flash {
+    background: rgba(144, 238, 144, 0.3) !important;
+    border-color: #28a745 !important;
+    transition: all 1s ease-in-out;
+}
+
+@keyframes flashingBox {
+    0%, 100% {
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 12px 35px rgba(0, 123, 255, 0.6);
+        transform: scale(1.05);
+    }
+}
+
+.check-mark {
+    font-size: 2.5rem;
+    color: #28a745;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    min-width: 50px;
+    text-align: center;
+}
+
+.check-mark.visible {
+    opacity: 1;
+}
+
+/* Fade animations - exclude sum row */
+.fade-out:not(.sum-row) {
+    animation: fadeOut 1s ease-out forwards;
+}
+
+.fade-in:not(.sum-row) {
+    animation: fadeIn 1s ease-in forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Star celebration animation */
+.completion-star {
+    animation: starSparkle 1.5s ease-out forwards;
+    transform-origin: center;
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes starSparkle {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8) rotate(360deg);
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .game-area {
+        width: 95%;
+    }
+    
+    .number-btn {
+        width: 70px;
+        height: 70px;
+        font-size: 2rem;
+    }
+    
+    .multiple-choice .number-btn {
+        width: 100px;
+        height: 70px;
+        font-size: 2rem;
+    }
+    
+    .plus-sign {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .plus-sign i {
+        font-size: 2rem;
+    }
+    
+    .game-icon {
+        font-size: 4rem;
+    }
+    
+    .large-number {
+        font-size: 6rem;
+    }
+    
+    .number-text {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .number-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 1.8rem;
+        gap: 5px;
+    }
+    
+    .multiple-choice .number-btn {
+        width: 80px;
+        height: 60px;
+        font-size: 1.8rem;
+    }
+    
+    .plus-sign {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .plus-sign i {
+        font-size: 1.5rem;
+    }
+    
+    .game-icon {
+        font-size: 3rem;
+    }
+    
+    .large-number {
+        font-size: 4rem;
+    }
+    
+    .number-text {
+        font-size: 1.2rem;
+    }
+}
