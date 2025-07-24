@@ -155,6 +155,11 @@ class TrumpsRenderer {
         cardImage.alt = card.name;
         cardImage.className = 'card-image';
         
+        // Create image window with shimmer background
+        const imageWindow = document.createElement('div');
+        imageWindow.className = 'card-image-window';
+        imageWindow.appendChild(cardImage);
+        
         const cardName = document.createElement('h3');
         cardName.className = 'card-name';
         cardName.textContent = card.name;
@@ -172,10 +177,22 @@ class TrumpsRenderer {
             statElement.className = `card-stat ${player === 'user' ? 'stat-button' : 'stat-display'}`;
             statElement.dataset.category = category;
             
-            statElement.innerHTML = `
-                <div class="stat-label">${categoryInfo.label}</div>
-                <div class="stat-value">${value}${categoryInfo.suffix}</div>
-            `;
+            const statLabel = document.createElement('div');
+            statLabel.className = 'stat-label';
+            statLabel.textContent = categoryInfo.label;
+            
+            const statValue = document.createElement('div');
+            statValue.className = 'stat-value';
+            
+            // Handle star rating display
+            if (category === 'stars') {
+                statValue.innerHTML = this.createStarRating(value);
+            } else {
+                statValue.textContent = `${value}${categoryInfo.suffix}`;
+            }
+            
+            statElement.appendChild(statLabel);
+            statElement.appendChild(statValue);
             
             if (player === 'user') {
                 statElement.style.cursor = 'pointer';
@@ -184,7 +201,7 @@ class TrumpsRenderer {
             statsContainer.appendChild(statElement);
         });
         
-        cardFront.appendChild(cardImage);
+        cardFront.appendChild(imageWindow);
         cardFront.appendChild(cardName);
         cardFront.appendChild(statsContainer);
         
@@ -291,6 +308,24 @@ class TrumpsRenderer {
         `;
         
         modal.classList.remove('hidden');
+    }
+
+    createStarRating(rating) {
+        const fullStars = Math.floor(rating);
+        const hasHalfStar = rating % 1 !== 0;
+        let starsHtml = '';
+        
+        // Add full stars
+        for (let i = 0; i < fullStars; i++) {
+            starsHtml += '<span class="star full-star">★</span>';
+        }
+        
+        // Add half star if needed
+        if (hasHalfStar) {
+            starsHtml += '<span class="star half-star">★</span>';
+        }
+        
+        return starsHtml;
     }
 
     // Utility method for waiting
