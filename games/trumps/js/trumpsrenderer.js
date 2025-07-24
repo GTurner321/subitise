@@ -201,8 +201,8 @@ class TrumpsRenderer {
             statsContainer.appendChild(statElement);
         });
         
-        cardFront.appendChild(imageWindow);
         cardFront.appendChild(cardName);
+        cardFront.appendChild(imageWindow);
         cardFront.appendChild(statsContainer);
         
         cardInner.appendChild(cardBack);
