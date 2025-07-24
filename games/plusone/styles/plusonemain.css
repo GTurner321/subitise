@@ -449,7 +449,7 @@ body {
     height: 70px;
 }
 
-/* Right box shows "1" and is never empty */
+/* Right box shows "1" and is pre-filled for levels 3+, but empty and fillable for levels 1-2 */
 .right-sum-box.fixed-one {
     background: #e8f5e8;
     border-color: #28a745;
