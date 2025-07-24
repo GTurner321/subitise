@@ -338,7 +338,10 @@ class PlusOneGameController {
         this.bear.reset();
         this.iconRenderer.reset();
         this.modal.classList.add('hidden');
-        this.hideAllInputBoxes();
+        
+        // Clear the boxes properly for new game
+        this.setupInputBoxesForNewQuestion();
+        
         this.startNewQuestion();
     }
 
