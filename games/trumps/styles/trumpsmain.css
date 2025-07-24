@@ -162,11 +162,11 @@
 }
 
 .center-card {
-    width: 22vw; /* 22% of viewport width */
-    height: calc(22vw / 0.7); /* Maintain 0.7 aspect ratio */
+    width: 24vw; /* 24% of viewport width */
+    height: calc(24vw / 0.7); /* Maintain 0.7 aspect ratio */
     perspective: 1000px;
     min-width: 180px; /* Minimum size for very small screens */
-    max-width: 300px; /* Maximum size for very large screens */
+    max-width: 320px; /* Maximum size for very large screens */
 }
 
 .card-inner {
@@ -486,10 +486,10 @@
     }
     
     .center-card {
-        width: 26vw;
-        height: calc(26vw / 0.7);
+        width: 28vw;
+        height: calc(28vw / 0.7);
         min-width: 160px;
-        max-width: 220px;
+        max-width: 240px;
     }
     
     .star {
