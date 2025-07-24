@@ -588,9 +588,9 @@ class PlusOneGameController {
         this.rightInputBox.textContent = '';
         this.totalInputBox.textContent = '';
         
-        // Remove all classes
+        // Remove all classes including fixed-one
         this.leftInputBox.classList.remove('flashing', 'filled');
-        this.rightInputBox.classList.remove('flashing', 'filled');
+        this.rightInputBox.classList.remove('flashing', 'filled', 'fixed-one');
         this.totalInputBox.classList.remove('flashing', 'filled');
         
         if (this.currentLevel <= 2) {
@@ -605,7 +605,7 @@ class PlusOneGameController {
             this.leftFilled = true;
             
             this.rightInputBox.textContent = '1';
-            this.rightInputBox.classList.add('filled');
+            this.rightInputBox.classList.add('filled', 'fixed-one');
             this.rightFilled = true;
             
             this.totalFilled = false;
