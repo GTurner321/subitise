@@ -752,18 +752,23 @@ class PlusOneGameController {
     }
 
     giveCompletionFeedback() {
+        console.log(`Giving completion feedback for level ${this.currentLevel}`);
+        
         if (this.currentLevel <= 2) {
-            // Levels 1-2: Say encouraging word first, then repeat the sum
+            // Levels 1 AND 2: Say encouraging word first, then repeat the sum
+            console.log(`Level ${this.currentLevel}: Will say sum repetition`);
             const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             this.speakText(randomEncouragement);
             
-            // Then repeat the sum after a short delay
+            // Then repeat the sum after a short delay for BOTH level 1 AND level 2
             setTimeout(() => {
+                console.log(`Speaking: One more than ${this.currentNumber} is ${this.currentAnswer}`);
                 this.speakText(`One more than ${this.currentNumber} is ${this.currentAnswer}`);
             }, 1500);
         } else {
             // Levels 3+: Just encouragement
+            console.log(`Level ${this.currentLevel}: Only encouragement, no sum repetition`);
             const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             this.speakText(randomEncouragement);
