@@ -253,16 +253,16 @@ class EnhancedGuineaPigWave {
             this.updateGuineaPigSize(guineaPig, 'moving');
             
         } else if (elapsed <= firstHalfDuration + this.pauseDuration) {
-            // Regular pause: stay at pause point with same image and size
+            // Regular pause: stay at pause point with same image and SAME SIZE
             progress = guineaPig.pausePoint;
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-            this.updateGuineaPigSize(guineaPig, 'moving');
+            this.updateGuineaPigSize(guineaPig, 'moving'); // Keep original size during pause
             
         } else if (elapsed <= firstHalfDuration + this.pauseDuration + this.frontFacingDuration) {
-            // Front-facing pause: stay at pause point but change image and size
+            // Front-facing pause: INSTANTLY enlarge to front-facing and stay for 2 seconds
             progress = guineaPig.pausePoint;
             guineaPig.element.src = `${this.imagePath}guineapig3.png`;
-            this.updateGuineaPigSize(guineaPig, 'static');
+            this.updateGuineaPigSize(guineaPig, 'static'); // Instantly enlarge to front-facing
             
         } else {
             // Second part: moving from pause point to exit
@@ -270,7 +270,7 @@ class EnhancedGuineaPigWave {
             const secondHalfProgress = secondHalfElapsed / secondHalfDuration;
             progress = guineaPig.pausePoint + (secondHalfProgress * (1 - guineaPig.pausePoint));
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-            this.updateGuineaPigSize(guineaPig, 'moving');
+            this.updateGuineaPigSize(guineaPig, 'moving'); // Back to original size
         }
         
         // Update position
@@ -298,19 +298,18 @@ class EnhancedGuineaPigWave {
             progress = (elapsed / firstHalfDuration) * 0.5; // 0 to 0.5
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.updateGuineaPigSize(guineaPig, 'moving');
-            guineaPig.isReversing = false;
             
         } else if (elapsed <= firstHalfDuration + this.pauseDuration) {
             // Regular pause: stay at 50% point with same image and SAME SIZE (no enlarging)
             progress = 0.5;
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-            this.updateGuineaPigSize(guineaPig, 'moving'); // Keep original size, don't enlarge
+            this.updateGuineaPigSize(guineaPig, 'moving'); // Keep original size
             
         } else if (elapsed <= firstHalfDuration + this.pauseDuration + this.frontFacingDuration) {
             // Front-facing pause: stay at 50% point but change image and size
             progress = 0.5;
             guineaPig.element.src = `${this.imagePath}guineapig3.png`;
-            this.updateGuineaPigSize(guineaPig, 'static'); // NOW enlarge for front-facing
+            this.updateGuineaPigSize(guineaPig, 'static'); // Enlarge for front-facing
             
         } else {
             // Reverse movement: moving from 50% back to 0%
@@ -318,10 +317,9 @@ class EnhancedGuineaPigWave {
             const reverseProgress = reverseElapsed / 1000; // 1 second to reverse
             progress = 0.5 - (reverseProgress * 0.5); // 0.5 to 0
             
-            // Switch to LEFT-FACING image (guineapig1) for reverse movement
-            guineaPig.element.src = `${this.imagePath}guineapig1.png`; // Use guineapig1, not guineapig2
+            // FIXED: Switch to LEFT-FACING image (guineapig1) for reverse movement
+            guineaPig.element.src = `${this.imagePath}guineapig1.png`;
             this.updateGuineaPigSize(guineaPig, 'moving'); // Back to original size
-            guineaPig.isReversing = true;
         }
         
         // Update position
