@@ -1,11 +1,4 @@
-renderCardGrid(availableCards) {
-        this.cardGrid.innerHTML = '';
-        this.cardGrid.classList.remove('hidden');
-        this.centerArea.classList.add('hidden');
-        
-        // Create 20 slots total: 2 margin slots + 8 card slots per row
-        // This allows us to use CSS grid positioning correctly
-        for (letclass TrumpsRenderer {
+class TrumpsRenderer {
     constructor() {
         this.gameArea = document.querySelector('.game-area');
         this.cardGrid = null;
