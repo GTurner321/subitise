@@ -15,16 +15,16 @@ const CONFIG = {
     
     // Categories
     CATEGORIES: {
-        FUN: 'fun',
-        CUDDLES: 'cuddles', 
+        FUNNY: 'funny',
+        CUDDLY: 'cuddly', 
         STARS: 'stars'
     },
     
     // Category display info
     CATEGORY_INFO: {
-        fun: { label: 'Fun', suffix: '%', max: 100 },
-        cuddles: { label: 'Cuddles', suffix: '/10', max: 10 },
-        stars: { label: 'Stars', suffix: '/5', max: 5 }
+        funny: { label: 'Funny', suffix: '%', max: 100 },
+        cuddly: { label: 'Cuddly', suffix: '/10', max: 10 },
+        stars: { label: 'Stars', suffix: '', max: 5 } // No suffix for star display
     },
     
     // Visual settings
@@ -38,99 +38,99 @@ const CONFIG = {
     CARDS: [
         {
             id: 1,
-            name: "Classic Teddy",
-            image: "assets/trumps/card01.png",
-            stats: { fun: 75, cuddles: 9, stars: 4 }
+            name: "Biscuit Bear",
+            image: "../../subitise/assets/trumps/biscuitbear.png",
+            stats: { funny: 24, cuddly: 3, stars: 1.5 }
         },
         {
             id: 2,
-            name: "Rainbow Bear",
-            image: "assets/trumps/card02.png", 
-            stats: { fun: 95, cuddles: 7, stars: 5 }
+            name: "Black Bear",
+            image: "../../subitise/assets/trumps/blackbear.png", 
+            stats: { funny: 42, cuddly: 7, stars: 3.5 }
         },
         {
             id: 3,
-            name: "Sleepy Sloth",
-            image: "assets/trumps/card03.png",
-            stats: { fun: 60, cuddles: 10, stars: 3 }
+            name: "Casper Rabbit",
+            image: "../../subitise/assets/trumps/casperrabbit.png",
+            stats: { funny: 31, cuddly: 7, stars: 3.5 }
         },
         {
             id: 4,
-            name: "Action Robot",
-            image: "assets/trumps/card04.png",
-            stats: { fun: 100, cuddles: 3, stars: 4 }
+            name: "Chick",
+            image: "../../subitise/assets/trumps/chick.png",
+            stats: { funny: 40, cuddly: 6, stars: 3 }
         },
         {
             id: 5,
-            name: "Fluffy Bunny",
-            image: "assets/trumps/card05.png",
-            stats: { fun: 80, cuddles: 8, stars: 4 }
+            name: "Dinosaur",
+            image: "../../subitise/assets/trumps/dinosaur.png",
+            stats: { funny: 54, cuddly: 5, stars: 4.5 }
         },
         {
             id: 6,
-            name: "Dinosaur Rex",
-            image: "assets/trumps/card06.png",
-            stats: { fun: 90, cuddles: 5, stars: 5 }
+            name: "Elephant",
+            image: "../../subitise/assets/trumps/elephant.png",
+            stats: { funny: 15, cuddly: 8, stars: 1 }
         },
         {
             id: 7,
-            name: "Princess Doll",
-            image: "assets/trumps/card07.png",
-            stats: { fun: 85, cuddles: 6, stars: 5 }
+            name: "Flabber Jabber",
+            image: "../../subitise/assets/trumps/flabberjabber.png",
+            stats: { funny: 98, cuddly: 4, stars: 5 }
         },
         {
             id: 8,
-            name: "Pirate Captain",
-            image: "assets/trumps/card08.png",
-            stats: { fun: 95, cuddles: 4, stars: 4 }
+            name: "Bear",
+            image: "../../subitise/assets/trumps/gemsbear.png",
+            stats: { funny: 57, cuddly: 8, stars: 4 }
         },
         {
             id: 9,
-            name: "Cozy Cat",
-            image: "assets/trumps/card09.png",
-            stats: { fun: 70, cuddles: 9, stars: 3 }
+            name: "Knight Bear",
+            image: "../../subitise/assets/trumps/knightbear.png",
+            stats: { funny: 50, cuddly: 6, stars: 4.5 }
         },
         {
             id: 10,
-            name: "Space Rocket",
-            image: "assets/trumps/card10.png",
-            stats: { fun: 100, cuddles: 2, stars: 5 }
+            name: "Duck",
+            image: "../../subitise/assets/trumps/legoduck.png",
+            stats: { funny: 48, cuddly: 1, stars: 2.5 }
         },
         {
             id: 11,
-            name: "Gentle Giant",
-            image: "assets/trumps/card11.png",
-            stats: { fun: 65, cuddles: 10, stars: 4 }
+            name: "Penguin",
+            image: "../../subitise/assets/trumps/penguin.png",
+            stats: { funny: 49, cuddly: 6, stars: 2.5 }
         },
         {
             id: 12,
-            name: "Musical Mouse",
-            image: "assets/trumps/card12.png",
-            stats: { fun: 88, cuddles: 6, stars: 3 }
+            name: "Inflatable Sheep",
+            image: "../../subitise/assets/trumps/sheep.png",
+            stats: { funny: 75, cuddly: 2, stars: 3 }
         },
         {
             id: 13,
-            name: "Super Hero",
-            image: "assets/trumps/card13.png",
-            stats: { fun: 92, cuddles: 5, stars: 5 }
+            name: "Soft Rabbit",
+            image: "../../subitise/assets/trumps/softrabbit.png",
+            stats: { funny: 16, cuddly: 9, stars: 2 }
         },
         {
             id: 14,
-            name: "Wise Owl",
-            image: "assets/trumps/card14.png",
-            stats: { fun: 55, cuddles: 7, stars: 4 }
+            name: "The Vowel Family",
+            image: "../../subitise/assets/trumps/vowels.png",
+            stats: { funny: 72, cuddly: 1, stars: 4 }
         },
         {
             id: 15,
-            name: "Dancing Duck",
-            image: "assets/trumps/card15.png",
-            stats: { fun: 90, cuddles: 6, stars: 3 }
+            name: "Guinea Pig",
+            image: "../../subitise/assets/raisin/guineapig1.png",
+            stats: { funny: 80, cuddly: 7, stars: 5 }
         },
         {
             id: 16,
-            name: "Magical Unicorn",
-            image: "assets/trumps/card16.png",
-            stats: { fun: 85, cuddles: 8, stars: 5 }
+            name: "Raffles",
+            image: "../../subitise/assets/bear.png",
+            stats: { funny: 65, cuddly: 9, stars: 5 }
         }
     ]
 };
