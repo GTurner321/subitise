@@ -129,19 +129,19 @@ class TrumpsGameController {
             result
         );
         
-// Update scores based on result
-if (result === 'user') {
-    this.scores.user++;
-    this.playSuccessSound();
-    this.speakText('You win this round!');
-} else if (result === 'computer') {
-    this.scores.computer++;
-    // this.playFailureSound(); // Temporarily commented out
-    this.speakText('Computer wins this round.');
-} else {
-    this.playNeutralSound();
-    this.speakText('It\'s a draw! No points awarded.');
-}
+        // Update scores based on result
+        if (result === 'user') {
+            this.scores.user++;
+            this.playSuccessSound();
+            this.speakText('You win this round!');
+        } else if (result === 'computer') {
+            this.scores.computer++;
+            this.playFailureSound();
+            this.speakText('Computer wins this round.');
+        } else {
+            this.playNeutralSound();
+            this.speakText('It\'s a draw! No points awarded.');
+        }
         
         this.renderer.updateScores(this.scores.user, this.scores.computer);
         
