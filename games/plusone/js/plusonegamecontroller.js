@@ -16,6 +16,9 @@ class PlusOneGameController {
         // Track used numbers per level to avoid repetition
         this.usedNumbersInLevel = new Set();
         
+        // Level progression tracking for redemption system
+        this.failedAtCurrentLevel = false; // Track if user has failed once at current level
+        
         // Audio functionality
         this.audioContext = null;
         this.audioEnabled = CONFIG.AUDIO_ENABLED || true;
@@ -36,7 +39,7 @@ class PlusOneGameController {
         this.currentAnswer = 0; // n+1
         this.buttonsDisabled = false;
         
-        // Box state tracking
+        // Box state tracking - levels 3+ only need total box
         this.leftFilled = false;
         this.totalFilled = false; // Right box is always filled with "1"
         
@@ -231,14 +234,18 @@ class PlusOneGameController {
         this.hintGiven = true;
         
         let hintText = '';
-        if (!this.leftFilled) {
-            if (this.currentLevel <= 2) {
+        if (this.currentLevel <= 2) {
+            // Levels 1-2: traditional hints
+            if (!this.leftFilled) {
                 hintText = 'Count the number of pictures on the left side';
-            } else {
-                hintText = `The left side shows the number ${this.currentNumber}`;
+            } else if (!this.totalFilled) {
+                hintText = `What is ${this.currentNumber} plus one?`;
             }
-        } else if (!this.totalFilled) {
-            hintText = `What is ${this.currentNumber} plus one?`;
+        } else {
+            // Levels 3+: only need to find the answer
+            if (!this.totalFilled) {
+                hintText = `What is ${this.currentNumber} plus one?`;
+            }
         }
         
         if (hintText) {
@@ -319,6 +326,7 @@ class PlusOneGameController {
         this.questionsCompleted = 0;
         this.gameComplete = false;
         this.usedNumbersInLevel.clear();
+        this.failedAtCurrentLevel = false; // Reset failure tracking
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         this.resetBoxState();
@@ -341,13 +349,23 @@ class PlusOneGameController {
         this.stopFlashing();
         
         const flashElements = () => {
-            if (!this.leftFilled) {
-                this.leftSide.classList.add('area-flash');
-                this.leftInputBox.classList.add('box-flash');
-            } else if (!this.totalFilled) {
-                this.leftSide.classList.add('area-flash');
-                this.rightSide.classList.add('area-flash');
-                this.totalInputBox.classList.add('box-flash');
+            // For levels 1-2: flash based on which box needs filling
+            if (this.currentLevel <= 2) {
+                if (!this.leftFilled) {
+                    this.leftSide.classList.add('area-flash');
+                    this.leftInputBox.classList.add('box-flash');
+                } else if (!this.totalFilled) {
+                    this.leftSide.classList.add('area-flash');
+                    this.rightSide.classList.add('area-flash');
+                    this.totalInputBox.classList.add('box-flash');
+                }
+            } else {
+                // For levels 3+: only flash for total answer (left is pre-filled)
+                if (!this.totalFilled) {
+                    this.leftSide.classList.add('area-flash');
+                    this.rightSide.classList.add('area-flash');
+                    this.totalInputBox.classList.add('box-flash');
+                }
             }
             
             setTimeout(() => {
@@ -544,13 +562,28 @@ class PlusOneGameController {
         // Right box always shows "1"
         this.rightInputBox.textContent = '1';
         this.rightInputBox.classList.add('filled');
+        
+        // For levels 3+, pre-fill the left box
+        if (this.currentLevel >= 3) {
+            this.leftInputBox.textContent = this.currentNumber;
+            this.leftInputBox.classList.add('filled');
+            this.leftFilled = true;
+        }
     }
 
     showInputBoxes() {
-        if (!this.leftFilled) {
-            this.leftInputBox.classList.add('flashing');
-        } else if (!this.totalFilled) {
-            this.totalInputBox.classList.add('flashing');
+        if (this.currentLevel <= 2) {
+            // Levels 1-2: show flashing based on what needs to be filled
+            if (!this.leftFilled) {
+                this.leftInputBox.classList.add('flashing');
+            } else if (!this.totalFilled) {
+                this.totalInputBox.classList.add('flashing');
+            }
+        } else {
+            // Levels 3+: only total box needs to be filled (left is pre-filled)
+            if (!this.totalFilled) {
+                this.totalInputBox.classList.add('flashing');
+            }
         }
         this.startFlashing();
     }
@@ -560,13 +593,22 @@ class PlusOneGameController {
         
         let correctAnswer = false;
         
-        // Check which box should be filled
-        if (!this.leftFilled && selectedNumber === this.currentNumber) {
-            this.fillBox('left', selectedNumber, buttonElement);
-            correctAnswer = true;
-        } else if (!this.totalFilled && selectedNumber === this.currentAnswer) {
-            this.fillBox('total', selectedNumber, buttonElement);
-            correctAnswer = true;
+        // Check which box should be filled based on level
+        if (this.currentLevel <= 2) {
+            // Levels 1-2: traditional left then total filling
+            if (!this.leftFilled && selectedNumber === this.currentNumber) {
+                this.fillBox('left', selectedNumber, buttonElement);
+                correctAnswer = true;
+            } else if (!this.totalFilled && selectedNumber === this.currentAnswer) {
+                this.fillBox('total', selectedNumber, buttonElement);
+                correctAnswer = true;
+            }
+        } else {
+            // Levels 3+: only total box needs to be filled (left is pre-filled)
+            if (!this.totalFilled && selectedNumber === this.currentAnswer) {
+                this.fillBox('total', selectedNumber, buttonElement);
+                correctAnswer = true;
+            }
         }
         
         if (correctAnswer) {
@@ -618,17 +660,35 @@ class PlusOneGameController {
         this.leftInputBox.classList.remove('flashing');
         this.totalInputBox.classList.remove('flashing');
         
-        if (!this.leftFilled) {
-            this.leftInputBox.classList.add('flashing');
-        } else if (!this.totalFilled) {
-            this.totalInputBox.classList.add('flashing');
+        if (this.currentLevel <= 2) {
+            // Levels 1-2: traditional progression
+            if (!this.leftFilled) {
+                this.leftInputBox.classList.add('flashing');
+            } else if (!this.totalFilled) {
+                this.totalInputBox.classList.add('flashing');
+            }
+        } else {
+            // Levels 3+: only total box needs flashing (left is pre-filled)
+            if (!this.totalFilled) {
+                this.totalInputBox.classList.add('flashing');
+            }
         }
         
         this.startFlashing();
     }
 
     checkQuestionCompletion() {
-        if (this.leftFilled && this.totalFilled) {
+        let questionComplete = false;
+        
+        if (this.currentLevel <= 2) {
+            // Levels 1-2: need both left and total filled
+            questionComplete = this.leftFilled && this.totalFilled;
+        } else {
+            // Levels 3+: only need total filled (left is pre-filled)
+            questionComplete = this.totalFilled;
+        }
+        
+        if (questionComplete) {
             this.clearInactivityTimer();
             this.stopFlashing();
             
@@ -664,6 +724,7 @@ class PlusOneGameController {
 
     handleLevelProgression(wasFirstAttempt) {
         if (wasFirstAttempt) {
+            // Success - advance to next level and reset failure tracking
             if (this.currentLevel < 10) {
                 this.currentLevel++;
                 console.log(`Advanced to level ${this.currentLevel}`);
@@ -671,11 +732,20 @@ class PlusOneGameController {
             if (this.currentLevel > this.highestLevelReached) {
                 this.highestLevelReached = this.currentLevel;
             }
+            this.failedAtCurrentLevel = false; // Reset failure tracking on success
         } else {
-            // Failure - handle level regression
-            if (this.currentLevel > 1) {
-                this.currentLevel--;
-                console.log(`Failed, returning to level ${this.currentLevel}`);
+            // Failure - implement redemption system
+            if (this.failedAtCurrentLevel) {
+                // This is the second failure at this level - go back one level
+                if (this.currentLevel > 1) {
+                    this.currentLevel--;
+                    console.log(`Second failure at level, dropping to level ${this.currentLevel}`);
+                }
+                this.failedAtCurrentLevel = false; // Reset for new level
+            } else {
+                // This is the first failure - stay at same level for redemption
+                this.failedAtCurrentLevel = true;
+                console.log(`First failure at level ${this.currentLevel}, staying for redemption question`);
             }
         }
     }
