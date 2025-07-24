@@ -238,12 +238,35 @@ class TrumpsGameController {
             oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
             
             gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.5);
+        } catch (error) {
+            // Silent failure
+        }
+    }
+
+    playFailureSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
+            
+            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
             
             oscillator.start(this.audioContext.currentTime);
             oscillator.stop(this.audioContext.currentTime + 0.3);
         } catch (error) {
-            console.log('Audio error:', error);
+            // Silent failure
         }
     }
 
@@ -266,7 +289,7 @@ class TrumpsGameController {
             oscillator.start(this.audioContext.currentTime);
             oscillator.stop(this.audioContext.currentTime + 0.2);
         } catch (error) {
-            console.log('Audio error:', error);
+            // Silent failure
         }
     }
 
@@ -285,7 +308,7 @@ class TrumpsGameController {
                 speechSynthesis.speak(utterance);
             }
         } catch (error) {
-            console.log('Speech error:', error);
+            // Silent failure
         }
     }
 
