@@ -281,29 +281,18 @@ class TrumpsRenderer {
         
         let message, emoji;
         if (userScore > computerScore) {
-            message = 'Congratulations! You Won!';
+            message = 'Well done!';
             emoji = '🎉';
         } else if (computerScore > userScore) {
-            message = 'Good Game! Computer Won!';
+            message = 'Good game!';
             emoji = '🤖';
         } else {
-            message = 'Amazing! It\'s a Draw!';
+            message = 'It\'s a draw!';
             emoji = '🤝';
         }
         
         modalContent.innerHTML = `
             <h2>${emoji} ${message} ${emoji}</h2>
-            <div class="final-scores">
-                <div class="final-score">
-                    <span class="score-label">You</span>
-                    <span class="score-number">${userScore}</span>
-                </div>
-                <div class="score-divider">-</div>
-                <div class="final-score">
-                    <span class="score-label">Computer</span>
-                    <span class="score-number">${computerScore}</span>
-                </div>
-            </div>
             <button class="play-again-btn" id="playAgainBtn">PLAY AGAIN</button>
         `;
         
