@@ -191,6 +191,21 @@ class EnhancedGuineaPigWave {
         }
     }
     
+    updateGuineaPigSize(guineaPig, state) {
+        let height;
+        
+        if (state === 'static') {
+            // Static guinea pig (guineapig3) = 30% of screen height
+            height = this.screenHeight * 0.3;
+        } else {
+            // Moving guinea pig (guineapig1/2) = original size
+            height = this.screenHeight * guineaPig.size;
+        }
+        
+        guineaPig.element.style.height = `${height}px`;
+        guineaPig.element.style.width = 'auto';
+    }
+    
     updateSimpleMovement(guineaPig, elapsed) {
         const progress = elapsed / this.totalDuration;
         const position = this.calculatePosition(progress, guineaPig.yPosition);
@@ -200,109 +215,92 @@ class EnhancedGuineaPigWave {
     }
     
     updateMovementWithPause(guineaPig, elapsed) {
-        const pauseStartTime = guineaPig.pausePoint * this.totalDuration;
-        const pauseEndTime = pauseStartTime + this.pauseDuration + this.frontFacingDuration;
+        // Using the working logic from your simple file
+        // Total duration breakdown: 1s to pause + 1s pause + 2s front-facing + 1s to exit = 5s
+        const firstHalfDuration = guineaPig.pausePoint * this.totalDuration; // Time to reach pause point
+        const pauseDuration = this.pauseDuration; // 1s pause
+        const frontFacingDuration = this.frontFacingDuration; // 2s front-facing
         
-        if (elapsed < pauseStartTime) {
-            // Moving to pause point
-            const progress = (elapsed / pauseStartTime) * guineaPig.pausePoint;
-            const position = this.calculatePosition(progress, guineaPig.yPosition);
-            
+        let progress = 0;
+        
+        if (elapsed <= firstHalfDuration) {
+            // First half: moving to pause point
+            progress = (elapsed / firstHalfDuration) * guineaPig.pausePoint;
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-            guineaPig.element.style.height = `${this.screenHeight * guineaPig.size}px`;
-            guineaPig.pauseState = 'none';
+            this.updateGuineaPigSize(guineaPig, 'moving');
             
-            guineaPig.element.style.left = `${position.x - (guineaPig.element.offsetWidth / 2)}px`;
-            guineaPig.element.style.top = `${position.y - (guineaPig.element.offsetHeight / 2)}px`;
+        } else if (elapsed <= firstHalfDuration + pauseDuration) {
+            // Regular pause: stay at pause point with same image and size
+            progress = guineaPig.pausePoint;
+            guineaPig.element.src = `${this.imagePath}guineapig2.png`;
+            this.updateGuineaPigSize(guineaPig, 'moving');
             
-        } else if (elapsed < pauseStartTime + this.pauseDuration) {
-            // Regular pause (1 second)
-            if (guineaPig.pauseState !== 'pausing') {
-                guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-                guineaPig.element.style.height = `${this.screenHeight * guineaPig.size}px`;
-                guineaPig.pauseState = 'pausing';
-            }
-            // Stay at pause position
-            
-        } else if (elapsed < pauseEndTime) {
-            // Front-facing pause (2 seconds)
-            if (guineaPig.pauseState !== 'front_facing') {
-                guineaPig.element.src = `${this.imagePath}guineapig3.png`;
-                guineaPig.element.style.height = `${this.screenHeight * 0.3}px`; // Larger when front-facing
-                guineaPig.pauseState = 'front_facing';
-            }
-            // Stay at pause position
+        } else if (elapsed <= firstHalfDuration + pauseDuration + frontFacingDuration) {
+            // Front-facing pause: stay at pause point but change image and size
+            progress = guineaPig.pausePoint;
+            guineaPig.element.src = `${this.imagePath}guineapig3.png`;
+            this.updateGuineaPigSize(guineaPig, 'static');
             
         } else {
-            // Resume movement
-            const remainingTime = this.totalDuration - pauseEndTime;
-            const resumeElapsed = elapsed - pauseEndTime;
-            const resumeProgress = guineaPig.pausePoint + ((resumeElapsed / remainingTime) * (1 - guineaPig.pausePoint));
-            const position = this.calculatePosition(resumeProgress, guineaPig.yPosition);
-            
-            if (guineaPig.pauseState !== 'none') {
-                guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-                guineaPig.element.style.height = `${this.screenHeight * guineaPig.size}px`;
-                guineaPig.pauseState = 'none';
-            }
-            
-            guineaPig.element.style.left = `${position.x - (guineaPig.element.offsetWidth / 2)}px`;
-            guineaPig.element.style.top = `${position.y - (guineaPig.element.offsetHeight / 2)}px`;
+            // Second half: moving from pause point to exit
+            const secondHalfElapsed = elapsed - firstHalfDuration - pauseDuration - frontFacingDuration;
+            const secondHalfDuration = this.totalDuration - firstHalfDuration - pauseDuration - frontFacingDuration;
+            progress = guineaPig.pausePoint + ((secondHalfElapsed / secondHalfDuration) * (1 - guineaPig.pausePoint));
+            guineaPig.element.src = `${this.imagePath}guineapig2.png`;
+            this.updateGuineaPigSize(guineaPig, 'moving');
         }
+        
+        // Update position
+        const position = this.calculatePosition(progress, guineaPig.yPosition);
+        guineaPig.element.style.left = `${position.x - (guineaPig.element.offsetWidth / 2)}px`;
+        guineaPig.element.style.top = `${position.y - (guineaPig.element.offsetHeight / 2)}px`;
     }
     
     updateMovementWithReversal(guineaPig, elapsed) {
-        const pauseStartTime = guineaPig.pausePoint * this.totalDuration;
-        const pauseEndTime = pauseStartTime + this.pauseDuration + this.frontFacingDuration;
+        // Similar logic but for reversal scenario
+        const firstHalfDuration = guineaPig.pausePoint * this.totalDuration; // Time to reach pause point (50%)
+        const pauseDuration = this.pauseDuration; // 1s pause
+        const frontFacingDuration = this.frontFacingDuration; // 2s front-facing
         
-        if (elapsed < pauseStartTime) {
-            // Moving to pause point (50% of the way)
-            const progress = (elapsed / pauseStartTime) * guineaPig.pausePoint;
-            const position = this.calculatePosition(progress, guineaPig.yPosition);
-            
+        let progress = 0;
+        
+        if (elapsed <= firstHalfDuration) {
+            // First half: moving to pause point (50% of the way)
+            progress = (elapsed / firstHalfDuration) * guineaPig.pausePoint;
             guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-            guineaPig.element.style.height = `${this.screenHeight * guineaPig.size}px`;
-            guineaPig.pauseState = 'none';
+            this.updateGuineaPigSize(guineaPig, 'moving');
             guineaPig.isReversing = false;
             
-            guineaPig.element.style.left = `${position.x - (guineaPig.element.offsetWidth / 2)}px`;
-            guineaPig.element.style.top = `${position.y - (guineaPig.element.offsetHeight / 2)}px`;
+        } else if (elapsed <= firstHalfDuration + pauseDuration) {
+            // Regular pause: stay at pause point with same image and size
+            progress = guineaPig.pausePoint;
+            guineaPig.element.src = `${this.imagePath}guineapig2.png`;
+            this.updateGuineaPigSize(guineaPig, 'moving');
             
-        } else if (elapsed < pauseStartTime + this.pauseDuration) {
-            // Regular pause (1 second)
-            if (guineaPig.pauseState !== 'pausing') {
-                guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-                guineaPig.element.style.height = `${this.screenHeight * guineaPig.size}px`;
-                guineaPig.pauseState = 'pausing';
-            }
-            // Stay at pause position
-            
-        } else if (elapsed < pauseEndTime) {
-            // Front-facing pause (2 seconds)
-            if (guineaPig.pauseState !== 'front_facing') {
-                guineaPig.element.src = `${this.imagePath}guineapig3.png`;
-                guineaPig.element.style.height = `${this.screenHeight * 0.3}px`; // Larger when front-facing
-                guineaPig.pauseState = 'front_facing';
-            }
-            // Stay at pause position
+        } else if (elapsed <= firstHalfDuration + pauseDuration + frontFacingDuration) {
+            // Front-facing pause: stay at pause point but change image and size
+            progress = guineaPig.pausePoint;
+            guineaPig.element.src = `${this.imagePath}guineapig3.png`;
+            this.updateGuineaPigSize(guineaPig, 'static');
             
         } else {
-            // Reverse movement (right to left)
-            const remainingTime = this.totalDuration - pauseEndTime;
-            const reverseElapsed = elapsed - pauseEndTime;
-            const reverseProgress = guineaPig.pausePoint - ((reverseElapsed / remainingTime) * guineaPig.pausePoint);
-            const position = this.calculatePosition(Math.max(0, reverseProgress), guineaPig.yPosition);
+            // Reverse movement: moving from pause point back to start
+            const secondHalfElapsed = elapsed - firstHalfDuration - pauseDuration - frontFacingDuration;
+            const secondHalfDuration = this.totalDuration - firstHalfDuration - pauseDuration - frontFacingDuration;
+            progress = guineaPig.pausePoint - ((secondHalfElapsed / secondHalfDuration) * guineaPig.pausePoint);
             
+            // Switch to left-facing image for reverse movement
             if (!guineaPig.isReversing) {
-                guineaPig.element.src = `${this.imagePath}guineapig1.png`; // Face left for reverse
-                guineaPig.element.style.height = `${this.screenHeight * guineaPig.size}px`;
-                guineaPig.pauseState = 'none';
                 guineaPig.isReversing = true;
             }
-            
-            guineaPig.element.style.left = `${position.x - (guineaPig.element.offsetWidth / 2)}px`;
-            guineaPig.element.style.top = `${position.y - (guineaPig.element.offsetHeight / 2)}px`;
+            guineaPig.element.src = `${this.imagePath}guineapig1.png`;
+            this.updateGuineaPigSize(guineaPig, 'moving');
         }
+        
+        // Update position
+        const position = this.calculatePosition(Math.max(0, progress), guineaPig.yPosition);
+        guineaPig.element.style.left = `${position.x - (guineaPig.element.offsetWidth / 2)}px`;
+        guineaPig.element.style.top = `${position.y - (guineaPig.element.offsetHeight / 2)}px`;
     }
     
     calculatePosition(progress, yPosition) {
