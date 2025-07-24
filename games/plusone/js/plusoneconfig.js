@@ -9,9 +9,12 @@ const CONFIG = {
         5: { numbers: [9, 19, 29, 39, 49, 59, 69, 79, 89], name: 'Level 5' },
         6: { numbers: Array.from({length: 79}, (_, i) => i + 20), name: 'Level 6' }, // 20-98
         7: { numbers: Array.from({length: 11}, (_, i) => i + 99), name: 'Level 7' }, // 99-109
-        8: { numbers: Array.from({length: 889}, (_, i) => i + 110), name: 'Level 8' }, // 110-998
-        9: { numbers: Array.from({length: 8001}, (_, i) => i + 999), name: 'Level 9' }, // 999-9999
-        10: { numbers: Array.from({length: 9000000}, (_, i) => i + 1000000), name: 'Level 10' } // 1000000-9999999
+        8: { numbers: Array.from({length: 89}, (_, i) => i + 110), name: 'Level 8' }, // 110-198
+        9: { 
+            numbers: [100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730, 740, 750, 760, 770, 780, 790, 800, 810, 820, 830, 840, 850, 860, 870, 880, 890, 900, 910, 920, 930, 940, 950, 960, 970, 980, 990], 
+            name: 'Level 9' 
+        }, // Numbers ending in 0 (##0)
+        10: { numbers: 'composite', name: 'Level 10' } // Composite of levels 6-9
     },
     
     // Font Awesome icons suitable for nursery age children (levels 1-2 only)
