@@ -1187,3 +1187,116 @@
         font-size: 5px;
     }
 }
+
+/* Plus One game preview specific styles */
+.plusone-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 4px;
+    gap: 2px;
+}
+
+.plusone-preview .preview-left,
+.plusone-preview .preview-right,
+.plusone-preview .preview-answer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.plusone-preview .preview-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #dc3545;
+    font-family: Arial, sans-serif;
+    line-height: 1;
+    animation: numberPulse 2s ease-in-out infinite;
+}
+
+.plusone-preview .preview-plus,
+.plusone-preview .preview-equals {
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    animation: symbolFloat 3s ease-in-out infinite;
+}
+
+.plusone-preview .preview-plus {
+    animation-delay: 1s;
+}
+
+.plusone-preview .preview-equals {
+    animation-delay: 2s;
+}
+
+.plusone-preview .preview-plus i,
+.plusone-preview .preview-equals i {
+    font-size: 0.6rem !important;
+    color: white !important;
+    animation: none !important;
+}
+
+@keyframes numberPulse {
+    0%, 100% {
+        transform: scale(1);
+        color: #dc3545;
+    }
+    50% {
+        transform: scale(1.05);
+        color: #ff6b6b;
+    }
+}
+
+@keyframes symbolFloat {
+    0%, 100% {
+        transform: translateY(0px) scale(1);
+    }
+    50% {
+        transform: translateY(-2px) scale(1.05);
+    }
+}
+
+/* Responsive adjustments for Plus One preview */
+@media (max-width: 768px) {
+    .plusone-preview .preview-number {
+        font-size: 1rem;
+    }
+    
+    .plusone-preview .preview-plus,
+    .plusone-preview .preview-equals {
+        width: 14px;
+        height: 14px;
+        font-size: 0.5rem;
+    }
+    
+    .plusone-preview .preview-plus i,
+    .plusone-preview .preview-equals i {
+        font-size: 0.5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .plusone-preview .preview-number {
+        font-size: 0.9rem;
+    }
+    
+    .plusone-preview .preview-plus,
+    .plusone-preview .preview-equals {
+        width: 12px;
+        height: 12px;
+        font-size: 0.4rem;
+    }
+    
+    .plusone-preview .preview-plus i,
+    .plusone-preview .preview-equals i {
+        font-size: 0.4rem !important;
+    }
+}
