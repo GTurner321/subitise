@@ -39,97 +39,97 @@ const CONFIG = {
         {
             id: 1,
             name: "Biscuit Bear",
-            image: "../../subitise/assets/trumps/biscuitbear.png",
+            image: "assets/trumps/biscuitbear.png",
             stats: { funny: 24, cuddly: 3, stars: 1.5 }
         },
         {
             id: 2,
             name: "Black Bear",
-            image: "../../subitise/assets/trumps/blackbear.png", 
+            image: "assets/trumps/blackbear.png", 
             stats: { funny: 42, cuddly: 7, stars: 3.5 }
         },
         {
             id: 3,
             name: "Casper Rabbit",
-            image: "../../subitise/assets/trumps/casperrabbit.png",
+            image: "assets/trumps/casperrabbit.png",
             stats: { funny: 31, cuddly: 7, stars: 3.5 }
         },
         {
             id: 4,
             name: "Chick",
-            image: "../../subitise/assets/trumps/chick.png",
+            image: "assets/trumps/chick.png",
             stats: { funny: 40, cuddly: 6, stars: 3 }
         },
         {
             id: 5,
             name: "Dinosaur",
-            image: "../../subitise/assets/trumps/dinosaur.png",
+            image: "assets/trumps/dinosaur.png",
             stats: { funny: 54, cuddly: 5, stars: 4.5 }
         },
         {
             id: 6,
             name: "Elephant",
-            image: "../../subitise/assets/trumps/elephant.png",
+            image: "assets/trumps/elephant.png",
             stats: { funny: 15, cuddly: 8, stars: 1 }
         },
         {
             id: 7,
             name: "Flabber Jabber",
-            image: "../../subitise/assets/trumps/flabberjabber.png",
+            image: "assets/trumps/flabberjabber.png",
             stats: { funny: 98, cuddly: 4, stars: 5 }
         },
         {
             id: 8,
             name: "Bear",
-            image: "../../subitise/assets/trumps/gemsbear.png",
+            image: "assets/trumps/gemsbear.png",
             stats: { funny: 57, cuddly: 8, stars: 4 }
         },
         {
             id: 9,
             name: "Knight Bear",
-            image: "../../subitise/assets/trumps/knightbear.png",
+            image: "assets/trumps/knightbear.png",
             stats: { funny: 50, cuddly: 6, stars: 4.5 }
         },
         {
             id: 10,
             name: "Duck",
-            image: "../../subitise/assets/trumps/legoduck.png",
+            image: "assets/trumps/legoduck.png",
             stats: { funny: 48, cuddly: 1, stars: 2.5 }
         },
         {
             id: 11,
             name: "Penguin",
-            image: "../../subitise/assets/trumps/penguin.png",
+            image: "assets/trumps/penguin.png",
             stats: { funny: 49, cuddly: 6, stars: 2.5 }
         },
         {
             id: 12,
             name: "Inflatable Sheep",
-            image: "../../subitise/assets/trumps/sheep.png",
+            image: "assets/trumps/sheep.png",
             stats: { funny: 75, cuddly: 2, stars: 3 }
         },
         {
             id: 13,
             name: "Soft Rabbit",
-            image: "../../subitise/assets/trumps/softrabbit.png",
+            image: "assets/trumps/softrabbit.png",
             stats: { funny: 16, cuddly: 9, stars: 2 }
         },
         {
             id: 14,
             name: "The Vowel Family",
-            image: "../../subitise/assets/trumps/vowels.png",
+            image: "assets/trumps/vowels.png",
             stats: { funny: 72, cuddly: 1, stars: 4 }
         },
         {
             id: 15,
             name: "Guinea Pig",
-            image: "../../subitise/assets/raisin/guineapig1.png",
+            image: "assets/raisin/guineapig1.png",
             stats: { funny: 80, cuddly: 7, stars: 5 }
         },
         {
             id: 16,
             name: "Raffles",
-            image: "../../subitise/assets/bear.png",
+            image: "assets/bear.png",
             stats: { funny: 65, cuddly: 9, stars: 5 }
         }
     ]
