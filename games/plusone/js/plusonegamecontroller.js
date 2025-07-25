@@ -111,9 +111,14 @@ class PlusOneGameController {
         
         this.updateMuteButtonIcon();
         
-        this.muteButton.addEventListener('click', () => this.toggleAudio());
+        this.muteButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleAudio();
+        });
         this.muteButton.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             this.toggleAudio();
         });
         
@@ -410,17 +415,20 @@ class PlusOneGameController {
         this.totalInputBox.classList.remove('box-flash');
     }
 
+    // FIXED: Generate question BEFORE setting up input boxes
     startNewQuestion() {
         if (this.gameComplete) {
             return;
         }
 
         this.resetBoxState();
-        this.hideAllInputBoxes();
         this.hintGiven = false;
 
-        // Generate n+1 question for current level
+        // Generate n+1 question for current level FIRST
         this.generatePlusOneQuestion();
+        
+        // THEN hide/setup input boxes with correct current numbers
+        this.hideAllInputBoxes();
         
         console.log(`Question: ${this.currentNumber} + 1 = ${this.currentAnswer}, Level: ${this.currentLevel}`);
         
@@ -443,31 +451,15 @@ class PlusOneGameController {
     generatePlusOneQuestion() {
         console.log(`BEFORE generatePlusOneQuestion: this.currentNumber = ${this.currentNumber}`);
         
-        if (this.currentLevel === 10) {
-            // Level 10: Choose from levels 6-9 randomly
-            const sourceLevels = [6, 7, 8, 9];
-            const randomSourceLevel = sourceLevels[Math.floor(Math.random() * sourceLevels.length)];
-            const sourceNumbers = CONFIG.LEVELS[randomSourceLevel].numbers;
-            
-            const availableNumbers = sourceNumbers.filter(num => !this.usedNumbersInLevel.has(num));
-            
-            if (availableNumbers.length === 0) {
-                this.usedNumbersInLevel.clear();
-                this.currentNumber = sourceNumbers[Math.floor(Math.random() * sourceNumbers.length)];
-            } else {
-                this.currentNumber = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
-            }
+        // Use updated level structure - Level 10 is now just ##0 format, no composite
+        const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
+        const availableNumbers = levelNumbers.filter(num => !this.usedNumbersInLevel.has(num));
+        
+        if (availableNumbers.length === 0) {
+            this.usedNumbersInLevel.clear();
+            this.currentNumber = levelNumbers[Math.floor(Math.random() * levelNumbers.length)];
         } else {
-            // Normal level progression
-            const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
-            const availableNumbers = levelNumbers.filter(num => !this.usedNumbersInLevel.has(num));
-            
-            if (availableNumbers.length === 0) {
-                this.usedNumbersInLevel.clear();
-                this.currentNumber = levelNumbers[Math.floor(Math.random() * levelNumbers.length)];
-            } else {
-                this.currentNumber = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
-            }
+            this.currentNumber = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
         }
         
         this.usedNumbersInLevel.add(this.currentNumber);  
@@ -489,12 +481,21 @@ class PlusOneGameController {
                 button.dataset.number = i;
                 button.textContent = i;
                 
+                // FIXED: Prevent event propagation to stop page shifting
                 button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     if (this.buttonsDisabled) return;
                     this.clearInactivityTimer();
                     this.startInactivityTimer();
                     const selectedNumber = parseInt(e.target.dataset.number);
                     this.handleNumberClick(selectedNumber, e.target);
+                });
+                
+                // FIXED: Prevent default touch behavior
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                 });
                 
                 this.numberButtons.appendChild(button);
@@ -548,12 +549,21 @@ class PlusOneGameController {
             button.dataset.number = option;
             button.textContent = option;
             
+            // FIXED: Prevent event propagation to stop page shifting
             button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 if (this.buttonsDisabled) return;
                 this.clearInactivityTimer();
                 this.startInactivityTimer();
                 const selectedNumber = parseInt(e.target.dataset.number);
                 this.handleNumberClick(selectedNumber, e.target);
+            });
+            
+            // FIXED: Prevent default touch behavior
+            button.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
             });
             
             this.numberButtons.appendChild(button);
@@ -606,7 +616,7 @@ class PlusOneGameController {
             this.rightFilled = false;
             this.totalFilled = false;
         } else {
-            // Levels 3+: Pre-fill left and right boxes
+            // Levels 3+: Pre-fill left and right boxes with CURRENT question numbers
             this.leftInputBox.textContent = this.currentNumber;
             this.leftInputBox.classList.add('filled');
             this.leftFilled = true;
@@ -946,6 +956,11 @@ class PlusOneGameController {
                 crossOverlay.remove();
             }
         });
+    }
+
+    setupInputBoxesForNewQuestion() {
+        // Method to ensure proper box setup - placeholder for future use
+        this.hideAllInputBoxes();
     }
 
     completeGame() {
