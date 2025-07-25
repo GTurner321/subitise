@@ -188,9 +188,9 @@ class StacksGameController {
         
         console.log('Starting new question:', this.currentQuestion);
         
-        // Clear SVG
+        // Clear only NEW tower elements (preserve completed towers)
         if (this.renderer) {
-            this.renderer.clearTower();
+            this.renderer.clearNewTowerElements();
         }
         
         // Generate numbers for current level and question
