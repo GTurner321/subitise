@@ -71,6 +71,16 @@ class PlusOneGameController {
         this.startNewQuestion();
     }
 
+    // Helper function to determine if current level should use picture/icon format
+    shouldUsePictureFormat() {
+        return this.currentLevel <= 2 || this.currentLevel === 5;
+    }
+
+    // Helper function to determine if current level should use number format  
+    shouldUseNumberFormat() {
+        return this.currentLevel >= 3 && this.currentLevel !== 5;
+    }
+
     async initializeAudio() {
         if (!this.audioEnabled) return;
         try {
@@ -249,9 +259,8 @@ class PlusOneGameController {
         this.hintGiven = true;
         
         let hintText = '';
-        // FIXED: Level 5 should use the same hints as levels 1-2
-        if (this.currentLevel <= 2 || this.currentLevel === 5) {
-            // Levels 1-2 and 5: hints for each box in order (picture/icon levels)
+        if (this.shouldUsePictureFormat()) {
+            // Picture format levels (1, 2, 5): hints for each box in order
             if (!this.leftFilled) {
                 hintText = 'Count the number of pictures on the left side';
             } else if (!this.rightFilled) {
@@ -260,7 +269,7 @@ class PlusOneGameController {
                 hintText = `What is ${this.currentNumber} plus one?`;
             }
         } else {
-            // Levels 3-4, 6-10: focus on "what comes after" (number levels)
+            // Number format levels (3, 4, 6-10): focus on "what comes after"
             if (!this.totalFilled) {
                 hintText = `What number comes after ${this.currentNumber}?`;
             }
