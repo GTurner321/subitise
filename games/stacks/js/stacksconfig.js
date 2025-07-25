@@ -3,9 +3,9 @@ const STACKS_CONFIG = {
     // Game dimensions
     SVG_WIDTH: window.innerWidth,
     SVG_HEIGHT: window.innerHeight,
-    BLOCK_HEIGHT: window.innerHeight * 0.08, // 8% of screen height
-    BLOCK_WIDTH: window.innerHeight * 0.08,  // Start square, will adjust for wide numbers
-    BLOCK_WIDTH_WIDE: window.innerHeight * 0.12, // For 3-digit numbers
+    BLOCK_HEIGHT: window.innerHeight * 0.12, // Increased from 0.08 to 0.12 (12% of screen height)
+    BLOCK_WIDTH: window.innerHeight * 0.12,  // Start square, will adjust for wide numbers
+    BLOCK_WIDTH_WIDE: window.innerHeight * 0.16, // For 3-digit numbers
     
     // Tower positioning
     TOWER_CENTER_X: window.innerWidth * 0.5,
