@@ -1,9 +1,9 @@
 // Stacks Game Configuration - Percentage-based positioning
 const STACKS_CONFIG = {
-    // Game dimensions (percentage of viewport) - UPDATED: Square blocks
+    // Game dimensions (percentage of viewport) - FIXED: Proper square blocks
     BLOCK_HEIGHT_PERCENT: 9.6,  // 9.6% of viewport height
-    BLOCK_WIDTH_PERCENT: 9.6,   // CHANGED: Square blocks (same as height)
-    BLOCK_WIDTH_WIDE_PERCENT: 11.5, // CHANGED: Slightly larger for 3-digit numbers
+    BLOCK_WIDTH_PERCENT: 9.6,   // SAME as height for truly square blocks
+    BLOCK_WIDTH_WIDE_PERCENT: 11.5, // Slightly larger for 3-digit numbers
     
     // Tower positioning (percentage of viewport)
     TOWER_CENTER_X_PERCENT: 50,     // 50% from left
@@ -329,16 +329,17 @@ function pxToPercent(x, y) {
     };
 }
 
-// Get block dimensions in pixels
+// Get block dimensions in pixels - FIXED: Width based on HEIGHT for square blocks
 function getBlockDimensions(isWide = false) {
+    const height = vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT);
+    
+    // CORRECTED: Width should also be based on viewport HEIGHT for true squares
     const widthPercent = isWide ? 
         STACKS_CONFIG.BLOCK_WIDTH_WIDE_PERCENT : 
         STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
+    const width = vhToPx(widthPercent); // Using vhToPx instead of vwToPx for squares
     
-    return {
-        width: vwToPx(widthPercent),
-        height: vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT)
-    };
+    return { width, height };
 }
 
 // Number generation helper functions (unchanged)
