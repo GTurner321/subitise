@@ -106,20 +106,6 @@ class StacksRenderer {
         blockGroup.style.cursor = 'grab';
         blockGroup.style.pointerEvents = 'all'; // Ensure it can receive events
         
-        // Add invisible larger clickable area for easier interaction
-        const clickArea = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        const padding = 20; // Extra clickable area
-        clickArea.setAttribute('x', x - blockWidth/2 - padding);
-        clickArea.setAttribute('y', y - blockHeight/2 - padding);
-        clickArea.setAttribute('width', blockWidth + padding * 2);
-        clickArea.setAttribute('height', blockHeight + padding * 2);
-        clickArea.setAttribute('fill', 'transparent');
-        clickArea.setAttribute('stroke', 'red'); // Temporary - to see the click area
-        clickArea.setAttribute('stroke-width', '1');
-        clickArea.setAttribute('stroke-dasharray', '2,2');
-        clickArea.setAttribute('opacity', '0.3'); // Make it visible for debugging
-        clickArea.style.pointerEvents = 'none'; // Let events pass through to group
-        
         // Block rectangle
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.setAttribute('x', x - blockWidth/2);
@@ -131,7 +117,7 @@ class StacksRenderer {
         rect.setAttribute('stroke-width', '3');
         rect.setAttribute('rx', '8');
         rect.setAttribute('ry', '8');
-        rect.style.pointerEvents = 'none'; // Let events pass through to group
+        rect.style.pointerEvents = 'all'; // Make rect clickable too
         
         // Block shadow (behind)
         const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -156,30 +142,21 @@ class StacksRenderer {
         text.style.pointerEvents = 'none'; // Let events pass through to group
         text.textContent = number;
         
-        // Add elements in correct order (shadow first, clickArea last for debugging)
+        // Add elements in correct order (shadow first)
         blockGroup.appendChild(shadow);
         blockGroup.appendChild(rect);
         blockGroup.appendChild(text);
-        blockGroup.appendChild(clickArea); // Add clickArea last so it's visible
         
         // Store references
         blockGroup._rect = rect;
         blockGroup._text = text;
         blockGroup._shadow = shadow;
-        blockGroup._clickArea = clickArea;
         blockGroup._originalX = x;
         blockGroup._originalY = y;
         blockGroup._number = number;
         blockGroup._isWide = isWide;
         
-        // TEST: Try adding event listeners to the rect as well
-        rect.style.pointerEvents = 'all';
-        rect.addEventListener('click', (e) => {
-            console.log('RECT clicked for block', number);
-            e.stopPropagation();
-        });
-        
-        // Add event listeners directly to the block - use a more comprehensive approach
+        // Add event listeners to both the group AND the rect for maximum compatibility
         const handleMouseDown = (e) => {
             console.log('Mouse down on block', number, 'at client coords:', e.clientX, e.clientY);
             e.preventDefault();
@@ -187,44 +164,20 @@ class StacksRenderer {
             this.onDragStart(e);
         };
         
-        const handleTouchStart = (e) => {
-            console.log('Touch start on block', number, 'touches:', e.touches.length);
-            e.preventDefault();
-            e.stopPropagation();
-            this.onDragStart(e);
-        };
-        
         const handleClick = (e) => {
-            console.log('BLOCK GROUP clicked:', number, 'at client coords:', e.clientX, e.clientY);
+            console.log('BLOCK clicked:', number, 'at client coords:', e.clientX, e.clientY);
             e.preventDefault();
             e.stopPropagation();
         };
         
-        // Add multiple event types to ensure we catch interactions
-        blockGroup.addEventListener('mousedown', handleMouseDown, { passive: false });
-        blockGroup.addEventListener('touchstart', handleTouchStart, { passive: false });
-        blockGroup.addEventListener('click', handleClick, { passive: false });
-        
-        // Also try pointerdown for better cross-platform support
-        blockGroup.addEventListener('pointerdown', (e) => {
-            console.log('Pointer down on block', number, 'pointer type:', e.pointerType);
-            if (e.pointerType === 'mouse') {
-                handleMouseDown(e);
-            } else if (e.pointerType === 'touch') {
-                handleTouchStart(e);
-            }
-        }, { passive: false });
+        // Add listeners to both group and rect
+        [blockGroup, rect].forEach(element => {
+            element.addEventListener('mousedown', handleMouseDown, { passive: false });
+            element.addEventListener('click', handleClick, { passive: false });
+            element.addEventListener('pointerdown', handleMouseDown, { passive: false });
+        });
         
         console.log('Block created with number:', number, 'at position:', x, y, 'size:', blockWidth, 'x', blockHeight);
-        console.log('Block group element:', blockGroup);
-        
-        // Test if the block is actually where we think it is
-        setTimeout(() => {
-            const bbox = blockGroup.getBBox();
-            const clientRect = blockGroup.getBoundingClientRect();
-            console.log(`Block ${number} BBox:`, bbox);
-            console.log(`Block ${number} ClientRect:`, clientRect);
-        }, 100);
         
         return blockGroup;
     }
@@ -314,26 +267,15 @@ class StacksRenderer {
         const spread = STACKS_CONFIG.GROUND_SPREAD;
         const centerX = STACKS_CONFIG.TOWER_CENTER_X;
         
-        console.log('calculateGroundPosition:', {index, totalBlocks, spread, centerX});
-        
         if (totalBlocks === 1) {
             return centerX;
         }
         
-        // For 2 blocks, place them closer to center
-        if (totalBlocks === 2) {
-            const spacing = Math.min(spread * 0.3, 200); // Much closer spacing
-            const startX = centerX - spacing/2;
-            const result = startX + (index * spacing);
-            console.log('Two blocks positioning:', {startX, spacing, result});
-            return result;
-        }
-        
-        // For more blocks, use wider spacing
+        // Use original spread-out positioning
         const startX = centerX - spread/2;
         const spacing = spread / (totalBlocks - 1);
         const result = startX + (index * spacing);
-        console.log('Multi-block positioning:', {startX, spacing, result});
+        console.log('Block positioning:', {index, totalBlocks, centerX, spread, startX, spacing, result});
         return result;
     }
     
