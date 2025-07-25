@@ -181,14 +181,16 @@ class StacksRenderer {
         const point = this.getEventPoint(e);
         const element = this.getElementAtPoint(point.x, point.y);
         
+        console.log('Drag start at:', point, 'Element found:', element);
+        
         if (element && element.classList.contains('block')) {
             this.isDragging = true;
             this.draggedElement = element;
             
-            // Calculate offset from element center
-            const rect = element._rect;
-            const elementX = parseFloat(rect.getAttribute('x')) + parseFloat(rect.getAttribute('width'))/2;
-            const elementY = parseFloat(rect.getAttribute('y')) + parseFloat(rect.getAttribute('height'))/2;
+            // Get current position from the text element (most reliable)
+            const textElement = element._text;
+            const elementX = parseFloat(textElement.getAttribute('x'));
+            const elementY = parseFloat(textElement.getAttribute('y')) - 6; // Adjust for text offset
             
             this.dragOffset.x = elementX - point.x;
             this.dragOffset.y = elementY - point.y;
@@ -196,12 +198,17 @@ class StacksRenderer {
             // Visual feedback
             element.style.cursor = 'grabbing';
             element._rect.setAttribute('stroke-width', '4');
+            element.classList.add('block-dragging');
             
             // Bring to front
             this.svg.appendChild(element);
             
             // Audio feedback for drag start
             this.gameController.playDragStartSound();
+            
+            console.log('Drag started successfully');
+        } else {
+            console.log('No draggable element found');
         }
     }
     
@@ -228,6 +235,8 @@ class StacksRenderer {
         e.preventDefault();
         const point = this.getEventPoint(e);
         
+        console.log('Drag end at:', point);
+        
         // Calculate drop position
         const dropX = point.x + this.dragOffset.x;
         const dropY = point.y + this.dragOffset.y;
@@ -238,6 +247,7 @@ class StacksRenderer {
         // Reset visual state
         this.draggedElement.style.cursor = 'grab';
         this.draggedElement._rect.setAttribute('stroke-width', '3');
+        this.draggedElement.classList.remove('block-dragging');
         
         // Clear hover effects
         this.clearContainerHover();
@@ -253,6 +263,8 @@ class StacksRenderer {
         } else {
             this.gameController.playReturnSound();
         }
+        
+        console.log('Drag ended, dropped:', dropped);
     }
     
     handleContainerHover(x, y) {
@@ -419,7 +431,18 @@ class StacksRenderer {
     
     getElementAtPoint(x, y) {
         const elements = document.elementsFromPoint(x, y);
-        return elements.find(el => el.closest('.block'));
+        for (let element of elements) {
+            // Check if element is part of a block group
+            if (element.classList && element.classList.contains('block')) {
+                return element;
+            }
+            // Check if element is a child of a block group (rect, text, etc.)
+            const blockParent = element.closest('.block');
+            if (blockParent) {
+                return blockParent;
+            }
+        }
+        return null;
     }
     
     getEventPoint(e) {
