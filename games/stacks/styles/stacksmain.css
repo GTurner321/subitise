@@ -106,15 +106,22 @@ body {
 .block {
     transition: none;
     transform-origin: center;
+    cursor: grab;
 }
 
 .block:hover {
     filter: brightness(1.1);
 }
 
-.block.dragging {
+.block.block-dragging {
     filter: brightness(1.2);
     z-index: 1000;
+    cursor: grabbing !important;
+}
+
+.block rect,
+.block text {
+    pointer-events: none; /* Allow clicks to pass through to the group */
 }
 
 /* Container styling */
