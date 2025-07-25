@@ -20,6 +20,20 @@ body {
     position: relative;
 }
 
+/* Hide any game info elements that might exist */
+#levelInfo,
+#questionInfo,
+#movesInfo,
+#game-info-container,
+#gameInfoContainer,
+.game-info-container,
+.level-info,
+.question-info,
+.moves-info {
+    display: none !important;
+    visibility: hidden !important;
+}
+
 /* Grass band at bottom */
 .grass-band {
     position: fixed;
