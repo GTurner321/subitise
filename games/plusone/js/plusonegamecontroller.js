@@ -606,10 +606,12 @@ class PlusOneGameController {
     giveStartingInstruction() {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
+        console.log(`Giving starting instruction for level ${this.currentLevel}, shouldUsePictureFormat: ${this.shouldUsePictureFormat()}`);
+        
         setTimeout(() => {
-            // FIXED: Level 5 should use the same audio as levels 1-2
-            if (this.currentLevel <= 2 || this.currentLevel === 5) {
-                // Levels 1-2 and 5: Basic instructions for picture/icon levels  
+            if (this.shouldUsePictureFormat()) {
+                // Picture format levels (1, 2, 5): Basic instructions for icon levels  
+                console.log(`Level ${this.currentLevel}: Using picture format audio`);
                 if (this.questionsCompleted === 0) {
                     this.speakText('Complete the plus one sum');
                 } else if (this.questionsCompleted === 1) {
@@ -618,7 +620,8 @@ class PlusOneGameController {
                     this.speakText('Complete the sum');
                 }
             } else {
-                // Levels 3-4, 6-10: Ask the plus one question immediately for number levels
+                // Number format levels (3, 4, 6, 7, 8, 9, 10): Ask the plus one question immediately
+                console.log(`Level ${this.currentLevel}: Using number format audio`);
                 this.speakText(`What number is one more than ${this.currentNumber}?`);
             }
         }, 500);
@@ -637,14 +640,17 @@ class PlusOneGameController {
         this.rightInputBox.classList.remove('flashing', 'filled', 'fixed-one');
         this.totalInputBox.classList.remove('flashing', 'filled');
         
-        // FIXED: Level 5 should use pictures and empty boxes like levels 1-2
-        if (this.currentLevel <= 2 || this.currentLevel === 5) {
-            // Levels 1-2 and 5: All boxes start empty and need to be filled by user
+        console.log(`Setting up input boxes for level ${this.currentLevel}, shouldUsePictureFormat: ${this.shouldUsePictureFormat()}`);
+        
+        if (this.shouldUsePictureFormat()) {
+            // Picture format levels (1, 2, 5): All boxes start empty and need to be filled by user
+            console.log(`Level ${this.currentLevel}: Setting all boxes empty (picture format)`);
             this.leftFilled = false;
             this.rightFilled = false;
             this.totalFilled = false;
         } else {
-            // Levels 3-4, 6-10: Pre-fill left and right boxes with CURRENT question numbers
+            // Number format levels (3, 4, 6, 7, 8, 9, 10): Pre-fill left and right boxes
+            console.log(`Level ${this.currentLevel}: Pre-filling boxes with ${this.currentNumber} + 1 (number format)`);
             this.leftInputBox.textContent = this.currentNumber;
             this.leftInputBox.classList.add('filled');
             this.leftFilled = true;
