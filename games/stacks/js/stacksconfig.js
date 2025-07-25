@@ -1,39 +1,37 @@
-// Stacks Game Configuration
+// Stacks Game Configuration - Percentage-based positioning
 const STACKS_CONFIG = {
-    // Game dimensions
-    SVG_WIDTH: window.innerWidth,
-    SVG_HEIGHT: window.innerHeight,
-    BLOCK_HEIGHT: window.innerHeight * 0.096, // Reduced from 0.12 to 0.096 (20% smaller)
-    BLOCK_WIDTH: window.innerHeight * 0.096,  // Start square, will adjust for wide numbers
-    BLOCK_WIDTH_WIDE: window.innerHeight * 0.128, // For 3-digit numbers
+    // Game dimensions (percentage of viewport)
+    BLOCK_HEIGHT_PERCENT: 9.6,  // 9.6% of viewport height
+    BLOCK_WIDTH_PERCENT: 8,     // 8% of viewport width
+    BLOCK_WIDTH_WIDE_PERCENT: 10.5, // 10.5% for 3-digit numbers
     
-    // Tower positioning
-    TOWER_CENTER_X: window.innerWidth * 0.5,
-    TOWER_BASE_Y: window.innerHeight - 100, // Above grass band
-    COMPLETED_TOWER_LEFT_X: window.innerWidth * 0.15,
-    COMPLETED_TOWER_RIGHT_X: window.innerWidth * 0.85,
-    COMPLETED_TOWER_SPACING: 80,
+    // Tower positioning (percentage of viewport)
+    TOWER_CENTER_X_PERCENT: 50,     // 50% from left
+    TOWER_BASE_Y_PERCENT: 80,       // 80% from top (above grass band)
+    COMPLETED_TOWER_LEFT_X_PERCENT: 15,
+    COMPLETED_TOWER_RIGHT_X_PERCENT: 85,
+    COMPLETED_TOWER_SPACING_PERCENT: 8, // 8% spacing between completed towers
     
     // Block positioning on ground
-    GROUND_Y: window.innerHeight - 90, // On grass level
-    GROUND_SPREAD: window.innerWidth * 0.6, // Back to spread out appearance
+    GROUND_Y_PERCENT: 82,            // 82% from top (on grass level)
+    GROUND_SPREAD_PERCENT: 60,       // 60% of viewport width spread
     
-    // Drag and drop
-    DRAG_TOLERANCE: 20, // Pixels tolerance for drop zones
-    HOVER_TRANSFORM: 5, // Pixels to move block when hovering
+    // Drag and drop (percentage of viewport diagonal)
+    DRAG_TOLERANCE_PERCENT: 3,       // 3% of viewport diagonal for drop zones
+    HOVER_TRANSFORM_PERCENT: 0.5,    // 0.5% move when hovering
     
-    // Animation timings
-    TOWER_MOVE_DELAY: 3000, // 3 seconds before moving completed tower
+    // Animation timings (unchanged)
+    TOWER_MOVE_DELAY: 3000,
     BLOCK_ANIMATION_DURATION: 500,
     TEDDY_APPEAR_DELAY: 1000,
     
-    // Level system
+    // Level system (unchanged)
     LEVELS: {
         1: {
             name: "Level 1",
             description: "Numbers 1-10, consecutive",
             generateNumbers: (count) => generateConsecutiveNumbers(1, 10, count),
-            moveThreshold: 2 // If moves > 2 * (count), stay at same level
+            moveThreshold: 2
         },
         2: {
             name: "Level 2", 
@@ -81,28 +79,19 @@ const STACKS_CONFIG = {
         }
     },
     
-    // Colors for blocks - bright but not garish
+    // Colors for blocks (unchanged)
     BLOCK_COLORS: [
-        '#FF6B9D', // Pink
-        '#4ECDC4', // Teal
-        '#45B7D1', // Blue
-        '#FFA726', // Orange
-        '#66BB6A', // Green
-        '#AB47BC', // Purple
-        '#EF5350', // Red
-        '#26C6DA', // Cyan
-        '#FFCA28', // Yellow
-        '#8D6E63', // Brown
-        '#78909C', // Blue Grey
-        '#FF7043'  // Deep Orange
+        '#FF6B9D', '#4ECDC4', '#45B7D1', '#FFA726', '#66BB6A', 
+        '#AB47BC', '#EF5350', '#26C6DA', '#FFCA28', '#8D6E63', 
+        '#78909C', '#FF7043'
     ],
     
-    // Container (empty tower slot) styling
+    // Container styling (unchanged)
     CONTAINER_COLOR: '#E0E0E0',
     CONTAINER_STROKE: '#BDBDBD',
     CONTAINER_STROKE_WIDTH: 2,
     
-    // Teddy images for completed towers
+    // Teddy images (unchanged)
     TEDDY_IMAGES: [
         'subitise/assets/trumps/blackbear.png',
         'subitise/assets/trumps/dinosaur.png', 
@@ -114,35 +103,76 @@ const STACKS_CONFIG = {
         'subitise/assets/trumps/knightbear.png'
     ],
     
-    // Audio settings
+    // Audio settings (unchanged)
     AUDIO_ENABLED: true,
     
-    // Rainbow settings (shared with other games)
+    // Rainbow settings (unchanged)
     RAINBOW_PIECES: 10,
     RAINBOW_COLORS: [
-        '#ff0000', // Red
-        '#ff8000', // Orange  
-        '#ffff00', // Yellow
-        '#80ff00', // Lime
-        '#00ff00', // Green
-        '#00ff80', // Spring Green
-        '#00ffff', // Cyan
-        '#0080ff', // Blue
-        '#0000ff', // Dark Blue
-        '#8000ff'  // Purple
+        '#ff0000', '#ff8000', '#ffff00', '#80ff00', '#00ff00', 
+        '#00ff80', '#00ffff', '#0080ff', '#0000ff', '#8000ff'
     ],
     
-    // Total questions
+    // Game settings (unchanged)
     TOTAL_QUESTIONS: 8,
-    
-    // Game completion
-    FINAL_RAINBOW_ARCS: 3 // Add 3 more arcs at end to complete rainbow
+    FINAL_RAINBOW_ARCS: 3
 };
 
-// Number generation helper functions
+// Helper functions for percentage-to-pixel conversion
+function vwToPx(vw) {
+    return (vw * window.innerWidth) / 100;
+}
+
+function vhToPx(vh) {
+    return (vh * window.innerHeight) / 100;
+}
+
+function pxToVw(px) {
+    return (px * 100) / window.innerWidth;
+}
+
+function pxToVh(px) {
+    return (px * 100) / window.innerHeight;
+}
+
+// Get drag tolerance in pixels based on viewport diagonal
+function getDragTolerancePx() {
+    const diagonal = Math.sqrt(window.innerWidth ** 2 + window.innerHeight ** 2);
+    return (STACKS_CONFIG.DRAG_TOLERANCE_PERCENT * diagonal) / 100;
+}
+
+// Convert percentage coordinates to pixels for the current viewport
+function percentToPx(xPercent, yPercent) {
+    return {
+        x: vwToPx(xPercent),
+        y: vhToPx(yPercent)
+    };
+}
+
+// Convert pixel coordinates to percentages
+function pxToPercent(x, y) {
+    return {
+        x: pxToVw(x),
+        y: pxToVh(y)
+    };
+}
+
+// Get block dimensions in pixels
+function getBlockDimensions(isWide = false) {
+    const widthPercent = isWide ? 
+        STACKS_CONFIG.BLOCK_WIDTH_WIDE_PERCENT : 
+        STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
+    
+    return {
+        width: vwToPx(widthPercent),
+        height: vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT)
+    };
+}
+
+// Number generation helper functions (unchanged)
 function generateConsecutiveNumbers(min, max, count) {
     const maxStart = max - count + 1;
-    if (maxStart < min) return null; // Not enough range
+    if (maxStart < min) return null;
     
     const start = Math.floor(Math.random() * (maxStart - min + 1)) + min;
     const numbers = [];
@@ -153,7 +183,7 @@ function generateConsecutiveNumbers(min, max, count) {
 }
 
 function generateNonConsecutiveNumbers(min, max, count) {
-    if (max - min + 1 < count) return null; // Not enough range
+    if (max - min + 1 < count) return null;
     
     const numbers = [];
     const available = [];
@@ -207,9 +237,9 @@ function generateHundreds(count) {
     const used = new Set();
     
     while (hundreds.length < count) {
-        const tens = Math.floor(Math.random() * 9) + 1; // 1-9
-        const units = Math.floor(Math.random() * 9) + 1; // 1-9  
-        const num = tens * 100 + units * 10; // ##0 format
+        const tens = Math.floor(Math.random() * 9) + 1;
+        const units = Math.floor(Math.random() * 9) + 1;  
+        const num = tens * 100 + units * 10;
         
         if (!used.has(num)) {
             hundreds.push(num);
