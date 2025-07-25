@@ -1,20 +1,29 @@
 // Plus One game configuration settings
 const CONFIG = {
-    // Level definitions with number sets
+    // Level definitions with number sets - UPDATED STRUCTURE
     LEVELS: {
         1: { numbers: [1, 2, 3, 4], name: 'Level 1' },
         2: { numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9], name: 'Level 2' },
         3: { numbers: [10, 11, 12, 13, 14, 15, 16, 17, 18], name: 'Level 3' },
         4: { numbers: [20, 30, 40, 50, 60, 70, 80, 90], name: 'Level 4' },
-        5: { numbers: [9, 19, 29, 39, 49, 59, 69, 79, 89], name: 'Level 5' },
-        6: { numbers: Array.from({length: 79}, (_, i) => i + 20), name: 'Level 6' }, // 20-98
-        7: { numbers: Array.from({length: 11}, (_, i) => i + 99), name: 'Level 7' }, // 99-109
-        8: { numbers: Array.from({length: 89}, (_, i) => i + 110), name: 'Level 8' }, // 110-198
-        9: { 
-            numbers: [100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730, 740, 750, 760, 770, 780, 790, 800, 810, 820, 830, 840, 850, 860, 870, 880, 890, 900, 910, 920, 930, 940, 950, 960, 970, 980, 990], 
-            name: 'Level 9' 
-        }, // Numbers ending in 0 (##0)
-        10: { numbers: 'composite', name: 'Level 10' } // Composite of levels 6-9
+        5: { numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9], name: 'Level 5' }, // Same as level 2
+        6: { 
+            // 20-98, excluding #9 format (19,29,39,49,59,69,79,89)
+            numbers: Array.from({length: 79}, (_, i) => i + 20).filter(num => num % 10 !== 9), 
+            name: 'Level 6' 
+        },
+        7: { 
+            // Repeat level 6: 20-98, excluding #9 format
+            numbers: Array.from({length: 79}, (_, i) => i + 20).filter(num => num % 10 !== 9), 
+            name: 'Level 7' 
+        },
+        8: { numbers: [19, 29, 39, 49, 59, 69, 79, 89], name: 'Level 8' },
+        9: { numbers: Array.from({length: 99}, (_, i) => i + 100), name: 'Level 9' }, // 100-198
+        10: { 
+            // ##0 format: numbers ending in 0 from 100 to 990
+            numbers: Array.from({length: 90}, (_, i) => (i + 10) * 10), 
+            name: 'Level 10' 
+        }
     },
     
     // Font Awesome icons suitable for nursery age children (levels 1-2 only)
@@ -168,26 +177,31 @@ const CONFIG = {
     AUDIO_ENABLED: true
 };
 
-// Generate number to word conversions for larger numbers
+// Generate number to word conversions for larger numbers - FIXED TO PREVENT EXPONENTIAL NOTATION
 function generateNumberToWord(num) {
-    if (CONFIG.NUMBER_TO_WORD[num]) {
-        return CONFIG.NUMBER_TO_WORD[num];
+    // Ensure we're working with a proper integer, not exponential notation
+    const number = parseInt(num, 10);
+    
+    if (CONFIG.NUMBER_TO_WORD[number]) {
+        return CONFIG.NUMBER_TO_WORD[number];
     }
     
-    if (num <= 1000) {
-        const hundreds = Math.floor(num / 100);
-        const remainder = num % 100;
+    if (number <= 1000) {
+        const hundreds = Math.floor(number / 100);
+        const remainder = number % 100;
         
         let result = '';
         if (hundreds > 0) {
-            result += CONFIG.NUMBER_TO_WORD[hundreds] + ' hundred';
+            result += (CONFIG.NUMBER_TO_WORD[hundreds] || hundreds.toString()) + ' hundred';
             if (remainder > 0) {
                 result += ' ';
             }
         }
         
         if (remainder > 0) {
-            if (remainder <= 20 || remainder % 10 === 0) {
+            if (remainder <= 20) {
+                result += CONFIG.NUMBER_TO_WORD[remainder] || remainder.toString();
+            } else if (remainder % 10 === 0) {
                 result += CONFIG.NUMBER_TO_WORD[remainder] || remainder.toString();
             } else {
                 const tens = Math.floor(remainder / 10) * 10;
@@ -197,11 +211,11 @@ function generateNumberToWord(num) {
             }
         }
         
-        return result || num.toString();
+        return result || number.toString();
     }
     
     // For very large numbers, just return the number as string
-    return num.toString();
+    return number.toString();
 }
 
 // Extend the NUMBER_TO_WORD object dynamically
