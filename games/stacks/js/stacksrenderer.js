@@ -170,7 +170,7 @@ class StacksRenderer {
         blockGroup.setAttribute('data-number', number);
         blockGroup.style.cursor = 'grab';
         
-        // Block rectangle - UPDATED: Square blocks
+        // Block rectangle - square blocks
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.setAttribute('x', x - dimensions.width/2);
         rect.setAttribute('y', y - dimensions.height/2);
@@ -192,13 +192,18 @@ class StacksRenderer {
         shadow.setAttribute('rx', '8');
         shadow.setAttribute('ry', '8');
         
-        // Number text - UPDATED: Larger font, better centering
+        // Number text - UPDATED: Larger font size
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
-        text.setAttribute('y', y); // CHANGED: Removed +6 offset for better vertical centering
+        text.setAttribute('y', y);
         text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('dominant-baseline', 'central'); // CHANGED: Better vertical centering
-        text.setAttribute('font-size', Math.min(dimensions.height * 0.5, dimensions.width * 0.4)); // CHANGED: Larger font
+        text.setAttribute('dominant-baseline', 'central');
+        
+        // UPDATED: Larger font size with multiplier
+        const baseFontSize = Math.min(dimensions.height * 0.5, dimensions.width * 0.4);
+        const finalFontSize = baseFontSize * STACKS_CONFIG.BLOCK_FONT_SIZE_MULTIPLIER;
+        text.setAttribute('font-size', finalFontSize);
+        
         text.setAttribute('font-weight', 'bold');
         text.setAttribute('fill', '#000');
         text.textContent = number;
@@ -379,17 +384,21 @@ class StacksRenderer {
         const blockHeightPercent = STACKS_CONFIG.BLOCK_HEIGHT_PERCENT;
         
         console.log('renderTower called with', blocks.length, 'blocks', containers.length, 'containers');
-        console.log('Tower center:', centerX, '% base Y:', baseY, '% block height:', blockHeightPercent, '%');
         
         // Clear only NEW tower elements (not completed towers)
         this.clearNewTowerElements();
         
+        // Check if any block in this tower has 3 digits to determine if we need wide blocks
+        const hasThreeDigitNumbers = blocks.some(block => block.number >= 100);
+        const useWideBlocks = isWide || hasThreeDigitNumbers;
+        
+        console.log('Tower has 3-digit numbers:', hasThreeDigitNumbers, 'Using wide blocks:', useWideBlocks);
+        
         // Render containers (bottom to top) using percentage positioning
-        // UPDATED: Bottom container sits on grass randomly
         containers.forEach((container, index) => {
             let yPercent;
             if (index === 0) {
-                // Bottom container sits randomly on top 50% of grass
+                // Bottom container sits in stable back position
                 yPercent = getRandomGroundY();
             } else {
                 // Other containers stack above the bottom one
@@ -398,34 +407,75 @@ class StacksRenderer {
                     const bottomY = pxToVh(bottomContainer._centerY);
                     yPercent = bottomY - (index * blockHeightPercent);
                 } else {
-                    // Fallback if bottom container not found
                     yPercent = baseY - (index * blockHeightPercent);
                 }
             }
             
             console.log(`Container ${index}: Y position = ${yPercent}%`);
-            const containerElement = this.createContainer(centerX, yPercent, index, isWide);
+            const containerElement = this.createContainer(centerX, yPercent, index, useWideBlocks);
             containerElement.classList.add('new-tower-element');
             this.svg.appendChild(containerElement);
         });
         
-        // Collect existing ground block positions for overlap detection
+        // Collect existing ground block positions for perspective layering
         const existingGroundPositions = [];
         const existingGroundBlocks = this.svg.querySelectorAll('.block:not(.completed-tower)');
         existingGroundBlocks.forEach(block => {
             if (!block._container) {
                 existingGroundPositions.push({
-                    x: block._xPercent,
-                    y: block._yPercent
+                    x: block._xPercent || pxToVw(block._centerX),
+                    y: block._yPercent || pxToVh(block._centerY)
                 });
             }
         });
         
-        // Render blocks randomly on ground with overlap detection
+        // Render blocks with INITIAL PLACEMENT variance and proper spacing
+        blocks.forEach((block, index) => {
+            const groundPos = generateRandomGroundPosition(existingGroundPositions, true); // true = initial placement
+            
+            // Add this position to the list for the next block's spacing calculation
+            existingGroundPositions.push({
+                x: groundPos.x,
+                y: groundPos.y
+            });
+            
+            const blockElement = this.createBlock(
+                block.number, 
+                groundPos.x, 
+                groundPos.y, 
+                block.color,
+                useWideBlocks
+            );
+            blockElement.classList.add('new-tower-element');
+            this.svg.appendChild(blockElement);
+            
+            console.log('Added block', block.number, 'with initial height variance at:', groundPos.x + '%,', groundPos.y + '%');
+        });
+        
+        console.log('Tower render complete with height variance and proper spacing');
+    } = ${yPercent}%`);
+            const containerElement = this.createContainer(centerX, yPercent, index, isWide);
+            containerElement.classList.add('new-tower-element');
+            this.svg.appendChild(containerElement);
+        });
+        
+        // Collect existing ground block positions for perspective layering
+        const existingGroundPositions = [];
+        const existingGroundBlocks = this.svg.querySelectorAll('.block:not(.completed-tower)');
+        existingGroundBlocks.forEach(block => {
+            if (!block._container) {
+                existingGroundPositions.push({
+                    x: block._xPercent || pxToVw(block._centerX),
+                    y: block._yPercent || pxToVh(block._centerY)
+                });
+            }
+        });
+        
+        // Render blocks randomly on ground with perspective layering
         blocks.forEach((block, index) => {
             const groundPos = generateRandomGroundPosition(existingGroundPositions);
             
-            // Add this position to the list for the next block
+            // Add this position to the list for the next block's perspective calculation
             existingGroundPositions.push({
                 x: groundPos.x,
                 y: groundPos.y
@@ -440,12 +490,11 @@ class StacksRenderer {
             );
             blockElement.classList.add('new-tower-element');
             this.svg.appendChild(blockElement);
-            console.log('Added block', block.number, 'at non-overlapping position:', groundPos.x + '%,', groundPos.y + '%');
+            
+            console.log('Added block', block.number, 'with perspective layering at:', groundPos.x + '%,', groundPos.y + '%');
         });
         
-        console.log('Tower render complete. SVG children:', this.svg.children.length);
-        console.log('Containers in DOM:', this.svg.querySelectorAll('.container').length);
-        console.log('Blocks in DOM:', this.svg.querySelectorAll('.block').length);
+        console.log('Tower render complete with perspective layering');
     }
     
     clearNewTowerElements() {
@@ -804,12 +853,13 @@ class StacksRenderer {
         // Convert to percentages for storage
         const xPercent = pxToVw(x);
         
-        // UPDATED: Force Y position to be in top 50% of grass area
-        const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
-        const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
-        const yPercent = grassTop + Math.random() * (grassHeight * 0.5); // Top 50% only
+        // Get existing ground block positions for perspective layering
+        const existingGroundPositions = this.getExistingGroundPositions(block);
         
-        console.log('Adjusted Y position to top 50% of grass:', yPercent + '%');
+        // UPDATED: Use perspective layering for Y position
+        const yPercent = getRandomGroundYWithPerspective(existingGroundPositions, xPercent);
+        
+        console.log('Adjusted Y position with perspective layering:', yPercent + '%');
         
         // Apply gravity to bring to adjusted grass level
         const targetY = vhToPx(yPercent);
@@ -818,7 +868,7 @@ class StacksRenderer {
         // Ensure block remains interactive
         block.style.cursor = 'grab';
         block.style.pointerEvents = 'all';
-        console.log('Block', block._number, 'placed on grass at adjusted position');
+        console.log('Block', block._number, 'placed on grass with perspective at:', xPercent + '%,', yPercent + '%');
     }
     
     applyGravity(block, targetX, targetYPercent) {
