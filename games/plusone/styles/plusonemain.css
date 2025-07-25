@@ -23,15 +23,17 @@ body {
     display: flex;
     flex-direction: column;
     background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-    /* FIXED: Prevent body shifting/scrolling and force permanent scrollbar space */
-    overflow-x: hidden;
-    overflow-y: scroll; /* Force scrollbar to always be present */
+    /* FIXED: Prevent all scrolling - game should fit in viewport */
+    overflow: hidden;
     position: relative;
+    /* FIXED: Prevent any height changes that could trigger scrollbars */
+    max-height: 100vh;
 }
 
-/* FIXED: Alternative approach - reserve space for scrollbar */
+/* FIXED: Remove forced scrollbar */
 html {
-    overflow-y: scroll; /* Force scrollbar at html level */
+    overflow: hidden; /* Prevent any scrolling */
+    height: 100%;
 }
 
 /* Game area */
@@ -44,8 +46,9 @@ html {
     margin: 0 auto;
     display: flex;
     align-items: stretch;
-    /* FIXED: Prevent layout shifting */
+    /* FIXED: Prevent layout shifting and height changes */
     min-height: 0;
+    max-height: calc(100vh - 140px); /* Reserve space for buttons */
 }
 
 /* Left side for icons/numbers */
@@ -216,9 +219,11 @@ html {
     gap: 10px;
     flex-wrap: wrap;
     min-height: 120px;
-    /* FIXED: Prevent button container from shifting */
+    max-height: 120px; /* FIXED: Prevent height changes */
+    /* FIXED: Prevent button container from shifting or changing size */
     flex-shrink: 0;
     position: relative;
+    overflow: hidden; /* FIXED: Prevent any overflow that might cause scrollbars */
 }
 
 .number-btn {
