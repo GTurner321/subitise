@@ -23,9 +23,15 @@ body {
     display: flex;
     flex-direction: column;
     background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-    /* FIXED: Prevent body shifting/scrolling */
+    /* FIXED: Prevent body shifting/scrolling and force permanent scrollbar space */
     overflow-x: hidden;
+    overflow-y: scroll; /* Force scrollbar to always be present */
     position: relative;
+}
+
+/* FIXED: Alternative approach - reserve space for scrollbar */
+html {
+    overflow-y: scroll; /* Force scrollbar at html level */
 }
 
 /* Game area */
