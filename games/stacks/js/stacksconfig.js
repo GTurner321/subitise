@@ -3,9 +3,9 @@ const STACKS_CONFIG = {
     // Game dimensions
     SVG_WIDTH: window.innerWidth,
     SVG_HEIGHT: window.innerHeight,
-    BLOCK_HEIGHT: window.innerHeight * 0.12, // Increased from 0.08 to 0.12 (12% of screen height)
-    BLOCK_WIDTH: window.innerHeight * 0.12,  // Start square, will adjust for wide numbers
-    BLOCK_WIDTH_WIDE: window.innerHeight * 0.16, // For 3-digit numbers
+    BLOCK_HEIGHT: window.innerHeight * 0.096, // Reduced from 0.12 to 0.096 (20% smaller)
+    BLOCK_WIDTH: window.innerHeight * 0.096,  // Start square, will adjust for wide numbers
+    BLOCK_WIDTH_WIDE: window.innerHeight * 0.128, // For 3-digit numbers
     
     // Tower positioning
     TOWER_CENTER_X: window.innerWidth * 0.5,
@@ -16,7 +16,7 @@ const STACKS_CONFIG = {
     
     // Block positioning on ground
     GROUND_Y: window.innerHeight - 90, // On grass level
-    GROUND_SPREAD: window.innerWidth * 0.6, // How wide to spread blocks
+    GROUND_SPREAD: window.innerWidth * 0.6, // Back to spread out appearance
     
     // Drag and drop
     DRAG_TOLERANCE: 20, // Pixels tolerance for drop zones
