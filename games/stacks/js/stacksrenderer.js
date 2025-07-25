@@ -561,7 +561,7 @@ class StacksRenderer {
         
         // Safety check for valid coordinates - if we get fallback coordinates, abort gracefully
         if ((point.x === 0 && point.y === 0) || isNaN(point.x) || isNaN(point.y)) {
-            console.warn('Invalid drag end coordinates detected, returning block to original position');
+            console.warn('Invalid drag end coordinates detected, returning block to safe position');
             
             // Reset visual state first
             this.draggedElement.style.cursor = 'grab';
@@ -587,32 +587,22 @@ class StacksRenderer {
         
         console.log('Drop position:', { dropX, dropY }, 'Offset:', this.dragOffset);
         
-        // Safety check for calculated position - ensure it's within reasonable bounds
+        // UPDATED: Enforce boundaries to prevent blocks from going off-screen or too high
         const svgBounds = this.svg.getBoundingClientRect();
-        if (isNaN(dropX) || isNaN(dropY) || dropX < -100 || dropY < -100 || 
-            dropX > svgBounds.width + 100 || dropY > svgBounds.height + 100) {
-            console.warn('Invalid drop position calculated, returning block to ground');
-            
-            // Reset visual state first
-            this.draggedElement.style.cursor = 'grab';
-            this.draggedElement._rect.setAttribute('stroke-width', '3');
-            this.draggedElement.classList.remove('block-dragging');
-            this.clearContainerHover();
-            
-            // Return block to a safe ground position
-            this.returnBlockToGround(this.draggedElement);
-            
-            // Reset drag state
-            this.isDragging = false;
-            this.draggedElement = null;
-            this.dragOffset = { x: 0, y: 0 };
-            
-            this.gameController.playReturnSound();
-            return;
+        const minX = 0;
+        const maxX = svgBounds.width;
+        const minY = vhToPx(70); // Don't allow blocks above 70% from top
+        const maxY = svgBounds.height;
+        
+        let boundedDropX = Math.max(minX, Math.min(maxX, dropX));
+        let boundedDropY = Math.max(minY, Math.min(maxY, dropY));
+        
+        if (dropX !== boundedDropX || dropY !== boundedDropY) {
+            console.log('Drop position bounded from', {dropX, dropY}, 'to', {boundedDropX, boundedDropY});
         }
         
         // Try to drop in container or place on grass
-        const dropped = this.handleDrop(dropX, dropY);
+        const dropped = this.handleDrop(boundedDropX, boundedDropY);
         
         // Reset visual state
         this.draggedElement.style.cursor = 'grab';
