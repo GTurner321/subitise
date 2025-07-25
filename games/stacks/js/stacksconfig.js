@@ -1,20 +1,22 @@
 // Stacks Game Configuration - Percentage-based positioning
 const STACKS_CONFIG = {
-    // Game dimensions (percentage of viewport)
+    // Game dimensions (percentage of viewport) - UPDATED: Square blocks
     BLOCK_HEIGHT_PERCENT: 9.6,  // 9.6% of viewport height
-    BLOCK_WIDTH_PERCENT: 8,     // 8% of viewport width
-    BLOCK_WIDTH_WIDE_PERCENT: 10.5, // 10.5% for 3-digit numbers
+    BLOCK_WIDTH_PERCENT: 9.6,   // CHANGED: Same as height for square blocks
+    BLOCK_WIDTH_WIDE_PERCENT: 12.8, // Wider for 3-digit numbers
     
-    // Tower positioning (percentage of viewport)
+    // Tower positioning (percentage of viewport) - UPDATED: Lower tower
     TOWER_CENTER_X_PERCENT: 50,     // 50% from left
-    TOWER_BASE_Y_PERCENT: 80,       // 80% from top (above grass band)
+    TOWER_BASE_Y_PERCENT: 87.2,     // CHANGED: Moved down from 80% to 87.2% (75% of a block lower)
     COMPLETED_TOWER_LEFT_X_PERCENT: 15,
     COMPLETED_TOWER_RIGHT_X_PERCENT: 85,
-    COMPLETED_TOWER_SPACING_PERCENT: 8, // 8% spacing between completed towers
+    COMPLETED_TOWER_SPACING_PERCENT: 12, // CHANGED: More spacing for square blocks
     
-    // Block positioning on ground
-    GROUND_Y_PERCENT: 82,            // 82% from top (on grass level)
-    GROUND_SPREAD_PERCENT: 60,       // 60% of viewport width spread
+    // Block positioning on ground - UPDATED: Random placement in grass area
+    GROUND_Y_MIN_PERCENT: 89,       // CHANGED: Top of grass area for random placement
+    GROUND_Y_MAX_PERCENT: 92,       // CHANGED: Bottom range in grass area (top 40% of grass)
+    GROUND_SPREAD_PERCENT: 70,      // CHANGED: Wider spread to avoid tower area
+    GROUND_EXCLUSION_ZONE_PERCENT: 20, // NEW: Area around tower to avoid (±10% from center)
     
     // Drag and drop (percentage of viewport diagonal)
     DRAG_TOLERANCE_PERCENT: 3,       // 3% of viewport diagonal for drop zones
@@ -24,6 +26,9 @@ const STACKS_CONFIG = {
     TOWER_MOVE_DELAY: 3000,
     BLOCK_ANIMATION_DURATION: 500,
     TEDDY_APPEAR_DELAY: 1000,
+    
+    // Completed tower opacity
+    COMPLETED_TOWER_OPACITY: 0.75,   // NEW: 75% opacity for completed towers
     
     // Level system (unchanged)
     LEVELS: {
@@ -118,7 +123,25 @@ const STACKS_CONFIG = {
     FINAL_RAINBOW_ARCS: 3
 };
 
-// Helper functions for percentage-to-pixel conversion
+// Helper function to generate random ground position avoiding tower area
+function generateRandomGroundPosition() {
+    const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+    const exclusionZone = STACKS_CONFIG.GROUND_EXCLUSION_ZONE_PERCENT;
+    const spread = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
+    
+    let x;
+    do {
+        // Generate random X within the spread area
+        x = (50 - spread/2) + Math.random() * spread;
+    } while (Math.abs(x - centerX) < exclusionZone); // Avoid tower area
+    
+    // Generate random Y within grass area (top 40%)
+    const minY = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+    const maxY = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
+    const y = minY + Math.random() * (maxY - minY);
+    
+    return { x, y };
+}
 function vwToPx(vw) {
     return (vw * window.innerWidth) / 100;
 }
