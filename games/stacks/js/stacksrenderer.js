@@ -32,31 +32,20 @@ class StacksRenderer {
             console.log('Elements at point:', document.elementsFromPoint(e.clientX, e.clientY));
         });
         
-        // Also add listener directly to SVG
+        // Also add listener directly to SVG - simplified without viewBox transformation
         this.svg.addEventListener('click', (e) => {
             console.log('SVG click detected at:', e.clientX, e.clientY);
             console.log('SVG target:', e.target);
             
-            // Convert screen coordinates to SVG coordinates
+            // Convert screen coordinates to SVG coordinates (should be 1:1 now)
             const rect = this.svg.getBoundingClientRect();
             const svgX = e.clientX - rect.left;
             const svgY = e.clientY - rect.top;
             
-            // Apply the viewBox transformation
-            const viewBox = this.svg.viewBox.baseVal;
-            const svgWidth = rect.width;
-            const svgHeight = rect.height;
-            
-            // Scale from screen coordinates to SVG coordinate system
-            const actualSvgX = (svgX / svgWidth) * viewBox.width + viewBox.x;
-            const actualSvgY = (svgY / svgHeight) * viewBox.height + viewBox.y;
-            
             console.log('SVG coordinates:', svgX, svgY);
-            console.log('Actual SVG coordinates (with viewBox):', actualSvgX, actualSvgY);
-            console.log('ViewBox:', viewBox);
             console.log('SVG rect:', rect);
             
-            // Check what elements are at the SVG coordinates using the corrected coordinates
+            // Check what elements are at the SVG coordinates
             const svgElements = this.svg.querySelectorAll('.block');
             console.log('All blocks in SVG:', svgElements.length);
             svgElements.forEach((block, index) => {
@@ -76,10 +65,11 @@ class StacksRenderer {
                 console.log(`Block ${block.getAttribute('data-number')} SVG bounds:`, blockBounds);
                 console.log(`Block ${block.getAttribute('data-number')} center:`, blockX, blockY);
                 
-                if (actualSvgX >= blockBounds.left && actualSvgX <= blockBounds.right && 
-                    actualSvgY >= blockBounds.top && actualSvgY <= blockBounds.bottom) {
-                    console.log(`Click is inside block ${block.getAttribute('data-number')}!`);
+                if (svgX >= blockBounds.left && svgX <= blockBounds.right && 
+                    svgY >= blockBounds.top && svgY <= blockBounds.bottom) {
+                    console.log(`✅ Click is inside block ${block.getAttribute('data-number')}!`);
                     // Manually trigger the block's click handler
+                    console.log('Manually triggering block click...');
                     block.dispatchEvent(new MouseEvent('click', {
                         bubbles: true,
                         cancelable: true,
