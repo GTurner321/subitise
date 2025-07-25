@@ -1,22 +1,25 @@
 // Stacks Game Configuration - Percentage-based positioning
 const STACKS_CONFIG = {
-    // Game dimensions (percentage of viewport) - UPDATED: Square blocks
+    // Game dimensions (percentage of viewport) - UPDATED: Narrower blocks to match height
     BLOCK_HEIGHT_PERCENT: 9.6,  // 9.6% of viewport height
-    BLOCK_WIDTH_PERCENT: 9.6,   // CHANGED: Same as height for square blocks
-    BLOCK_WIDTH_WIDE_PERCENT: 12.8, // Wider for 3-digit numbers
+    BLOCK_WIDTH_PERCENT: 6.4,   // CHANGED: Narrower (2/3 of height) for better proportions
+    BLOCK_WIDTH_WIDE_PERCENT: 8.5, // CHANGED: Adjusted for 3-digit numbers
     
     // Tower positioning (percentage of viewport) - UPDATED: Lower tower
     TOWER_CENTER_X_PERCENT: 50,     // 50% from left
     TOWER_BASE_Y_PERCENT: 87.2,     // CHANGED: Moved down from 80% to 87.2% (75% of a block lower)
-    COMPLETED_TOWER_LEFT_X_PERCENT: 15,
-    COMPLETED_TOWER_RIGHT_X_PERCENT: 85,
-    COMPLETED_TOWER_SPACING_PERCENT: 12, // CHANGED: More spacing for square blocks
+    COMPLETED_TOWER_LEFT_X_PERCENT: 10,  // CHANGED: Further from edge
+    COMPLETED_TOWER_RIGHT_X_PERCENT: 90, // CHANGED: Further from edge
+    COMPLETED_TOWER_SPACING_PERCENT: 8,  // CHANGED: Closer spacing for narrower blocks
     
     // Block positioning on ground - UPDATED: Random placement in grass area
     GROUND_Y_MIN_PERCENT: 89,       // CHANGED: Top of grass area for random placement
     GROUND_Y_MAX_PERCENT: 92,       // CHANGED: Bottom range in grass area (top 40% of grass)
     GROUND_SPREAD_PERCENT: 70,      // CHANGED: Wider spread to avoid tower area
-    GROUND_EXCLUSION_ZONE_PERCENT: 20, // NEW: Area around tower to avoid (±10% from center)
+    GROUND_EXCLUSION_ZONE_PERCENT: 15, // CHANGED: Smaller exclusion zone for narrower blocks
+    
+    // Teddy size multiplier
+    TEDDY_SIZE_MULTIPLIER: 2.0,      // NEW: 100% larger (double size)
     
     // Drag and drop (percentage of viewport diagonal)
     DRAG_TOLERANCE_PERCENT: 3,       // 3% of viewport diagonal for drop zones
