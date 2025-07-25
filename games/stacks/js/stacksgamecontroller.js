@@ -325,8 +325,27 @@ class StacksGameController {
         const baseXPercent = isLeftSide ? 
             STACKS_CONFIG.COMPLETED_TOWER_LEFT_X_PERCENT : 
             STACKS_CONFIG.COMPLETED_TOWER_RIGHT_X_PERCENT;
-        const towerOffset = Math.floor((this.currentQuestion - 1) / 2) * STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
-        const targetXPercent = isLeftSide ? baseXPercent + towerOffset : baseXPercent - towerOffset;
+        
+        // FIXED: Calculate spacing to avoid overlapping towers
+        const pairIndex = Math.floor((this.currentQuestion - 1) / 2); // Which pair (0, 1, 2, ...)
+        const towerOffset = pairIndex * STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
+        
+        let targetXPercent;
+        if (isLeftSide) {
+            // Left side towers move further left for each pair
+            targetXPercent = baseXPercent + towerOffset;
+        } else {
+            // Right side towers move further right for each pair
+            targetXPercent = baseXPercent - towerOffset;
+        }
+        
+        console.log('Moving tower', this.currentQuestion, 'to side:', {
+            isLeftSide,
+            baseXPercent,
+            pairIndex,
+            towerOffset,
+            targetXPercent
+        });
         
         // Animate tower to new position
         this.renderer.animateCompletedTower(towerBlocks, teddy, targetXPercent, () => {
