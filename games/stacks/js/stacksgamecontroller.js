@@ -134,8 +134,10 @@ class StacksGameController {
         
         this.container.appendChild(this.svg);
         
-        // Initialize renderer
+        // Initialize renderer AFTER SVG is in DOM
         this.renderer = new StacksRenderer(this.svg, this);
+        
+        console.log('SVG created and renderer initialized:', this.svg, this.renderer);
     }
     
     updateSVGDimensions() {
@@ -187,6 +189,8 @@ class StacksGameController {
         this.gameActive = true;
         this.questionMoves = 0;
         
+        console.log('Starting new question:', this.currentQuestion);
+        
         // Clear SVG
         if (this.renderer) {
             this.renderer.clearTower();
@@ -197,6 +201,8 @@ class StacksGameController {
         const levelConfig = STACKS_CONFIG.LEVELS[this.currentLevel];
         const numbers = levelConfig.generateNumbers(blockCount);
         
+        console.log('Generated numbers:', numbers, 'for level:', this.currentLevel, 'question:', this.currentQuestion);
+        
         if (!numbers) {
             console.error('Failed to generate numbers for level', this.currentLevel, 'question', this.currentQuestion);
             return;
@@ -204,6 +210,8 @@ class StacksGameController {
         
         // Create blocks with random colors
         const blocks = this.createGameBlocks(numbers, levelConfig.useWideBlocks);
+        
+        console.log('Created blocks:', blocks);
         
         // Create containers
         const containers = [];
@@ -219,6 +227,8 @@ class StacksGameController {
             STACKS_CONFIG.TOWER_BASE_Y,
             levelConfig.useWideBlocks
         );
+        
+        console.log('Tower rendered');
         
         this.updateGameInfo();
         
