@@ -11,6 +11,33 @@ class StacksRenderer {
         
         this.setupEventListeners();
         this.updateSVGDimensions();
+        this.startGravityCheck();
+    }
+    
+    startGravityCheck() {
+        // Check for floating blocks every 2 seconds and apply gravity
+        this.gravityInterval = setInterval(() => {
+            this.checkAndApplyGravity();
+        }, 2000);
+    }
+    
+    checkAndApplyGravity() {
+        // Only check blocks that are not in containers and not being dragged
+        const groundBlocks = this.svg.querySelectorAll('.block:not(.completed-tower)');
+        const groundLevel = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
+        
+        groundBlocks.forEach(block => {
+            // Skip if block is in a container or being dragged
+            if (block._container || block === this.draggedElement) return;
+            
+            const currentYPercent = pxToVh(block._centerY);
+            
+            // If block is floating above ground level, apply gravity
+            if (currentYPercent < groundLevel - 1) { // 1% tolerance
+                console.log('Found floating block:', block._number, 'at', currentYPercent + '%, applying gravity');
+                this.applyGravity(block, block._centerX, groundLevel);
+            }
+        });
     }
     
     updateSVGDimensions() {
@@ -38,6 +65,14 @@ class StacksRenderer {
         document.addEventListener('touchend', (e) => this.handlePointerEnd(e), { passive: false });
         
         console.log('Event listeners set up on SVG');
+    }
+    
+    destroy() {
+        // Clean up gravity check interval
+        if (this.gravityInterval) {
+            clearInterval(this.gravityInterval);
+            this.gravityInterval = null;
+        }
     }
     
     handleResize() {
@@ -574,9 +609,54 @@ class StacksRenderer {
             return false;
         }
         
-        // Return to ground if not dropped in valid location
-        this.returnBlockToGround(this.draggedElement);
-        return false;
+        // FIXED: Free placement on grass - place block where user dropped it but apply gravity
+        console.log('Free placement on grass at:', x, y);
+        this.placeBlockOnGrass(this.draggedElement, x, y);
+        return true; // Consider this a successful drop
+    }
+    
+    placeBlockOnGrass(block, x, y) {
+        console.log('Placing block on grass at:', x, y);
+        
+        // Clear any container association
+        block._container = null;
+        
+        // Convert to percentages for storage
+        const xPercent = pxToVw(x);
+        const yPercent = pxToVh(y);
+        
+        // Check if block is above ground - if so, apply gravity
+        const groundLevel = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
+        
+        if (yPercent < groundLevel) {
+            // Block is in the air - apply gravity to bring it down to ground level
+            console.log('Block is in air at', yPercent + '%, applying gravity to', groundLevel + '%');
+            this.applyGravity(block, x, groundLevel);
+        } else {
+            // Block is already at ground level - place directly
+            this.updateBlockPosition(block, x, vhToPx(groundLevel));
+            block._xPercent = xPercent;
+            block._yPercent = groundLevel;
+        }
+    }
+    
+    applyGravity(block, targetX, targetYPercent) {
+        const targetY = vhToPx(targetYPercent);
+        const fallDuration = 600; // Slower fall for realism
+        
+        console.log('Applying gravity: falling from', block._centerY, 'to', targetY);
+        
+        // Animate the block falling to the ground
+        block.style.transition = `all ${fallDuration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`; // Smooth fall
+        this.updateBlockPosition(block, targetX, targetY);
+        
+        // Update stored coordinates after animation
+        setTimeout(() => {
+            block.style.transition = '';
+            block._xPercent = pxToVw(targetX);
+            block._yPercent = targetYPercent;
+            console.log('Block settled at:', targetX, targetY);
+        }, fallDuration);
     }
     
     swapBlocks(block1, block2) {
