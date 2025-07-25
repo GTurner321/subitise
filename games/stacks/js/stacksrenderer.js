@@ -10,174 +10,142 @@ class StacksRenderer {
         console.log('StacksRenderer constructor called with SVG:', svg);
         
         this.setupEventListeners();
+        this.updateSVGDimensions();
+    }
+    
+    updateSVGDimensions() {
+        // Set up SVG to use pixel coordinates directly (1:1 mapping)
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        
+        this.svg.setAttribute('width', width);
+        this.svg.setAttribute('height', height);
+        this.svg.removeAttribute('viewBox'); // Remove viewBox for 1:1 pixel mapping
+        
+        console.log('SVG dimensions updated:', width, 'x', height);
     }
     
     setupEventListeners() {
-        // Global mouse/touch events for drag move and end
-        document.addEventListener('mousemove', (e) => this.onDragMove(e));
-        document.addEventListener('mouseup', (e) => this.onDragEnd(e));
+        // Use unified event handling for both mouse and touch
+        this.svg.addEventListener('mousedown', (e) => this.handlePointerStart(e));
+        this.svg.addEventListener('touchstart', (e) => this.handlePointerStart(e), { passive: false });
         
-        // Touch events for mobile
-        document.addEventListener('touchmove', (e) => this.onDragMove(e));
-        document.addEventListener('touchend', (e) => this.onDragEnd(e));
+        // Global move and end events
+        document.addEventListener('mousemove', (e) => this.handlePointerMove(e));
+        document.addEventListener('touchmove', (e) => this.handlePointerMove(e), { passive: false });
         
-        // Prevent default touch behaviors on SVG
-        this.svg.addEventListener('touchstart', (e) => e.preventDefault());
-        this.svg.addEventListener('touchmove', (e) => e.preventDefault());
+        document.addEventListener('mouseup', (e) => this.handlePointerEnd(e));
+        document.addEventListener('touchend', (e) => this.handlePointerEnd(e), { passive: false });
         
-        // Add global click listener to debug what's happening
-        document.addEventListener('click', (e) => {
-            console.log('Global click detected at:', e.clientX, e.clientY);
-            console.log('Target element:', e.target);
-            console.log('Elements at point:', document.elementsFromPoint(e.clientX, e.clientY));
-        });
-        
-        // Also add listener directly to SVG - use getBoundingClientRect for real positions
-        this.svg.addEventListener('click', (e) => {
-            console.log('SVG click detected at:', e.clientX, e.clientY);
-            console.log('SVG target:', e.target);
-            
-            // Use actual screen coordinates - no conversion needed
-            const clickX = e.clientX;
-            const clickY = e.clientY;
-            
-            console.log('Screen click coordinates:', clickX, clickY);
-            
-            // Check what elements are at the screen coordinates using actual rendered positions
-            const svgElements = this.svg.querySelectorAll('.block');
-            console.log('All blocks in SVG:', svgElements.length);
-            svgElements.forEach((block, index) => {
-                // Get the actual rendered position on screen
-                const blockRect = block.getBoundingClientRect();
-                
-                console.log(`Block ${block.getAttribute('data-number')} SCREEN bounds:`, {
-                    left: blockRect.left,
-                    top: blockRect.top,
-                    right: blockRect.right,
-                    bottom: blockRect.bottom,
-                    width: blockRect.width,
-                    height: blockRect.height
-                });
-                
-                // Check if click is within the actual rendered bounds
-                if (clickX >= blockRect.left && clickX <= blockRect.right && 
-                    clickY >= blockRect.top && clickY <= blockRect.bottom) {
-                    console.log(`✅ SCREEN CLICK IS INSIDE BLOCK ${block.getAttribute('data-number')}!`);
-                    // Manually trigger the block's click handler
-                    console.log('Manually triggering block click...');
-                    block.dispatchEvent(new MouseEvent('mousedown', {
-                        bubbles: true,
-                        cancelable: true,
-                        clientX: e.clientX,
-                        clientY: e.clientY
-                    }));
-                }
-            });
-        });
-        
-        console.log('Event listeners set up on SVG:', this.svg);
+        console.log('Event listeners set up on SVG');
     }
     
-    createBlock(number, x, y, color, isWide = false) {
-        const blockWidth = isWide ? STACKS_CONFIG.BLOCK_WIDTH_WIDE : STACKS_CONFIG.BLOCK_WIDTH;
-        const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
+    handleResize() {
+        this.updateSVGDimensions();
+    }
+    
+    getEventPoint(e) {
+        // Always return pixel coordinates relative to the page
+        let clientX, clientY;
         
-        console.log(`Creating block ${number}: ${blockWidth}px × ${blockHeight}px at (${x}, ${y})`);
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        
+        // Since we're using 1:1 pixel mapping, we can use client coordinates directly
+        const rect = this.svg.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        
+        return { x, y };
+    }
+    
+    createBlock(number, xPercent, yPercent, color, isWide = false) {
+        // Convert percentage coordinates to pixels
+        const x = vwToPx(xPercent);
+        const y = vhToPx(yPercent);
+        const dimensions = getBlockDimensions(isWide);
+        
+        console.log(`Creating block ${number}: ${dimensions.width}px × ${dimensions.height}px at (${x}, ${y})`);
         
         // Create group for the block
         const blockGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         blockGroup.setAttribute('class', 'block');
         blockGroup.setAttribute('data-number', number);
         blockGroup.style.cursor = 'grab';
-        blockGroup.style.pointerEvents = 'all'; // Ensure it can receive events
         
         // Block rectangle
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.setAttribute('x', x - blockWidth/2);
-        rect.setAttribute('y', y - blockHeight/2);
-        rect.setAttribute('width', blockWidth);
-        rect.setAttribute('height', blockHeight);
+        rect.setAttribute('x', x - dimensions.width/2);
+        rect.setAttribute('y', y - dimensions.height/2);
+        rect.setAttribute('width', dimensions.width);
+        rect.setAttribute('height', dimensions.height);
         rect.setAttribute('fill', color);
         rect.setAttribute('stroke', '#333');
         rect.setAttribute('stroke-width', '3');
         rect.setAttribute('rx', '8');
         rect.setAttribute('ry', '8');
-        rect.style.pointerEvents = 'all'; // Make rect clickable too
         
         // Block shadow (behind)
         const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        shadow.setAttribute('x', x - blockWidth/2 + 3);
-        shadow.setAttribute('y', y - blockHeight/2 + 3);
-        shadow.setAttribute('width', blockWidth);
-        shadow.setAttribute('height', blockHeight);
+        shadow.setAttribute('x', x - dimensions.width/2 + 3);
+        shadow.setAttribute('y', y - dimensions.height/2 + 3);
+        shadow.setAttribute('width', dimensions.width);
+        shadow.setAttribute('height', dimensions.height);
         shadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
         shadow.setAttribute('rx', '8');
         shadow.setAttribute('ry', '8');
-        shadow.style.pointerEvents = 'none'; // Let events pass through to group
         
         // Number text
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
-        text.setAttribute('y', y + 6); // Slightly offset for better centering
+        text.setAttribute('y', y + 6);
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('font-size', Math.min(blockHeight * 0.4, blockWidth * 0.3));
+        text.setAttribute('font-size', Math.min(dimensions.height * 0.4, dimensions.width * 0.3));
         text.setAttribute('font-weight', 'bold');
         text.setAttribute('fill', '#000');
-        text.style.pointerEvents = 'none'; // Let events pass through to group
         text.textContent = number;
         
-        // Add elements in correct order (shadow first)
+        // Add elements in correct order
         blockGroup.appendChild(shadow);
         blockGroup.appendChild(rect);
         blockGroup.appendChild(text);
         
-        // Store references
+        // Store references and positions
         blockGroup._rect = rect;
         blockGroup._text = text;
         blockGroup._shadow = shadow;
-        blockGroup._originalX = x;
-        blockGroup._originalY = y;
+        blockGroup._centerX = x;
+        blockGroup._centerY = y;
+        blockGroup._xPercent = xPercent;
+        blockGroup._yPercent = yPercent;
         blockGroup._number = number;
         blockGroup._isWide = isWide;
+        blockGroup._dimensions = dimensions;
         
-        // Add event listeners to both the group AND the rect for maximum compatibility
-        const handleMouseDown = (e) => {
-            console.log('Mouse down on block', number, 'at client coords:', e.clientX, e.clientY);
-            e.preventDefault();
-            e.stopPropagation();
-            this.onDragStart(e);
-        };
-        
-        const handleClick = (e) => {
-            console.log('BLOCK clicked:', number, 'at client coords:', e.clientX, e.clientY);
-            e.preventDefault();
-            e.stopPropagation();
-        };
-        
-        // Add listeners to both group and rect
-        [blockGroup, rect].forEach(element => {
-            element.addEventListener('mousedown', handleMouseDown, { passive: false });
-            element.addEventListener('click', handleClick, { passive: false });
-            element.addEventListener('pointerdown', handleMouseDown, { passive: false });
-        });
-        
-        console.log('Block created with number:', number, 'at position:', x, y, 'size:', blockWidth, 'x', blockHeight);
+        console.log('Block created:', number, 'at pixel position:', x, y, 'from percent:', xPercent, yPercent);
         
         return blockGroup;
     }
     
-    createContainer(x, y, index, isWide = false) {
-        const blockWidth = isWide ? STACKS_CONFIG.BLOCK_WIDTH_WIDE : STACKS_CONFIG.BLOCK_WIDTH;
-        const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
+    createContainer(xPercent, yPercent, index, isWide = false) {
+        // Convert percentage coordinates to pixels
+        const x = vwToPx(xPercent);
+        const y = vhToPx(yPercent);
+        const dimensions = getBlockDimensions(isWide);
         
         const container = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         container.setAttribute('class', 'container');
         container.setAttribute('data-index', index);
-        container.setAttribute('x', x - blockWidth/2);
-        container.setAttribute('y', y - blockHeight/2);
-        container.setAttribute('width', blockWidth);
-        container.setAttribute('height', blockHeight);
+        container.setAttribute('x', x - dimensions.width/2);
+        container.setAttribute('y', y - dimensions.height/2);
+        container.setAttribute('width', dimensions.width);
+        container.setAttribute('height', dimensions.height);
         container.setAttribute('fill', STACKS_CONFIG.CONTAINER_COLOR);
         container.setAttribute('stroke', STACKS_CONFIG.CONTAINER_STROKE);
         container.setAttribute('stroke-width', STACKS_CONFIG.CONTAINER_STROKE_WIDTH);
@@ -186,21 +154,26 @@ class StacksRenderer {
         container.setAttribute('ry', '8');
         container.setAttribute('opacity', '0.8');
         
+        // Store position data
         container._centerX = x;
         container._centerY = y;
+        container._xPercent = xPercent;
+        container._yPercent = yPercent;
         container._index = index;
         container._isWide = isWide;
         
         return container;
     }
     
-    createTeddy(x, y, imageUrl) {
+    createTeddy(xPercent, yPercent, imageUrl) {
+        const x = vwToPx(xPercent);
+        const y = vhToPx(yPercent);
+        const size = vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT) * 0.8;
+        
         const teddy = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         teddy.setAttribute('class', 'teddy');
-        
-        const size = STACKS_CONFIG.BLOCK_HEIGHT * 0.8;
         teddy.setAttribute('x', x - size/2);
-        teddy.setAttribute('y', y - size - STACKS_CONFIG.BLOCK_HEIGHT/2); // Above the top block
+        teddy.setAttribute('y', y - size - vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT)/2);
         teddy.setAttribute('width', size);
         teddy.setAttribute('height', size);
         teddy.setAttribute('href', imageUrl);
@@ -215,89 +188,85 @@ class StacksRenderer {
         return teddy;
     }
     
-    renderTower(blocks, containers, centerX, baseY, isWide = false) {
-        const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
+    renderTower(blocks, containers, centerXPercent, baseYPercent, isWide = false) {
+        // Use percentage-based positioning throughout
+        const centerX = centerXPercent || STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+        const baseY = baseYPercent || STACKS_CONFIG.TOWER_BASE_Y_PERCENT;
+        const blockHeightPercent = STACKS_CONFIG.BLOCK_HEIGHT_PERCENT;
         
-        console.log('renderTower called with blocks:', blocks, 'containers:', containers);
+        console.log('renderTower called with', blocks.length, 'blocks');
         
         // Clear previous tower elements
         this.clearTower();
         
-        // Render containers (bottom to top)
+        // Render containers (bottom to top) using percentage positioning
         containers.forEach((container, index) => {
-            const y = baseY - (index * blockHeight);
-            const containerElement = this.createContainer(centerX, y, index, isWide);
+            const yPercent = baseY - (index * blockHeightPercent);
+            const containerElement = this.createContainer(centerX, yPercent, index, isWide);
             this.svg.appendChild(containerElement);
-            console.log('Added container', index, 'at', centerX, y);
+            console.log('Added container', index, 'at', centerX + '%,', yPercent + '%');
         });
         
-        // Render blocks on ground initially
+        // Render blocks on ground initially using percentage positioning
         blocks.forEach((block, index) => {
-            const groundX = this.calculateGroundPosition(index, blocks.length);
+            const groundXPercent = this.calculateGroundPositionPercent(index, blocks.length);
             const blockElement = this.createBlock(
                 block.number, 
-                groundX, 
-                STACKS_CONFIG.GROUND_Y, 
+                groundXPercent, 
+                STACKS_CONFIG.GROUND_Y_PERCENT, 
                 block.color,
                 isWide
             );
             this.svg.appendChild(blockElement);
-            console.log('Added block', block.number, 'at', groundX, STACKS_CONFIG.GROUND_Y);
+            console.log('Added block', block.number, 'at', groundXPercent + '%,', STACKS_CONFIG.GROUND_Y_PERCENT + '%');
         });
         
         console.log('Tower render complete. SVG children:', this.svg.children.length);
     }
     
-    calculateGroundPosition(index, totalBlocks) {
-        const spread = STACKS_CONFIG.GROUND_SPREAD;
-        const centerX = STACKS_CONFIG.TOWER_CENTER_X;
+    calculateGroundPositionPercent(index, totalBlocks) {
+        const spreadPercent = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
+        const centerPercent = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
         
         if (totalBlocks === 1) {
-            return centerX;
+            return centerPercent;
         }
         
-        // Use original spread-out positioning
-        const startX = centerX - spread/2;
-        const spacing = spread / (totalBlocks - 1);
-        const result = startX + (index * spacing);
-        console.log('Block positioning:', {index, totalBlocks, centerX, spread, startX, spacing, result});
-        return result;
+        const startPercent = centerPercent - spreadPercent/2;
+        const spacing = spreadPercent / (totalBlocks - 1);
+        return startPercent + (index * spacing);
     }
     
     clearTower() {
-        // Remove all blocks, containers, and teddies
         const elements = this.svg.querySelectorAll('.block, .container, .teddy');
         elements.forEach(element => element.remove());
     }
     
-    onDragStart(e) {
+    handlePointerStart(e) {
         e.preventDefault();
         e.stopPropagation();
         
-        console.log('onDragStart called, event:', e.type);
+        console.log('Pointer start event:', e.type);
         
-        // Get the block element directly from the event target
-        let blockElement = e.currentTarget;
-        if (!blockElement || !blockElement.classList.contains('block')) {
-            console.log('No valid block element found');
+        const point = this.getEventPoint(e);
+        console.log('Pointer start at pixel coordinates:', point);
+        
+        // Find the block element that was clicked
+        const blockElement = this.findBlockAtPoint(point);
+        
+        if (!blockElement) {
+            console.log('No block found at point');
             return;
         }
         
         console.log('Starting drag on block:', blockElement.getAttribute('data-number'));
         
-        const point = this.getEventPoint(e);
-        console.log('Drag start at point:', point);
-        
         this.isDragging = true;
         this.draggedElement = blockElement;
         
-        // Get current position from the text element (most reliable)
-        const textElement = blockElement._text;
-        const elementX = parseFloat(textElement.getAttribute('x'));
-        const elementY = parseFloat(textElement.getAttribute('y')) - 6; // Adjust for text offset
-        
-        this.dragOffset.x = elementX - point.x;
-        this.dragOffset.y = elementY - point.y;
+        // Calculate drag offset using pixel coordinates
+        this.dragOffset.x = blockElement._centerX - point.x;
+        this.dragOffset.y = blockElement._centerY - point.y;
         
         console.log('Drag offset:', this.dragOffset);
         
@@ -309,19 +278,17 @@ class StacksRenderer {
         // Bring to front
         this.svg.appendChild(blockElement);
         
-        // Audio feedback for drag start
+        // Audio feedback
         this.gameController.playDragStartSound();
-        
-        console.log('Drag started successfully');
     }
     
-    onDragMove(e) {
+    handlePointerMove(e) {
         if (!this.isDragging || !this.draggedElement) return;
         
         e.preventDefault();
         const point = this.getEventPoint(e);
         
-        // Calculate new position
+        // Calculate new position using pixel coordinates
         const newX = point.x + this.dragOffset.x;
         const newY = point.y + this.dragOffset.y;
         
@@ -332,13 +299,13 @@ class StacksRenderer {
         this.handleContainerHover(newX, newY);
     }
     
-    onDragEnd(e) {
+    handlePointerEnd(e) {
         if (!this.isDragging || !this.draggedElement) return;
         
         e.preventDefault();
         const point = this.getEventPoint(e);
         
-        console.log('Drag end at:', point);
+        console.log('Drag end at pixel coordinates:', point);
         
         // Calculate drop position
         const dropX = point.x + this.dragOffset.x;
@@ -370,14 +337,44 @@ class StacksRenderer {
         console.log('Drag ended, dropped:', dropped);
     }
     
+    findBlockAtPoint(point) {
+        // Check all blocks to see which one contains this point
+        const blocks = this.svg.querySelectorAll('.block');
+        
+        for (let block of blocks) {
+            const rect = block._rect;
+            const x = parseFloat(rect.getAttribute('x'));
+            const y = parseFloat(rect.getAttribute('y'));
+            const width = parseFloat(rect.getAttribute('width'));
+            const height = parseFloat(rect.getAttribute('height'));
+            
+            console.log(`Checking block ${block.getAttribute('data-number')}:`, {
+                bounds: { x, y, width, height },
+                point: point,
+                inside: point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height
+            });
+            
+            // Check if point is inside the block's rectangle
+            if (point.x >= x && point.x <= x + width && 
+                point.y >= y && point.y <= y + height) {
+                console.log('✅ Found block at point:', block.getAttribute('data-number'));
+                return block;
+            }
+        }
+        
+        console.log('❌ No block found at point');
+        return null;
+    }
+    
     handleContainerHover(x, y) {
         const containers = this.svg.querySelectorAll('.container');
         let foundHover = false;
+        const tolerance = getDragTolerancePx();
         
         containers.forEach(container => {
             const distance = this.getDistanceToContainer(container, x, y);
             
-            if (distance < STACKS_CONFIG.DRAG_TOLERANCE) {
+            if (distance < tolerance) {
                 if (this.hoveredContainer !== container) {
                     this.clearContainerHover();
                     this.hoveredContainer = container;
@@ -419,17 +416,19 @@ class StacksRenderer {
     }
     
     showSwapPreview(block) {
+        const hoverTransform = vwToPx(STACKS_CONFIG.HOVER_TRANSFORM_PERCENT);
+        
         const rect = block._rect;
         const currentX = parseFloat(rect.getAttribute('x'));
-        rect.setAttribute('x', currentX + STACKS_CONFIG.HOVER_TRANSFORM);
+        rect.setAttribute('x', currentX + hoverTransform);
         
         const shadow = block._shadow;
         const shadowX = parseFloat(shadow.getAttribute('x'));
-        shadow.setAttribute('x', shadowX + STACKS_CONFIG.HOVER_TRANSFORM);
+        shadow.setAttribute('x', shadowX + hoverTransform);
         
         const text = block._text;
         const textX = parseFloat(text.getAttribute('x'));
-        text.setAttribute('x', textX + STACKS_CONFIG.HOVER_TRANSFORM);
+        text.setAttribute('x', textX + hoverTransform);
     }
     
     resetBlockTransform(block) {
@@ -437,21 +436,22 @@ class StacksRenderer {
         const shadow = block._shadow;
         const text = block._text;
         
-        const blockWidth = block._isWide ? STACKS_CONFIG.BLOCK_WIDTH_WIDE : STACKS_CONFIG.BLOCK_WIDTH;
-        const centerX = block._originalX || parseFloat(text.getAttribute('x'));
+        const centerX = block._centerX;
+        const dimensions = block._dimensions;
         
-        rect.setAttribute('x', centerX - blockWidth/2);
-        shadow.setAttribute('x', centerX - blockWidth/2 + 3);
+        rect.setAttribute('x', centerX - dimensions.width/2);
+        shadow.setAttribute('x', centerX - dimensions.width/2 + 3);
         text.setAttribute('x', centerX);
     }
     
     handleDrop(x, y) {
         const containers = this.svg.querySelectorAll('.container');
+        const tolerance = getDragTolerancePx();
         
         for (let container of containers) {
             const distance = this.getDistanceToContainer(container, x, y);
             
-            if (distance < STACKS_CONFIG.DRAG_TOLERANCE) {
+            if (distance < tolerance) {
                 const existingBlock = this.getBlockInContainer(container);
                 
                 if (existingBlock) {
@@ -494,8 +494,10 @@ class StacksRenderer {
         const centerY = container._centerY;
         
         this.updateBlockPosition(block, centerX, centerY);
-        block._originalX = centerX;
-        block._originalY = centerY;
+        block._centerX = centerX;
+        block._centerY = centerY;
+        block._xPercent = container._xPercent;
+        block._yPercent = container._yPercent;
         block._container = container;
     }
     
@@ -506,62 +508,38 @@ class StacksRenderer {
             !this.getContainerForBlock(b) && b !== block
         );
         
-        const groundX = this.calculateGroundPosition(groundBlocks.length, groundBlocks.length + 1);
-        this.updateBlockPosition(block, groundX, STACKS_CONFIG.GROUND_Y);
+        const groundXPercent = this.calculateGroundPositionPercent(groundBlocks.length, groundBlocks.length + 1);
+        const groundX = vwToPx(groundXPercent);
+        const groundY = vhToPx(STACKS_CONFIG.GROUND_Y_PERCENT);
         
-        block._originalX = groundX;
-        block._originalY = STACKS_CONFIG.GROUND_Y;
+        this.updateBlockPosition(block, groundX, groundY);
+        
+        block._centerX = groundX;
+        block._centerY = groundY;
+        block._xPercent = groundXPercent;
+        block._yPercent = STACKS_CONFIG.GROUND_Y_PERCENT;
         block._container = null;
     }
     
     updateBlockPosition(block, centerX, centerY) {
-        const blockWidth = block._isWide ? STACKS_CONFIG.BLOCK_WIDTH_WIDE : STACKS_CONFIG.BLOCK_WIDTH;
-        const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
+        const dimensions = block._dimensions;
         
         const rect = block._rect;
         const shadow = block._shadow;
         const text = block._text;
         
-        rect.setAttribute('x', centerX - blockWidth/2);
-        rect.setAttribute('y', centerY - blockHeight/2);
+        rect.setAttribute('x', centerX - dimensions.width/2);
+        rect.setAttribute('y', centerY - dimensions.height/2);
         
-        shadow.setAttribute('x', centerX - blockWidth/2 + 3);
-        shadow.setAttribute('y', centerY - blockHeight/2 + 3);
+        shadow.setAttribute('x', centerX - dimensions.width/2 + 3);
+        shadow.setAttribute('y', centerY - dimensions.height/2 + 3);
         
         text.setAttribute('x', centerX);
         text.setAttribute('y', centerY + 6);
-    }
-    
-    getElementAtPoint(x, y) {
-        const elements = document.elementsFromPoint(x, y);
-        for (let element of elements) {
-            // Check if element is part of a block group
-            if (element.classList && element.classList.contains('block')) {
-                return element;
-            }
-            // Check if element is a child of a block group (rect, text, etc.)
-            const blockParent = element.closest('.block');
-            if (blockParent) {
-                return blockParent;
-            }
-        }
-        return null;
-    }
-    
-    getEventPoint(e) {
-        const rect = this.svg.getBoundingClientRect();
         
-        if (e.touches && e.touches.length > 0) {
-            return {
-                x: e.touches[0].clientX - rect.left,
-                y: e.touches[0].clientY - rect.top
-            };
-        } else {
-            return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
-        }
+        // Update stored position
+        block._centerX = centerX;
+        block._centerY = centerY;
     }
     
     getDistanceToContainer(container, x, y) {
@@ -584,23 +562,22 @@ class StacksRenderer {
         return block._container || null;
     }
     
-    animateCompletedTower(towerBlocks, teddy, targetX, callback) {
+    animateCompletedTower(towerBlocks, teddy, targetXPercent, callback) {
         const duration = STACKS_CONFIG.BLOCK_ANIMATION_DURATION;
+        const targetX = vwToPx(targetXPercent);
+        const currentCenterX = vwToPx(STACKS_CONFIG.TOWER_CENTER_X_PERCENT);
+        const deltaX = targetX - currentCenterX;
         
         // Animate all blocks and teddy to new position
         const elements = [...towerBlocks];
         if (teddy) elements.push(teddy);
         
         elements.forEach(element => {
-            const currentX = element._originalX || parseFloat(element.getAttribute('x'));
-            const deltaX = targetX - STACKS_CONFIG.TOWER_CENTER_X;
-            const newX = currentX + deltaX;
-            
             element.style.transition = `all ${duration}ms ease-in-out`;
             
             if (element.classList.contains('block')) {
-                this.updateBlockPosition(element, newX, element._originalY);
-                element._originalX = newX;
+                const newX = element._centerX + deltaX;
+                this.updateBlockPosition(element, newX, element._centerY);
             } else if (element.classList.contains('teddy')) {
                 const currentTeddyX = parseFloat(element.getAttribute('x'));
                 element.setAttribute('x', currentTeddyX + deltaX);
@@ -621,8 +598,12 @@ class StacksRenderer {
         return Array.from(blocks).filter(block => block._container);
     }
     
-    getTeddyElement() {
-        return this.svg.querySelector('.teddy');
+    getAllBlocks() {
+        return Array.from(this.svg.querySelectorAll('.block'));
+    }
+    
+    getAllContainers() {
+        return Array.from(this.svg.querySelectorAll('.container'));
     }
     
     isValidTowerOrder() {
@@ -648,14 +629,6 @@ class StacksRenderer {
         }
         
         return true;
-    }
-    
-    getAllBlocks() {
-        return Array.from(this.svg.querySelectorAll('.block'));
-    }
-    
-    getAllContainers() {
-        return Array.from(this.svg.querySelectorAll('.container'));
     }
     
     highlightCorrectOrder() {
