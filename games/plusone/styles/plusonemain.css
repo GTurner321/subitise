@@ -265,10 +265,12 @@ body {
     transition: all 0.1s ease;
 }
 
-/* FIXED: Prevent active/focus states from causing layout shifts */
-.number-btn:focus {
-    outline: none;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2), 0 0 0 3px rgba(0, 123, 255, 0.3);
+/* FIXED: Completely remove focus outlines and states */
+.number-btn:focus,
+.number-btn:active {
+    outline: none !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+    border: none !important;
 }
 
 .number-btn.correct {
@@ -404,9 +406,11 @@ body {
     transform: translateY(-2px);
 }
 
-.play-again-btn:focus {
-    outline: none;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2), 0 0 0 3px rgba(76, 175, 80, 0.3);
+.play-again-btn:focus,
+.play-again-btn:active {
+    outline: none !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+    border: none !important;
 }
 
 .hidden {
