@@ -24,6 +24,21 @@ class StacksRenderer {
         // Prevent default touch behaviors on SVG
         this.svg.addEventListener('touchstart', (e) => e.preventDefault());
         this.svg.addEventListener('touchmove', (e) => e.preventDefault());
+        
+        // Add global click listener to debug what's happening
+        document.addEventListener('click', (e) => {
+            console.log('Global click detected at:', e.clientX, e.clientY);
+            console.log('Target element:', e.target);
+            console.log('Elements at point:', document.elementsFromPoint(e.clientX, e.clientY));
+        });
+        
+        // Also add listener directly to SVG
+        this.svg.addEventListener('click', (e) => {
+            console.log('SVG click detected at:', e.clientX, e.clientY);
+            console.log('SVG target:', e.target);
+        });
+        
+        console.log('Event listeners set up on SVG:', this.svg);
     }
     
     createBlock(number, x, y, color, isWide = false) {
@@ -105,6 +120,13 @@ class StacksRenderer {
         blockGroup._number = number;
         blockGroup._isWide = isWide;
         
+        // TEST: Try adding event listeners to the rect as well
+        rect.style.pointerEvents = 'all';
+        rect.addEventListener('click', (e) => {
+            console.log('RECT clicked for block', number);
+            e.stopPropagation();
+        });
+        
         // Add event listeners directly to the block - use a more comprehensive approach
         const handleMouseDown = (e) => {
             console.log('Mouse down on block', number, 'at client coords:', e.clientX, e.clientY);
@@ -121,7 +143,7 @@ class StacksRenderer {
         };
         
         const handleClick = (e) => {
-            console.log('Block clicked:', number, 'at client coords:', e.clientX, e.clientY);
+            console.log('BLOCK GROUP clicked:', number, 'at client coords:', e.clientX, e.clientY);
             e.preventDefault();
             e.stopPropagation();
         };
@@ -142,6 +164,7 @@ class StacksRenderer {
         }, { passive: false });
         
         console.log('Block created with number:', number, 'at position:', x, y, 'size:', blockWidth, 'x', blockHeight);
+        console.log('Block group element:', blockGroup);
         
         return blockGroup;
     }
