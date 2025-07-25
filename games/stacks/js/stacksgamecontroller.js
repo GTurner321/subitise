@@ -150,15 +150,6 @@ class StacksGameController {
             this.svg.setAttribute('width', gameWidth);
             this.svg.setAttribute('height', gameHeight);
             
-            // Update config dimensions
-            STACKS_CONFIG.SVG_WIDTH = gameWidth;
-            STACKS_CONFIG.SVG_HEIGHT = gameHeight;
-            STACKS_CONFIG.TOWER_CENTER_X = gameWidth * 0.5;
-            STACKS_CONFIG.TOWER_BASE_Y = gameHeight - 100;
-            STACKS_CONFIG.GROUND_Y = gameHeight - 90;
-            STACKS_CONFIG.COMPLETED_TOWER_LEFT_X = gameWidth * 0.15;
-            STACKS_CONFIG.COMPLETED_TOWER_RIGHT_X = gameWidth * 0.85;
-            
             console.log('SVG updated to 1:1 pixel coordinates:', gameWidth, 'x', gameHeight);
         }
     }
@@ -166,6 +157,9 @@ class StacksGameController {
     handleResize() {
         if (this.svg) {
             this.updateSVGDimensions();
+        }
+        if (this.renderer) {
+            this.renderer.handleResize();
         }
     }
     
@@ -222,12 +216,12 @@ class StacksGameController {
             containers.push({ index: i });
         }
         
-        // Render the tower
+        // Render the tower using PERCENTAGE-based coordinates
         this.renderer.renderTower(
             blocks, 
             containers, 
-            STACKS_CONFIG.TOWER_CENTER_X, 
-            STACKS_CONFIG.TOWER_BASE_Y,
+            STACKS_CONFIG.TOWER_CENTER_X_PERCENT,  // Use percentage value
+            STACKS_CONFIG.TOWER_BASE_Y_PERCENT,    // Use percentage value
             levelConfig.useWideBlocks
         );
         
@@ -293,9 +287,13 @@ class StacksGameController {
             .sort((a, b) => parseFloat(a.getAttribute('y')) - parseFloat(b.getAttribute('y')))[0]; // Top container
         
         if (topContainer) {
+            // Convert pixel position back to percentage for teddy creation
+            const teddyXPercent = pxToVw(topContainer._centerX);
+            const teddyYPercent = pxToVh(topContainer._centerY);
+            
             const teddy = this.renderer.createTeddy(
-                topContainer._centerX, 
-                topContainer._centerY, 
+                teddyXPercent, 
+                teddyYPercent, 
                 teddyImageUrl
             );
             this.svg.appendChild(teddy);
@@ -322,18 +320,20 @@ class StacksGameController {
         const towerBlocks = this.renderer.getTowerBlocks();
         const teddy = this.currentTeddy;
         
-        // Determine target position (alternate left/right)
+        // Determine target position (alternate left/right) using percentages
         const isLeftSide = this.currentQuestion % 2 === 1;
-        const baseX = isLeftSide ? STACKS_CONFIG.COMPLETED_TOWER_LEFT_X : STACKS_CONFIG.COMPLETED_TOWER_RIGHT_X;
-        const towerOffset = Math.floor((this.currentQuestion - 1) / 2) * STACKS_CONFIG.COMPLETED_TOWER_SPACING;
-        const targetX = isLeftSide ? baseX + towerOffset : baseX - towerOffset;
+        const baseXPercent = isLeftSide ? 
+            STACKS_CONFIG.COMPLETED_TOWER_LEFT_X_PERCENT : 
+            STACKS_CONFIG.COMPLETED_TOWER_RIGHT_X_PERCENT;
+        const towerOffset = Math.floor((this.currentQuestion - 1) / 2) * STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
+        const targetXPercent = isLeftSide ? baseXPercent + towerOffset : baseXPercent - towerOffset;
         
         // Animate tower to new position
-        this.renderer.animateCompletedTower(towerBlocks, teddy, targetX, () => {
+        this.renderer.animateCompletedTower(towerBlocks, teddy, targetXPercent, () => {
             this.completedTowers.push({
                 blocks: towerBlocks,
                 teddy: teddy,
-                position: targetX
+                position: targetXPercent
             });
             
             // Check level progression
