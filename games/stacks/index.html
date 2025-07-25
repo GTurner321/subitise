@@ -7,47 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="styles/stacksmain.css">
-    <style>
-        /* Beautiful subtle background gradient matching balloon game */
-        html, body {
-            background: linear-gradient(135deg, 
-                rgba(135, 206, 235, 0.2) 0%,
-                rgba(152, 251, 152, 0.15) 50%,
-                rgba(255, 228, 181, 0.2) 100%
-            ) !important;
-            background-attachment: fixed !important;
-            min-height: 100vh !important;
-        }
-        
-        .game-area {
-            background: transparent !important;
-        }
-        
-        /* Soft grass band at bottom */
-        .grass-band {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 80px !important;
-            background: linear-gradient(to top, 
-                rgba(144, 238, 144, 0.6),
-                rgba(152, 251, 152, 0.7),
-                rgba(173, 255, 47, 0.5)
-            ) !important;
-            z-index: 1 !important;
-            border: none !important;
-            box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3) !important;
-        }
-    </style>
 </head>
 <body>
-    <!-- Back to games navigation -->
-    <a href="../../index.html" class="back-button">
-        <i class="fas fa-arrow-left"></i>
-        Back to Games
-    </a>
-    
     <!-- Main game area -->
     <div class="game-area">
         <!-- Rainbow background -->
@@ -56,13 +17,6 @@
         <!-- Stacks game container -->
         <div class="stacks-container" id="stacksContainer">
             <svg id="stacksSVG" class="stacks-svg"></svg>
-        </div>
-        
-        <!-- Game info display -->
-        <div class="game-info-container">
-            <div class="level-info" id="levelInfo">Level 1</div>
-            <div class="question-info" id="questionInfo">Tower 1 of 8</div>
-            <div class="moves-info" id="movesInfo">Moves: 0</div>
         </div>
     </div>
     
