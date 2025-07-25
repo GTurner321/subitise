@@ -487,104 +487,19 @@ class PlusOneGameController {
         console.log(`AFTER generatePlusOneQuestion: this.currentNumber = ${this.currentNumber}, this.currentAnswer = ${this.currentAnswer}`);
     }
 
-    createButtons() {
-        this.numberButtons.innerHTML = '';
+createButtons() {
+    this.numberButtons.innerHTML = '';
+    
+    if (this.shouldUsePictureFormat()) {  // ← FIXED: Use helper method instead of hardcoded condition
+        // Levels 1-2 and 5: Use 1-10 buttons like add game
+        this.numberButtons.classList.remove('multiple-choice');
         
-        if (this.currentLevel <= 2) {
-            // Levels 1-2: Use 1-10 buttons like add game
-            this.numberButtons.classList.remove('multiple-choice');
-            
-            for (let i = 1; i <= 10; i++) {
-                const button = document.createElement('button');
-                button.className = 'number-btn';
-                button.dataset.number = i;
-                button.textContent = i;
-                
-                // FIXED: Prevent event propagation to stop page shifting
-                // FIXED: Handle both click and touch events properly
-                button.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (this.buttonsDisabled) return;
-                    this.clearInactivityTimer();
-                    this.startInactivityTimer();
-                    const selectedNumber = parseInt(e.target.dataset.number);
-                    this.handleNumberClick(selectedNumber, e.target);
-                });
-                
-                // FIXED: Handle touch events without preventing click
-                button.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (this.buttonsDisabled) return;
-                    this.clearInactivityTimer();
-                    this.startInactivityTimer();
-                    const selectedNumber = parseInt(e.target.dataset.number);
-                    this.handleNumberClick(selectedNumber, e.target);
-                });
-                
-                // Prevent context menu and long press behaviors
-                button.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                });
-                
-                button.addEventListener('touchstart', (e) => {
-                    e.stopPropagation();
-                    // Don't prevent default on touchstart to allow touch events to work
-                });
-                
-                this.numberButtons.appendChild(button);
-            }
-        } else {
-            // Levels 3+: Use 4 multiple choice options
-            this.numberButtons.classList.add('multiple-choice');
-            this.createMultipleChoiceButtons();
-        }
-    }
-
-    createMultipleChoiceButtons() {
-        // Generate 4 options: correct answer, n-1, random from level set, and n+2/n+3/n+5/n+10
-        const options = new Set();
-        
-        // Add correct answer (n+1)
-        options.add(this.currentAnswer);
-        
-        // Add n-1 (one less than original number)
-        const nMinus1 = Math.max(1, this.currentNumber - 1);
-        options.add(nMinus1);
-        
-        // Add random number from current level set
-        const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
-        let randomFromLevel;
-        let attempts = 0;
-        do {
-            randomFromLevel = levelNumbers[Math.floor(Math.random() * levelNumbers.length)] + 1;
-            attempts++;
-        } while (options.has(randomFromLevel) && attempts < 50);
-        options.add(randomFromLevel);
-        
-        // Add one of: n+2, n+3, n+5, n+10
-        const bonusOptions = [this.currentNumber + 2, this.currentNumber + 3, this.currentNumber + 5, this.currentNumber + 10];
-        let bonusChoice;
-        attempts = 0;
-        do {
-            bonusChoice = bonusOptions[Math.floor(Math.random() * bonusOptions.length)];
-            attempts++;
-        } while (options.has(bonusChoice) && attempts < 20);
-        options.add(bonusChoice);
-        
-        // Convert to array and shuffle
-        this.currentOptions = Array.from(options).slice(0, 4);
-        this.shuffleArray(this.currentOptions);
-        
-        // Create buttons
-        this.currentOptions.forEach((option, index) => {
+        for (let i = 1; i <= 10; i++) {
             const button = document.createElement('button');
             button.className = 'number-btn';
-            button.dataset.number = option;
-            button.textContent = option;
+            button.dataset.number = i;
+            button.textContent = i;
             
-            // FIXED: Prevent event propagation to stop page shifting
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -595,16 +510,96 @@ class PlusOneGameController {
                 this.handleNumberClick(selectedNumber, e.target);
             });
             
-            // FIXED: Prevent default touch behavior
-            button.addEventListener('touchstart', (e) => {
+            button.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                if (this.buttonsDisabled) return;
+                this.clearInactivityTimer();
+                this.startInactivityTimer();
+                const selectedNumber = parseInt(e.target.dataset.number);
+                this.handleNumberClick(selectedNumber, e.target);
+            });
+            
+            button.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+            });
+            
+            button.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                // Don't prevent default on touchstart to allow touch events to work
             });
             
             this.numberButtons.appendChild(button);
-        });
+        }
+    } else {
+        // Levels 3+: Use 4 multiple choice options
+        this.numberButtons.classList.add('multiple-choice');
+        this.createMultipleChoiceButtons();
     }
+}
 
+createMultipleChoiceButtons() {
+    // Generate 4 options: correct answer, n-1, random from level set, and n+2/n+3/n+5/n+10
+    const options = new Set();
+    
+    // Add correct answer (n+1)
+    options.add(this.currentAnswer);
+    
+    // Add n-1 (one less than original number)
+    const nMinus1 = Math.max(1, this.currentNumber - 1);
+    options.add(nMinus1);
+    
+    // Add random number from current level set
+    const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
+    let randomFromLevel;
+    let attempts = 0;
+    do {
+        randomFromLevel = levelNumbers[Math.floor(Math.random() * levelNumbers.length)] + 1;
+        attempts++;
+    } while (options.has(randomFromLevel) && attempts < 50);
+    options.add(randomFromLevel);
+    
+    // Add one of: n+2, n+3, n+5, n+10
+    const bonusOptions = [this.currentNumber + 2, this.currentNumber + 3, this.currentNumber + 5, this.currentNumber + 10];
+    let bonusChoice;
+    attempts = 0;
+    do {
+        bonusChoice = bonusOptions[Math.floor(Math.random() * bonusOptions.length)];
+        attempts++;
+    } while (options.has(bonusChoice) && attempts < 20);
+    options.add(bonusChoice);
+    
+    // Convert to array and shuffle
+    this.currentOptions = Array.from(options).slice(0, 4);
+    this.shuffleArray(this.currentOptions);
+    
+    // Create buttons
+    this.currentOptions.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.className = 'number-btn';
+        button.dataset.number = option;
+        button.textContent = option;
+        
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (this.buttonsDisabled) return;
+            this.clearInactivityTimer();
+            this.startInactivityTimer();
+            const selectedNumber = parseInt(e.target.dataset.number);
+            this.handleNumberClick(selectedNumber, e.target);
+        });
+        
+        // FIXED: Remove preventDefault from touchstart to allow touch interaction
+        button.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            // Don't prevent default - this was breaking touch clicks
+        });
+        
+        this.numberButtons.appendChild(button);
+    });
+}
+    
     shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
