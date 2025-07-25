@@ -551,6 +551,11 @@ class StacksGameController {
         
         window.removeEventListener('resize', this.handleResize);
         
+        // Clean up renderer
+        if (this.renderer) {
+            this.renderer.destroy();
+        }
+        
         if (this.svg) {
             this.svg.innerHTML = '';
         }
