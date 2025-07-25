@@ -151,11 +151,12 @@ class PlusOneIconRenderer {
     renderContent(leftCount, currentLevel) {
         this.clearContent();
         
-        if (currentLevel <= 2) {
-            // Render icons for levels 1-2
+        // FIXED: Level 5 should use icons like levels 1-2 (pictures with empty boxes)
+        if (currentLevel <= 2 || currentLevel === 5) {
+            // Render icons for levels 1-2 and 5 (picture levels)
             this.renderIcons(leftCount);
         } else {
-            // Render numbers for levels 3+
+            // Render numbers for levels 3-4, 6-10 (number levels)
             this.renderNumbers(leftCount);
         }
         
