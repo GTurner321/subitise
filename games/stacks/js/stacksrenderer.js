@@ -139,6 +139,8 @@ class StacksRenderer {
         const y = vhToPx(yPercent);
         const dimensions = getBlockDimensions(isWide);
         
+        console.log(`Creating container ${index}: at ${xPercent}%, ${yPercent}% = (${x}px, ${y}px)`);
+        
         const container = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         container.setAttribute('class', 'container');
         container.setAttribute('data-index', index);
@@ -161,6 +163,8 @@ class StacksRenderer {
         container._yPercent = yPercent;
         container._index = index;
         container._isWide = isWide;
+        
+        console.log(`Container ${index} bounds: x=${x - dimensions.width/2}, y=${y - dimensions.height/2}, w=${dimensions.width}, h=${dimensions.height}`);
         
         return container;
     }
@@ -195,6 +199,7 @@ class StacksRenderer {
         const blockHeightPercent = STACKS_CONFIG.BLOCK_HEIGHT_PERCENT;
         
         console.log('renderTower called with', blocks.length, 'blocks', containers.length, 'containers');
+        console.log('Tower center:', centerX, '% base Y:', baseY, '% block height:', blockHeightPercent, '%');
         
         // Clear previous tower elements
         this.clearTower();
@@ -202,9 +207,9 @@ class StacksRenderer {
         // Render containers (bottom to top) using percentage positioning
         containers.forEach((container, index) => {
             const yPercent = baseY - (index * blockHeightPercent);
+            console.log(`Container ${index}: baseY=${baseY} - (${index} * ${blockHeightPercent}) = ${yPercent}%`);
             const containerElement = this.createContainer(centerX, yPercent, index, isWide);
             this.svg.appendChild(containerElement);
-            console.log('Added container', index, 'at', centerX + '%,', yPercent + '%');
         });
         
         // Render blocks on ground initially using percentage positioning
