@@ -126,13 +126,19 @@ const STACKS_CONFIG = {
     FINAL_RAINBOW_ARCS: 3
 };
 
-// Helper function to generate random ground position avoiding tower area with overlap checking
+// Helper function to generate random ground position with correct perspective layering
 function generateRandomGroundPosition(existingBlocks = []) {
     const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
     const exclusionZone = STACKS_CONFIG.GROUND_EXCLUSION_ZONE_PERCENT;
     const spread = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
     const blockWidth = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
-    const minDistance = blockWidth * 0.75; // 75% of block width minimum distance
+    const minDistance = blockWidth * 0.75; // 75% of block width minimum distance for full overlap
+    
+    // Grass area bounds
+    const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+    const grassBottom = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
+    const grassHeight = grassBottom - grassTop;
+    const grassMidpoint = grassTop + (grassHeight * 0.5); // 50% down grass area
     
     let attempts = 0;
     const maxAttempts = 50;
@@ -144,43 +150,102 @@ function generateRandomGroundPosition(existingBlocks = []) {
             x = (50 - spread/2) + Math.random() * spread;
         } while (Math.abs(x - centerX) < exclusionZone); // Avoid tower area
         
-        // Generate random Y within top 50% of grass area
-        const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
-        const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
-        const y = grassTop + Math.random() * (grassHeight * 0.5); // Top 50% of grass
-        
         // Check for overlap with existing blocks
-        let hasOverlap = false;
+        let overlappingBlock = null;
+        let hasFullOverlap = false;
+        
         for (let block of existingBlocks) {
             const distance = Math.abs(x - block.x);
             if (distance < minDistance) {
-                hasOverlap = true;
-                break;
+                // There's significant overlap (>25%)
+                hasFullOverlap = true;
+                
+                // Find the block that's furthest forward (LOWEST Y percentage - closest to viewer)
+                if (!overlappingBlock || block.y < overlappingBlock.y) {
+                    overlappingBlock = block;
+                }
             }
         }
         
-        if (!hasOverlap) {
-            console.log('Generated ground position after', attempts + 1, 'attempts:', x, y);
-            return { x, y };
+        let y;
+        if (hasFullOverlap && overlappingBlock) {
+            // CORRECTED PERSPECTIVE: Place IN FRONT of (lower than) the overlapping block
+            const overlapBlockPosition = overlappingBlock.y;
+            
+            // New block goes from overlapping block's position to 50% down grass (closer to viewer)
+            const minY = overlapBlockPosition; // Start from overlapping block's position
+            const maxY = Math.min(grassMidpoint, grassBottom); // Go to 50% down grass or bottom
+            
+            if (minY >= maxY) {
+                // Edge case: overlapping block is already at or past 50% down
+                y = maxY;
+            } else {
+                y = minY + Math.random() * (maxY - minY);
+            }
+            
+            console.log('Block overlaps with block at', overlapBlockPosition.toFixed(1) + '%, placing IN FRONT at', y.toFixed(1) + '%');
+        } else {
+            // No significant overlap - place in top area of grass (back layer)
+            const backLayerHeight = grassHeight * 0.3; // Top 30% of grass for non-overlapping blocks
+            y = grassTop + Math.random() * backLayerHeight;
         }
         
-        attempts++;
+        console.log('Generated ground position after', attempts + 1, 'attempts:', x.toFixed(1) + '%,', y.toFixed(1) + '%');
+        return { x, y };
     }
     
     // Fallback if no position found after max attempts
-    console.warn('Could not find non-overlapping position after', maxAttempts, 'attempts, using fallback');
-    const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
-    const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
-    const fallbackX = 20 + Math.random() * 60; // Random position across screen
-    const fallbackY = grassTop + Math.random() * (grassHeight * 0.5);
+    console.warn('Could not find suitable position after', maxAttempts, 'attempts, using fallback');
+    const fallbackX = 20 + Math.random() * 60;
+    const fallbackY = grassTop + Math.random() * (grassHeight * 0.3); // Back layer fallback
     return { x: fallbackX, y: fallbackY };
 }
 
-// Helper function to calculate ground Y position (top 50% of grass)
+// Helper function to calculate ground Y position with corrected perspective
+function getRandomGroundYWithPerspective(existingBlocks = [], targetX = null) {
+    if (!targetX || existingBlocks.length === 0) {
+        // No overlap check needed - use back layer
+        const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+        const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
+        return grassTop + Math.random() * (grassHeight * 0.3); // Top 30% = back layer
+    }
+    
+    // Check for overlap and apply corrected perspective
+    const blockWidth = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
+    const minDistance = blockWidth * 0.75;
+    const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+    const grassBottom = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
+    const grassHeight = grassBottom - grassTop;
+    const grassMidpoint = grassTop + (grassHeight * 0.5);
+    
+    let overlappingBlock = null;
+    for (let block of existingBlocks) {
+        const distance = Math.abs(targetX - block.x);
+        if (distance < minDistance) {
+            // Find the frontmost (lowest Y) overlapping block
+            if (!overlappingBlock || block.y < overlappingBlock.y) {
+                overlappingBlock = block;
+            }
+        }
+    }
+    
+    if (overlappingBlock) {
+        // CORRECTED: Place IN FRONT of (lower than) the overlapping block
+        const minY = overlappingBlock.y;
+        const maxY = Math.min(grassMidpoint, grassBottom);
+        
+        return minY >= maxY ? maxY : minY + Math.random() * (maxY - minY);
+    } else {
+        // Back layer - no overlap
+        return grassTop + Math.random() * (grassHeight * 0.3);
+    }
+}
+
+// Helper function to calculate ground Y position (back layer) - for containers and non-overlapping
 function getRandomGroundY() {
     const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
     const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
-    return grassTop + Math.random() * (grassHeight * 0.5); // Top 50% only
+    return grassTop + Math.random() * (grassHeight * 0.3); // Top 30% = back layer
 }
 function vwToPx(vw) {
     return (vw * window.innerWidth) / 100;
