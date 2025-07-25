@@ -78,7 +78,7 @@ class StacksRenderer {
         blockGroup.setAttribute('data-number', number);
         blockGroup.style.cursor = 'grab';
         
-        // Block rectangle
+        // Block rectangle - UPDATED: Square blocks
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.setAttribute('x', x - dimensions.width/2);
         rect.setAttribute('y', y - dimensions.height/2);
@@ -100,13 +100,13 @@ class StacksRenderer {
         shadow.setAttribute('rx', '8');
         shadow.setAttribute('ry', '8');
         
-        // Number text
+        // Number text - UPDATED: Larger font, better centering
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
-        text.setAttribute('y', y + 6);
+        text.setAttribute('y', y); // CHANGED: Removed +6 offset for better vertical centering
         text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('font-size', Math.min(dimensions.height * 0.4, dimensions.width * 0.3));
+        text.setAttribute('dominant-baseline', 'central'); // CHANGED: Better vertical centering
+        text.setAttribute('font-size', Math.min(dimensions.height * 0.5, dimensions.width * 0.4)); // CHANGED: Larger font
         text.setAttribute('font-weight', 'bold');
         text.setAttribute('fill', '#000');
         text.textContent = number;
@@ -201,29 +201,31 @@ class StacksRenderer {
         console.log('renderTower called with', blocks.length, 'blocks', containers.length, 'containers');
         console.log('Tower center:', centerX, '% base Y:', baseY, '% block height:', blockHeightPercent, '%');
         
-        // Clear previous tower elements
-        this.clearTower();
+        // Clear only NEW tower elements (not completed towers)
+        this.clearNewTowerElements();
         
         // Render containers (bottom to top) using percentage positioning
         containers.forEach((container, index) => {
             const yPercent = baseY - (index * blockHeightPercent);
             console.log(`Container ${index}: baseY=${baseY} - (${index} * ${blockHeightPercent}) = ${yPercent}%`);
             const containerElement = this.createContainer(centerX, yPercent, index, isWide);
+            containerElement.classList.add('new-tower-element'); // Mark as new
             this.svg.appendChild(containerElement);
         });
         
-        // Render blocks on ground initially using percentage positioning
+        // Render blocks randomly on ground avoiding tower area
         blocks.forEach((block, index) => {
-            const groundXPercent = this.calculateGroundPositionPercent(index, blocks.length);
+            const groundPos = generateRandomGroundPosition();
             const blockElement = this.createBlock(
                 block.number, 
-                groundXPercent, 
-                STACKS_CONFIG.GROUND_Y_PERCENT, 
+                groundPos.x, 
+                groundPos.y, 
                 block.color,
                 block.isWide || isWide
             );
+            blockElement.classList.add('new-tower-element'); // Mark as new
             this.svg.appendChild(blockElement);
-            console.log('Added block', block.number, 'at', groundXPercent + '%,', STACKS_CONFIG.GROUND_Y_PERCENT + '%');
+            console.log('Added block', block.number, 'at random position:', groundPos.x + '%,', groundPos.y + '%');
         });
         
         console.log('Tower render complete. SVG children:', this.svg.children.length);
@@ -231,20 +233,14 @@ class StacksRenderer {
         console.log('Blocks in DOM:', this.svg.querySelectorAll('.block').length);
     }
     
-    calculateGroundPositionPercent(index, totalBlocks) {
-        const spreadPercent = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
-        const centerPercent = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
-        
-        if (totalBlocks === 1) {
-            return centerPercent;
-        }
-        
-        const startPercent = centerPercent - spreadPercent/2;
-        const spacing = spreadPercent / (totalBlocks - 1);
-        return startPercent + (index * spacing);
+    clearNewTowerElements() {
+        // Only clear elements that are part of the current game, not completed towers
+        const elements = this.svg.querySelectorAll('.new-tower-element');
+        elements.forEach(element => element.remove());
     }
     
     clearTower() {
+        // Clear everything (used for game reset)
         const elements = this.svg.querySelectorAll('.block, .container, .teddy');
         elements.forEach(element => element.remove());
     }
