@@ -145,9 +145,10 @@ class StacksGameController {
             const gameWidth = window.innerWidth;
             const gameHeight = window.innerHeight;
             
-            this.svg.setAttribute('viewBox', `0 0 ${gameWidth} ${gameHeight}`);
-            this.svg.setAttribute('width', '100%');
-            this.svg.setAttribute('height', '100%');
+            // IMPORTANT: Remove viewBox to use 1:1 pixel coordinate system
+            this.svg.removeAttribute('viewBox');
+            this.svg.setAttribute('width', gameWidth);
+            this.svg.setAttribute('height', gameHeight);
             
             // Update config dimensions
             STACKS_CONFIG.SVG_WIDTH = gameWidth;
@@ -157,6 +158,8 @@ class StacksGameController {
             STACKS_CONFIG.GROUND_Y = gameHeight - 90;
             STACKS_CONFIG.COMPLETED_TOWER_LEFT_X = gameWidth * 0.15;
             STACKS_CONFIG.COMPLETED_TOWER_RIGHT_X = gameWidth * 0.85;
+            
+            console.log('SVG updated to 1:1 pixel coordinates:', gameWidth, 'x', gameHeight);
         }
     }
     
