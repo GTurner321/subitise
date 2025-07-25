@@ -570,14 +570,19 @@ class StacksRenderer {
     }
     
     handleDrop(x, y) {
-        const containers = this.svg.querySelectorAll('.container');
+        const containers = this.svg.querySelectorAll('.container.new-tower-element'); // Only check current tower containers
         const tolerance = getDragTolerancePx();
+        
+        console.log('Handling drop at:', x, y, 'with tolerance:', tolerance);
+        console.log('Checking', containers.length, 'containers');
         
         // Check if dropping on a container
         for (let container of containers) {
             const distance = this.getDistanceToContainer(container, x, y);
+            console.log('Container', container.getAttribute('data-index'), 'distance:', distance);
             
             if (distance < tolerance) {
+                console.log('✅ Dropping in container', container.getAttribute('data-index'));
                 const existingBlock = this.getBlockInContainer(container);
                 const draggedFromContainer = this.getContainerForBlock(this.draggedElement);
                 
@@ -603,20 +608,20 @@ class StacksRenderer {
         
         // Check if dropping on another block (not in container) - should return to ground
         const targetBlock = this.findBlockAtPoint({x, y});
-        if (targetBlock && targetBlock !== this.draggedElement) {
-            console.log('Dropped on another block, returning to ground');
+        if (targetBlock && targetBlock !== this.draggedElement && !this.getContainerForBlock(targetBlock)) {
+            console.log('Dropped on another ground block, returning to ground');
             this.returnBlockToGround(this.draggedElement);
             return false;
         }
         
-        // FIXED: Free placement on grass - place block where user dropped it but apply gravity
-        console.log('Free placement on grass at:', x, y);
+        // Free placement on grass - place block where user dropped it but apply gravity
+        console.log('🌱 Free placement on grass at:', x, y);
         this.placeBlockOnGrass(this.draggedElement, x, y);
-        return true; // Consider this a successful drop
+        return true;
     }
     
     placeBlockOnGrass(block, x, y) {
-        console.log('Placing block on grass at:', x, y);
+        console.log('Placing block', block._number, 'on grass at:', x, y);
         
         // Clear any container association
         block._container = null;
@@ -638,6 +643,11 @@ class StacksRenderer {
             block._xPercent = xPercent;
             block._yPercent = groundLevel;
         }
+        
+        // Ensure block remains interactive
+        block.style.cursor = 'grab';
+        block.style.pointerEvents = 'all';
+        console.log('Block', block._number, 'placed on grass and remains interactive');
     }
     
     applyGravity(block, targetX, targetYPercent) {
@@ -837,7 +847,14 @@ class StacksRenderer {
     getDistanceToContainer(container, x, y) {
         const centerX = container._centerX;
         const centerY = container._centerY;
-        return Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+        const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+        
+        // Debug container bounds
+        const rect = container.getBoundingClientRect();
+        console.log(`Container ${container.getAttribute('data-index')} - Center: (${centerX}, ${centerY}), Drop point: (${x}, ${y}), Distance: ${distance.toFixed(1)}`);
+        console.log(`Container bounds:`, rect);
+        
+        return distance;
     }
     
     getBlockInContainer(container) {
