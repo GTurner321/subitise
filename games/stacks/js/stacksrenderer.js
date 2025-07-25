@@ -174,15 +174,55 @@ class StacksRenderer {
         const y = vhToPx(yPercent);
         const size = vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT) * 0.8;
         
+        console.log('Creating teddy at:', x, y, 'with image:', imageUrl);
+        
         const teddy = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         teddy.setAttribute('class', 'teddy');
         teddy.setAttribute('x', x - size/2);
         teddy.setAttribute('y', y - size - vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT)/2);
         teddy.setAttribute('width', size);
         teddy.setAttribute('height', size);
-        teddy.setAttribute('href', imageUrl);
+        
+        // Try different image path formats
+        const possiblePaths = [
+            imageUrl,                                    // Original path
+            imageUrl.replace('subitise/', ''),          // Remove subitise/ prefix
+            `../${imageUrl}`,                           // Try parent directory
+            `../../${imageUrl}`,                        // Try grandparent directory
+            imageUrl.replace('subitise/', 'games/subitise/') // Try games prefix
+        ];
+        
+        let pathIndex = 0;
+        
+        const tryNextPath = () => {
+            if (pathIndex < possiblePaths.length) {
+                const currentPath = possiblePaths[pathIndex];
+                console.log(`Trying teddy image path ${pathIndex + 1}/${possiblePaths.length}:`, currentPath);
+                teddy.setAttribute('href', currentPath);
+                pathIndex++;
+            } else {
+                console.error('All teddy image paths failed for:', imageUrl);
+                // Create a fallback colored circle instead
+                this.createFallbackTeddy(teddy, x, y, size);
+            }
+        };
+        
+        // Handle image load error
+        teddy.addEventListener('error', () => {
+            console.warn('Teddy image failed to load:', teddy.getAttribute('href'));
+            tryNextPath();
+        });
+        
+        // Handle image load success
+        teddy.addEventListener('load', () => {
+            console.log('Teddy image loaded successfully:', teddy.getAttribute('href'));
+        });
+        
         teddy.style.opacity = '0';
         teddy.style.transition = 'opacity 0.5s ease-in';
+        
+        // Start with first path
+        tryNextPath();
         
         // Fade in the teddy
         setTimeout(() => {
@@ -190,6 +230,53 @@ class StacksRenderer {
         }, 100);
         
         return teddy;
+    }
+    
+    createFallbackTeddy(teddyElement, x, y, size) {
+        console.log('Creating fallback teddy at:', x, y);
+        
+        // Remove the image element and create a colored circle instead
+        const parent = teddyElement.parentNode;
+        if (parent) {
+            parent.removeChild(teddyElement);
+            
+            // Create a simple colored circle as fallback
+            const fallbackTeddy = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            fallbackTeddy.setAttribute('class', 'teddy fallback-teddy');
+            fallbackTeddy.setAttribute('cx', x);
+            fallbackTeddy.setAttribute('cy', y - size/2);
+            fallbackTeddy.setAttribute('r', size/3);
+            fallbackTeddy.setAttribute('fill', '#8B4513'); // Brown color
+            fallbackTeddy.setAttribute('stroke', '#654321');
+            fallbackTeddy.setAttribute('stroke-width', '2');
+            fallbackTeddy.style.opacity = '1';
+            
+            // Add a simple face
+            const eye1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            eye1.setAttribute('cx', x - size/8);
+            eye1.setAttribute('cy', y - size/2 - size/12);
+            eye1.setAttribute('r', size/20);
+            eye1.setAttribute('fill', '#000');
+            
+            const eye2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            eye2.setAttribute('cx', x + size/8);
+            eye2.setAttribute('cy', y - size/2 - size/12);
+            eye2.setAttribute('r', size/20);
+            eye2.setAttribute('fill', '#000');
+            
+            const mouth = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            mouth.setAttribute('d', `M ${x - size/12} ${y - size/2 + size/12} Q ${x} ${y - size/2 + size/8} ${x + size/12} ${y - size/2 + size/12}`);
+            mouth.setAttribute('stroke', '#000');
+            mouth.setAttribute('stroke-width', '1');
+            mouth.setAttribute('fill', 'none');
+            
+            parent.appendChild(fallbackTeddy);
+            parent.appendChild(eye1);
+            parent.appendChild(eye2);
+            parent.appendChild(mouth);
+            
+            return fallbackTeddy;
+        }
     }
     
     renderTower(blocks, containers, centerXPercent = null, baseYPercent = null, isWide = false) {
