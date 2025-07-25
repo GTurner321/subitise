@@ -482,6 +482,7 @@ class PlusOneGameController {
                 button.textContent = i;
                 
                 // FIXED: Prevent event propagation to stop page shifting
+                // FIXED: Handle both click and touch events properly
                 button.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -492,10 +493,25 @@ class PlusOneGameController {
                     this.handleNumberClick(selectedNumber, e.target);
                 });
                 
-                // FIXED: Prevent default touch behavior
-                button.addEventListener('touchstart', (e) => {
+                // FIXED: Handle touch events without preventing click
+                button.addEventListener('touchend', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    if (this.buttonsDisabled) return;
+                    this.clearInactivityTimer();
+                    this.startInactivityTimer();
+                    const selectedNumber = parseInt(e.target.dataset.number);
+                    this.handleNumberClick(selectedNumber, e.target);
+                });
+                
+                // Prevent context menu and long press behaviors
+                button.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                });
+                
+                button.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                    // Don't prevent default on touchstart to allow touch events to work
                 });
                 
                 this.numberButtons.appendChild(button);
