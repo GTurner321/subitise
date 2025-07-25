@@ -41,24 +41,51 @@ class StacksRenderer {
             const rect = this.svg.getBoundingClientRect();
             const svgX = e.clientX - rect.left;
             const svgY = e.clientY - rect.top;
-            console.log('SVG coordinates:', svgX, svgY);
             
-            // Check what elements are at the SVG coordinates
+            // Apply the viewBox transformation
+            const viewBox = this.svg.viewBox.baseVal;
+            const svgWidth = rect.width;
+            const svgHeight = rect.height;
+            
+            // Scale from screen coordinates to SVG coordinate system
+            const actualSvgX = (svgX / svgWidth) * viewBox.width + viewBox.x;
+            const actualSvgY = (svgY / svgHeight) * viewBox.height + viewBox.y;
+            
+            console.log('SVG coordinates:', svgX, svgY);
+            console.log('Actual SVG coordinates (with viewBox):', actualSvgX, actualSvgY);
+            console.log('ViewBox:', viewBox);
+            console.log('SVG rect:', rect);
+            
+            // Check what elements are at the SVG coordinates using the corrected coordinates
             const svgElements = this.svg.querySelectorAll('.block');
             console.log('All blocks in SVG:', svgElements.length);
             svgElements.forEach((block, index) => {
-                const blockRect = block.getBoundingClientRect();
-                const blockSvgRect = {
-                    left: blockRect.left - rect.left,
-                    top: blockRect.top - rect.top,
-                    right: blockRect.right - rect.left,
-                    bottom: blockRect.bottom - rect.top
-                };
-                console.log(`Block ${block.getAttribute('data-number')} bounds:`, blockSvgRect);
+                const textElement = block._text;
+                const blockX = parseFloat(textElement.getAttribute('x'));
+                const blockY = parseFloat(textElement.getAttribute('y'));
+                const blockWidth = block._isWide ? STACKS_CONFIG.BLOCK_WIDTH_WIDE : STACKS_CONFIG.BLOCK_WIDTH;
+                const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
                 
-                if (svgX >= blockSvgRect.left && svgX <= blockSvgRect.right && 
-                    svgY >= blockSvgRect.top && svgY <= blockSvgRect.bottom) {
+                const blockBounds = {
+                    left: blockX - blockWidth/2,
+                    top: blockY - blockHeight/2,
+                    right: blockX + blockWidth/2,
+                    bottom: blockY + blockHeight/2
+                };
+                
+                console.log(`Block ${block.getAttribute('data-number')} SVG bounds:`, blockBounds);
+                console.log(`Block ${block.getAttribute('data-number')} center:`, blockX, blockY);
+                
+                if (actualSvgX >= blockBounds.left && actualSvgX <= blockBounds.right && 
+                    actualSvgY >= blockBounds.top && actualSvgY <= blockBounds.bottom) {
                     console.log(`Click is inside block ${block.getAttribute('data-number')}!`);
+                    // Manually trigger the block's click handler
+                    block.dispatchEvent(new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: e.clientX,
+                        clientY: e.clientY
+                    }));
                 }
             });
         });
@@ -285,9 +312,29 @@ class StacksRenderer {
     
     calculateGroundPosition(index, totalBlocks) {
         const spread = STACKS_CONFIG.GROUND_SPREAD;
-        const startX = STACKS_CONFIG.TOWER_CENTER_X - spread/2;
+        const centerX = STACKS_CONFIG.TOWER_CENTER_X;
+        
+        console.log('calculateGroundPosition:', {index, totalBlocks, spread, centerX});
+        
+        if (totalBlocks === 1) {
+            return centerX;
+        }
+        
+        // For 2 blocks, place them closer to center
+        if (totalBlocks === 2) {
+            const spacing = Math.min(spread * 0.3, 200); // Much closer spacing
+            const startX = centerX - spacing/2;
+            const result = startX + (index * spacing);
+            console.log('Two blocks positioning:', {startX, spacing, result});
+            return result;
+        }
+        
+        // For more blocks, use wider spacing
+        const startX = centerX - spread/2;
         const spacing = spread / (totalBlocks - 1);
-        return startX + (index * spacing);
+        const result = startX + (index * spacing);
+        console.log('Multi-block positioning:', {startX, spacing, result});
+        return result;
     }
     
     clearTower() {
