@@ -30,11 +30,28 @@ class StacksRenderer {
         const blockWidth = isWide ? STACKS_CONFIG.BLOCK_WIDTH_WIDE : STACKS_CONFIG.BLOCK_WIDTH;
         const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
         
+        console.log(`Creating block ${number}: ${blockWidth}px × ${blockHeight}px at (${x}, ${y})`);
+        
         // Create group for the block
         const blockGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         blockGroup.setAttribute('class', 'block');
         blockGroup.setAttribute('data-number', number);
         blockGroup.style.cursor = 'grab';
+        blockGroup.style.pointerEvents = 'all'; // Ensure it can receive events
+        
+        // Add invisible larger clickable area for easier interaction
+        const clickArea = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        const padding = 20; // Extra clickable area
+        clickArea.setAttribute('x', x - blockWidth/2 - padding);
+        clickArea.setAttribute('y', y - blockHeight/2 - padding);
+        clickArea.setAttribute('width', blockWidth + padding * 2);
+        clickArea.setAttribute('height', blockHeight + padding * 2);
+        clickArea.setAttribute('fill', 'transparent');
+        clickArea.setAttribute('stroke', 'red'); // Temporary - to see the click area
+        clickArea.setAttribute('stroke-width', '1');
+        clickArea.setAttribute('stroke-dasharray', '2,2');
+        clickArea.setAttribute('opacity', '0.3'); // Make it visible for debugging
+        clickArea.style.pointerEvents = 'none'; // Let events pass through to group
         
         // Block rectangle
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -47,6 +64,7 @@ class StacksRenderer {
         rect.setAttribute('stroke-width', '3');
         rect.setAttribute('rx', '8');
         rect.setAttribute('ry', '8');
+        rect.style.pointerEvents = 'none'; // Let events pass through to group
         
         // Block shadow (behind)
         const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -57,6 +75,7 @@ class StacksRenderer {
         shadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
         shadow.setAttribute('rx', '8');
         shadow.setAttribute('ry', '8');
+        shadow.style.pointerEvents = 'none'; // Let events pass through to group
         
         // Number text
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -67,41 +86,62 @@ class StacksRenderer {
         text.setAttribute('font-size', Math.min(blockHeight * 0.4, blockWidth * 0.3));
         text.setAttribute('font-weight', 'bold');
         text.setAttribute('fill', '#000');
-        text.setAttribute('pointer-events', 'none'); // Allow clicks to pass through
+        text.style.pointerEvents = 'none'; // Let events pass through to group
         text.textContent = number;
         
-        // Add elements in correct order (shadow first)
+        // Add elements in correct order (shadow first, clickArea last for debugging)
         blockGroup.appendChild(shadow);
         blockGroup.appendChild(rect);
         blockGroup.appendChild(text);
+        blockGroup.appendChild(clickArea); // Add clickArea last so it's visible
         
         // Store references
         blockGroup._rect = rect;
         blockGroup._text = text;
         blockGroup._shadow = shadow;
+        blockGroup._clickArea = clickArea;
         blockGroup._originalX = x;
         blockGroup._originalY = y;
         blockGroup._number = number;
         blockGroup._isWide = isWide;
         
-        // Add event listeners directly to the block
-        blockGroup.addEventListener('mousedown', (e) => {
-            console.log('Mouse down on block', number);
-            this.onDragStart(e);
-        });
-        
-        blockGroup.addEventListener('touchstart', (e) => {
-            console.log('Touch start on block', number);
+        // Add event listeners directly to the block - use a more comprehensive approach
+        const handleMouseDown = (e) => {
+            console.log('Mouse down on block', number, 'at client coords:', e.clientX, e.clientY);
             e.preventDefault();
+            e.stopPropagation();
             this.onDragStart(e);
-        });
+        };
         
-        // Add simple click test
-        blockGroup.addEventListener('click', (e) => {
-            console.log('Block clicked:', number);
-        });
+        const handleTouchStart = (e) => {
+            console.log('Touch start on block', number, 'touches:', e.touches.length);
+            e.preventDefault();
+            e.stopPropagation();
+            this.onDragStart(e);
+        };
         
-        console.log('Block created with number:', number, 'at position:', x, y);
+        const handleClick = (e) => {
+            console.log('Block clicked:', number, 'at client coords:', e.clientX, e.clientY);
+            e.preventDefault();
+            e.stopPropagation();
+        };
+        
+        // Add multiple event types to ensure we catch interactions
+        blockGroup.addEventListener('mousedown', handleMouseDown, { passive: false });
+        blockGroup.addEventListener('touchstart', handleTouchStart, { passive: false });
+        blockGroup.addEventListener('click', handleClick, { passive: false });
+        
+        // Also try pointerdown for better cross-platform support
+        blockGroup.addEventListener('pointerdown', (e) => {
+            console.log('Pointer down on block', number, 'pointer type:', e.pointerType);
+            if (e.pointerType === 'mouse') {
+                handleMouseDown(e);
+            } else if (e.pointerType === 'touch') {
+                handleTouchStart(e);
+            }
+        }, { passive: false });
+        
+        console.log('Block created with number:', number, 'at position:', x, y, 'size:', blockWidth, 'x', blockHeight);
         
         return blockGroup;
     }
