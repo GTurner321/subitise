@@ -38,11 +38,50 @@ class StacksGameController {
     async initializeGame() {
         window.addEventListener('resize', this.handleResize);
         await this.initializeAudio();
+        this.removeGameInfoElements(); // Remove any existing info elements
         this.createMuteButton();
-        this.createBackButton(); // Add back button
+        this.createBackButton();
         this.setupEventListeners();
         this.createSVG();
         this.startNewQuestion();
+    }
+    
+    removeGameInfoElements() {
+        // Remove all game info elements that might exist in the DOM
+        const elementsToRemove = [
+            'levelInfo',
+            'questionInfo',
+            'movesInfo',
+            'game-info-container',
+            'gameInfoContainer'
+        ];
+        
+        elementsToRemove.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                console.log('Removing game info element:', id);
+                element.remove();
+            }
+        });
+        
+        // Also remove by class name in case they use classes
+        const classesToRemove = [
+            'game-info-container',
+            'level-info',
+            'question-info',
+            'moves-info'
+        ];
+        
+        classesToRemove.forEach(className => {
+            const elements = document.getElementsByClassName(className);
+            // Convert to array since getElementsByClassName returns a live collection
+            Array.from(elements).forEach(element => {
+                console.log('Removing game info element by class:', className);
+                element.remove();
+            });
+        });
+        
+        console.log('Game info elements cleanup complete');
     }
     
     async initializeAudio() {
