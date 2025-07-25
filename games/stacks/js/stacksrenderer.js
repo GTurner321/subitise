@@ -453,48 +453,6 @@ class StacksRenderer {
         });
         
         console.log('Tower render complete with height variance and proper spacing');
-    } = ${yPercent}%`);
-            const containerElement = this.createContainer(centerX, yPercent, index, isWide);
-            containerElement.classList.add('new-tower-element');
-            this.svg.appendChild(containerElement);
-        });
-        
-        // Collect existing ground block positions for perspective layering
-        const existingGroundPositions = [];
-        const existingGroundBlocks = this.svg.querySelectorAll('.block:not(.completed-tower)');
-        existingGroundBlocks.forEach(block => {
-            if (!block._container) {
-                existingGroundPositions.push({
-                    x: block._xPercent || pxToVw(block._centerX),
-                    y: block._yPercent || pxToVh(block._centerY)
-                });
-            }
-        });
-        
-        // Render blocks randomly on ground with perspective layering
-        blocks.forEach((block, index) => {
-            const groundPos = generateRandomGroundPosition(existingGroundPositions);
-            
-            // Add this position to the list for the next block's perspective calculation
-            existingGroundPositions.push({
-                x: groundPos.x,
-                y: groundPos.y
-            });
-            
-            const blockElement = this.createBlock(
-                block.number, 
-                groundPos.x, 
-                groundPos.y, 
-                block.color,
-                block.isWide || isWide
-            );
-            blockElement.classList.add('new-tower-element');
-            this.svg.appendChild(blockElement);
-            
-            console.log('Added block', block.number, 'with perspective layering at:', groundPos.x + '%,', groundPos.y + '%');
-        });
-        
-        console.log('Tower render complete with perspective layering');
     }
     
     clearNewTowerElements() {
