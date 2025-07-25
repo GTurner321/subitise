@@ -96,16 +96,16 @@ const STACKS_CONFIG = {
     CONTAINER_STROKE: '#BDBDBD',
     CONTAINER_STROKE_WIDTH: 2,
     
-    // Teddy images (unchanged)
+    // Teddy images with multiple path options
     TEDDY_IMAGES: [
-        'subitise/assets/trumps/blackbear.png',
-        'subitise/assets/trumps/dinosaur.png', 
-        'subitise/assets/trumps/flabberjabber.png',
-        'subitise/assets/raisin/guineapig1.png',
-        'subitise/assets/bear.png',
-        'subitise/assets/trumps/vowels.png',
-        'subitise/assets/trumps/gemsbear.png',
-        'subitise/assets/trumps/knightbear.png'
+        'assets/trumps/blackbear.png',              // Try without subitise/ prefix
+        'assets/trumps/dinosaur.png', 
+        'assets/trumps/flabberjabber.png',
+        'assets/raisin/guineapig1.png',
+        'assets/bear.png',
+        'assets/trumps/vowels.png',
+        'assets/trumps/gemsbear.png',
+        'assets/trumps/knightbear.png'
     ],
     
     // Audio settings (unchanged)
