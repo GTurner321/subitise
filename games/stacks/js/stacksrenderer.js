@@ -7,6 +7,8 @@ class StacksRenderer {
         this.isDragging = false;
         this.hoveredContainer = null;
         
+        console.log('StacksRenderer constructor called with SVG:', svg);
+        
         this.setupEventListeners();
     }
     
@@ -94,6 +96,13 @@ class StacksRenderer {
             this.onDragStart(e);
         });
         
+        // Add simple click test
+        blockGroup.addEventListener('click', (e) => {
+            console.log('Block clicked:', number);
+        });
+        
+        console.log('Block created with number:', number, 'at position:', x, y);
+        
         return blockGroup;
     }
     
@@ -148,6 +157,8 @@ class StacksRenderer {
     renderTower(blocks, containers, centerX, baseY, isWide = false) {
         const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
         
+        console.log('renderTower called with blocks:', blocks, 'containers:', containers);
+        
         // Clear previous tower elements
         this.clearTower();
         
@@ -156,6 +167,7 @@ class StacksRenderer {
             const y = baseY - (index * blockHeight);
             const containerElement = this.createContainer(centerX, y, index, isWide);
             this.svg.appendChild(containerElement);
+            console.log('Added container', index, 'at', centerX, y);
         });
         
         // Render blocks on ground initially
@@ -169,7 +181,10 @@ class StacksRenderer {
                 isWide
             );
             this.svg.appendChild(blockElement);
+            console.log('Added block', block.number, 'at', groundX, STACKS_CONFIG.GROUND_Y);
         });
+        
+        console.log('Tower render complete. SVG children:', this.svg.children.length);
     }
     
     calculateGroundPosition(index, totalBlocks) {
