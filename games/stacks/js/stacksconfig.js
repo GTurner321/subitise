@@ -1,37 +1,43 @@
 // Stacks Game Configuration - Percentage-based positioning
 const STACKS_CONFIG = {
-    // Game dimensions (percentage of viewport) - UPDATED: Narrower blocks to match height
+    // Game dimensions (percentage of viewport) - UPDATED: Square blocks
     BLOCK_HEIGHT_PERCENT: 9.6,  // 9.6% of viewport height
-    BLOCK_WIDTH_PERCENT: 6.4,   // CHANGED: Narrower (2/3 of height) for better proportions
-    BLOCK_WIDTH_WIDE_PERCENT: 8.5, // CHANGED: Adjusted for 3-digit numbers
+    BLOCK_WIDTH_PERCENT: 9.6,   // CHANGED: Square blocks (same as height)
+    BLOCK_WIDTH_WIDE_PERCENT: 11.5, // CHANGED: Slightly larger for 3-digit numbers
     
-    // Tower positioning (percentage of viewport) - UPDATED: Lower tower
+    // Tower positioning (percentage of viewport)
     TOWER_CENTER_X_PERCENT: 50,     // 50% from left
-    TOWER_BASE_Y_PERCENT: 87.2,     // CHANGED: Moved down from 80% to 87.2% (75% of a block lower)
-    COMPLETED_TOWER_LEFT_X_PERCENT: 10,  // CHANGED: Further from edge
-    COMPLETED_TOWER_RIGHT_X_PERCENT: 90, // CHANGED: Further from edge
-    COMPLETED_TOWER_SPACING_PERCENT: 8,  // CHANGED: Closer spacing for narrower blocks
+    TOWER_BASE_Y_PERCENT: 87.2,     // Moved down (75% of a block lower)
+    COMPLETED_TOWER_LEFT_X_PERCENT: 10,
+    COMPLETED_TOWER_RIGHT_X_PERCENT: 90,
+    COMPLETED_TOWER_SPACING_PERCENT: 12, // Spacing for square blocks
     
-    // Block positioning on ground - UPDATED: Random placement in grass area
-    GROUND_Y_MIN_PERCENT: 89,       // CHANGED: Top of grass area for random placement
-    GROUND_Y_MAX_PERCENT: 92,       // CHANGED: Bottom range in grass area (top 40% of grass)
-    GROUND_SPREAD_PERCENT: 70,      // CHANGED: Wider spread to avoid tower area
-    GROUND_EXCLUSION_ZONE_PERCENT: 15, // CHANGED: Smaller exclusion zone for narrower blocks
+    // Block positioning on ground - Random placement in grass area
+    GROUND_Y_MIN_PERCENT: 89,       // Top of grass area
+    GROUND_Y_MAX_PERCENT: 92,       // Bottom of grass area
+    GROUND_SPREAD_PERCENT: 70,      // Spread across screen
+    GROUND_EXCLUSION_ZONE_PERCENT: 15, // Area around tower to avoid
+    
+    // Initial block placement variance
+    INITIAL_BLOCK_Y_VARIANCE_PERCENT: 1.5, // NEW: ±1.5% height variance for initial blocks
     
     // Teddy size multiplier
-    TEDDY_SIZE_MULTIPLIER: 2.0,      // NEW: 100% larger (double size)
+    TEDDY_SIZE_MULTIPLIER: 2.3,      // CHANGED: 15% larger (was 2.0, now 2.3 = 2.0 * 1.15)
+    
+    // Font size multiplier for numbers in blocks
+    BLOCK_FONT_SIZE_MULTIPLIER: 1.2, // NEW: 20% larger font size
     
     // Drag and drop (percentage of viewport diagonal)
-    DRAG_TOLERANCE_PERCENT: 3,       // 3% of viewport diagonal for drop zones
-    HOVER_TRANSFORM_PERCENT: 0.5,    // 0.5% move when hovering
+    DRAG_TOLERANCE_PERCENT: 3,
+    HOVER_TRANSFORM_PERCENT: 0.5,
     
-    // Animation timings (unchanged)
+    // Animation timings
     TOWER_MOVE_DELAY: 3000,
     BLOCK_ANIMATION_DURATION: 500,
     TEDDY_APPEAR_DELAY: 1000,
     
     // Completed tower opacity
-    COMPLETED_TOWER_OPACITY: 0.75,   // NEW: 75% opacity for completed towers
+    COMPLETED_TOWER_OPACITY: 0.75,
     
     // Level system (unchanged)
     LEVELS: {
@@ -126,13 +132,36 @@ const STACKS_CONFIG = {
     FINAL_RAINBOW_ARCS: 3
 };
 
-// Helper function to generate random ground position with correct perspective layering
-function generateRandomGroundPosition(existingBlocks = []) {
+// Helper function to generate position close to tower for displaced blocks
+function generateCloseToTowerPosition() {
+    const towerCenterX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+    const displacementRange = 20; // 20% of game area on each side
+    
+    // Calculate bounds: tower center ± 20%
+    const leftBound = Math.max(5, towerCenterX - displacementRange);
+    const rightBound = Math.min(95, towerCenterX + displacementRange);
+    
+    // Generate random X within the close-to-tower area
+    const x = leftBound + Math.random() * (rightBound - leftBound);
+    
+    // Generate Y in TOP 50% of grass area (front layer for displaced blocks)
+    const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+    const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
+    const y = grassTop + Math.random() * (grassHeight * 0.5); // Top 50% of grass
+    
+    console.log('Generated close-to-tower position:', x.toFixed(1) + '%,', y.toFixed(1) + '%', 
+                '(tower at', towerCenterX + '%, range:', leftBound.toFixed(1) + '%-' + rightBound.toFixed(1) + '%)');
+    
+    return { x, y };
+}
+
+// Helper function to generate random ground position with proper spacing and height variance
+function generateRandomGroundPosition(existingBlocks = [], isInitialPlacement = false) {
     const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
     const exclusionZone = STACKS_CONFIG.GROUND_EXCLUSION_ZONE_PERCENT;
     const spread = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
     const blockWidth = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
-    const minDistance = blockWidth * 0.75; // 75% of block width minimum distance for full overlap
+    const minDistance = blockWidth * 0.75; // 75% minimum distance (max 25% overlap)
     
     // Grass area bounds
     const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
@@ -152,29 +181,36 @@ function generateRandomGroundPosition(existingBlocks = []) {
         
         // Check for overlap with existing blocks
         let overlappingBlock = null;
-        let hasFullOverlap = false;
+        let hasOverlap = false;
         
         for (let block of existingBlocks) {
             const distance = Math.abs(x - block.x);
             if (distance < minDistance) {
-                // There's significant overlap (>25%)
-                hasFullOverlap = true;
-                
-                // Find the block that's furthest forward (LOWEST Y percentage - closest to viewer)
-                if (!overlappingBlock || block.y < overlappingBlock.y) {
+                hasOverlap = true;
+                // Find the frontmost (lowest Y/highest on screen) overlapping block
+                if (!overlappingBlock || block.y > overlappingBlock.y) {
                     overlappingBlock = block;
                 }
             }
         }
         
         let y;
-        if (hasFullOverlap && overlappingBlock) {
-            // CORRECTED PERSPECTIVE: Place IN FRONT of (lower than) the overlapping block
+        if (isInitialPlacement) {
+            // INITIAL PLACEMENT: All blocks get varied heights in back layer
+            const baseY = grassTop + (grassHeight * 0.25); // Start 25% down grass
+            const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT;
+            y = baseY + (Math.random() - 0.5) * variance * 2; // ±variance around base
+            
+            // Ensure it stays within grass bounds
+            y = Math.max(grassTop, Math.min(y, grassMidpoint));
+            
+        } else if (hasOverlap && overlappingBlock) {
+            // PERSPECTIVE LAYERING: Place IN FRONT of (lower/closer than) the overlapping block
             const overlapBlockPosition = overlappingBlock.y;
             
             // New block goes from overlapping block's position to 50% down grass (closer to viewer)
             const minY = overlapBlockPosition; // Start from overlapping block's position
-            const maxY = Math.min(grassMidpoint, grassBottom); // Go to 50% down grass or bottom
+            const maxY = grassMidpoint; // Go to 50% down grass
             
             if (minY >= maxY) {
                 // Edge case: overlapping block is already at or past 50% down
@@ -185,9 +221,11 @@ function generateRandomGroundPosition(existingBlocks = []) {
             
             console.log('Block overlaps with block at', overlapBlockPosition.toFixed(1) + '%, placing IN FRONT at', y.toFixed(1) + '%');
         } else {
-            // No significant overlap - place in top area of grass (back layer)
-            const backLayerHeight = grassHeight * 0.3; // Top 30% of grass for non-overlapping blocks
-            y = grassTop + Math.random() * backLayerHeight;
+            // No overlap - place in back layer with slight variance
+            const baseY = grassTop + (grassHeight * 0.2); // Back layer
+            const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT * 0.5; // Less variance for non-initial
+            y = baseY + (Math.random() - 0.5) * variance * 2;
+            y = Math.max(grassTop, Math.min(y, grassMidpoint * 0.8)); // Stay in back area
         }
         
         console.log('Generated ground position after', attempts + 1, 'attempts:', x.toFixed(1) + '%,', y.toFixed(1) + '%');
@@ -197,22 +235,26 @@ function generateRandomGroundPosition(existingBlocks = []) {
     // Fallback if no position found after max attempts
     console.warn('Could not find suitable position after', maxAttempts, 'attempts, using fallback');
     const fallbackX = 20 + Math.random() * 60;
-    const fallbackY = grassTop + Math.random() * (grassHeight * 0.3); // Back layer fallback
-    return { x: fallbackX, y: fallbackY };
+    const baseY = grassTop + (grassHeight * 0.25);
+    const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT;
+    const fallbackY = baseY + (Math.random() - 0.5) * variance * 2;
+    return { x: fallbackX, y: Math.max(grassTop, Math.min(fallbackY, grassMidpoint)) };
 }
 
-// Helper function to calculate ground Y position with corrected perspective
+// Helper function to calculate ground Y position with perspective for specific cases
 function getRandomGroundYWithPerspective(existingBlocks = [], targetX = null) {
     if (!targetX || existingBlocks.length === 0) {
-        // No overlap check needed - use back layer
+        // No overlap check needed - use back layer with variance
         const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
         const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
-        return grassTop + Math.random() * (grassHeight * 0.3); // Top 30% = back layer
+        const baseY = grassTop + (grassHeight * 0.2);
+        const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT * 0.5;
+        return baseY + (Math.random() - 0.5) * variance * 2;
     }
     
-    // Check for overlap and apply corrected perspective
+    // Check for overlap and apply perspective
     const blockWidth = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
-    const minDistance = blockWidth * 0.75;
+    const minDistance = blockWidth * 0.75; // 75% minimum distance
     const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
     const grassBottom = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
     const grassHeight = grassBottom - grassTop;
@@ -222,30 +264,32 @@ function getRandomGroundYWithPerspective(existingBlocks = [], targetX = null) {
     for (let block of existingBlocks) {
         const distance = Math.abs(targetX - block.x);
         if (distance < minDistance) {
-            // Find the frontmost (lowest Y) overlapping block
-            if (!overlappingBlock || block.y < overlappingBlock.y) {
+            // Find the frontmost (highest Y) overlapping block
+            if (!overlappingBlock || block.y > overlappingBlock.y) {
                 overlappingBlock = block;
             }
         }
     }
     
     if (overlappingBlock) {
-        // CORRECTED: Place IN FRONT of (lower than) the overlapping block
+        // Place IN FRONT of (lower/closer than) the overlapping block
         const minY = overlappingBlock.y;
-        const maxY = Math.min(grassMidpoint, grassBottom);
+        const maxY = grassMidpoint;
         
         return minY >= maxY ? maxY : minY + Math.random() * (maxY - minY);
     } else {
-        // Back layer - no overlap
-        return grassTop + Math.random() * (grassHeight * 0.3);
+        // Back layer with variance
+        const baseY = grassTop + (grassHeight * 0.2);
+        const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT * 0.5;
+        return baseY + (Math.random() - 0.5) * variance * 2;
     }
 }
 
-// Helper function to calculate ground Y position (back layer) - for containers and non-overlapping
+// Helper function for container placement (back layer, no variance)
 function getRandomGroundY() {
     const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
     const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
-    return grassTop + Math.random() * (grassHeight * 0.3); // Top 30% = back layer
+    return grassTop + (grassHeight * 0.15); // Containers in stable back position
 }
 function vwToPx(vw) {
     return (vw * window.innerWidth) / 100;
