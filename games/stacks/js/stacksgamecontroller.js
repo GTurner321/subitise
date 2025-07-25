@@ -28,9 +28,7 @@ class StacksGameController {
         this.modalTitle = document.getElementById('modalTitle');
         this.modalMessage = document.getElementById('modalMessage');
         this.playAgainBtn = document.getElementById('playAgainBtn');
-        this.levelInfo = document.getElementById('levelInfo');
-        this.questionInfo = document.getElementById('questionInfo');
-        this.movesInfo = document.getElementById('movesInfo');
+        // Removed game info elements as they're no longer needed
         
         this.handleResize = this.handleResize.bind(this);
         
@@ -41,9 +39,9 @@ class StacksGameController {
         window.addEventListener('resize', this.handleResize);
         await this.initializeAudio();
         this.createMuteButton();
+        this.createBackButton(); // Add back button
         this.setupEventListeners();
         this.createSVG();
-        this.updateGameInfo();
         this.startNewQuestion();
     }
     
@@ -59,7 +57,7 @@ class StacksGameController {
     createMuteButton() {
         const muteContainer = document.createElement('div');
         muteContainer.style.cssText = `
-            position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+            position: fixed; top: 20px; right: 20px; z-index: 1000;
             background: rgba(0, 0, 0, 0.7); border-radius: 50%;
             width: 60px; height: 60px; display: flex;
             align-items: center; justify-content: center; cursor: pointer;
@@ -94,6 +92,41 @@ class StacksGameController {
         muteContainer.appendChild(this.muteButton);
         document.body.appendChild(muteContainer);
         this.muteContainer = muteContainer;
+    }
+    
+    createBackButton() {
+        const backButton = document.createElement('a');
+        backButton.href = '../../index.html';
+        backButton.style.cssText = `
+            position: fixed; top: 20px; left: 20px; z-index: 1000;
+            background: rgba(0, 0, 0, 0.7); color: white;
+            text-decoration: none; padding: 12px 20px;
+            border-radius: 25px; font-size: 16px; font-weight: bold;
+            transition: all 0.3s ease; display: inline-flex;
+            align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            height: 36px; min-width: 120px; justify-content: center;
+        `;
+        
+        backButton.innerHTML = `
+            <i class="fas fa-arrow-left" style="font-size: 16px;"></i>
+            Back to Games
+        `;
+        
+        backButton.addEventListener('mouseenter', () => {
+            backButton.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            backButton.style.transform = 'translateY(-2px)';
+            backButton.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.4)';
+        });
+        
+        backButton.addEventListener('mouseleave', () => {
+            backButton.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            backButton.style.transform = 'translateY(0)';
+            backButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        });
+        
+        document.body.appendChild(backButton);
+        this.backButton = backButton;
     }
     
     updateMuteButtonIcon() {
@@ -178,7 +211,6 @@ class StacksGameController {
         this.rainbow.reset();
         this.bear.reset();
         
-        this.updateGameInfo();
         this.startNewQuestion();
     }
     
@@ -226,8 +258,7 @@ class StacksGameController {
         );
         
         console.log('Tower rendered');
-        
-        this.updateGameInfo();
+        // Removed updateGameInfo() call
         
         // Give audio instruction
         if (this.audioEnabled) {
@@ -264,7 +295,7 @@ class StacksGameController {
     onBlockMoved() {
         this.questionMoves++;
         this.totalMoves++;
-        this.updateGameInfo();
+        // Removed updateGameInfo() call since info box is removed
         
         // Check if tower is complete and correct
         if (this.renderer.isValidTowerOrder()) {
@@ -320,40 +351,57 @@ class StacksGameController {
         const towerBlocks = this.renderer.getTowerBlocks();
         const teddy = this.currentTeddy;
         
-        // Determine target position (alternate left/right) using percentages
+        // Determine which side this tower goes to
         const isLeftSide = this.currentQuestion % 2 === 1;
-        const baseXPercent = isLeftSide ? 
-            STACKS_CONFIG.COMPLETED_TOWER_LEFT_X_PERCENT : 
-            STACKS_CONFIG.COMPLETED_TOWER_RIGHT_X_PERCENT;
         
-        // FIXED: Calculate spacing to avoid overlapping towers
-        const pairIndex = Math.floor((this.currentQuestion - 1) / 2); // Which pair (0, 1, 2, ...)
-        const towerOffset = pairIndex * STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
+        console.log('Moving tower', this.currentQuestion, 'to', isLeftSide ? 'left' : 'right', 'side');
         
+        // Calculate target position based on existing completed towers
         let targetXPercent;
+        
         if (isLeftSide) {
-            // Left side towers move further left for each pair
-            targetXPercent = baseXPercent + towerOffset;
+            // Find the rightmost (furthest) left-side tower position
+            const leftTowers = this.completedTowers.filter((_, index) => (index + 1) % 2 === 1);
+            if (leftTowers.length === 0) {
+                // First left tower
+                targetXPercent = STACKS_CONFIG.COMPLETED_TOWER_LEFT_X_PERCENT;
+            } else {
+                // Place next to the previous left tower
+                const lastLeftPosition = Math.max(...leftTowers.map(tower => tower.position));
+                targetXPercent = lastLeftPosition + STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
+            }
         } else {
-            // Right side towers move further right for each pair
-            targetXPercent = baseXPercent - towerOffset;
+            // Find the leftmost (furthest) right-side tower position  
+            const rightTowers = this.completedTowers.filter((_, index) => (index + 1) % 2 === 0);
+            if (rightTowers.length === 0) {
+                // First right tower
+                targetXPercent = STACKS_CONFIG.COMPLETED_TOWER_RIGHT_X_PERCENT;
+            } else {
+                // Place next to the previous right tower
+                const lastRightPosition = Math.min(...rightTowers.map(tower => tower.position));
+                targetXPercent = lastRightPosition - STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
+            }
         }
         
-        console.log('Moving tower', this.currentQuestion, 'to side:', {
-            isLeftSide,
-            baseXPercent,
-            pairIndex,
-            towerOffset,
-            targetXPercent
-        });
+        // Ensure we don't go off screen
+        targetXPercent = Math.max(5, Math.min(95, targetXPercent));
+        
+        console.log('Calculated target position:', targetXPercent + '%', 'for tower', this.currentQuestion);
+        console.log('Existing completed towers:', this.completedTowers.map(t => t.position));
         
         // Animate tower to new position
         this.renderer.animateCompletedTower(towerBlocks, teddy, targetXPercent, () => {
+            // Store the completed tower with its FINAL position
             this.completedTowers.push({
                 blocks: towerBlocks,
                 teddy: teddy,
-                position: targetXPercent
+                position: targetXPercent,
+                question: this.currentQuestion,
+                side: isLeftSide ? 'left' : 'right'
             });
+            
+            console.log('Tower', this.currentQuestion, 'stored at position:', targetXPercent + '%');
+            console.log('All completed towers now:', this.completedTowers.map(t => `Q${t.question}: ${t.position.toFixed(1)}%`));
             
             // Check level progression
             this.checkLevelProgression();
@@ -434,17 +482,7 @@ class StacksGameController {
         }
     }
     
-    updateGameInfo() {
-        if (this.levelInfo) {
-            this.levelInfo.textContent = `Level ${this.currentLevel}`;
-        }
-        if (this.questionInfo) {
-            this.questionInfo.textContent = `Tower ${this.currentQuestion} of ${STACKS_CONFIG.TOTAL_QUESTIONS}`;
-        }
-        if (this.movesInfo) {
-            this.movesInfo.textContent = `Moves: ${this.questionMoves}`;
-        }
-    }
+    // Removed updateGameInfo() method since info box is no longer needed
     
     // Audio feedback methods
     playDragStartSound() {
@@ -587,6 +625,10 @@ class StacksGameController {
         
         if (this.muteContainer && this.muteContainer.parentNode) {
             this.muteContainer.parentNode.removeChild(this.muteContainer);
+        }
+        
+        if (this.backButton && this.backButton.parentNode) {
+            this.backButton.parentNode.removeChild(this.backButton);
         }
     }
 }
