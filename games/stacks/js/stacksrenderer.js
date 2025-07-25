@@ -1,0 +1,544 @@
+class StacksRenderer {
+    constructor(svg, gameController) {
+        this.svg = svg;
+        this.gameController = gameController;
+        this.draggedElement = null;
+        this.dragOffset = { x: 0, y: 0 };
+        this.isDragging = false;
+        this.hoveredContainer = null;
+        
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // Mouse events
+        this.svg.addEventListener('mousedown', (e) => this.onDragStart(e));
+        this.svg.addEventListener('mousemove', (e) => this.onDragMove(e));
+        this.svg.addEventListener('mouseup', (e) => this.onDragEnd(e));
+        
+        // Touch events for mobile
+        this.svg.addEventListener('touchstart', (e) => this.onDragStart(e));
+        this.svg.addEventListener('touchmove', (e) => this.onDragMove(e));
+        this.svg.addEventListener('touchend', (e) => this.onDragEnd(e));
+        
+        // Prevent default touch behaviors
+        this.svg.addEventListener('touchstart', (e) => e.preventDefault());
+        this.svg.addEventListener('touchmove', (e) => e.preventDefault());
+    }
+    
+    createBlock(number, x, y, color, isWide = false) {
+        const blockWidth = isWide ? STACKS_CONFIG.BLOCK_WIDTH_WIDE : STACKS_CONFIG.BLOCK_WIDTH;
+        const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
+        
+        // Create group for the block
+        const blockGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        blockGroup.setAttribute('class', 'block');
+        blockGroup.setAttribute('data-number', number);
+        blockGroup.style.cursor = 'grab';
+        
+        // Block rectangle
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', x - blockWidth/2);
+        rect.setAttribute('y', y - blockHeight/2);
+        rect.setAttribute('width', blockWidth);
+        rect.setAttribute('height', blockHeight);
+        rect.setAttribute('fill', color);
+        rect.setAttribute('stroke', '#333');
+        rect.setAttribute('stroke-width', '3');
+        rect.setAttribute('rx', '8');
+        rect.setAttribute('ry', '8');
+        
+        // Block shadow (behind)
+        const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        shadow.setAttribute('x', x - blockWidth/2 + 3);
+        shadow.setAttribute('y', y - blockHeight/2 + 3);
+        shadow.setAttribute('width', blockWidth);
+        shadow.setAttribute('height', blockHeight);
+        shadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
+        shadow.setAttribute('rx', '8');
+        shadow.setAttribute('ry', '8');
+        
+        // Number text
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', y + 6); // Slightly offset for better centering
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'middle');
+        text.setAttribute('font-size', Math.min(blockHeight * 0.4, blockWidth * 0.3));
+        text.setAttribute('font-weight', 'bold');
+        text.setAttribute('fill', '#000');
+        text.setAttribute('pointer-events', 'none'); // Allow clicks to pass through
+        text.textContent = number;
+        
+        // Add elements in correct order (shadow first)
+        blockGroup.appendChild(shadow);
+        blockGroup.appendChild(rect);
+        blockGroup.appendChild(text);
+        
+        // Store references
+        blockGroup._rect = rect;
+        blockGroup._text = text;
+        blockGroup._shadow = shadow;
+        blockGroup._originalX = x;
+        blockGroup._originalY = y;
+        blockGroup._number = number;
+        blockGroup._isWide = isWide;
+        
+        return blockGroup;
+    }
+    
+    createContainer(x, y, index, isWide = false) {
+        const blockWidth = isWide ? STACKS_CONFIG.BLOCK_WIDTH_WIDE : STACKS_CONFIG.BLOCK_WIDTH;
+        const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
+        
+        const container = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        container.setAttribute('class', 'container');
+        container.setAttribute('data-index', index);
+        container.setAttribute('x', x - blockWidth/2);
+        container.setAttribute('y', y - blockHeight/2);
+        container.setAttribute('width', blockWidth);
+        container.setAttribute('height', blockHeight);
+        container.setAttribute('fill', STACKS_CONFIG.CONTAINER_COLOR);
+        container.setAttribute('stroke', STACKS_CONFIG.CONTAINER_STROKE);
+        container.setAttribute('stroke-width', STACKS_CONFIG.CONTAINER_STROKE_WIDTH);
+        container.setAttribute('stroke-dasharray', '5,5');
+        container.setAttribute('rx', '8');
+        container.setAttribute('ry', '8');
+        container.setAttribute('opacity', '0.8');
+        
+        container._centerX = x;
+        container._centerY = y;
+        container._index = index;
+        container._isWide = isWide;
+        
+        return container;
+    }
+    
+    createTeddy(x, y, imageUrl) {
+        const teddy = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        teddy.setAttribute('class', 'teddy');
+        
+        const size = STACKS_CONFIG.BLOCK_HEIGHT * 0.8;
+        teddy.setAttribute('x', x - size/2);
+        teddy.setAttribute('y', y - size - STACKS_CONFIG.BLOCK_HEIGHT/2); // Above the top block
+        teddy.setAttribute('width', size);
+        teddy.setAttribute('height', size);
+        teddy.setAttribute('href', imageUrl);
+        teddy.style.opacity = '0';
+        teddy.style.transition = 'opacity 0.5s ease-in';
+        
+        // Fade in the teddy
+        setTimeout(() => {
+            teddy.style.opacity = '1';
+        }, 100);
+        
+        return teddy;
+    }
+    
+    renderTower(blocks, containers, centerX, baseY, isWide = false) {
+        const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
+        
+        // Clear previous tower elements
+        this.clearTower();
+        
+        // Render containers (bottom to top)
+        containers.forEach((container, index) => {
+            const y = baseY - (index * blockHeight);
+            const containerElement = this.createContainer(centerX, y, index, isWide);
+            this.svg.appendChild(containerElement);
+        });
+        
+        // Render blocks on ground initially
+        blocks.forEach((block, index) => {
+            const groundX = this.calculateGroundPosition(index, blocks.length);
+            const blockElement = this.createBlock(
+                block.number, 
+                groundX, 
+                STACKS_CONFIG.GROUND_Y, 
+                block.color,
+                isWide
+            );
+            this.svg.appendChild(blockElement);
+        });
+    }
+    
+    calculateGroundPosition(index, totalBlocks) {
+        const spread = STACKS_CONFIG.GROUND_SPREAD;
+        const startX = STACKS_CONFIG.TOWER_CENTER_X - spread/2;
+        const spacing = spread / (totalBlocks - 1);
+        return startX + (index * spacing);
+    }
+    
+    clearTower() {
+        // Remove all blocks, containers, and teddies
+        const elements = this.svg.querySelectorAll('.block, .container, .teddy');
+        elements.forEach(element => element.remove());
+    }
+    
+    onDragStart(e) {
+        e.preventDefault();
+        
+        const point = this.getEventPoint(e);
+        const element = this.getElementAtPoint(point.x, point.y);
+        
+        if (element && element.classList.contains('block')) {
+            this.isDragging = true;
+            this.draggedElement = element;
+            
+            // Calculate offset from element center
+            const rect = element._rect;
+            const elementX = parseFloat(rect.getAttribute('x')) + parseFloat(rect.getAttribute('width'))/2;
+            const elementY = parseFloat(rect.getAttribute('y')) + parseFloat(rect.getAttribute('height'))/2;
+            
+            this.dragOffset.x = elementX - point.x;
+            this.dragOffset.y = elementY - point.y;
+            
+            // Visual feedback
+            element.style.cursor = 'grabbing';
+            element._rect.setAttribute('stroke-width', '4');
+            
+            // Bring to front
+            this.svg.appendChild(element);
+            
+            // Audio feedback for drag start
+            this.gameController.playDragStartSound();
+        }
+    }
+    
+    onDragMove(e) {
+        if (!this.isDragging || !this.draggedElement) return;
+        
+        e.preventDefault();
+        const point = this.getEventPoint(e);
+        
+        // Calculate new position
+        const newX = point.x + this.dragOffset.x;
+        const newY = point.y + this.dragOffset.y;
+        
+        // Update block position
+        this.updateBlockPosition(this.draggedElement, newX, newY);
+        
+        // Check for hover over containers
+        this.handleContainerHover(newX, newY);
+    }
+    
+    onDragEnd(e) {
+        if (!this.isDragging || !this.draggedElement) return;
+        
+        e.preventDefault();
+        const point = this.getEventPoint(e);
+        
+        // Calculate drop position
+        const dropX = point.x + this.dragOffset.x;
+        const dropY = point.y + this.dragOffset.y;
+        
+        // Try to drop in container or return to ground
+        const dropped = this.handleDrop(dropX, dropY);
+        
+        // Reset visual state
+        this.draggedElement.style.cursor = 'grab';
+        this.draggedElement._rect.setAttribute('stroke-width', '3');
+        
+        // Clear hover effects
+        this.clearContainerHover();
+        
+        // Reset drag state
+        this.isDragging = false;
+        this.draggedElement = null;
+        this.dragOffset = { x: 0, y: 0 };
+        
+        // Audio feedback
+        if (dropped) {
+            this.gameController.playDropSound();
+        } else {
+            this.gameController.playReturnSound();
+        }
+    }
+    
+    handleContainerHover(x, y) {
+        const containers = this.svg.querySelectorAll('.container');
+        let foundHover = false;
+        
+        containers.forEach(container => {
+            const distance = this.getDistanceToContainer(container, x, y);
+            
+            if (distance < STACKS_CONFIG.DRAG_TOLERANCE) {
+                if (this.hoveredContainer !== container) {
+                    this.clearContainerHover();
+                    this.hoveredContainer = container;
+                    
+                    // Check if container has a block
+                    const existingBlock = this.getBlockInContainer(container);
+                    if (existingBlock) {
+                        // Show swap preview
+                        this.showSwapPreview(existingBlock);
+                    }
+                    
+                    // Highlight container
+                    container.setAttribute('stroke', '#4CAF50');
+                    container.setAttribute('stroke-width', '4');
+                }
+                foundHover = true;
+            }
+        });
+        
+        if (!foundHover && this.hoveredContainer) {
+            this.clearContainerHover();
+        }
+    }
+    
+    clearContainerHover() {
+        if (this.hoveredContainer) {
+            this.hoveredContainer.setAttribute('stroke', STACKS_CONFIG.CONTAINER_STROKE);
+            this.hoveredContainer.setAttribute('stroke-width', STACKS_CONFIG.CONTAINER_STROKE_WIDTH);
+            this.hoveredContainer = null;
+        }
+        
+        // Clear any swap previews
+        const blocks = this.svg.querySelectorAll('.block');
+        blocks.forEach(block => {
+            if (block !== this.draggedElement) {
+                this.resetBlockTransform(block);
+            }
+        });
+    }
+    
+    showSwapPreview(block) {
+        const rect = block._rect;
+        const currentX = parseFloat(rect.getAttribute('x'));
+        rect.setAttribute('x', currentX + STACKS_CONFIG.HOVER_TRANSFORM);
+        
+        const shadow = block._shadow;
+        const shadowX = parseFloat(shadow.getAttribute('x'));
+        shadow.setAttribute('x', shadowX + STACKS_CONFIG.HOVER_TRANSFORM);
+        
+        const text = block._text;
+        const textX = parseFloat(text.getAttribute('x'));
+        text.setAttribute('x', textX + STACKS_CONFIG.HOVER_TRANSFORM);
+    }
+    
+    resetBlockTransform(block) {
+        const rect = block._rect;
+        const shadow = block._shadow;
+        const text = block._text;
+        
+        const blockWidth = block._isWide ? STACKS_CONFIG.BLOCK_WIDTH_WIDE : STACKS_CONFIG.BLOCK_WIDTH;
+        const centerX = block._originalX || parseFloat(text.getAttribute('x'));
+        
+        rect.setAttribute('x', centerX - blockWidth/2);
+        shadow.setAttribute('x', centerX - blockWidth/2 + 3);
+        text.setAttribute('x', centerX);
+    }
+    
+    handleDrop(x, y) {
+        const containers = this.svg.querySelectorAll('.container');
+        
+        for (let container of containers) {
+            const distance = this.getDistanceToContainer(container, x, y);
+            
+            if (distance < STACKS_CONFIG.DRAG_TOLERANCE) {
+                const existingBlock = this.getBlockInContainer(container);
+                
+                if (existingBlock) {
+                    // Swap blocks
+                    this.swapBlocks(this.draggedElement, existingBlock);
+                } else {
+                    // Place block in empty container
+                    this.placeBlockInContainer(this.draggedElement, container);
+                }
+                
+                // Notify game controller of the move
+                this.gameController.onBlockMoved();
+                return true;
+            }
+        }
+        
+        // Return to ground if not dropped in container
+        this.returnBlockToGround(this.draggedElement);
+        return false;
+    }
+    
+    swapBlocks(block1, block2) {
+        // Get the container positions for both blocks
+        const container1 = this.getContainerForBlock(block1);
+        const container2 = this.getContainerForBlock(block2);
+        
+        if (container1 && container2) {
+            // Swap positions
+            this.placeBlockInContainer(block1, container2);
+            this.placeBlockInContainer(block2, container1);
+        } else if (container2) {
+            // Block1 goes to container2, block2 goes to ground
+            this.placeBlockInContainer(block1, container2);
+            this.returnBlockToGround(block2);
+        }
+    }
+    
+    placeBlockInContainer(block, container) {
+        const centerX = container._centerX;
+        const centerY = container._centerY;
+        
+        this.updateBlockPosition(block, centerX, centerY);
+        block._originalX = centerX;
+        block._originalY = centerY;
+        block._container = container;
+    }
+    
+    returnBlockToGround(block) {
+        // Find a good ground position
+        const blocks = this.svg.querySelectorAll('.block');
+        const groundBlocks = Array.from(blocks).filter(b => 
+            !this.getContainerForBlock(b) && b !== block
+        );
+        
+        const groundX = this.calculateGroundPosition(groundBlocks.length, groundBlocks.length + 1);
+        this.updateBlockPosition(block, groundX, STACKS_CONFIG.GROUND_Y);
+        
+        block._originalX = groundX;
+        block._originalY = STACKS_CONFIG.GROUND_Y;
+        block._container = null;
+    }
+    
+    updateBlockPosition(block, centerX, centerY) {
+        const blockWidth = block._isWide ? STACKS_CONFIG.BLOCK_WIDTH_WIDE : STACKS_CONFIG.BLOCK_WIDTH;
+        const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT;
+        
+        const rect = block._rect;
+        const shadow = block._shadow;
+        const text = block._text;
+        
+        rect.setAttribute('x', centerX - blockWidth/2);
+        rect.setAttribute('y', centerY - blockHeight/2);
+        
+        shadow.setAttribute('x', centerX - blockWidth/2 + 3);
+        shadow.setAttribute('y', centerY - blockHeight/2 + 3);
+        
+        text.setAttribute('x', centerX);
+        text.setAttribute('y', centerY + 6);
+    }
+    
+    getElementAtPoint(x, y) {
+        const elements = document.elementsFromPoint(x, y);
+        return elements.find(el => el.closest('.block'));
+    }
+    
+    getEventPoint(e) {
+        const rect = this.svg.getBoundingClientRect();
+        
+        if (e.touches && e.touches.length > 0) {
+            return {
+                x: e.touches[0].clientX - rect.left,
+                y: e.touches[0].clientY - rect.top
+            };
+        } else {
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+    }
+    
+    getDistanceToContainer(container, x, y) {
+        const centerX = container._centerX;
+        const centerY = container._centerY;
+        return Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+    }
+    
+    getBlockInContainer(container) {
+        const blocks = this.svg.querySelectorAll('.block');
+        for (let block of blocks) {
+            if (block._container === container) {
+                return block;
+            }
+        }
+        return null;
+    }
+    
+    getContainerForBlock(block) {
+        return block._container || null;
+    }
+    
+    animateCompletedTower(towerBlocks, teddy, targetX, callback) {
+        const duration = STACKS_CONFIG.BLOCK_ANIMATION_DURATION;
+        
+        // Animate all blocks and teddy to new position
+        const elements = [...towerBlocks];
+        if (teddy) elements.push(teddy);
+        
+        elements.forEach(element => {
+            const currentX = element._originalX || parseFloat(element.getAttribute('x'));
+            const deltaX = targetX - STACKS_CONFIG.TOWER_CENTER_X;
+            const newX = currentX + deltaX;
+            
+            element.style.transition = `all ${duration}ms ease-in-out`;
+            
+            if (element.classList.contains('block')) {
+                this.updateBlockPosition(element, newX, element._originalY);
+                element._originalX = newX;
+            } else if (element.classList.contains('teddy')) {
+                const currentTeddyX = parseFloat(element.getAttribute('x'));
+                element.setAttribute('x', currentTeddyX + deltaX);
+            }
+        });
+        
+        // Clear transitions after animation
+        setTimeout(() => {
+            elements.forEach(element => {
+                element.style.transition = '';
+            });
+            if (callback) callback();
+        }, duration);
+    }
+    
+    getTowerBlocks() {
+        const blocks = this.svg.querySelectorAll('.block');
+        return Array.from(blocks).filter(block => block._container);
+    }
+    
+    getTeddyElement() {
+        return this.svg.querySelector('.teddy');
+    }
+    
+    isValidTowerOrder() {
+        const containers = Array.from(this.svg.querySelectorAll('.container')).sort((a, b) => 
+            parseFloat(b.getAttribute('y')) - parseFloat(a.getAttribute('y')) // Bottom to top
+        );
+        
+        const towerNumbers = [];
+        for (let container of containers) {
+            const block = this.getBlockInContainer(container);
+            if (block) {
+                towerNumbers.push(parseInt(block.getAttribute('data-number')));
+            } else {
+                return false; // Empty container found
+            }
+        }
+        
+        // Check if numbers are in ascending order (bottom to top)
+        for (let i = 1; i < towerNumbers.length; i++) {
+            if (towerNumbers[i] <= towerNumbers[i-1]) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    getAllBlocks() {
+        return Array.from(this.svg.querySelectorAll('.block'));
+    }
+    
+    getAllContainers() {
+        return Array.from(this.svg.querySelectorAll('.container'));
+    }
+    
+    highlightCorrectOrder() {
+        const blocks = this.getTowerBlocks();
+        blocks.forEach(block => {
+            block._rect.setAttribute('stroke', '#4CAF50');
+            setTimeout(() => {
+                block._rect.setAttribute('stroke', '#333');
+            }, 1000);
+        });
+    }
+}
