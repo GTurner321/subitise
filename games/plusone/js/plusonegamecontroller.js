@@ -249,8 +249,9 @@ class PlusOneGameController {
         this.hintGiven = true;
         
         let hintText = '';
-        if (this.currentLevel <= 2) {
-            // Levels 1-2: hints for each box in order
+        // FIXED: Level 5 should use the same hints as levels 1-2
+        if (this.currentLevel <= 2 || this.currentLevel === 5) {
+            // Levels 1-2 and 5: hints for each box in order (picture/icon levels)
             if (!this.leftFilled) {
                 hintText = 'Count the number of pictures on the left side';
             } else if (!this.rightFilled) {
@@ -259,7 +260,7 @@ class PlusOneGameController {
                 hintText = `What is ${this.currentNumber} plus one?`;
             }
         } else {
-            // Levels 3+: focus on "what comes after" 
+            // Levels 3-4, 6-10: focus on "what comes after" (number levels)
             if (!this.totalFilled) {
                 hintText = `What number comes after ${this.currentNumber}?`;
             }
@@ -606,8 +607,9 @@ class PlusOneGameController {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
         setTimeout(() => {
-            if (this.currentLevel <= 2) {
-                // Levels 1-2: Basic instructions  
+            // FIXED: Level 5 should use the same audio as levels 1-2
+            if (this.currentLevel <= 2 || this.currentLevel === 5) {
+                // Levels 1-2 and 5: Basic instructions for picture/icon levels  
                 if (this.questionsCompleted === 0) {
                     this.speakText('Complete the plus one sum');
                 } else if (this.questionsCompleted === 1) {
@@ -616,7 +618,7 @@ class PlusOneGameController {
                     this.speakText('Complete the sum');
                 }
             } else {
-                // Levels 3+: Ask the plus one question immediately
+                // Levels 3-4, 6-10: Ask the plus one question immediately for number levels
                 this.speakText(`What number is one more than ${this.currentNumber}?`);
             }
         }, 500);
