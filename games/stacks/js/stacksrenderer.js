@@ -448,17 +448,25 @@ class StacksRenderer {
         const containers = this.svg.querySelectorAll('.container');
         const tolerance = getDragTolerancePx();
         
+        // Check if dropping on a container
         for (let container of containers) {
             const distance = this.getDistanceToContainer(container, x, y);
             
             if (distance < tolerance) {
                 const existingBlock = this.getBlockInContainer(container);
+                const draggedFromContainer = this.getContainerForBlock(this.draggedElement);
                 
                 if (existingBlock) {
-                    // Swap blocks
-                    this.swapBlocks(this.draggedElement, existingBlock);
+                    if (draggedFromContainer) {
+                        // Both blocks are in tower - swap them
+                        this.swapBlocks(this.draggedElement, existingBlock);
+                    } else {
+                        // Dragged from ground onto tower block - displace the tower block
+                        this.displaceBlockToGround(existingBlock);
+                        this.placeBlockInContainer(this.draggedElement, container);
+                    }
                 } else {
-                    // Place block in empty container
+                    // Empty container - place block
                     this.placeBlockInContainer(this.draggedElement, container);
                 }
                 
@@ -468,25 +476,87 @@ class StacksRenderer {
             }
         }
         
-        // Return to ground if not dropped in container
+        // Check if dropping on another block (not in container) - should return to ground
+        const targetBlock = this.findBlockAtPoint({x, y});
+        if (targetBlock && targetBlock !== this.draggedElement) {
+            console.log('Dropped on another block, returning to ground');
+            this.returnBlockToGround(this.draggedElement);
+            return false;
+        }
+        
+        // Return to ground if not dropped in valid location
         this.returnBlockToGround(this.draggedElement);
         return false;
     }
     
     swapBlocks(block1, block2) {
+        console.log('Swapping blocks:', block1._number, 'and', block2._number);
+        
         // Get the container positions for both blocks
         const container1 = this.getContainerForBlock(block1);
         const container2 = this.getContainerForBlock(block2);
         
         if (container1 && container2) {
-            // Swap positions
+            // Both blocks are in containers - swap their positions
+            const tempX = block1._centerX;
+            const tempY = block1._centerY;
+            const tempXPercent = block1._xPercent;
+            const tempYPercent = block1._yPercent;
+            
+            // Move block1 to block2's container
             this.placeBlockInContainer(block1, container2);
+            
+            // Move block2 to block1's original container
             this.placeBlockInContainer(block2, container1);
-        } else if (container2) {
-            // Block1 goes to container2, block2 goes to ground
-            this.placeBlockInContainer(block1, container2);
-            this.returnBlockToGround(block2);
+            
+            console.log('Swapped blocks in containers');
+        } else {
+            console.log('Cannot swap - one or both blocks not in containers');
         }
+    }
+    
+    displaceBlockToGround(block) {
+        console.log('Displacing block to ground:', block._number);
+        
+        // Remove block from its current container
+        block._container = null;
+        
+        // Find a random position on the ground near the tower
+        const groundBlocks = this.getGroundBlocks();
+        const baseXPercent = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+        
+        // Create some randomness around the tower area
+        const randomOffset = (Math.random() - 0.5) * 20; // ±10% of viewport width
+        const newXPercent = Math.max(10, Math.min(90, baseXPercent + randomOffset));
+        
+        const groundX = vwToPx(newXPercent);
+        const groundY = vhToPx(STACKS_CONFIG.GROUND_Y_PERCENT);
+        
+        // Animate the block falling to the ground
+        this.animateBlockToPosition(block, groundX, groundY, () => {
+            block._centerX = groundX;
+            block._centerY = groundY;
+            block._xPercent = newXPercent;
+            block._yPercent = STACKS_CONFIG.GROUND_Y_PERCENT;
+            block._container = null;
+        });
+    }
+    
+    animateBlockToPosition(block, targetX, targetY, callback) {
+        const duration = 300;
+        
+        block.style.transition = `all ${duration}ms ease-out`;
+        this.updateBlockPosition(block, targetX, targetY);
+        
+        setTimeout(() => {
+            block.style.transition = '';
+            if (callback) callback();
+        }, duration);
+    }
+    
+    getGroundBlocks() {
+        const blocks = this.svg.querySelectorAll('.block');
+        return Array.from(blocks).filter(block => !this.getContainerForBlock(block));
     }
     
     placeBlockInContainer(block, container) {
@@ -502,23 +572,73 @@ class StacksRenderer {
     }
     
     returnBlockToGround(block) {
-        // Find a good ground position
-        const blocks = this.svg.querySelectorAll('.block');
-        const groundBlocks = Array.from(blocks).filter(b => 
-            !this.getContainerForBlock(b) && b !== block
-        );
+        console.log('Returning block to ground:', block._number);
         
-        const groundXPercent = this.calculateGroundPositionPercent(groundBlocks.length, groundBlocks.length + 1);
+        // Clear any container association
+        block._container = null;
+        
+        // Find existing ground blocks to avoid overlap
+        const groundBlocks = this.getGroundBlocks().filter(b => b !== block);
+        
+        // Calculate a good ground position
+        let groundXPercent;
+        if (groundBlocks.length === 0) {
+            // First block on ground - place at center
+            groundXPercent = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+        } else {
+            // Find a position that doesn't overlap with existing ground blocks
+            groundXPercent = this.findAvailableGroundPosition(groundBlocks);
+        }
+        
         const groundX = vwToPx(groundXPercent);
         const groundY = vhToPx(STACKS_CONFIG.GROUND_Y_PERCENT);
         
-        this.updateBlockPosition(block, groundX, groundY);
+        // Animate the block to the ground
+        this.animateBlockToPosition(block, groundX, groundY, () => {
+            block._centerX = groundX;
+            block._centerY = groundY;
+            block._xPercent = groundXPercent;
+            block._yPercent = STACKS_CONFIG.GROUND_Y_PERCENT;
+        });
+    }
+    
+    findAvailableGroundPosition(existingGroundBlocks) {
+        const spreadPercent = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
+        const centerPercent = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+        const blockWidthPercent = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
         
-        block._centerX = groundX;
-        block._centerY = groundY;
-        block._xPercent = groundXPercent;
-        block._yPercent = STACKS_CONFIG.GROUND_Y_PERCENT;
-        block._container = null;
+        // Try to place blocks in a line across the ground area
+        const totalBlocks = existingGroundBlocks.length + 1;
+        
+        if (totalBlocks === 1) {
+            return centerPercent;
+        }
+        
+        // Calculate positions for all blocks including the new one
+        const startPercent = centerPercent - spreadPercent/2;
+        const spacing = spreadPercent / (totalBlocks - 1);
+        
+        // Find the first available position
+        for (let i = 0; i < totalBlocks; i++) {
+            const candidatePercent = startPercent + (i * spacing);
+            
+            // Check if this position is too close to existing blocks
+            let tooClose = false;
+            for (let existingBlock of existingGroundBlocks) {
+                const distance = Math.abs(candidatePercent - existingBlock._xPercent);
+                if (distance < blockWidthPercent) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            
+            if (!tooClose) {
+                return candidatePercent;
+            }
+        }
+        
+        // If all calculated positions are taken, place randomly in the spread area
+        return startPercent + Math.random() * spreadPercent;
     }
     
     updateBlockPosition(block, centerX, centerY) {
