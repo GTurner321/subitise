@@ -305,8 +305,8 @@ class PlusOneGameController {
 
     handleKeyboardDigit(digit) {
         // Handle multi-digit input for higher levels
-        if (this.currentLevel >= 3) {
-            // For levels 3+, we might need multi-digit numbers
+        if (this.shouldUseNumberFormat()) {
+            // For number format levels, we might need multi-digit numbers
             if (this.keyboardBuffer === '1' && digit === 0) {
                 this.clearKeyboardTimer();
                 this.handleNumberClick(10, null);
@@ -335,16 +335,16 @@ class PlusOneGameController {
     }
 
     getPossibleAnswers() {
-        if (this.currentLevel <= 2) {
+        if (this.shouldUsePictureFormat()) {
             return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         } else {
-            // For levels 3+, this would be the 4 multiple choice options
+            // For number format levels, this would be the 4 multiple choice options
             return this.getCurrentOptions();
         }
     }
 
     getCurrentOptions() {
-        // This will be set when creating buttons for levels 3+
+        // This will be set when creating buttons for number format levels
         return this.currentOptions || [];
     }
 
@@ -371,7 +371,7 @@ class PlusOneGameController {
 
     resetBoxState() {
         this.leftFilled = false;
-        this.rightFilled = false; // Reset for levels 1-2
+        this.rightFilled = false; // Reset for picture format levels
         this.totalFilled = false;
         this.stopFlashing();
     }
@@ -380,8 +380,8 @@ class PlusOneGameController {
         this.stopFlashing();
         
         const flashElements = () => {
-            if (this.currentLevel <= 2) {
-                // Levels 1-2: flash based on which box needs filling (left → right → total)
+            if (this.shouldUsePictureFormat()) {
+                // Picture format levels (1, 2, 5): flash based on which box needs filling (left → right → total)
                 if (!this.leftFilled) {
                     this.leftSide.classList.add('area-flash');
                     this.leftInputBox.classList.add('box-flash');
@@ -394,7 +394,7 @@ class PlusOneGameController {
                     this.totalInputBox.classList.add('box-flash');
                 }
             } else {
-                // Levels 3+: only flash for total answer (left and right are pre-filled)
+                // Number format levels (3, 4, 6-10): only flash for total answer (left and right are pre-filled)
                 if (!this.totalFilled) {
                     this.leftSide.classList.add('area-flash');
                     this.rightSide.classList.add('area-flash');
@@ -431,10 +431,10 @@ class PlusOneGameController {
         this.leftSide.classList.remove('area-flash');
         this.rightSide.classList.remove('area-flash');
         this.leftInputBox.classList.remove('box-flash');
+        this.rightInputBox.classList.remove('box-flash');
         this.totalInputBox.classList.remove('box-flash');
     }
 
-    // FIXED: Generate question BEFORE setting up input boxes
     startNewQuestion() {
         if (this.gameComplete) {
             return;
@@ -451,7 +451,7 @@ class PlusOneGameController {
         
         console.log(`Question: ${this.currentNumber} + 1 = ${this.currentAnswer}, Level: ${this.currentLevel}`);
         
-        // Render the content (icons for 1-2, numbers for 3+)
+        // Render the content (icons for picture format, numbers for number format)
         this.iconRenderer.renderContent(this.currentNumber, this.currentLevel);
         
         // Create appropriate buttons
@@ -487,19 +487,103 @@ class PlusOneGameController {
         console.log(`AFTER generatePlusOneQuestion: this.currentNumber = ${this.currentNumber}, this.currentAnswer = ${this.currentAnswer}`);
     }
 
-createButtons() {
-    this.numberButtons.innerHTML = '';
-    
-    if (this.shouldUsePictureFormat()) {  // ← FIXED: Use helper method instead of hardcoded condition
-        // Levels 1-2 and 5: Use 1-10 buttons like add game
-        this.numberButtons.classList.remove('multiple-choice');
+    createButtons() {
+        this.numberButtons.innerHTML = '';
         
-        for (let i = 1; i <= 10; i++) {
+        if (this.shouldUsePictureFormat()) {
+            // Picture format levels (1, 2, 5): Use 1-10 buttons like add game
+            this.numberButtons.classList.remove('multiple-choice');
+            
+            for (let i = 1; i <= 10; i++) {
+                const button = document.createElement('button');
+                button.className = 'number-btn';
+                button.dataset.number = i;
+                button.textContent = i;
+                
+                // Click handler
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (this.buttonsDisabled) return;
+                    this.clearInactivityTimer();
+                    this.startInactivityTimer();
+                    const selectedNumber = parseInt(e.target.dataset.number);
+                    this.handleNumberClick(selectedNumber, e.target);
+                });
+                
+                // Touch handlers
+                button.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (this.buttonsDisabled) return;
+                    this.clearInactivityTimer();
+                    this.startInactivityTimer();
+                    const selectedNumber = parseInt(e.target.dataset.number);
+                    this.handleNumberClick(selectedNumber, e.target);
+                });
+                
+                // Prevent context menu and long press behaviors
+                button.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                });
+                
+                button.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                    // Don't prevent default on touchstart to allow touch events to work
+                });
+                
+                this.numberButtons.appendChild(button);
+            }
+        } else {
+            // Number format levels (3, 4, 6-10): Use 4 multiple choice options
+            this.numberButtons.classList.add('multiple-choice');
+            this.createMultipleChoiceButtons();
+        }
+    }
+
+    createMultipleChoiceButtons() {
+        // Generate 4 options: correct answer, n-1, random from level set, and n+2/n+3/n+5/n+10
+        const options = new Set();
+        
+        // Add correct answer (n+1)
+        options.add(this.currentAnswer);
+        
+        // Add n-1 (one less than original number)
+        const nMinus1 = Math.max(1, this.currentNumber - 1);
+        options.add(nMinus1);
+        
+        // Add random number from current level set
+        const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
+        let randomFromLevel;
+        let attempts = 0;
+        do {
+            randomFromLevel = levelNumbers[Math.floor(Math.random() * levelNumbers.length)] + 1;
+            attempts++;
+        } while (options.has(randomFromLevel) && attempts < 50);
+        options.add(randomFromLevel);
+        
+        // Add one of: n+2, n+3, n+5, n+10
+        const bonusOptions = [this.currentNumber + 2, this.currentNumber + 3, this.currentNumber + 5, this.currentNumber + 10];
+        let bonusChoice;
+        attempts = 0;
+        do {
+            bonusChoice = bonusOptions[Math.floor(Math.random() * bonusOptions.length)];
+            attempts++;
+        } while (options.has(bonusChoice) && attempts < 20);
+        options.add(bonusChoice);
+        
+        // Convert to array and shuffle
+        this.currentOptions = Array.from(options).slice(0, 4);
+        this.shuffleArray(this.currentOptions);
+        
+        // Create buttons
+        this.currentOptions.forEach((option, index) => {
             const button = document.createElement('button');
             button.className = 'number-btn';
-            button.dataset.number = i;
-            button.textContent = i;
+            button.dataset.number = option;
+            button.textContent = option;
             
+            // Click handler
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -510,6 +594,7 @@ createButtons() {
                 this.handleNumberClick(selectedNumber, e.target);
             });
             
+            // FIXED: Add touchend handler (this was missing!)
             button.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -520,6 +605,7 @@ createButtons() {
                 this.handleNumberClick(selectedNumber, e.target);
             });
             
+            // Prevent context menu and allow touch events
             button.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
             });
@@ -530,76 +616,9 @@ createButtons() {
             });
             
             this.numberButtons.appendChild(button);
-        }
-    } else {
-        // Levels 3+: Use 4 multiple choice options
-        this.numberButtons.classList.add('multiple-choice');
-        this.createMultipleChoiceButtons();
+        });
     }
-}
 
-createMultipleChoiceButtons() {
-    // Generate 4 options: correct answer, n-1, random from level set, and n+2/n+3/n+5/n+10
-    const options = new Set();
-    
-    // Add correct answer (n+1)
-    options.add(this.currentAnswer);
-    
-    // Add n-1 (one less than original number)
-    const nMinus1 = Math.max(1, this.currentNumber - 1);
-    options.add(nMinus1);
-    
-    // Add random number from current level set
-    const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
-    let randomFromLevel;
-    let attempts = 0;
-    do {
-        randomFromLevel = levelNumbers[Math.floor(Math.random() * levelNumbers.length)] + 1;
-        attempts++;
-    } while (options.has(randomFromLevel) && attempts < 50);
-    options.add(randomFromLevel);
-    
-    // Add one of: n+2, n+3, n+5, n+10
-    const bonusOptions = [this.currentNumber + 2, this.currentNumber + 3, this.currentNumber + 5, this.currentNumber + 10];
-    let bonusChoice;
-    attempts = 0;
-    do {
-        bonusChoice = bonusOptions[Math.floor(Math.random() * bonusOptions.length)];
-        attempts++;
-    } while (options.has(bonusChoice) && attempts < 20);
-    options.add(bonusChoice);
-    
-    // Convert to array and shuffle
-    this.currentOptions = Array.from(options).slice(0, 4);
-    this.shuffleArray(this.currentOptions);
-    
-    // Create buttons
-    this.currentOptions.forEach((option, index) => {
-        const button = document.createElement('button');
-        button.className = 'number-btn';
-        button.dataset.number = option;
-        button.textContent = option;
-        
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (this.buttonsDisabled) return;
-            this.clearInactivityTimer();
-            this.startInactivityTimer();
-            const selectedNumber = parseInt(e.target.dataset.number);
-            this.handleNumberClick(selectedNumber, e.target);
-        });
-        
-        // FIXED: Remove preventDefault from touchstart to allow touch interaction
-        button.addEventListener('touchstart', (e) => {
-            e.stopPropagation();
-            // Don't prevent default - this was breaking touch clicks
-        });
-        
-        this.numberButtons.appendChild(button);
-    });
-}
-    
     shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -801,7 +820,7 @@ createMultipleChoiceButtons() {
             }
 
             // Different delays for different levels due to audio feedback
-            const delay = (this.currentLevel <= 2) ? 4000 : 2000; // Longer for levels 1-2 due to sum repetition
+            const delay = this.shouldUsePictureFormat() ? 4000 : 2000; // Longer for picture format due to sum repetition
             setTimeout(() => {
                 this.fadeOutQuestion();
             }, delay);
@@ -812,8 +831,8 @@ createMultipleChoiceButtons() {
         console.log(`=== AUDIO FEEDBACK: Level ${this.currentLevel}, wasFirstAttempt check ===`);
         console.log(`Current number: ${this.currentNumber}, Current answer: ${this.currentAnswer}`);
         
-        if (this.currentLevel === 1 || this.currentLevel === 2) {
-            // Levels 1 AND 2: Say encouraging word first, then repeat the sum
+        if (this.shouldUsePictureFormat()) {
+            // Picture format levels (1, 2, 5): Say encouraging word first, then repeat the sum
             console.log(`Level ${this.currentLevel}: Will provide sum repetition audio`);
             const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
@@ -821,14 +840,14 @@ createMultipleChoiceButtons() {
             console.log(`Speaking encouragement: ${randomEncouragement}`);
             this.speakText(randomEncouragement);
             
-            // Then repeat the sum after a short delay for BOTH level 1 AND level 2
+            // Then repeat the sum after a short delay for picture format levels
             setTimeout(() => {
                 const sumMessage = `One more than ${this.currentNumber} is ${this.currentAnswer}`;
                 console.log(`Speaking sum repetition: ${sumMessage}`);
                 this.speakText(sumMessage);
             }, 1500);
         } else {
-            // Levels 3+: Just encouragement
+            // Number format levels (3, 4, 6-10): Just encouragement
             console.log(`Level ${this.currentLevel}: Only encouragement, no sum repetition`);
             const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
@@ -871,10 +890,10 @@ createMultipleChoiceButtons() {
             this.playFailureSound();
         }
         
-        // Give specific audio feedback for levels 3+
+        // Give specific audio feedback
         if (this.audioEnabled && this.isTabVisible) {
             setTimeout(() => {
-                if (this.currentLevel >= 3) {
+                if (this.shouldUseNumberFormat()) {
                     this.speakText(`What number comes after ${this.currentNumber}?`);
                 } else {
                     this.speakText('Try again');
