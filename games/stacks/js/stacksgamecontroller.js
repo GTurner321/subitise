@@ -56,20 +56,10 @@ class StacksGameController {
     
     createMuteButton() {
         const muteContainer = document.createElement('div');
-        muteContainer.style.cssText = `
-            position: fixed; top: 20px; right: 20px; z-index: 1000;
-            background: rgba(0, 0, 0, 0.7); border-radius: 50%;
-            width: 60px; height: 60px; display: flex;
-            align-items: center; justify-content: center; cursor: pointer;
-            transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        `;
+        muteContainer.className = 'mute-container';
         
         this.muteButton = document.createElement('button');
-        this.muteButton.style.cssText = `
-            background: none; border: none; color: white; font-size: 24px;
-            cursor: pointer; width: 100%; height: 100%; display: flex;
-            align-items: center; justify-content: center;
-        `;
+        this.muteButton.className = 'mute-button';
         
         this.updateMuteButtonIcon();
         
@@ -77,16 +67,6 @@ class StacksGameController {
         this.muteButton.addEventListener('touchstart', (e) => {
             e.preventDefault();
             this.toggleAudio();
-        });
-        
-        muteContainer.addEventListener('mouseenter', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-            muteContainer.style.transform = 'scale(1.1)';
-        });
-        
-        muteContainer.addEventListener('mouseleave', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            muteContainer.style.transform = 'scale(1)';
         });
         
         muteContainer.appendChild(this.muteButton);
@@ -97,33 +77,12 @@ class StacksGameController {
     createBackButton() {
         const backButton = document.createElement('a');
         backButton.href = '../../index.html';
-        backButton.style.cssText = `
-            position: fixed; top: 20px; left: 20px; z-index: 1000;
-            background: rgba(0, 0, 0, 0.7); color: white;
-            text-decoration: none; padding: 12px 20px;
-            border-radius: 25px; font-size: 16px; font-weight: bold;
-            transition: all 0.3s ease; display: inline-flex;
-            align-items: center; gap: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            height: 36px; min-width: 120px; justify-content: center;
-        `;
+        backButton.className = 'back-button';
         
         backButton.innerHTML = `
-            <i class="fas fa-arrow-left" style="font-size: 16px;"></i>
+            <i class="fas fa-arrow-left"></i>
             Back to Games
         `;
-        
-        backButton.addEventListener('mouseenter', () => {
-            backButton.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-            backButton.style.transform = 'translateY(-2px)';
-            backButton.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.4)';
-        });
-        
-        backButton.addEventListener('mouseleave', () => {
-            backButton.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            backButton.style.transform = 'translateY(0)';
-            backButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-        });
         
         document.body.appendChild(backButton);
         this.backButton = backButton;
