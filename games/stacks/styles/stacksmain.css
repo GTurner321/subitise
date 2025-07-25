@@ -1,4 +1,4 @@
-/* Stacks Number Game Styles - Full Screen with Transparent Background */
+/* Stacks Number Game Styles - Consolidated and Updated */
 
 /* Reset and base styles */
 * {
@@ -9,7 +9,12 @@
 
 body {
     font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #87CEEB, #98FB98, #FFE4B5);
+    background: linear-gradient(135deg, 
+        rgba(135, 206, 235, 0.2) 0%,
+        rgba(152, 251, 152, 0.15) 50%,
+        rgba(255, 228, 181, 0.2) 100%
+    );
+    background-attachment: fixed;
     overflow: hidden;
     height: 100vh;
     position: relative;
@@ -17,19 +22,18 @@ body {
 
 /* Grass band at bottom */
 .grass-band {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 80px !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 8vh;
     background: linear-gradient(to top, 
         rgba(144, 238, 144, 0.6),
         rgba(152, 251, 152, 0.7),
         rgba(173, 255, 47, 0.5)
-    ) !important;
-    z-index: 1 !important;
-    border: none !important;
-    box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3) !important;
+    );
+    z-index: 1;
+    box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3);
 }
 
 .grass-band::before {
@@ -48,7 +52,7 @@ body {
     );
 }
 
-/* Game area - full height with no margins */
+/* Game area */
 .game-area {
     position: relative;
     display: flex;
@@ -57,15 +61,13 @@ body {
     justify-content: center;
     height: 100vh;
     width: 100vw;
-    padding: 0;
-    margin: 0;
     z-index: 2;
 }
 
-/* Rainbow container - positioned at bottom above grass */
+/* Rainbow container */
 .rainbow-container {
     position: absolute;
-    bottom: 80px;
+    bottom: 8vh;
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
@@ -74,21 +76,17 @@ body {
     pointer-events: none;
 }
 
-/* Main stacks container - full height with no margins */
+/* Main stacks container */
 .stacks-container {
     position: relative;
     width: 100vw;
     height: 100vh;
     background: transparent;
-    border-radius: 0;
-    box-shadow: none;
     overflow: visible;
     z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0;
-    padding: 0;
 }
 
 /* SVG styling */
@@ -97,18 +95,14 @@ body {
     height: 100%;
     cursor: default;
     user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    pointer-events: all; /* Ensure SVG can receive events */
+    pointer-events: all;
 }
 
 /* Block styling */
 .block {
-    transition: none;
-    transform-origin: center;
     cursor: grab !important;
-    pointer-events: all !important; /* Ensure blocks can receive events */
+    pointer-events: all !important;
+    transition: filter 0.2s ease;
 }
 
 .block:hover {
@@ -123,7 +117,7 @@ body {
 
 .block rect,
 .block text {
-    pointer-events: none !important; /* Allow clicks to pass through to the group */
+    pointer-events: none !important;
 }
 
 /* Container styling */
@@ -142,43 +136,74 @@ body {
     filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
 }
 
-/* Game info container */
-.game-info-container {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    z-index: 1001;
-    font-family: Arial, sans-serif;
-    min-width: 180px;
+/* Back button - Top Left */
+.back-button {
+    position: fixed !important;
+    top: 20px !important;
+    left: 20px !important;
+    background: rgba(0, 0, 0, 0.7) !important;
+    color: white !important;
+    text-decoration: none !important;
+    padding: 12px 20px !important;
+    border-radius: 25px !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    z-index: 1004 !important;
+    transition: all 0.3s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    height: 36px !important;
+    min-width: 120px !important;
+    justify-content: center !important;
+    margin: 0 !important;
 }
 
-.game-info-container > div {
-    margin-bottom: 8px;
-    font-weight: bold;
-    color: #333;
+.back-button:hover {
+    background: rgba(0, 0, 0, 0.9) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4) !important;
 }
 
-.game-info-container > div:last-child {
-    margin-bottom: 0;
+.back-button i {
+    font-size: 16px !important;
 }
 
-.level-info {
-    color: #4CAF50;
-    font-size: 1.1rem;
+/* Mute button - Top Right */
+.mute-container {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    z-index: 1000 !important;
+    background: rgba(0, 0, 0, 0.7) !important;
+    border-radius: 50% !important;
+    width: 60px !important;
+    height: 60px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
-.question-info {
-    color: #2196F3;
-    font-size: 1rem;
+.mute-container:hover {
+    background: rgba(0, 0, 0, 0.9) !important;
+    transform: scale(1.1) !important;
 }
 
-.moves-info {
-    color: #FF9800;
-    font-size: 1rem;
+.mute-button {
+    background: none !important;
+    border: none !important;
+    color: white !important;
+    font-size: 24px !important;
+    cursor: pointer !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 /* Game completion modal styling */
@@ -200,16 +225,20 @@ body {
     pointer-events: auto;
 }
 
+.modal.hidden {
+    display: none;
+}
+
 .modal-content {
     background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-    padding: 40px;
+    padding: 4vh 3vw;
     border-radius: 20px;
     text-align: center;
     animation: modalAppear 0.5s ease;
-    pointer-events: auto;
-    z-index: 1001;
     box-shadow: 0 20px 40px rgba(0,0,0,0.3);
     max-width: 90vw;
+    pointer-events: auto;
+    z-index: 1001;
 }
 
 @keyframes modalAppear {
@@ -225,8 +254,8 @@ body {
 
 .modal h2 {
     color: white;
-    font-size: 3rem;
-    margin-bottom: 15px;
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin-bottom: 1.5vh;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     animation: titleBounce 1s ease infinite;
 }
@@ -238,8 +267,8 @@ body {
 
 .modal p {
     color: white;
-    font-size: 1.2rem;
-    margin-bottom: 20px;
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    margin-bottom: 2vh;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     line-height: 1.4;
 }
@@ -248,8 +277,8 @@ body {
     background: #4caf50;
     color: white;
     border: none;
-    padding: 15px 30px;
-    font-size: 1.5rem;
+    padding: 1.5vh 3vw;
+    font-size: clamp(1.2rem, 2.5vw, 1.5rem);
     border-radius: 10px;
     cursor: pointer;
     font-weight: bold;
@@ -259,7 +288,7 @@ body {
     z-index: 1002;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 1vw;
     margin: 0 auto;
 }
 
@@ -275,50 +304,6 @@ body {
 
 .play-again-btn i {
     font-size: 1.2rem;
-}
-
-.hidden {
-    display: none;
-}
-
-/* Back button styling - Maximum specificity override */
-html body .game-area .back-button,
-html body .back-button,
-body .back-button,
-.back-button {
-    position: fixed !important;
-    bottom: 20px !important;
-    left: 20px !important;
-    top: unset !important;
-    background: rgba(0, 0, 0, 0.7) !important;
-    color: white !important;
-    text-decoration: none !important;
-    padding: 12px 20px !important;
-    border-radius: 25px !important;
-    font-size: 1rem !important;
-    font-weight: bold !important;
-    z-index: 1004 !important;
-    transition: all 0.3s ease !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-    height: auto !important;
-    width: auto !important;
-    max-height: 50px !important;
-    max-width: 200px !important;
-    margin: 0 !important;
-    transform: none !important;
-}
-
-.back-button:hover {
-    background: rgba(0, 0, 0, 0.9);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-}
-
-.back-button i {
-    font-size: 1rem;
 }
 
 /* Drag and drop visual feedback */
@@ -382,173 +367,10 @@ body .back-button,
 
 /* Focus states for accessibility */
 .play-again-btn:focus,
-.back-button:focus {
+.back-button:focus,
+.mute-button:focus {
     outline: 3px solid rgba(255, 255, 255, 0.8);
     outline-offset: 2px;
-}
-
-/* Responsive design for full screen */
-@media (max-width: 768px) {
-    .game-area {
-        height: 100vh;
-    }
-    
-    .stacks-container {
-        height: calc(100vh - 60px);
-    }
-    
-    .grass-band {
-        height: 60px !important;
-    }
-    
-    .rainbow-container {
-        bottom: 60px;
-    }
-    
-    .modal h2 {
-        font-size: 2.5rem;
-    }
-    
-    .play-again-btn {
-        font-size: 1.3rem;
-        padding: 12px 24px;
-    }
-    
-    .game-info-container {
-        top: 15px;
-        right: 15px;
-        padding: 12px;
-        min-width: 160px;
-    }
-    
-    .game-info-container > div {
-        font-size: 0.9rem;
-        margin-bottom: 6px;
-    }
-    
-    .level-info {
-        font-size: 1rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .stacks-container {
-        height: calc(100vh - 50px);
-    }
-    
-    .grass-band {
-        height: 50px !important;
-    }
-    
-    .rainbow-container {
-        bottom: 50px;
-    }
-    
-    .modal-content {
-        padding: 30px 20px;
-        margin: 0 10px;
-    }
-    
-    .modal h2 {
-        font-size: 2rem;
-    }
-    
-    .modal p {
-        font-size: 1rem;
-    }
-    
-    .play-again-btn {
-        font-size: 1.2rem;
-        padding: 10px 20px;
-    }
-    
-    .back-button {
-        padding: 8px 16px;
-        font-size: 0.9rem;
-    }
-    
-    .game-info-container {
-        top: 10px;
-        right: 10px;
-        padding: 10px;
-        min-width: 140px;
-    }
-    
-    .game-info-container > div {
-        font-size: 0.8rem;
-        margin-bottom: 5px;
-    }
-    
-    .level-info {
-        font-size: 0.9rem;
-    }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    .stacks-container {
-        border: 3px solid #000;
-    }
-    
-    .block rect {
-        stroke-width: 4;
-    }
-    
-    .container {
-        stroke-width: 3;
-    }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    .block,
-    .container,
-    .teddy,
-    .modal-content,
-    .modal h2,
-    .back-button,
-    .play-again-btn {
-        animation: none !important;
-        transition: none !important;
-    }
-    
-    .block:hover {
-        transform: none;
-    }
-    
-    @keyframes modalAppear {
-        from, to { 
-            opacity: 1; 
-            transform: scale(1) translateY(0); 
-        }
-    }
-    
-    @keyframes titleBounce {
-        from, to { transform: translateY(0); }
-    }
-}
-
-/* Print styles (hide interactive elements) */
-@media print {
-    .back-button,
-    .modal,
-    .rainbow-container,
-    .grass-band,
-    .game-info-container {
-        display: none;
-    }
-    
-    .stacks-container {
-        box-shadow: none;
-        border: 2px solid #000;
-    }
-}
-
-/* Block number visibility enhancement */
-.block text {
-    text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
-    font-family: Arial, sans-serif;
-    letter-spacing: 0.5px;
 }
 
 /* Success/failure visual feedback */
@@ -642,4 +464,166 @@ body .back-button,
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
+}
+
+/* Block number visibility enhancement */
+.block text {
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+    font-family: Arial, sans-serif;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .game-area {
+        height: 100vh;
+    }
+    
+    .stacks-container {
+        height: calc(100vh - 60px);
+    }
+    
+    .grass-band {
+        height: 60px !important;
+    }
+    
+    .rainbow-container {
+        bottom: 60px;
+    }
+    
+    .modal h2 {
+        font-size: 2.5rem;
+    }
+    
+    .play-again-btn {
+        font-size: 1.3rem;
+        padding: 12px 24px;
+    }
+    
+    .back-button {
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+        min-width: 100px !important;
+    }
+    
+    .mute-container {
+        width: 50px !important;
+        height: 50px !important;
+    }
+    
+    .mute-button {
+        font-size: 20px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .stacks-container {
+        height: calc(100vh - 50px);
+    }
+    
+    .grass-band {
+        height: 50px !important;
+    }
+    
+    .rainbow-container {
+        bottom: 50px;
+    }
+    
+    .modal-content {
+        padding: 30px 20px;
+        margin: 0 10px;
+    }
+    
+    .modal h2 {
+        font-size: 2rem;
+    }
+    
+    .modal p {
+        font-size: 1rem;
+    }
+    
+    .play-again-btn {
+        font-size: 1.2rem;
+        padding: 10px 20px;
+    }
+    
+    .back-button {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+        min-width: 80px !important;
+    }
+    
+    .back-button i {
+        font-size: 12px !important;
+    }
+    
+    .mute-container {
+        width: 45px !important;
+        height: 45px !important;
+    }
+    
+    .mute-button {
+        font-size: 18px !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .stacks-container {
+        border: 3px solid #000;
+    }
+    
+    .block rect {
+        stroke-width: 4;
+    }
+    
+    .container {
+        stroke-width: 3;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .block,
+    .container,
+    .teddy,
+    .modal-content,
+    .modal h2,
+    .back-button,
+    .play-again-btn,
+    .mute-container {
+        animation: none !important;
+        transition: none !important;
+    }
+    
+    .block:hover {
+        transform: none;
+    }
+    
+    @keyframes modalAppear {
+        from, to { 
+            opacity: 1; 
+            transform: scale(1) translateY(0); 
+        }
+    }
+    
+    @keyframes titleBounce {
+        from, to { transform: translateY(0); }
+    }
+}
+
+/* Print styles (hide interactive elements) */
+@media print {
+    .back-button,
+    .modal,
+    .rainbow-container,
+    .grass-band,
+    .mute-container {
+        display: none;
+    }
+    
+    .stacks-container {
+        box-shadow: none;
+        border: 2px solid #000;
+    }
 }
