@@ -229,9 +229,10 @@ class StacksRenderer {
     createTeddy(xPercent, yPercent, imageUrl) {
         const x = vwToPx(xPercent);
         const y = vhToPx(yPercent);
-        const size = vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT) * 0.8;
+        const baseSize = vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT) * 0.8;
+        const size = baseSize * STACKS_CONFIG.TEDDY_SIZE_MULTIPLIER; // CHANGED: 100% larger
         
-        console.log('Creating teddy at:', x, y, 'with image:', imageUrl);
+        console.log('Creating teddy at:', x, y, 'with size:', size, 'and image:', imageUrl);
         
         const teddy = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         teddy.setAttribute('class', 'teddy');
@@ -564,6 +565,12 @@ class StacksRenderer {
         const blocks = this.svg.querySelectorAll('.block');
         
         for (let block of blocks) {
+            // Skip completed tower blocks - they should not be draggable
+            if (block.classList.contains('completed-tower')) {
+                console.log('Skipping completed tower block:', block.getAttribute('data-number'));
+                continue;
+            }
+            
             const rect = block._rect;
             const x = parseFloat(rect.getAttribute('x'));
             const y = parseFloat(rect.getAttribute('y'));
@@ -573,18 +580,19 @@ class StacksRenderer {
             console.log(`Checking block ${block.getAttribute('data-number')}:`, {
                 bounds: { x, y, width, height },
                 point: point,
-                inside: point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height
+                inside: point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height,
+                isCompleted: block.classList.contains('completed-tower')
             });
             
             // Check if point is inside the block's rectangle
             if (point.x >= x && point.x <= x + width && 
                 point.y >= y && point.y <= y + height) {
-                console.log('✅ Found block at point:', block.getAttribute('data-number'));
+                console.log('✅ Found draggable block at point:', block.getAttribute('data-number'));
                 return block;
             }
         }
         
-        console.log('❌ No block found at point');
+        console.log('❌ No draggable block found at point');
         return null;
     }
     
@@ -989,6 +997,8 @@ class StacksRenderer {
                 element.classList.add('completed-tower');
                 element.classList.remove('new-tower-element');
                 element.style.opacity = STACKS_CONFIG.COMPLETED_TOWER_OPACITY;
+                element.style.pointerEvents = 'none'; // ADDED: Make completed towers non-interactive
+                element.style.cursor = 'default';     // ADDED: Remove grab cursor
                 
             } else if (element.classList.contains('teddy')) {
                 const currentTeddyX = parseFloat(element.getAttribute('x'));
