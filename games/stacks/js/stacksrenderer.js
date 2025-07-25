@@ -11,17 +11,15 @@ class StacksRenderer {
     }
     
     setupEventListeners() {
-        // Mouse events
-        this.svg.addEventListener('mousedown', (e) => this.onDragStart(e));
-        this.svg.addEventListener('mousemove', (e) => this.onDragMove(e));
-        this.svg.addEventListener('mouseup', (e) => this.onDragEnd(e));
+        // Global mouse/touch events for drag move and end
+        document.addEventListener('mousemove', (e) => this.onDragMove(e));
+        document.addEventListener('mouseup', (e) => this.onDragEnd(e));
         
         // Touch events for mobile
-        this.svg.addEventListener('touchstart', (e) => this.onDragStart(e));
-        this.svg.addEventListener('touchmove', (e) => this.onDragMove(e));
-        this.svg.addEventListener('touchend', (e) => this.onDragEnd(e));
+        document.addEventListener('touchmove', (e) => this.onDragMove(e));
+        document.addEventListener('touchend', (e) => this.onDragEnd(e));
         
-        // Prevent default touch behaviors
+        // Prevent default touch behaviors on SVG
         this.svg.addEventListener('touchstart', (e) => e.preventDefault());
         this.svg.addEventListener('touchmove', (e) => e.preventDefault());
     }
@@ -83,6 +81,18 @@ class StacksRenderer {
         blockGroup._originalY = y;
         blockGroup._number = number;
         blockGroup._isWide = isWide;
+        
+        // Add event listeners directly to the block
+        blockGroup.addEventListener('mousedown', (e) => {
+            console.log('Mouse down on block', number);
+            this.onDragStart(e);
+        });
+        
+        blockGroup.addEventListener('touchstart', (e) => {
+            console.log('Touch start on block', number);
+            e.preventDefault();
+            this.onDragStart(e);
+        });
         
         return blockGroup;
     }
@@ -177,39 +187,47 @@ class StacksRenderer {
     
     onDragStart(e) {
         e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('onDragStart called, event:', e.type);
+        
+        // Get the block element directly from the event target
+        let blockElement = e.currentTarget;
+        if (!blockElement || !blockElement.classList.contains('block')) {
+            console.log('No valid block element found');
+            return;
+        }
+        
+        console.log('Starting drag on block:', blockElement.getAttribute('data-number'));
         
         const point = this.getEventPoint(e);
-        const element = this.getElementAtPoint(point.x, point.y);
+        console.log('Drag start at point:', point);
         
-        console.log('Drag start at:', point, 'Element found:', element);
+        this.isDragging = true;
+        this.draggedElement = blockElement;
         
-        if (element && element.classList.contains('block')) {
-            this.isDragging = true;
-            this.draggedElement = element;
-            
-            // Get current position from the text element (most reliable)
-            const textElement = element._text;
-            const elementX = parseFloat(textElement.getAttribute('x'));
-            const elementY = parseFloat(textElement.getAttribute('y')) - 6; // Adjust for text offset
-            
-            this.dragOffset.x = elementX - point.x;
-            this.dragOffset.y = elementY - point.y;
-            
-            // Visual feedback
-            element.style.cursor = 'grabbing';
-            element._rect.setAttribute('stroke-width', '4');
-            element.classList.add('block-dragging');
-            
-            // Bring to front
-            this.svg.appendChild(element);
-            
-            // Audio feedback for drag start
-            this.gameController.playDragStartSound();
-            
-            console.log('Drag started successfully');
-        } else {
-            console.log('No draggable element found');
-        }
+        // Get current position from the text element (most reliable)
+        const textElement = blockElement._text;
+        const elementX = parseFloat(textElement.getAttribute('x'));
+        const elementY = parseFloat(textElement.getAttribute('y')) - 6; // Adjust for text offset
+        
+        this.dragOffset.x = elementX - point.x;
+        this.dragOffset.y = elementY - point.y;
+        
+        console.log('Drag offset:', this.dragOffset);
+        
+        // Visual feedback
+        blockElement.style.cursor = 'grabbing';
+        blockElement._rect.setAttribute('stroke-width', '4');
+        blockElement.classList.add('block-dragging');
+        
+        // Bring to front
+        this.svg.appendChild(blockElement);
+        
+        // Audio feedback for drag start
+        this.gameController.playDragStartSound();
+        
+        console.log('Drag started successfully');
     }
     
     onDragMove(e) {
