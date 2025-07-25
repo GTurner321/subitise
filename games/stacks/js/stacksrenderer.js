@@ -658,11 +658,13 @@ class StacksRenderer {
         shadow.setAttribute('y', centerY - dimensions.height/2 + 3);
         
         text.setAttribute('x', centerX);
-        text.setAttribute('y', centerY + 6);
+        text.setAttribute('y', centerY); // CHANGED: Removed +6 offset for better centering
         
-        // Update stored position
+        // Update stored position and percentages
         block._centerX = centerX;
         block._centerY = centerY;
+        block._xPercent = pxToVw(centerX);
+        block._yPercent = pxToVh(centerY);
     }
     
     getDistanceToContainer(container, x, y) {
@@ -691,7 +693,7 @@ class StacksRenderer {
         const currentCenterX = vwToPx(STACKS_CONFIG.TOWER_CENTER_X_PERCENT);
         const deltaX = targetX - currentCenterX;
         
-        // Animate all blocks and teddy to new position
+        // Mark blocks as completed and set opacity
         const elements = [...towerBlocks];
         if (teddy) elements.push(teddy);
         
@@ -701,9 +703,19 @@ class StacksRenderer {
             if (element.classList.contains('block')) {
                 const newX = element._centerX + deltaX;
                 this.updateBlockPosition(element, newX, element._centerY);
+                
+                // Mark as completed tower and set opacity
+                element.classList.add('completed-tower');
+                element.classList.remove('new-tower-element');
+                element.style.opacity = STACKS_CONFIG.COMPLETED_TOWER_OPACITY;
+                
             } else if (element.classList.contains('teddy')) {
                 const currentTeddyX = parseFloat(element.getAttribute('x'));
                 element.setAttribute('x', currentTeddyX + deltaX);
+                
+                // Mark teddy as completed tower element
+                element.classList.add('completed-tower');
+                element.style.opacity = STACKS_CONFIG.COMPLETED_TOWER_OPACITY;
             }
         });
         
