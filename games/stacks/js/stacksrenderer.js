@@ -84,13 +84,19 @@ class StacksRenderer {
         let clientX, clientY;
         
         if (e.touches && e.touches.length > 0) {
+            // For touchstart and touchmove
             clientX = e.touches[0].clientX;
             clientY = e.touches[0].clientY;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            // For touchend - coordinates are in changedTouches
+            clientX = e.changedTouches[0].clientX;
+            clientY = e.changedTouches[0].clientY;
         } else if (e.clientX !== undefined && e.clientY !== undefined) {
+            // For mouse events
             clientX = e.clientX;
             clientY = e.clientY;
         } else {
-            console.error('Unable to get event coordinates from:', e);
+            console.error('Unable to get event coordinates from:', e.type, e);
             return { x: 0, y: 0 }; // Fallback
         }
         
@@ -100,6 +106,7 @@ class StacksRenderer {
         const y = clientY - rect.top;
         
         console.log('getEventPoint:', {
+            eventType: e.type,
             clientX, clientY,
             rectLeft: rect.left, rectTop: rect.top,
             finalX: x, finalY: y
@@ -474,33 +481,60 @@ class StacksRenderer {
         const point = this.getEventPoint(e);
         console.log('Drag end at pixel coordinates:', point);
         
-        // Safety check for valid coordinates
-        if (isNaN(point.x) || isNaN(point.y)) {
-            console.error('Invalid drag end coordinates, returning block to ground');
+        // Safety check for valid coordinates - if we get fallback coordinates, abort gracefully
+        if ((point.x === 0 && point.y === 0) || isNaN(point.x) || isNaN(point.y)) {
+            console.warn('Invalid drag end coordinates detected, returning block to original position');
+            
+            // Reset visual state first
+            this.draggedElement.style.cursor = 'grab';
+            this.draggedElement._rect.setAttribute('stroke-width', '3');
+            this.draggedElement.classList.remove('block-dragging');
+            this.clearContainerHover();
+            
+            // Return block to a safe ground position
             this.returnBlockToGround(this.draggedElement);
-        } else {
-            // Calculate drop position
-            const dropX = point.x + this.dragOffset.x;
-            const dropY = point.y + this.dragOffset.y;
             
-            console.log('Drop position:', { dropX, dropY }, 'Offset:', this.dragOffset);
+            // Reset drag state
+            this.isDragging = false;
+            this.draggedElement = null;
+            this.dragOffset = { x: 0, y: 0 };
             
-            // Safety check for calculated position
-            if (isNaN(dropX) || isNaN(dropY)) {
-                console.error('Invalid drop position calculated, returning block to ground');
-                this.returnBlockToGround(this.draggedElement);
-            } else {
-                // Try to drop in container or place on grass
-                const dropped = this.handleDrop(dropX, dropY);
-                
-                // Audio feedback
-                if (dropped) {
-                    this.gameController.playDropSound();
-                } else {
-                    this.gameController.playReturnSound();
-                }
-            }
+            this.gameController.playReturnSound();
+            return;
         }
+        
+        // Calculate drop position
+        const dropX = point.x + this.dragOffset.x;
+        const dropY = point.y + this.dragOffset.y;
+        
+        console.log('Drop position:', { dropX, dropY }, 'Offset:', this.dragOffset);
+        
+        // Safety check for calculated position - ensure it's within reasonable bounds
+        const svgBounds = this.svg.getBoundingClientRect();
+        if (isNaN(dropX) || isNaN(dropY) || dropX < -100 || dropY < -100 || 
+            dropX > svgBounds.width + 100 || dropY > svgBounds.height + 100) {
+            console.warn('Invalid drop position calculated, returning block to ground');
+            
+            // Reset visual state first
+            this.draggedElement.style.cursor = 'grab';
+            this.draggedElement._rect.setAttribute('stroke-width', '3');
+            this.draggedElement.classList.remove('block-dragging');
+            this.clearContainerHover();
+            
+            // Return block to a safe ground position
+            this.returnBlockToGround(this.draggedElement);
+            
+            // Reset drag state
+            this.isDragging = false;
+            this.draggedElement = null;
+            this.dragOffset = { x: 0, y: 0 };
+            
+            this.gameController.playReturnSound();
+            return;
+        }
+        
+        // Try to drop in container or place on grass
+        const dropped = this.handleDrop(dropX, dropY);
         
         // Reset visual state
         this.draggedElement.style.cursor = 'grab';
@@ -515,7 +549,14 @@ class StacksRenderer {
         this.draggedElement = null;
         this.dragOffset = { x: 0, y: 0 };
         
-        console.log('Drag ended');
+        // Audio feedback
+        if (dropped) {
+            this.gameController.playDropSound();
+        } else {
+            this.gameController.playReturnSound();
+        }
+        
+        console.log('Drag ended, dropped:', dropped);
     }
     
     findBlockAtPoint(point) {
