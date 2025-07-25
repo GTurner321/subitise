@@ -188,13 +188,13 @@ class StacksRenderer {
         return teddy;
     }
     
-    renderTower(blocks, containers, centerXPercent, baseYPercent, isWide = false) {
+    renderTower(blocks, containers, centerXPercent = null, baseYPercent = null, isWide = false) {
         // Use percentage-based positioning throughout
         const centerX = centerXPercent || STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
         const baseY = baseYPercent || STACKS_CONFIG.TOWER_BASE_Y_PERCENT;
         const blockHeightPercent = STACKS_CONFIG.BLOCK_HEIGHT_PERCENT;
         
-        console.log('renderTower called with', blocks.length, 'blocks');
+        console.log('renderTower called with', blocks.length, 'blocks', containers.length, 'containers');
         
         // Clear previous tower elements
         this.clearTower();
@@ -215,13 +215,15 @@ class StacksRenderer {
                 groundXPercent, 
                 STACKS_CONFIG.GROUND_Y_PERCENT, 
                 block.color,
-                isWide
+                block.isWide || isWide
             );
             this.svg.appendChild(blockElement);
             console.log('Added block', block.number, 'at', groundXPercent + '%,', STACKS_CONFIG.GROUND_Y_PERCENT + '%');
         });
         
         console.log('Tower render complete. SVG children:', this.svg.children.length);
+        console.log('Containers in DOM:', this.svg.querySelectorAll('.container').length);
+        console.log('Blocks in DOM:', this.svg.querySelectorAll('.block').length);
     }
     
     calculateGroundPositionPercent(index, totalBlocks) {
