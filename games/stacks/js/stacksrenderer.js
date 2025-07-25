@@ -36,6 +36,31 @@ class StacksRenderer {
         this.svg.addEventListener('click', (e) => {
             console.log('SVG click detected at:', e.clientX, e.clientY);
             console.log('SVG target:', e.target);
+            
+            // Convert screen coordinates to SVG coordinates
+            const rect = this.svg.getBoundingClientRect();
+            const svgX = e.clientX - rect.left;
+            const svgY = e.clientY - rect.top;
+            console.log('SVG coordinates:', svgX, svgY);
+            
+            // Check what elements are at the SVG coordinates
+            const svgElements = this.svg.querySelectorAll('.block');
+            console.log('All blocks in SVG:', svgElements.length);
+            svgElements.forEach((block, index) => {
+                const blockRect = block.getBoundingClientRect();
+                const blockSvgRect = {
+                    left: blockRect.left - rect.left,
+                    top: blockRect.top - rect.top,
+                    right: blockRect.right - rect.left,
+                    bottom: blockRect.bottom - rect.top
+                };
+                console.log(`Block ${block.getAttribute('data-number')} bounds:`, blockSvgRect);
+                
+                if (svgX >= blockSvgRect.left && svgX <= blockSvgRect.right && 
+                    svgY >= blockSvgRect.top && svgY <= blockSvgRect.bottom) {
+                    console.log(`Click is inside block ${block.getAttribute('data-number')}!`);
+                }
+            });
         });
         
         console.log('Event listeners set up on SVG:', this.svg);
@@ -165,6 +190,14 @@ class StacksRenderer {
         
         console.log('Block created with number:', number, 'at position:', x, y, 'size:', blockWidth, 'x', blockHeight);
         console.log('Block group element:', blockGroup);
+        
+        // Test if the block is actually where we think it is
+        setTimeout(() => {
+            const bbox = blockGroup.getBBox();
+            const clientRect = blockGroup.getBoundingClientRect();
+            console.log(`Block ${number} BBox:`, bbox);
+            console.log(`Block ${number} ClientRect:`, clientRect);
+        }, 100);
         
         return blockGroup;
     }
