@@ -116,10 +116,19 @@ class PlusOneGameController {
             e.stopPropagation();
             this.toggleAudio();
         });
-        this.muteButton.addEventListener('touchstart', (e) => {
+        
+        this.muteButton.addEventListener('touchend', (e) => {
             e.preventDefault();
             e.stopPropagation();
             this.toggleAudio();
+        });
+        
+        this.muteButton.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+        
+        this.muteButton.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
         });
         
         muteContainer.addEventListener('mouseenter', () => {
@@ -626,13 +635,14 @@ class PlusOneGameController {
         this.rightInputBox.classList.remove('flashing', 'filled', 'fixed-one');
         this.totalInputBox.classList.remove('flashing', 'filled');
         
-        if (this.currentLevel <= 2) {
-            // Levels 1-2: All boxes start empty and need to be filled by user
+        // FIXED: Level 5 should use pictures and empty boxes like levels 1-2
+        if (this.currentLevel <= 2 || this.currentLevel === 5) {
+            // Levels 1-2 and 5: All boxes start empty and need to be filled by user
             this.leftFilled = false;
             this.rightFilled = false;
             this.totalFilled = false;
         } else {
-            // Levels 3+: Pre-fill left and right boxes with CURRENT question numbers
+            // Levels 3-4, 6-10: Pre-fill left and right boxes with CURRENT question numbers
             this.leftInputBox.textContent = this.currentNumber;
             this.leftInputBox.classList.add('filled');
             this.leftFilled = true;
