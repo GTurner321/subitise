@@ -1300,3 +1300,116 @@
         font-size: 0.4rem !important;
     }
 }
+
+/* Stacks game preview specific styles */
+.stacks-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 100%;
+    padding: 0 8px;
+}
+
+.preview-tower {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+}
+
+.preview-block {
+    width: 20px;
+    height: 12px;
+    border-radius: 2px;
+    border: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    animation: blockFloat 3s ease-in-out infinite;
+}
+
+.bottom-block {
+    background: #FF6B9D;
+    animation-delay: 0s;
+}
+
+.middle-block {
+    background: #4ECDC4;
+    animation-delay: 0.5s;
+}
+
+.top-block {
+    background: #45B7D1;
+    animation-delay: 1s;
+}
+
+.block-number {
+    font-size: 7px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.7);
+}
+
+.preview-arrow i {
+    font-size: 1.2rem !important;
+    color: #4CAF50 !important;
+    animation: arrowPulse 2s ease-in-out infinite !important;
+}
+
+@keyframes blockFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+@keyframes arrowPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+}
+
+/* Responsive adjustments for stacks preview */
+@media (max-width: 768px) {
+    .preview-block {
+        width: 18px;
+        height: 11px;
+        font-size: 7px;
+    }
+    
+    .block-number {
+        font-size: 6px;
+    }
+    
+    .preview-arrow i {
+        font-size: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .preview-block {
+        width: 16px;
+        height: 10px;
+        font-size: 6px;
+    }
+    
+    .block-number {
+        font-size: 5px;
+    }
+    
+    .preview-arrow i {
+        font-size: 0.9rem !important;
+    }
+}
