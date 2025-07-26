@@ -351,8 +351,8 @@ function getBlockDimensions(isWide = false) {
     return { width, height };
 }
 
-// Updated number generation helper functions for consecutive-only approach
-function generateConsecutiveNumbersInRange(min, max, count) {
+// Number generation helper functions - UPDATED for consecutive-only approach
+function generateConsecutiveNumbers(min, max, count) {
     const maxStart = max - count + 1;
     if (maxStart < min) return null;
     
