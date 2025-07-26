@@ -132,7 +132,7 @@ const STACKS_CONFIG = {
     ],
     
     // Game settings
-    TOTAL_QUESTIONS: 8,
+    TOTAL_QUESTIONS: 6,  // FIXED: Changed from 8 to 6 as per requirement
     FINAL_RAINBOW_ARCS: 3
 };
 
@@ -166,56 +166,76 @@ function generateRandomGroundPosition(existingBlocks = []) {
     return { x: selectedPosition.x, y: selectedPosition.y };
 }
 
-// SIMPLIFIED: For user-placed and displaced blocks - free placement with overlap rules
-function generateUserPlacedGroundPosition(excludeBlocks = []) {
-    const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
-    const exclusionZone = STACKS_CONFIG.GROUND_EXCLUSION_ZONE_PERCENT;
+// SIMPLIFIED: For user-placed blocks - free placement with overlap rendering
+function generateUserPlacedGroundPosition(dropX, dropY, excludeBlocks = []) {
+    // Convert pixel coordinates to percentages
+    const xPercent = pxToVw(dropX);
+    const yPercent = pxToVh(dropY);
     
-    let attempts = 0;
-    const maxAttempts = 50;
+    // Ensure block is within grass area
+    const grassTop = STACKS_CONFIG.GRASS_Y_MIN_PERCENT;
+    const grassBottom = STACKS_CONFIG.GRASS_Y_MAX_PERCENT;
+    let adjustedY = Math.max(grassTop, Math.min(grassBottom, yPercent));
     
-    while (attempts < maxAttempts) {
-        attempts++;
-        
-        // Generate random position in grass area (CSS coordinates: 80-100% from top)
-        let x = 15 + Math.random() * 70; // Spread across screen
-        
-        // Avoid tower area
-        if (Math.abs(x - centerX) < exclusionZone) {
-            continue;
+    // Check for overlap with existing blocks
+    const minDistance = STACKS_CONFIG.BLOCK_MIN_DISTANCE_PERCENT;
+    let overlappingBlocks = [];
+    
+    for (let block of excludeBlocks) {
+        const distance = Math.abs(xPercent - block.x);
+        if (distance < minDistance) {
+            overlappingBlocks.push(block);
         }
-        
-        // Check for overlap with existing blocks
-        let frontmostBlock = null;
-        const minDistance = STACKS_CONFIG.BLOCK_MIN_DISTANCE_PERCENT;
-        
-        for (let block of excludeBlocks) {
-            const distance = Math.abs(x - block.x);
-            if (distance < minDistance) {
-                // Found overlapping block - track the frontmost (HIGHEST Y in CSS = closest to bottom)
-                if (!frontmostBlock || block.y > frontmostBlock.y) {
-                    frontmostBlock = block;
-                }
-            }
-        }
-        
-        let y;
-        if (frontmostBlock) {
-            // Place in front of (higher Y than) the frontmost overlapping block
-            y = Math.min(frontmostBlock.y + 2, STACKS_CONFIG.GRASS_Y_MAX_PERCENT - 2);
-        } else {
-            // No overlap - place anywhere in grass area (80-100% in CSS coordinates)
-            y = STACKS_CONFIG.GRASS_Y_MIN_PERCENT + Math.random() * 15;
-        }
-        
-        return { x, y };
     }
     
-    // Fallback
-    return { 
-        x: 25 + Math.random() * 50, 
-        y: STACKS_CONFIG.GRASS_Y_MIN_PERCENT + Math.random() * 10 
-    };
+    if (overlappingBlocks.length > 0) {
+        // Find the frontmost (highest Y value = closest to bottom) overlapping block
+        const frontmostBlock = overlappingBlocks.reduce((front, current) => 
+            current.y > front.y ? current : front
+        );
+        
+        // Place in front of (higher Y than) the frontmost block
+        adjustedY = Math.min(frontmostBlock.y + 3, grassBottom - 1);
+    }
+    
+    return { x: xPercent, y: adjustedY };
+}
+
+// SIMPLIFIED: For displaced blocks - place close to tower with overlap handling
+function generateDisplacedBlockPosition(excludeBlocks = []) {
+    const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+    
+    // Place close to tower (within 20% either side)
+    const side = Math.random() < 0.5 ? -1 : 1; // Left or right of tower
+    const x = centerX + (side * (10 + Math.random() * 15)); // 10-25% away from center
+    
+    // Start in grass area
+    const grassTop = STACKS_CONFIG.GRASS_Y_MIN_PERCENT;
+    const grassBottom = STACKS_CONFIG.GRASS_Y_MAX_PERCENT;
+    let y = grassTop + Math.random() * 10; // Top part of grass area
+    
+    // Check for overlap with existing blocks
+    const minDistance = STACKS_CONFIG.BLOCK_MIN_DISTANCE_PERCENT;
+    let overlappingBlocks = [];
+    
+    for (let block of excludeBlocks) {
+        const distance = Math.abs(x - block.x);
+        if (distance < minDistance) {
+            overlappingBlocks.push(block);
+        }
+    }
+    
+    if (overlappingBlocks.length > 0) {
+        // Find the frontmost overlapping block
+        const frontmostBlock = overlappingBlocks.reduce((front, current) => 
+            current.y > front.y ? current : front
+        );
+        
+        // Place in front of the frontmost block
+        y = Math.min(frontmostBlock.y + 3, grassBottom - 1);
+    }
+    
+    return { x, y };
 }
 
 // Helper function for container placement
