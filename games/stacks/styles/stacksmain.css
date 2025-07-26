@@ -34,13 +34,13 @@ body {
     visibility: hidden !important;
 }
 
-/* FIXED: Grass band positioned to match JavaScript grass calculations (75-82%) */
+/* FIXED: Grass band positioned to match JavaScript grass calculations (69-76% = bottom 24-31vh) */
 .grass-band {
     position: fixed;
-    bottom: 18vh; /* UPDATED: Moved up to align with 75-82% grass area */
+    bottom: 24vh; /* UPDATED: Moved to align with 69-76% grass area (100-76=24) */
     left: 0;
     width: 100%;
-    height: 7vh; /* UPDATED: Height matches the 7% grass area (82% - 75%) */
+    height: 7vh; /* Height matches the 7% grass area (76% - 69%) */
     background: linear-gradient(to top, 
         rgba(144, 238, 144, 0.6),
         rgba(152, 251, 152, 0.7),
@@ -81,7 +81,7 @@ body {
 /* Rainbow container */
 .rainbow-container {
     position: absolute;
-    bottom: 18vh; /* UPDATED: Moved up to match new grass position */
+    bottom: 8vh; /* RESTORED: Back to original position (was bottom: 18vh) */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
@@ -501,12 +501,12 @@ body {
     }
     
     .grass-band {
-        bottom: 12vh !important; /* Adjusted for mobile */
+        bottom: 16vh !important; /* ADJUSTED: Back closer to original mobile position */
         height: 6vh !important;
     }
     
     .rainbow-container {
-        bottom: 12vh; /* Adjusted for mobile */
+        bottom: 6vh; /* RESTORED: Back to lower mobile position */
     }
     
     .modal h2 {
@@ -540,12 +540,12 @@ body {
     }
     
     .grass-band {
-        bottom: 10vh !important;
+        bottom: 14vh !important; /* ADJUSTED: Back closer to original small mobile position */
         height: 5vh !important;
     }
     
     .rainbow-container {
-        bottom: 10vh;
+        bottom: 6vh; /* RESTORED: Back to original small mobile position */
     }
     
     .modal-content {
