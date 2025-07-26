@@ -181,7 +181,7 @@ class StacksRenderer {
         container.setAttribute('stroke-dasharray', '5,5');
         container.setAttribute('rx', '8');
         container.setAttribute('ry', '8');
-        container.setAttribute('opacity', '0.8');
+        container.setAttribute('opacity', STACKS_CONFIG.CONTAINER_OPACITY); // FIXED: Use config opacity
         
         // Store position data
         container._centerX = x;
@@ -742,13 +742,14 @@ class StacksRenderer {
         // Clear any container association
         block._container = null;
         
-        // Use the new user-placed positioning system
+        // FIXED: Use displaced block positioning instead of user placement for pulled blocks
         const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
             x: b._xPercent,
             y: b._yPercent
         }));
         
-        const groundPos = generateUserPlacedGroundPosition(existingBlocks);
+        // Use displaced positioning (close to tower with overlap handling)
+        const groundPos = generateDisplacedBlockPosition(existingBlocks);
         const groundX = vwToPx(groundPos.x);
         const groundY = vhToPx(groundPos.y);
         
