@@ -616,13 +616,16 @@ class StacksRenderer {
         const xPercent = pxToVw(x);
         const yPercent = pxToVh(y);
         
-        // Ensure block is in grass area
-        const grassTop = STACKS_CONFIG.GRASS_BLOCK_ZONE_MIN;
-        const grassBottom = STACKS_CONFIG.GRASS_BLOCK_ZONE_MAX;
-        const adjustedYPercent = Math.max(grassTop, Math.min(grassBottom, yPercent));
+        // For user-placed blocks, use the new overlap positioning
+        const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
+            x: b._xPercent,
+            y: b._yPercent
+        }));
         
-        // Apply gravity to bring to grass level
-        this.applyGravity(block, x, adjustedYPercent);
+        const adjustedPos = generateUserPlacedGroundPosition(existingBlocks);
+        
+        // Apply gravity to bring to adjusted grass level
+        this.applyGravity(block, vwToPx(adjustedPos.x), adjustedPos.y);
         
         // Ensure block remains interactive
         block.style.cursor = 'grab';
@@ -663,13 +666,13 @@ class StacksRenderer {
         // Remove block from its current container
         block._container = null;
         
-        // SIMPLIFIED: Find a spot on the grass using the new positioning system
+        // Use the new user-placed positioning for displaced blocks
         const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
             x: b._xPercent,
             y: b._yPercent
         }));
         
-        const displacementPos = generateRandomGroundPosition(existingBlocks);
+        const displacementPos = generateUserPlacedGroundPosition(existingBlocks);
         
         // Convert to pixel coordinates
         const groundX = vwToPx(displacementPos.x);
@@ -738,13 +741,13 @@ class StacksRenderer {
         // Clear any container association
         block._container = null;
         
-        // SIMPLIFIED: Use the new positioning system
+        // Use the new user-placed positioning system
         const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
             x: b._xPercent,
             y: b._yPercent
         }));
         
-        const groundPos = generateRandomGroundPosition(existingBlocks);
+        const groundPos = generateUserPlacedGroundPosition(existingBlocks);
         const groundX = vwToPx(groundPos.x);
         const groundY = vhToPx(groundPos.y);
         
