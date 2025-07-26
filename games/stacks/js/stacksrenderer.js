@@ -1,75 +1,4 @@
-animateCompletedTower(towerBlocks, teddy, targetXPercent, callback) {
-        const duration = STACKS_CONFIG.BLOCK_ANIMATION_DURATION;
-        const targetX = vwToPx(targetXPercent);
-        const currentCenterX = vwToPx(STACKS_CONFIG.TOWER_CENTER_X_PERCENT);
-        const deltaX = targetX - currentCenterX;
-        
-        console.log('Animating tower to target position:', targetXPercent + '%', '(' + targetX + 'px)');
-        
-        // Only animate blocks that are NOT already completed towers
-        const elementsToAnimate = towerBlocks.filter(block => !block.classList.contains('completed-tower'));
-        if (teddy && !teddy.classList.contains('completed-tower')) {
-            elementsToAnimate.push(teddy);
-        }
-        
-        console.log('Animating', elementsToAnimate.length, 'elements (excluding already completed towers)');
-        
-        elementsToAnimate.forEach(element => {
-            element.style.transition = `all ${duration}ms ease-in-out`;
-            
-            if (element.classList.contains('block')) {
-                const newX = element._centerX + deltaX;
-                this.updateBlockPosition(element, newX, element._centerY);
-                
-                // Mark as completed tower and set opacity
-                element.classList.add('completed-tower');
-                element.classList.remove('new-tower-element');
-                element.style.opacity = STACKS_CONFIG.COMPLETED_TOWER_OPACITY;
-                element.style.pointerEvents = 'none'; // Make non-interactive
-                element.style.cursor = 'default';
-                
-                // IMPORTANT: Lock the final position to prevent future movement
-                element._isLocked = true;
-                element._finalX = newX;
-                element._finalY = element._centerY;
-                
-                console.log('Block', element._number, 'locked at final position:', newX, element._centerY);
-                
-            } else if (element.classList.contains('teddy')) {
-                // Handle teddy animation properly
-                const currentTeddyX = parseFloat(element.getAttribute('x'));
-                const newTeddyX = currentTeddyX + deltaX;
-                element.setAttribute('x', newTeddyX);
-                
-                // Update stored position data
-                element._centerX = element._centerX + deltaX;
-                element._xPercent = pxToVw(element._centerX);
-                
-                // Mark teddy as completed tower element
-                element.classList.add('completed-tower');
-                element.style.opacity = STACKS_CONFIG.COMPLETED_TOWER_OPACITY;
-                
-                // Lock teddy position
-                element._isLocked = true;
-                element._finalX = newTeddyX;
-                
-                console.log('Teddy locked at final position:', newTeddyX);
-            }
-        });
-        
-        // Clear transitions after animation and ensure positions are locked
-        setTimeout(() => {
-            elementsToAnimate.forEach(element => {
-                element.style.transition = '';
-                
-                // Double-check lock status
-                if (element._isLocked) {
-                    console.log('Element', element.classList.contains('block') ? element._number : 'teddy', 'confirmed locked');
-                }
-            });
-            if (callback) callback();
-        }, duration);
-    }class StacksRenderer {
+class StacksRenderer {
     constructor(svg, gameController) {
         this.svg = svg;
         this.gameController = gameController;
@@ -175,26 +104,6 @@ animateCompletedTower(towerBlocks, teddy, targetXPercent, callback) {
         
         console.log('Completed tower bounds:', bounds);
         return bounds;
-    }
-    
-    getExistingGroundPositions(excludeBlock = null) {
-        const existingGroundPositions = [];
-        const existingGroundBlocks = this.svg.querySelectorAll('.block:not(.completed-tower)');
-        
-        existingGroundBlocks.forEach(block => {
-            // Skip the block we're excluding and blocks that are in containers
-            if (block === excludeBlock || block._container) {
-                return;
-            }
-            
-            existingGroundPositions.push({
-                x: block._xPercent || pxToVw(block._centerX),
-                y: block._yPercent || pxToVh(block._centerY)
-            });
-        });
-        
-        console.log('Found', existingGroundPositions.length, 'existing ground blocks for positioning reference');
-        return existingGroundPositions;
     }
     
     destroy() {
@@ -429,6 +338,13 @@ animateCompletedTower(towerBlocks, teddy, targetXPercent, callback) {
             fallbackTeddy.setAttribute('stroke', '#654321');
             fallbackTeddy.setAttribute('stroke-width', '2');
             fallbackTeddy.style.opacity = '1';
+            
+            // Store position data for animation
+            fallbackTeddy._centerX = x;
+            fallbackTeddy._centerY = y - size/2;
+            fallbackTeddy._xPercent = pxToVw(x);
+            fallbackTeddy._yPercent = pxToVh(y - size/2);
+            fallbackTeddy._size = size;
             
             // Add a simple face
             const eye1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -1109,7 +1025,7 @@ animateCompletedTower(towerBlocks, teddy, targetXPercent, callback) {
         shadow.setAttribute('y', centerY - dimensions.height/2 + 3);
         
         text.setAttribute('x', centerX);
-        text.setAttribute('y', centerY); // CHANGED: Removed +6 offset for better centering
+        text.setAttribute('y', centerY);
         
         // Update stored position and percentages
         block._centerX = centerX;
@@ -1183,9 +1099,14 @@ animateCompletedTower(towerBlocks, teddy, targetXPercent, callback) {
                 console.log('Block', element._number, 'locked at final position:', newX, element._centerY);
                 
             } else if (element.classList.contains('teddy')) {
+                // Handle teddy animation properly
                 const currentTeddyX = parseFloat(element.getAttribute('x'));
                 const newTeddyX = currentTeddyX + deltaX;
                 element.setAttribute('x', newTeddyX);
+                
+                // Update stored position data
+                element._centerX = element._centerX + deltaX;
+                element._xPercent = pxToVw(element._centerX);
                 
                 // Mark teddy as completed tower element
                 element.classList.add('completed-tower');
