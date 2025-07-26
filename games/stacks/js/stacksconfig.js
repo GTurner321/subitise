@@ -12,10 +12,10 @@ const STACKS_CONFIG = {
     COMPLETED_TOWER_RIGHT_X_PERCENT: 90,
     COMPLETED_TOWER_SPACING_PERCENT: 12, // Spacing for square blocks
     
-    // Block positioning on ground - UPDATED: Raised grass area to match visual grass
-    GROUND_Y_MIN_PERCENT: 75,       // RAISED: Top of grass area (was 89, now 75)
-    GROUND_Y_MAX_PERCENT: 82,       // RAISED: Bottom of grass area (was 92, now 82)
-    GROUND_Y_PERCENT: 78.5,         // RAISED: Default ground level (middle of grass area)
+    // Block positioning on ground - FIXED: Only moved grass up 20%, kept game area same
+    GROUND_Y_MIN_PERCENT: 69,       // MOVED UP 20%: Top of grass area (was 89, now 69 = 89-20)
+    GROUND_Y_MAX_PERCENT: 76,       // MOVED UP 20%: Bottom of grass area (was 92, now 76 = 92-16, keeping 7% height)
+    GROUND_Y_PERCENT: 72.5,         // MOVED UP 20%: Default ground level (middle of grass area)
     GROUND_SPREAD_PERCENT: 70,      // Spread across screen
     GROUND_EXCLUSION_ZONE_PERCENT: 15, // Area around tower to avoid
     
@@ -384,6 +384,12 @@ function generateConsecutiveNumbers(min, max, count) {
     return null;
 }
 
+// BACKUP: Legacy function for compatibility (just calls consecutive version)
+function generateNonConsecutiveNumbers(min, max, count) {
+    console.warn('generateNonConsecutiveNumbers is deprecated, using consecutive numbers instead');
+    return generateConsecutiveNumbers(min, max, count);
+}
+
 function generateConsecutiveFromSet(set, count) {
     if (set.length < count) return null;
     
@@ -416,6 +422,22 @@ function generateConsecutiveHundreds(count) {
     }
     
     return shuffleArray([...numbers]);
+}
+
+// BACKUP: Legacy functions for compatibility
+function generateFromSet(set, count) {
+    console.warn('generateFromSet is deprecated, using consecutive from set instead');
+    return generateConsecutiveFromSet(set, count);
+}
+
+function generateRandomNumbers(min, max, count) {
+    console.warn('generateRandomNumbers is deprecated, using consecutive numbers instead');
+    return generateConsecutiveNumbers(min, max, count);
+}
+
+function generateHundreds(count) {
+    console.warn('generateHundreds is deprecated, using consecutive hundreds instead');
+    return generateConsecutiveHundreds(count);
 }
 
 function shuffleArray(array) {
