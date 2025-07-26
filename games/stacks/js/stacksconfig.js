@@ -7,7 +7,7 @@ const STACKS_CONFIG = {
     
     // Tower positioning (percentage of viewport)
     TOWER_CENTER_X_PERCENT: 50,     // 50% from left
-    TOWER_BASE_Y_PERCENT: 87,       // FIXED: Bottom block center at 13% from bottom (100-87=13)
+    TOWER_BASE_Y_PERCENT: 100 - 13, // FIXED: 13% from bottom = 87% from top in CSS coordinates
     COMPLETED_TOWER_LEFT_X_PERCENT: 10,
     COMPLETED_TOWER_RIGHT_X_PERCENT: 90,
     
@@ -17,14 +17,16 @@ const STACKS_CONFIG = {
     GRASS_Y_PERCENT: 90,            // Default ground level (middle of grass)
     
     // SIMPLIFIED: Pre-defined block positions for initial placement
+    // NOTE: These use bottom-left origin (0,0) = bottom-left, (100,100) = top-right
+    // Need to convert Y coordinates: CSS_Y = 100 - Y_from_bottom
     PREDEFINED_BLOCK_POSITIONS: [
-        { x: 37.0, y: 16.7 },
-        { x: 66.7, y: 8.2 },
-        { x: 31.8, y: 7.0 },
-        { x: 61.0, y: 13.0 },
-        { x: 44.3, y: 10.6 },
-        { x: 73.0, y: 10.6 },
-        { x: 55.8, y: 9.0 }
+        { x: 37.0, y: 100 - 16.7 }, // Convert: 16.7% from bottom = 83.3% from top
+        { x: 66.7, y: 100 - 8.2 },  // Convert: 8.2% from bottom = 91.8% from top
+        { x: 31.8, y: 100 - 7.0 },  // Convert: 7% from bottom = 93% from top
+        { x: 61.0, y: 100 - 13.0 }, // Convert: 13% from bottom = 87% from top
+        { x: 44.3, y: 100 - 10.6 }, // Convert: 10.6% from bottom = 89.4% from top
+        { x: 73.0, y: 100 - 10.6 }, // Convert: 10.6% from bottom = 89.4% from top
+        { x: 55.8, y: 100 - 9.0 }   // Convert: 9% from bottom = 91% from top
     ],
     
     // Block positioning settings
@@ -175,7 +177,7 @@ function generateUserPlacedGroundPosition(excludeBlocks = []) {
     while (attempts < maxAttempts) {
         attempts++;
         
-        // Generate random position in grass area
+        // Generate random position in grass area (CSS coordinates: 80-100% from top)
         let x = 15 + Math.random() * 70; // Spread across screen
         
         // Avoid tower area
@@ -190,7 +192,7 @@ function generateUserPlacedGroundPosition(excludeBlocks = []) {
         for (let block of excludeBlocks) {
             const distance = Math.abs(x - block.x);
             if (distance < minDistance) {
-                // Found overlapping block - track the frontmost (lowest Y)
+                // Found overlapping block - track the frontmost (HIGHEST Y in CSS = closest to bottom)
                 if (!frontmostBlock || block.y > frontmostBlock.y) {
                     frontmostBlock = block;
                 }
@@ -199,10 +201,10 @@ function generateUserPlacedGroundPosition(excludeBlocks = []) {
         
         let y;
         if (frontmostBlock) {
-            // Place in front of (lower than) the frontmost overlapping block
+            // Place in front of (higher Y than) the frontmost overlapping block
             y = Math.min(frontmostBlock.y + 2, STACKS_CONFIG.GRASS_Y_MAX_PERCENT - 2);
         } else {
-            // No overlap - place anywhere in grass area
+            // No overlap - place anywhere in grass area (80-100% in CSS coordinates)
             y = STACKS_CONFIG.GRASS_Y_MIN_PERCENT + Math.random() * 15;
         }
         
