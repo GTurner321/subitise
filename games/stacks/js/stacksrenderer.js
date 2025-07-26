@@ -578,11 +578,12 @@ class StacksRenderer {
         
         console.log('Drop position:', { dropX, dropY }, 'Offset:', this.dragOffset);
         
-        // UPDATED: Enforce boundaries to prevent blocks from going off-screen or too high
+        // FIXED: Remove height restriction that was preventing drops on high containers
+        // Enforce boundaries to prevent blocks from going off-screen horizontally
         const svgBounds = this.svg.getBoundingClientRect();
         const minX = 0;
         const maxX = svgBounds.width;
-        const minY = vhToPx(70); // Don't allow blocks above 70% from top
+        const minY = 0; // CHANGED: Allow drops anywhere vertically - no height restriction
         const maxY = svgBounds.height;
         
         let boundedDropX = Math.max(minX, Math.min(maxX, dropX));
