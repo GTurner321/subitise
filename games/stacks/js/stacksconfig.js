@@ -97,17 +97,17 @@ const STACKS_CONFIG = {
         }
     },
     
-    // Colors for blocks
-    BLOCK_COLORS: [
-        '#FF6B9D', '#4ECDC4', '#45B7D1', '#FFA726', '#66BB6A', 
-        '#AB47BC', '#EF5350', '#26C6DA', '#FFCA28', '#8D6E63', 
-        '#78909C', '#FF7043'
-    ],
-    
     // Container styling
     CONTAINER_COLOR: '#E0E0E0',
     CONTAINER_STROKE: '#BDBDBD',
     CONTAINER_STROKE_WIDTH: 2,
+    CONTAINER_OPACITY: 0.6, // FIXED: 60% opaque (40% transparent)
+    
+    // FIXED: Brighter color palette from previous game
+    BLOCK_COLORS: [
+        '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+        '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'
+    ],
     
     // Teddy images
     TEDDY_IMAGES: [
