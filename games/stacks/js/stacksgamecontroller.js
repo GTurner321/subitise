@@ -341,9 +341,14 @@ class StacksGameController {
         this.questionMoves++;
         this.totalMoves++;
         
+        console.log('Block moved, checking tower completion...');
+        
         // Check if tower is complete and correct
         if (this.renderer.isValidTowerOrder()) {
+            console.log('🎉 Tower is complete and correct!');
             this.completeQuestion();
+        } else {
+            console.log('Tower not yet complete or incorrect order');
         }
     }
     
