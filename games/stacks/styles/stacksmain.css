@@ -1,4 +1,4 @@
-/* Stacks Number Game Styles - Fixed grass height and drag behavior */
+/* Stacks Number Game Styles - Fixed grass positioning and simplified layout */
 
 /* Reset and base styles */
 * {
@@ -20,7 +20,7 @@ body {
     position: relative;
 }
 
-/* Hide any game info elements that might exist */
+/* Hide any game info elements */
 #levelInfo,
 #questionInfo,
 #movesInfo,
@@ -34,13 +34,13 @@ body {
     visibility: hidden !important;
 }
 
-/* FIXED: Grass band positioned to match JavaScript grass calculations (69-76% = bottom 24-31vh) */
+/* FIXED: Grass band positioned at bottom 20% of screen */
 .grass-band {
     position: fixed;
-    bottom: 24vh; /* UPDATED: Moved to align with 69-76% grass area (100-76=24) */
+    bottom: 0;
     left: 0;
     width: 100%;
-    height: 7vh; /* Height matches the 7% grass area (76% - 69%) */
+    height: 20vh; /* 20% of viewport height */
     background: linear-gradient(to top, 
         rgba(144, 238, 144, 0.6),
         rgba(152, 251, 152, 0.7),
@@ -78,10 +78,10 @@ body {
     z-index: 2;
 }
 
-/* Rainbow container */
+/* Rainbow container positioned above grass */
 .rainbow-container {
     position: absolute;
-    bottom: 8vh; /* RESTORED: Back to original position (was bottom: 18vh) */
+    bottom: 25vh; /* 5vh above the 20vh grass area */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
@@ -112,24 +112,21 @@ body {
     pointer-events: all;
 }
 
-/* FIXED: Block styling - removed problematic transforms */
+/* Block styling - clean and simple */
 .block {
     cursor: grab !important;
     pointer-events: all !important;
     transition: filter 0.2s ease;
-    /* REMOVED: Any transform properties that could cause jumps */
 }
 
 .block:hover {
     filter: brightness(1.1);
-    /* REMOVED: Any transform on hover */
 }
 
 .block.block-dragging {
     filter: brightness(1.2);
     z-index: 1000;
     cursor: grabbing !important;
-    /* REMOVED: Any transform properties during drag */
 }
 
 .block rect,
@@ -323,10 +320,9 @@ body {
     font-size: 1.2rem;
 }
 
-/* FIXED: Drag and drop visual feedback - no unwanted transforms */
+/* Drag and drop visual feedback */
 .block-dragging {
     opacity: 0.8;
-    /* REMOVED: transform: scale(1.05); - this was causing the jump */
     filter: brightness(1.2);
     z-index: 1000;
 }
@@ -368,7 +364,7 @@ body {
     }
 }
 
-/* Touch feedback and accessibility */
+/* Touch support */
 .stacks-container {
     touch-action: none;
 }
@@ -414,41 +410,6 @@ body {
     transition: all 0.5s ease-in-out;
 }
 
-/* Block positioning guides (subtle hints) */
-.block-hint {
-    opacity: 0.3;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-
-.block-hint.show {
-    opacity: 0.6;
-}
-
-/* Loading states */
-.loading {
-    opacity: 0.7;
-    pointer-events: none;
-}
-
-.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 40px;
-    height: 40px;
-    margin: -20px 0 0 -20px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #4CAF50;
-    border-radius: 50%;
-    animation: loading-spin 1s linear infinite;
-}
-
-@keyframes loading-spin {
-    to { transform: rotate(360deg); }
-}
-
 /* Rainbow arc animations */
 .rainbow-arc {
     transition: opacity 0.5s ease-in-out, transform 0.3s ease;
@@ -464,25 +425,6 @@ body {
     transform: translateX(-50%) scale(0.8);
 }
 
-/* Custom scrollbar for any overflow areas */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5);
-}
-
 /* Block number visibility enhancement */
 .block text {
     text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
@@ -492,21 +434,12 @@ body {
 
 /* Responsive design */
 @media (max-width: 768px) {
-    .game-area {
-        height: 100vh;
-    }
-    
-    .stacks-container {
-        height: calc(100vh - 60px);
-    }
-    
     .grass-band {
-        bottom: 16vh !important; /* ADJUSTED: Back closer to original mobile position */
-        height: 6vh !important;
+        height: 18vh; /* Slightly smaller on mobile */
     }
     
     .rainbow-container {
-        bottom: 6vh; /* RESTORED: Back to lower mobile position */
+        bottom: 22vh; /* Adjust for smaller grass area */
     }
     
     .modal h2 {
@@ -535,17 +468,12 @@ body {
 }
 
 @media (max-width: 480px) {
-    .stacks-container {
-        height: calc(100vh - 50px);
-    }
-    
     .grass-band {
-        bottom: 14vh !important; /* ADJUSTED: Back closer to original small mobile position */
-        height: 5vh !important;
+        height: 16vh; /* Even smaller on small mobile */
     }
     
     .rainbow-container {
-        bottom: 6vh; /* RESTORED: Back to original small mobile position */
+        bottom: 20vh;
     }
     
     .modal-content {
@@ -614,24 +542,9 @@ body {
         animation: none !important;
         transition: none !important;
     }
-    
-    .block:hover {
-        transform: none;
-    }
-    
-    @keyframes modalAppear {
-        from, to { 
-            opacity: 1; 
-            transform: scale(1) translateY(0); 
-        }
-    }
-    
-    @keyframes titleBounce {
-        from, to { transform: translateY(0); }
-    }
 }
 
-/* Print styles (hide interactive elements) */
+/* Print styles */
 @media print {
     .back-button,
     .modal,
