@@ -287,8 +287,17 @@ class StacksGameController {
                 yPercent = positions[0].y - (i * blockHeightPercent);
             }
             
-            // Ensure container stays within viewport bounds
-            yPercent = Math.max(10, Math.min(yPercent, 85));
+            // IMPORTANT: Ensure containers stay well within viewport bounds
+            // More conservative bounds to ensure 4th+ containers are accessible
+            const minY = 15; // Increased from 10 to give more room
+            const maxY = 80; // Decreased from 85 to prevent going off-screen
+            yPercent = Math.max(minY, Math.min(yPercent, maxY));
+            
+            // ADDITIONAL: For higher containers, ensure they're not too high
+            if (i >= 3) { // 4th container and beyond
+                const maxHighContainerY = 25; // Don't let high containers go above 25%
+                yPercent = Math.max(maxHighContainerY, yPercent);
+            }
             
             positions.push({
                 x: centerXPercent,
@@ -296,7 +305,7 @@ class StacksGameController {
                 index: i
             });
             
-            console.log(`Container ${i} position calculated: ${centerXPercent}%, ${yPercent}%`);
+            console.log(`Container ${i} position calculated: ${centerXPercent}%, ${yPercent}% (bounded for accessibility)`);
         }
         
         return positions;
@@ -331,71 +340,113 @@ class StacksGameController {
         const exclusionZone = STACKS_CONFIG.GROUND_EXCLUSION_ZONE_PERCENT;
         const spread = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
         const blockWidth = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
+        
+        // FIXED: Proper overlap calculation - 75% minimum distance (25% max overlap)
         const minDistance = blockWidth * 0.75;
         
         const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
         const grassBottom = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
         const grassHeight = grassBottom - grassTop;
-        const grassMidpoint = grassTop + (grassHeight * 0.5);
+        const grassMidpoint = grassTop + (grassHeight * 0.5); // 50% down grass area
         
         let attempts = 0;
-        const maxAttempts = 50;
+        const maxAttempts = 100; // Increased attempts for better placement
         
         while (attempts < maxAttempts) {
+            attempts++;
+            
             let x;
-            do {
+            let validX = false;
+            let xAttempts = 0;
+            
+            // Find valid X position avoiding tower and existing blocks
+            while (!validX && xAttempts < 50) {
+                xAttempts++;
                 x = (50 - spread/2) + Math.random() * spread;
-            } while (Math.abs(x - centerX) < exclusionZone);
-            
-            // Additional exclusion for base container area
-            if (baseContainerPos && Math.abs(x - centerX) < (exclusionZone * 0.7)) {
-                attempts++;
-                continue;
-            }
-            
-            // Check overlap with existing blocks
-            let overlappingBlock = null;
-            let hasOverlap = false;
-            
-            for (let block of existingBlocks) {
-                const distance = Math.abs(x - block.x);
-                if (distance < minDistance) {
-                    hasOverlap = true;
-                    if (!overlappingBlock || block.y > overlappingBlock.y) {
-                        overlappingBlock = block;
+                
+                // Check tower exclusion
+                if (Math.abs(x - centerX) < exclusionZone) {
+                    continue;
+                }
+                
+                // Check base container exclusion
+                if (baseContainerPos && Math.abs(x - centerX) < (exclusionZone * 0.7)) {
+                    continue;
+                }
+                
+                // FIXED: Check horizontal overlap with existing blocks
+                let hasInvalidOverlap = false;
+                for (let block of existingBlocks) {
+                    const distance = Math.abs(x - block.x);
+                    if (distance < minDistance) {
+                        hasInvalidOverlap = true;
+                        break;
                     }
+                }
+                
+                if (!hasInvalidOverlap) {
+                    validX = true;
                 }
             }
             
+            if (!validX) {
+                console.log('Could not find valid X position after', xAttempts, 'attempts');
+                continue;
+            }
+            
+            // FIXED: Calculate Y position with proper perspective layering
             let y;
+            
             if (isInitialPlacement) {
-                const baseY = grassTop + (grassHeight * 0.25);
-                const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT;
-                y = baseY + (Math.random() - 0.5) * variance * 2;
-                y = Math.max(grassTop, Math.min(y, grassMidpoint));
-            } else if (hasOverlap && overlappingBlock) {
-                const minY = overlappingBlock.y;
-                const maxY = grassMidpoint;
-                y = minY >= maxY ? maxY : minY + Math.random() * (maxY - minY);
-                console.log('Block overlaps, placing in front at', y.toFixed(1) + '%');
+                // INITIAL PLACEMENT: Random height in TOP 50% of grass area
+                const topHalfHeight = grassHeight * 0.5;
+                y = grassTop + Math.random() * topHalfHeight;
+                
+                // Check for overlapping blocks and apply perspective rule
+                let frontmostOverlappingBlock = null;
+                for (let block of existingBlocks) {
+                    const distance = Math.abs(x - block.x);
+                    if (distance < minDistance) {
+                        // This block overlaps - find the frontmost (closest to viewer/highest Y)
+                        if (!frontmostOverlappingBlock || block.y > frontmostOverlappingBlock.y) {
+                            frontmostOverlappingBlock = block;
+                        }
+                    }
+                }
+                
+                if (frontmostOverlappingBlock) {
+                    // PERSPECTIVE RULE: Place this block IN FRONT (lower/higher Y) of overlapping block
+                    const overlapY = frontmostOverlappingBlock.y;
+                    const maxFrontY = grassMidpoint; // Can't go past 50% down grass
+                    
+                    if (overlapY >= maxFrontY) {
+                        // Overlapping block is already at front limit
+                        y = maxFrontY;
+                    } else {
+                        // Place randomly between overlapping block and front limit
+                        y = overlapY + Math.random() * (maxFrontY - overlapY);
+                    }
+                    
+                    console.log(`Block overlaps with block at ${overlapY.toFixed(1)}%, placing IN FRONT at ${y.toFixed(1)}%`);
+                }
+                
             } else {
-                const baseY = grassTop + (grassHeight * 0.2);
+                // Non-initial placement - simpler logic
+                const baseY = grassTop + (grassHeight * 0.2); // Back layer
                 const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT * 0.5;
                 y = baseY + (Math.random() - 0.5) * variance * 2;
                 y = Math.max(grassTop, Math.min(y, grassMidpoint * 0.8));
             }
             
-            console.log('Generated ground position after', attempts + 1, 'attempts:', x.toFixed(1) + '%,', y.toFixed(1) + '%');
+            console.log(`Generated valid position after ${attempts} attempts: ${x.toFixed(1)}%, ${y.toFixed(1)}%`);
             return { x, y };
         }
         
-        // Fallback
+        // Fallback - place on opposite side of tower
         console.warn('Could not find suitable position after', maxAttempts, 'attempts, using fallback');
         const fallbackX = centerX > 50 ? 25 : 75;
-        const baseY = grassTop + (grassHeight * 0.25);
-        const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT;
-        const fallbackY = baseY + (Math.random() - 0.5) * variance * 2;
-        return { x: fallbackX, y: Math.max(grassTop, Math.min(fallbackY, grassMidpoint)) };
+        const fallbackY = grassTop + (grassHeight * 0.25);
+        return { x: fallbackX, y: fallbackY };
     }
     
     // GAME LOGIC: Calculate close-to-tower position for displaced blocks
