@@ -106,16 +106,16 @@ const STACKS_CONFIG = {
     CONTAINER_STROKE: '#BDBDBD',
     CONTAINER_STROKE_WIDTH: 2,
     
-    // FIXED: Teddy images with correct absolute paths following your pattern
+    // FIXED: Teddy images with correct paths matching your working Teddy Trumps game
     TEDDY_IMAGES: [
-        '/stacks/assets/trumps/blackbear.png',      // Fixed: absolute path with /stacks/ prefix
-        '/stacks/assets/trumps/dinosaur.png', 
-        '/stacks/assets/trumps/flabberjabber.png',
-        '/stacks/assets/raisin/guineapig1.png',
-        '/stacks/assets/bear.png',
-        '/stacks/assets/trumps/vowels.png',
-        '/stacks/assets/trumps/gemsbear.png',
-        '/stacks/assets/trumps/knightbear.png'
+        '../../assets/trumps/blackbear.png',      // Fixed: matches working Teddy Trumps pattern
+        '../../assets/trumps/dinosaur.png', 
+        '../../assets/trumps/flabberjabber.png',
+        '../../assets/raisin/guineapig1.png',
+        '../../assets/bear.png',
+        '../../assets/trumps/vowels.png',
+        '../../assets/trumps/gemsbear.png',
+        '../../assets/trumps/knightbear.png'
     ],
     
     // Audio settings
