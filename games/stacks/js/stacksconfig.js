@@ -1,4 +1,4 @@
-// Stacks Game Configuration - Percentage-based positioning
+// Stacks Game Configuration - Fixed paths and percentage-based positioning
 const STACKS_CONFIG = {
     // Game dimensions (percentage of viewport) - FIXED: Proper square blocks
     BLOCK_HEIGHT_PERCENT: 9.6,  // 9.6% of viewport height
@@ -15,17 +15,18 @@ const STACKS_CONFIG = {
     // Block positioning on ground - Random placement in grass area
     GROUND_Y_MIN_PERCENT: 89,       // Top of grass area
     GROUND_Y_MAX_PERCENT: 92,       // Bottom of grass area
+    GROUND_Y_PERCENT: 90.5,         // Default ground level (middle of grass area)
     GROUND_SPREAD_PERCENT: 70,      // Spread across screen
     GROUND_EXCLUSION_ZONE_PERCENT: 15, // Area around tower to avoid
     
     // Initial block placement variance
-    INITIAL_BLOCK_Y_VARIANCE_PERCENT: 1.5, // NEW: ±1.5% height variance for initial blocks
+    INITIAL_BLOCK_Y_VARIANCE_PERCENT: 1.5, // ±1.5% height variance for initial blocks
     
     // Teddy size multiplier
-    TEDDY_SIZE_MULTIPLIER: 2.3,      // CHANGED: 15% larger (was 2.0, now 2.3 = 2.0 * 1.15)
+    TEDDY_SIZE_MULTIPLIER: 2.3,      // 15% larger (was 2.0, now 2.3 = 2.0 * 1.15)
     
     // Font size multiplier for numbers in blocks
-    BLOCK_FONT_SIZE_MULTIPLIER: 1.2, // NEW: 20% larger font size
+    BLOCK_FONT_SIZE_MULTIPLIER: 1.2, // 20% larger font size
     
     // Drag and drop (percentage of viewport diagonal)
     DRAG_TOLERANCE_PERCENT: 3,
@@ -39,7 +40,7 @@ const STACKS_CONFIG = {
     // Completed tower opacity
     COMPLETED_TOWER_OPACITY: 0.75,
     
-    // Level system (unchanged)
+    // Level system
     LEVELS: {
         1: {
             name: "Level 1",
@@ -93,41 +94,41 @@ const STACKS_CONFIG = {
         }
     },
     
-    // Colors for blocks (unchanged)
+    // Colors for blocks
     BLOCK_COLORS: [
         '#FF6B9D', '#4ECDC4', '#45B7D1', '#FFA726', '#66BB6A', 
         '#AB47BC', '#EF5350', '#26C6DA', '#FFCA28', '#8D6E63', 
         '#78909C', '#FF7043'
     ],
     
-    // Container styling (unchanged)
+    // Container styling
     CONTAINER_COLOR: '#E0E0E0',
     CONTAINER_STROKE: '#BDBDBD',
     CONTAINER_STROKE_WIDTH: 2,
     
-    // Teddy images with multiple path options
+    // FIXED: Teddy images with correct absolute paths following your pattern
     TEDDY_IMAGES: [
-        'assets/trumps/blackbear.png',              // Try without subitise/ prefix
-        'assets/trumps/dinosaur.png', 
-        'assets/trumps/flabberjabber.png',
-        'assets/raisin/guineapig1.png',
-        'assets/bear.png',
-        'assets/trumps/vowels.png',
-        'assets/trumps/gemsbear.png',
-        'assets/trumps/knightbear.png'
+        '/stacks/assets/trumps/blackbear.png',      // Fixed: absolute path with /stacks/ prefix
+        '/stacks/assets/trumps/dinosaur.png', 
+        '/stacks/assets/trumps/flabberjabber.png',
+        '/stacks/assets/raisin/guineapig1.png',
+        '/stacks/assets/bear.png',
+        '/stacks/assets/trumps/vowels.png',
+        '/stacks/assets/trumps/gemsbear.png',
+        '/stacks/assets/trumps/knightbear.png'
     ],
     
-    // Audio settings (unchanged)
+    // Audio settings
     AUDIO_ENABLED: true,
     
-    // Rainbow settings (unchanged)
+    // Rainbow settings
     RAINBOW_PIECES: 10,
     RAINBOW_COLORS: [
         '#ff0000', '#ff8000', '#ffff00', '#80ff00', '#00ff00', 
         '#00ff80', '#00ffff', '#0080ff', '#0000ff', '#8000ff'
     ],
     
-    // Game settings (unchanged)
+    // Game settings
     TOTAL_QUESTIONS: 8,
     FINAL_RAINBOW_ARCS: 3
 };
@@ -291,6 +292,8 @@ function getRandomGroundY() {
     const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
     return grassTop + (grassHeight * 0.15); // Containers in stable back position
 }
+
+// Viewport conversion functions
 function vwToPx(vw) {
     return (vw * window.innerWidth) / 100;
 }
@@ -342,7 +345,7 @@ function getBlockDimensions(isWide = false) {
     return { width, height };
 }
 
-// Number generation helper functions (unchanged)
+// Number generation helper functions
 function generateConsecutiveNumbers(min, max, count) {
     const maxStart = max - count + 1;
     if (maxStart < min) return null;
