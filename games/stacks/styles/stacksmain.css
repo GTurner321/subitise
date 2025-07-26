@@ -29,13 +29,13 @@ body {
     visibility: hidden !important;
 }
 
-/* FIXED: Grass band positioned at bottom 20% of screen with grass texture */
+/* FIXED: Grass band positioned at bottom 20% of screen height */
 .grass-band {
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 20vh; /* FIXED: This should be exactly 20% - checking if viewport calc is issue */
+    height: calc(100vh * 0.2); /* FIXED: Force exactly 20% of viewport height */
     background: linear-gradient(to top, 
         rgba(144, 238, 144, 0.6),
         rgba(152, 251, 152, 0.7),
@@ -45,13 +45,13 @@ body {
     box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3);
 }
 
-/* Override any potential CSS that might be reducing grass height */
-html, body {
-    height: 100% !important;
+/* Force proper viewport calculation */
+html {
+    height: 100vh !important;
 }
 
-.grass-band {
-    height: 20% !important; /* Force 20% using percentage instead of vh */
+body {
+    height: 100vh !important;
 }
 
 .grass-band::before {
