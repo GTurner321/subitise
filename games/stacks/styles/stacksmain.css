@@ -432,6 +432,15 @@ body {
     letter-spacing: 0.5px;
 }
 
+/* Celebration bear styling */
+.celebration-bear {
+    pointer-events: none;
+    user-select: none;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    object-fit: contain;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .grass-band {
