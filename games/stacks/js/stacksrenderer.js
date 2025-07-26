@@ -675,9 +675,11 @@ class StacksRenderer {
         // Use displaced block positioning (close to tower with overlap handling)
         const displacementPos = generateDisplacedBlockPosition(existingBlocks);
         
-        // Convert to pixel coordinates
-        const groundX = vwToPx(displacementPos.x);
-        const groundY = vhToPx(displacementPos.y);
+        // FIXED: Convert to pixel coordinates using proper calculation
+        const groundX = (displacementPos.x * window.innerWidth) / 100;
+        const groundY = (displacementPos.y * window.innerHeight) / 100;
+        
+        console.log('Displacing block to:', displacementPos.x, displacementPos.y, '% =', groundX, groundY, 'px');
         
         // Animate the block to the ground
         this.animateBlockToPosition(block, groundX, groundY, () => {
@@ -742,7 +744,7 @@ class StacksRenderer {
         // Clear any container association
         block._container = null;
         
-        // FIXED: Use displaced block positioning instead of user placement for pulled blocks
+        // FIXED: Use displaced block positioning for pulled blocks
         const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
             x: b._xPercent,
             y: b._yPercent
@@ -750,8 +752,12 @@ class StacksRenderer {
         
         // Use displaced positioning (close to tower with overlap handling)
         const groundPos = generateDisplacedBlockPosition(existingBlocks);
-        const groundX = vwToPx(groundPos.x);
-        const groundY = vhToPx(groundPos.y);
+        
+        // FIXED: Convert to pixel coordinates properly
+        const groundX = (groundPos.x * window.innerWidth) / 100;
+        const groundY = (groundPos.y * window.innerHeight) / 100;
+        
+        console.log('Returning block to ground at:', groundPos.x, groundPos.y, '% =', groundX, groundY, 'px');
         
         // Animate the block to the ground
         this.animateBlockToPosition(block, groundX, groundY, () => {
@@ -896,27 +902,35 @@ class StacksRenderer {
     }
     
     isValidTowerOrder() {
-        const containers = Array.from(this.svg.querySelectorAll('.container')).sort((a, b) => 
+        const containers = Array.from(this.svg.querySelectorAll('.container.new-tower-element')).sort((a, b) => 
             parseFloat(b.getAttribute('y')) - parseFloat(a.getAttribute('y')) // Bottom to top
         );
+        
+        console.log('Checking tower order for', containers.length, 'containers');
         
         const towerNumbers = [];
         for (let container of containers) {
             const block = this.getBlockInContainer(container);
             if (block) {
                 towerNumbers.push(parseInt(block.getAttribute('data-number')));
+                console.log('Container has block:', block.getAttribute('data-number'));
             } else {
+                console.log('Empty container found - tower not complete');
                 return false; // Empty container found
             }
         }
         
+        console.log('Tower numbers (bottom to top):', towerNumbers);
+        
         // Check if numbers are in ascending order (bottom to top)
         for (let i = 1; i < towerNumbers.length; i++) {
             if (towerNumbers[i] <= towerNumbers[i-1]) {
+                console.log('Numbers not in ascending order at position', i);
                 return false;
             }
         }
         
+        console.log('✅ Tower is valid and complete!');
         return true;
     }
     
