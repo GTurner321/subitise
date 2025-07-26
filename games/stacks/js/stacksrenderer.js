@@ -7,77 +7,64 @@ class StacksRenderer {
         this.isDragging = false;
         this.hoveredContainer = null;
         
-        console.log('StacksRenderer constructor called with SVG:', svg);
-        
         this.setupEventListeners();
         this.updateSVGDimensions();
         this.startGravityCheck();
     }
     
     startGravityCheck() {
-        // Check for floating blocks every 2 seconds and apply gravity
+        // Check for floating blocks every 3 seconds
         this.gravityInterval = setInterval(() => {
             this.checkAndApplyGravity();
-        }, 2000);
+        }, 3000);
     }
     
     checkAndApplyGravity() {
-        // Only check blocks that are not in containers, not being dragged, and not locked
         const groundBlocks = this.svg.querySelectorAll('.block:not(.completed-tower)');
-        const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
-        const grassBottom = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
+        const grassTop = STACKS_CONFIG.GRASS_Y_MIN_PERCENT;
         
         groundBlocks.forEach(block => {
-            // Skip if block is in a container, being dragged, locked, or currently animating
+            // Skip if block is in container, being dragged, or animating
             if (block._container || 
                 block === this.draggedElement || 
                 block._isLocked ||
                 block.style.transition ||
-                block.classList.contains('new-tower-element')) { // Don't mess with intentionally placed blocks
+                block.classList.contains('new-tower-element')) {
                 return;
             }
             
             const currentYPercent = pxToVh(block._centerY);
             
-            // Only apply gravity if block is significantly above the grass area (not just slightly above grass bottom)
-            if (currentYPercent < grassTop - 5) { // Must be 5% above grass area to trigger gravity
-                console.log('Found truly floating block:', block._number, 'at', currentYPercent + '%, applying gravity');
-                // Use a random grass position, not just the bottom
-                const grassMidY = grassTop + ((grassBottom - grassTop) * 0.6); // 60% down the grass area
+            // Apply gravity if block is significantly above grass area
+            if (currentYPercent < grassTop - 5) {
+                const grassMidY = STACKS_CONFIG.GRASS_Y_PERCENT;
                 this.applyGravity(block, block._centerX, grassMidY);
             }
         });
     }
     
     updateSVGDimensions() {
-        // Set up SVG to use pixel coordinates directly (1:1 mapping)
         const width = window.innerWidth;
         const height = window.innerHeight;
         
         this.svg.setAttribute('width', width);
         this.svg.setAttribute('height', height);
-        this.svg.removeAttribute('viewBox'); // Remove viewBox for 1:1 pixel mapping
-        
-        console.log('SVG dimensions updated:', width, 'x', height);
+        this.svg.removeAttribute('viewBox');
     }
     
     setupEventListeners() {
-        // Use unified event handling for both mouse and touch
+        // Unified event handling for mouse and touch
         this.svg.addEventListener('mousedown', (e) => this.handlePointerStart(e));
         this.svg.addEventListener('touchstart', (e) => this.handlePointerStart(e), { passive: false });
         
-        // Global move and end events
         document.addEventListener('mousemove', (e) => this.handlePointerMove(e));
         document.addEventListener('touchmove', (e) => this.handlePointerMove(e), { passive: false });
         
         document.addEventListener('mouseup', (e) => this.handlePointerEnd(e));
         document.addEventListener('touchend', (e) => this.handlePointerEnd(e), { passive: false });
-        
-        console.log('Event listeners set up on SVG');
     }
     
     destroy() {
-        // Clean up gravity check interval
         if (this.gravityInterval) {
             clearInterval(this.gravityInterval);
             this.gravityInterval = null;
@@ -89,47 +76,30 @@ class StacksRenderer {
     }
     
     getEventPoint(e) {
-        // Always return pixel coordinates relative to the page
         let clientX, clientY;
         
         if (e.touches && e.touches.length > 0) {
-            // For touchstart and touchmove
             clientX = e.touches[0].clientX;
             clientY = e.touches[0].clientY;
         } else if (e.changedTouches && e.changedTouches.length > 0) {
-            // For touchend - coordinates are in changedTouches
             clientX = e.changedTouches[0].clientX;
             clientY = e.changedTouches[0].clientY;
-        } else if (e.clientX !== undefined && e.clientY !== undefined) {
-            // For mouse events
+        } else {
             clientX = e.clientX;
             clientY = e.clientY;
-        } else {
-            console.error('Unable to get event coordinates from:', e.type, e);
-            return { x: 0, y: 0 }; // Fallback
         }
         
-        // Since we're using 1:1 pixel mapping, we can use client coordinates directly
         const rect = this.svg.getBoundingClientRect();
         const x = clientX - rect.left;
         const y = clientY - rect.top;
-        
-        // Validate coordinates
-        if (isNaN(x) || isNaN(y)) {
-            console.error('NaN coordinates detected:', { x, y, clientX, clientY, rect });
-            return { x: 0, y: 0 }; // Fallback
-        }
         
         return { x, y };
     }
     
     createBlock(number, xPercent, yPercent, color, isWide = false) {
-        // Convert percentage coordinates to pixels
         const x = vwToPx(xPercent);
         const y = vhToPx(yPercent);
         const dimensions = getBlockDimensions(isWide);
-        
-        console.log(`Creating block ${number}: ${dimensions.width}px × ${dimensions.height}px at (${x}, ${y})`);
         
         // Create group for the block
         const blockGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -137,7 +107,17 @@ class StacksRenderer {
         blockGroup.setAttribute('data-number', number);
         blockGroup.style.cursor = 'grab';
         
-        // Block rectangle - square blocks
+        // Block shadow
+        const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        shadow.setAttribute('x', x - dimensions.width/2 + 3);
+        shadow.setAttribute('y', y - dimensions.height/2 + 3);
+        shadow.setAttribute('width', dimensions.width);
+        shadow.setAttribute('height', dimensions.height);
+        shadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
+        shadow.setAttribute('rx', '8');
+        shadow.setAttribute('ry', '8');
+        
+        // Block rectangle
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.setAttribute('x', x - dimensions.width/2);
         rect.setAttribute('y', y - dimensions.height/2);
@@ -149,29 +129,16 @@ class StacksRenderer {
         rect.setAttribute('rx', '8');
         rect.setAttribute('ry', '8');
         
-        // Block shadow (behind)
-        const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        shadow.setAttribute('x', x - dimensions.width/2 + 3);
-        shadow.setAttribute('y', y - dimensions.height/2 + 3);
-        shadow.setAttribute('width', dimensions.width);
-        shadow.setAttribute('height', dimensions.height);
-        shadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
-        shadow.setAttribute('rx', '8');
-        shadow.setAttribute('ry', '8');
-        
-        // Number text - FIXED: No extra font size multiplier for wide blocks
+        // Number text
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
         text.setAttribute('y', y);
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('dominant-baseline', 'central');
         
-        // Standard font size calculation without multiplier for 3-digit blocks
         const baseFontSize = Math.min(dimensions.height * 0.5, dimensions.width * 0.4);
-        // Only apply multiplier for regular blocks, not wide (3-digit) blocks
         const finalFontSize = isWide ? baseFontSize : baseFontSize * STACKS_CONFIG.BLOCK_FONT_SIZE_MULTIPLIER;
         text.setAttribute('font-size', finalFontSize);
-        
         text.setAttribute('font-weight', 'bold');
         text.setAttribute('fill', '#000');
         text.textContent = number;
@@ -193,18 +160,13 @@ class StacksRenderer {
         blockGroup._isWide = isWide;
         blockGroup._dimensions = dimensions;
         
-        console.log('Block created:', number, 'at pixel position:', x, y, 'from percent:', xPercent, yPercent);
-        
         return blockGroup;
     }
     
     createContainer(xPercent, yPercent, index, isWide = false) {
-        // Convert percentage coordinates to pixels
         const x = vwToPx(xPercent);
         const y = vhToPx(yPercent);
         const dimensions = getBlockDimensions(isWide);
-        
-        console.log(`Creating container ${index}: at ${xPercent}%, ${yPercent}% = (${x}px, ${y}px)`);
         
         const container = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         container.setAttribute('class', 'container');
@@ -229,8 +191,6 @@ class StacksRenderer {
         container._index = index;
         container._isWide = isWide;
         
-        console.log(`Container ${index} bounds: x=${x - dimensions.width/2}, y=${y - dimensions.height/2}, w=${dimensions.width}, h=${dimensions.height}`);
-        
         return container;
     }
     
@@ -240,8 +200,6 @@ class StacksRenderer {
         const baseSize = vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT) * 0.8;
         const size = baseSize * STACKS_CONFIG.TEDDY_SIZE_MULTIPLIER;
         
-        console.log('Creating teddy at:', x, y, 'with size:', size, 'and image:', imageUrl);
-        
         const teddy = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         teddy.setAttribute('class', 'teddy');
         teddy.setAttribute('x', x - size/2);
@@ -249,67 +207,56 @@ class StacksRenderer {
         teddy.setAttribute('width', size);
         teddy.setAttribute('height', size);
         
-        // Store position data for animation
+        // Store position data
         teddy._centerX = x;
         teddy._centerY = y - size/2;
         teddy._xPercent = xPercent;
         teddy._yPercent = yPercent;
         teddy._size = size;
         
-        // Start hidden to prevent any placeholder flash
+        // Start hidden
         teddy.style.opacity = '0';
         teddy.style.transition = 'opacity 0.5s ease-in';
         
-        // Handle successful load
         const handleLoad = () => {
-            console.log('Teddy image loaded successfully:', imageUrl);
             setTimeout(() => {
                 teddy.style.opacity = '1';
             }, 100);
         };
         
-        // Handle load failure - simplified since paths should work now
         const handleError = () => {
-            console.warn('Teddy image failed to load:', imageUrl, '- using fallback');
             this.createFallbackTeddy(teddy, x, y, size);
         };
         
-        // Set up listeners BEFORE setting href
         teddy.addEventListener('load', handleLoad, { once: true });
         teddy.addEventListener('error', handleError, { once: true });
         
-        // Use the corrected path directly from config
-        console.log('Setting teddy href to:', imageUrl);
         teddy.setAttribute('href', imageUrl);
         
         return teddy;
     }
     
     createFallbackTeddy(teddyElement, x, y, size) {
-        console.log('Creating fallback teddy at:', x, y);
-        
-        // Remove the image element and create a group for the fallback teddy
         const parent = teddyElement.parentNode;
         if (parent) {
             parent.removeChild(teddyElement);
             
-            // Create a group to hold all fallback teddy elements
             const fallbackGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             fallbackGroup.setAttribute('class', 'teddy fallback-teddy');
             
-            // Store position data for animation - IMPORTANT!
+            // Store position data
             fallbackGroup._centerX = x;
             fallbackGroup._centerY = y - size/2;
             fallbackGroup._xPercent = pxToVw(x);
             fallbackGroup._yPercent = pxToVh(y - size/2);
             fallbackGroup._size = size;
             
-            // Create the main circle
+            // Create simple bear shape
             const fallbackTeddy = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             fallbackTeddy.setAttribute('cx', x);
             fallbackTeddy.setAttribute('cy', y - size/2);
             fallbackTeddy.setAttribute('r', size/3);
-            fallbackTeddy.setAttribute('fill', '#8B4513'); // Brown color
+            fallbackTeddy.setAttribute('fill', '#8B4513');
             fallbackTeddy.setAttribute('stroke', '#654321');
             fallbackTeddy.setAttribute('stroke-width', '2');
             
@@ -326,71 +273,35 @@ class StacksRenderer {
             eye2.setAttribute('r', size/20);
             eye2.setAttribute('fill', '#000');
             
-            // Add mouth
-            const mouth = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            mouth.setAttribute('d', `M ${x - size/12} ${y - size/2 + size/12} Q ${x} ${y - size/2 + size/8} ${x + size/12} ${y - size/2 + size/12}`);
-            mouth.setAttribute('stroke', '#000');
-            mouth.setAttribute('stroke-width', '1');
-            mouth.setAttribute('fill', 'none');
-            
-            // Add all elements to the group
             fallbackGroup.appendChild(fallbackTeddy);
             fallbackGroup.appendChild(eye1);
             fallbackGroup.appendChild(eye2);
-            fallbackGroup.appendChild(mouth);
-            
-            // Store references to child elements for animation
-            fallbackGroup._mainCircle = fallbackTeddy;
-            fallbackGroup._eye1 = eye1;
-            fallbackGroup._eye2 = eye2;
-            fallbackGroup._mouth = mouth;
             
             fallbackGroup.style.opacity = '1';
-            
             parent.appendChild(fallbackGroup);
             
-            console.log('Fallback teddy group created with position data:', fallbackGroup._centerX, fallbackGroup._centerY);
             return fallbackGroup;
         }
     }
     
     renderTowerWithPositions(blocks, containers, containerPositions, blockPositions, isWide = false) {
-        console.log('renderTowerWithPositions called with', blocks.length, 'blocks', containers.length, 'containers');
-        
-        // Clear only NEW tower elements (not completed towers)
+        // Clear only NEW tower elements
         this.clearNewTowerElements();
         
-        // Check if any block in this tower has 3 digits to determine if we need wide blocks
+        // Check if we need wide blocks
         const hasThreeDigitNumbers = blocks.some(block => block.number >= 100);
         const useWideBlocks = isWide || hasThreeDigitNumbers;
         
-        console.log('Tower has 3-digit numbers:', hasThreeDigitNumbers, 'Using wide blocks:', useWideBlocks);
-        
-        // Render containers using provided positions
+        // Render containers
         containerPositions.forEach((position, index) => {
-            console.log(`Container ${index}: Position = ${position.x}%, ${position.y}%`);
             const containerElement = this.createContainer(position.x, position.y, index, useWideBlocks);
             containerElement.classList.add('new-tower-element');
-            
-            // Ensure container is properly positioned and visible
             containerElement.style.pointerEvents = 'auto';
             containerElement.style.opacity = '0.8';
-            
             this.svg.appendChild(containerElement);
-            
-            console.log(`Container ${index} created and added to SVG:`, {
-                centerX: containerElement._centerX,
-                centerY: containerElement._centerY,
-                xPercent: containerElement._xPercent,
-                yPercent: containerElement._yPercent
-            });
         });
         
-        // Verify all containers were created
-        const createdContainers = this.svg.querySelectorAll('.container.new-tower-element');
-        console.log(`✅ Created ${createdContainers.length} containers for ${containerPositions.length} requested`);
-        
-        // Render blocks using provided positions
+        // Render blocks
         blockPositions.forEach((position, index) => {
             const block = blocks[index];
             const blockElement = this.createBlock(
@@ -402,21 +313,15 @@ class StacksRenderer {
             );
             blockElement.classList.add('new-tower-element');
             this.svg.appendChild(blockElement);
-            
-            console.log('Added block', block.number, 'at provided position:', position.x + '%,', position.y + '%');
         });
-        
-        console.log('Tower render complete with provided positions');
     }
     
     clearNewTowerElements() {
-        // Only clear elements that are part of the current game, not completed towers
         const elements = this.svg.querySelectorAll('.new-tower-element');
         elements.forEach(element => element.remove());
     }
     
     clearTower() {
-        // Clear everything (used for game reset)
         const elements = this.svg.querySelectorAll('.block, .container, .teddy');
         elements.forEach(element => element.remove());
     }
@@ -425,43 +330,17 @@ class StacksRenderer {
         e.preventDefault();
         e.stopPropagation();
         
-        console.log('Pointer start event:', e.type);
-        
         const point = this.getEventPoint(e);
-        console.log('Pointer start at pixel coordinates:', point);
-        
-        // Safety check for valid coordinates
-        if (isNaN(point.x) || isNaN(point.y)) {
-            console.error('Invalid start coordinates, aborting drag');
-            return;
-        }
-        
-        // Find the block element that was clicked
         const blockElement = this.findBlockAtPoint(point);
         
-        if (!blockElement) {
-            console.log('No block found at point');
-            return;
-        }
-        
-        console.log('Starting drag on block:', blockElement.getAttribute('data-number'));
+        if (!blockElement) return;
         
         this.isDragging = true;
         this.draggedElement = blockElement;
         
-        // Calculate drag offset using pixel coordinates
+        // Calculate drag offset
         this.dragOffset.x = blockElement._centerX - point.x;
         this.dragOffset.y = blockElement._centerY - point.y;
-        
-        console.log('Drag offset:', this.dragOffset);
-        
-        // Safety check for valid offset
-        if (isNaN(this.dragOffset.x) || isNaN(this.dragOffset.y)) {
-            console.error('Invalid drag offset calculated, aborting drag');
-            this.isDragging = false;
-            this.draggedElement = null;
-            return;
-        }
         
         // Visual feedback
         blockElement.style.cursor = 'grabbing';
@@ -481,21 +360,9 @@ class StacksRenderer {
         e.preventDefault();
         const point = this.getEventPoint(e);
         
-        // Safety check for valid coordinates
-        if (isNaN(point.x) || isNaN(point.y)) {
-            console.error('Invalid move coordinates, skipping update');
-            return;
-        }
-        
-        // Calculate new position using pixel coordinates
+        // Calculate new position
         const newX = point.x + this.dragOffset.x;
         const newY = point.y + this.dragOffset.y;
-        
-        // Safety check for calculated position
-        if (isNaN(newX) || isNaN(newY)) {
-            console.error('Invalid calculated position, skipping update');
-            return;
-        }
         
         // Update block position
         this.updateBlockPosition(this.draggedElement, newX, newY);
@@ -508,53 +375,16 @@ class StacksRenderer {
         if (!this.isDragging || !this.draggedElement) return;
         
         e.preventDefault();
-        console.log('handlePointerEnd called, event type:', e.type);
-        
         const point = this.getEventPoint(e);
-        console.log('Drag end at pixel coordinates:', point);
-        
-        // Safety check for valid coordinates - if we get fallback coordinates, abort gracefully
-        if ((point.x === 0 && point.y === 0) || isNaN(point.x) || isNaN(point.y)) {
-            console.warn('Invalid drag end coordinates detected, returning block to safe position');
-            
-            // Reset visual state first
-            this.draggedElement.style.cursor = 'grab';
-            this.draggedElement._rect.setAttribute('stroke-width', '3');
-            this.draggedElement.classList.remove('block-dragging');
-            this.clearContainerHover();
-            
-            // Return block to a safe ground position
-            this.returnBlockToGround(this.draggedElement);
-            
-            // Reset drag state
-            this.isDragging = false;
-            this.draggedElement = null;
-            this.dragOffset = { x: 0, y: 0 };
-            
-            this.gameController.playReturnSound();
-            return;
-        }
         
         // Calculate drop position
         const dropX = point.x + this.dragOffset.x;
         const dropY = point.y + this.dragOffset.y;
         
-        console.log('Drop position:', { dropX, dropY }, 'Offset:', this.dragOffset);
-        
-        // FIXED: Remove height restriction that was preventing drops on high containers
-        // Enforce boundaries to prevent blocks from going off-screen horizontally
+        // Enforce screen boundaries
         const svgBounds = this.svg.getBoundingClientRect();
-        const minX = 0;
-        const maxX = svgBounds.width;
-        const minY = 0; // CHANGED: Allow drops anywhere vertically - no height restriction
-        const maxY = svgBounds.height;
-        
-        let boundedDropX = Math.max(minX, Math.min(maxX, dropX));
-        let boundedDropY = Math.max(minY, Math.min(maxY, dropY));
-        
-        if (dropX !== boundedDropX || dropY !== boundedDropY) {
-            console.log('Drop position bounded from', {dropX, dropY}, 'to', {boundedDropX, boundedDropY});
-        }
+        const boundedDropX = Math.max(0, Math.min(svgBounds.width, dropX));
+        const boundedDropY = Math.max(0, Math.min(svgBounds.height, dropY));
         
         // Try to drop in container or place on grass
         const dropped = this.handleDrop(boundedDropX, boundedDropY);
@@ -578,20 +408,14 @@ class StacksRenderer {
         } else {
             this.gameController.playReturnSound();
         }
-        
-        console.log('Drag ended, dropped:', dropped);
     }
     
     findBlockAtPoint(point) {
-        // Check all blocks to see which one contains this point
         const blocks = this.svg.querySelectorAll('.block');
         
         for (let block of blocks) {
-            // Skip completed tower blocks - they should not be draggable
-            if (block.classList.contains('completed-tower')) {
-                console.log('Skipping completed tower block:', block.getAttribute('data-number'));
-                continue;
-            }
+            // Skip completed tower blocks
+            if (block.classList.contains('completed-tower')) continue;
             
             const rect = block._rect;
             const x = parseFloat(rect.getAttribute('x'));
@@ -599,22 +423,13 @@ class StacksRenderer {
             const width = parseFloat(rect.getAttribute('width'));
             const height = parseFloat(rect.getAttribute('height'));
             
-            console.log(`Checking block ${block.getAttribute('data-number')}:`, {
-                bounds: { x, y, width, height },
-                point: point,
-                inside: point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height,
-                isCompleted: block.classList.contains('completed-tower')
-            });
-            
             // Check if point is inside the block's rectangle
             if (point.x >= x && point.x <= x + width && 
                 point.y >= y && point.y <= y + height) {
-                console.log('✅ Found draggable block at point:', block.getAttribute('data-number'));
                 return block;
             }
         }
         
-        console.log('❌ No draggable block found at point');
         return null;
     }
     
@@ -634,7 +449,6 @@ class StacksRenderer {
                     // Check if container has a block
                     const existingBlock = this.getBlockInContainer(container);
                     if (existingBlock) {
-                        // Show swap preview
                         this.showSwapPreview(existingBlock);
                     }
                     
@@ -697,31 +511,24 @@ class StacksRenderer {
     }
     
     handleDrop(x, y) {
-        // Check ALL containers with improved overlap detection
+        // Check containers with improved overlap detection
         const containers = this.svg.querySelectorAll('.container');
         const tolerance = getDragTolerancePx();
-        
-        console.log('Handling drop at:', x, y, 'with tolerance:', tolerance);
-        console.log('Checking', containers.length, 'containers with improved overlap detection');
         
         // Sort containers by overlap area to find the best match
         const containerDistances = Array.from(containers).map(container => ({
             container: container,
             distance: this.getDistanceToContainer(container, x, y),
             overlapArea: this.calculateOverlapArea(container, x, y)
-        })).sort((a, b) => b.overlapArea - a.overlapArea); // Sort by overlap area (highest first)
+        })).sort((a, b) => b.overlapArea - a.overlapArea);
         
-        // Check if dropping on a container using improved overlap detection
+        // Check if dropping on a container
         for (let containerData of containerDistances) {
             const container = containerData.container;
             const distance = containerData.distance;
             const overlapArea = containerData.overlapArea;
             
-            console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1), 'overlap:', (overlapArea * 100).toFixed(1) + '%');
-            
-            // IMPROVED: Use overlap area threshold instead of just distance
             if (overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD || distance < tolerance) {
-                console.log('✅ Dropping in container', container.getAttribute('data-index'), 'due to', overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD ? 'overlap' : 'proximity');
                 const existingBlock = this.getBlockInContainer(container);
                 const draggedFromContainer = this.getContainerForBlock(this.draggedElement);
                 
@@ -745,16 +552,14 @@ class StacksRenderer {
             }
         }
         
-        // Check if dropping on another block (not in container) - should return to ground
+        // Check if dropping on another block (not in container) - return to ground
         const targetBlock = this.findBlockAtPoint({x, y});
         if (targetBlock && targetBlock !== this.draggedElement && !this.getContainerForBlock(targetBlock)) {
-            console.log('Dropped on another ground block, returning to ground');
             this.returnBlockToGround(this.draggedElement);
             return false;
         }
         
-        // Free placement on grass - place block where user dropped it but apply gravity
-        console.log('🌱 Free placement on grass at:', x, y);
+        // Free placement on grass
         this.placeBlockOnGrass(this.draggedElement, x, y);
         return true;
     }
@@ -794,50 +599,42 @@ class StacksRenderer {
             return 0; // No overlap
         }
         
-        // Calculate overlap area
+        // Calculate overlap area as percentage of dragged block area
         const overlapWidth = overlapRight - overlapLeft;
         const overlapHeight = overlapBottom - overlapTop;
         const overlapArea = overlapWidth * overlapHeight;
-        
-        // Calculate dragged block total area
         const draggedBlockArea = dragWidth * dragHeight;
         
-        // Return overlap as percentage of dragged block area
         return overlapArea / draggedBlockArea;
     }
     
     placeBlockOnGrass(block, x, y) {
-        console.log('Placing block', block._number, 'on grass at:', x, y);
-        
         // Clear any container association
         block._container = null;
         
-        // Convert to percentages for storage
+        // Convert to percentages
         const xPercent = pxToVw(x);
+        const yPercent = pxToVh(y);
         
-        // Get Y position with perspective from game controller
-        const existingGroundPositions = this.gameController.getExistingGroundPositions(block);
-        const yPercent = this.gameController.getRandomGroundYWithPerspective(existingGroundPositions, xPercent);
+        // Ensure block is in grass area
+        const grassTop = STACKS_CONFIG.GRASS_BLOCK_ZONE_MIN;
+        const grassBottom = STACKS_CONFIG.GRASS_BLOCK_ZONE_MAX;
+        const adjustedYPercent = Math.max(grassTop, Math.min(grassBottom, yPercent));
         
-        console.log('Adjusted Y position with perspective layering:', yPercent + '%');
-        
-        // Apply gravity to bring to adjusted grass level
-        this.applyGravity(block, x, yPercent);
+        // Apply gravity to bring to grass level
+        this.applyGravity(block, x, adjustedYPercent);
         
         // Ensure block remains interactive
         block.style.cursor = 'grab';
         block.style.pointerEvents = 'all';
-        console.log('Block', block._number, 'placed on grass with perspective at:', xPercent + '%,', yPercent + '%');
     }
     
     applyGravity(block, targetX, targetYPercent) {
         const targetY = vhToPx(targetYPercent);
-        const fallDuration = 600; // Slower fall for realism
-        
-        console.log('Applying gravity: falling from', block._centerY, 'to', targetY);
+        const fallDuration = 400;
         
         // Animate the block falling to the ground
-        block.style.transition = `all ${fallDuration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`; // Smooth fall
+        block.style.transition = `all ${fallDuration}ms ease-out`;
         this.updateBlockPosition(block, targetX, targetY);
         
         // Update stored coordinates after animation
@@ -845,80 +642,62 @@ class StacksRenderer {
             block.style.transition = '';
             block._xPercent = pxToVw(targetX);
             block._yPercent = targetYPercent;
-            console.log('Block settled at:', targetX, targetY);
         }, fallDuration);
     }
     
     swapBlocks(block1, block2) {
-        console.log('Swapping blocks:', block1._number, 'and', block2._number);
-        
         // Get the container positions for both blocks
         const container1 = this.getContainerForBlock(block1);
         const container2 = this.getContainerForBlock(block2);
         
         if (container1 && container2) {
-            // Both blocks are in containers - swap their positions
-            const tempX = block1._centerX;
-            const tempY = block1._centerY;
-            const tempXPercent = block1._xPercent;
-            const tempYPercent = block1._yPercent;
-            
             // Move block1 to block2's container
             this.placeBlockInContainer(block1, container2);
             
             // Move block2 to block1's original container
             this.placeBlockInContainer(block2, container1);
-            
-            console.log('Swapped blocks in containers');
-        } else {
-            console.log('Cannot swap - one or both blocks not in containers');
         }
     }
     
     displaceBlockToGround(block) {
-        console.log('Displacing block to ground:', block._number);
-        
         // Remove block from its current container
         block._container = null;
         
-        // Get displacement position from game controller
-        const displacementPos = this.gameController.calculateDisplacementPosition(block);
+        // SIMPLIFIED: Find a spot on the grass using the new positioning system
+        const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
+            x: b._xPercent,
+            y: b._yPercent
+        }));
         
-        console.log('Displacing block to position:', displacementPos.x + '%,', displacementPos.y + '%');
+        const displacementPos = generateRandomGroundPosition(existingBlocks);
         
         // Convert to pixel coordinates
         const groundX = vwToPx(displacementPos.x);
         const groundY = vhToPx(displacementPos.y);
         
-        // Animate the block falling to the ground with gravity
+        // Animate the block to the ground
         this.animateBlockToPosition(block, groundX, groundY, () => {
-            // Update all position tracking
             block._centerX = groundX;
             block._centerY = groundY;
             block._xPercent = displacementPos.x;
             block._yPercent = displacementPos.y;
             block._container = null;
             
-            // Ensure block remains interactive and visible
+            // Ensure block remains interactive
             block.style.opacity = '1';
             block.style.pointerEvents = 'all';
             block.style.cursor = 'grab';
             block.classList.remove('completed-tower');
             block.classList.add('new-tower-element');
             block._isLocked = false;
-            
-            console.log('Block', block._number, 'displaced and positioned at:', displacementPos.x + '%,', displacementPos.y + '%');
         });
     }
     
     animateBlockToPosition(block, targetX, targetY, callback) {
-        const duration = 400; // Slightly longer for better visibility
-        
-        console.log('Animating block', block._number, 'from', block._centerX, block._centerY, 'to', targetX, targetY);
+        const duration = 400;
         
         // Ensure block is not locked before animating
         if (block._isLocked) {
-            console.warn('Attempted to animate locked block', block._number, '- unlocking it');
             block._isLocked = false;
         }
         
@@ -934,17 +713,6 @@ class StacksRenderer {
         
         setTimeout(() => {
             block.style.transition = '';
-            
-            // Verify final position
-            console.log('Animation complete for block', block._number, 'final position:', block._centerX, block._centerY);
-            console.log('Block final state:', {
-                opacity: block.style.opacity,
-                pointerEvents: block.style.pointerEvents,
-                cursor: block.style.cursor,
-                isLocked: block._isLocked,
-                classes: block.classList.toString()
-            });
-            
             if (callback) callback();
         }, duration);
     }
@@ -967,81 +735,31 @@ class StacksRenderer {
     }
     
     returnBlockToGround(block) {
-        console.log('Returning block to ground:', block._number);
-        
         // Clear any container association
         block._container = null;
         
-        // Find existing ground blocks to avoid overlap
-        const groundBlocks = this.getGroundBlocks().filter(b => b !== block);
+        // SIMPLIFIED: Use the new positioning system
+        const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
+            x: b._xPercent,
+            y: b._yPercent
+        }));
         
-        // Calculate a good ground position
-        let groundXPercent;
-        if (groundBlocks.length === 0) {
-            // First block on ground - place at center
-            groundXPercent = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
-        } else {
-            // Find a position that doesn't overlap with existing ground blocks
-            groundXPercent = this.findAvailableGroundPosition(groundBlocks);
-        }
-        
-        const groundX = vwToPx(groundXPercent);
-        const groundY = vhToPx(STACKS_CONFIG.GROUND_Y_PERCENT);
+        const groundPos = generateRandomGroundPosition(existingBlocks);
+        const groundX = vwToPx(groundPos.x);
+        const groundY = vhToPx(groundPos.y);
         
         // Animate the block to the ground
         this.animateBlockToPosition(block, groundX, groundY, () => {
             block._centerX = groundX;
             block._centerY = groundY;
-            block._xPercent = groundXPercent;
-            block._yPercent = STACKS_CONFIG.GROUND_Y_PERCENT;
+            block._xPercent = groundPos.x;
+            block._yPercent = groundPos.y;
         });
     }
     
-    findAvailableGroundPosition(existingGroundBlocks) {
-        const spreadPercent = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
-        const centerPercent = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
-        const blockWidthPercent = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
-        
-        // Try to place blocks in a line across the ground area
-        const totalBlocks = existingGroundBlocks.length + 1;
-        
-        if (totalBlocks === 1) {
-            return centerPercent;
-        }
-        
-        // Calculate positions for all blocks including the new one
-        const startPercent = centerPercent - spreadPercent/2;
-        const spacing = spreadPercent / (totalBlocks - 1);
-        
-        // Find the first available position
-        for (let i = 0; i < totalBlocks; i++) {
-            const candidatePercent = startPercent + (i * spacing);
-            
-            // Check if this position is too close to existing blocks
-            let tooClose = false;
-            for (let existingBlock of existingGroundBlocks) {
-                const distance = Math.abs(candidatePercent - existingBlock._xPercent);
-                if (distance < blockWidthPercent) {
-                    tooClose = true;
-                    break;
-                }
-            }
-            
-            if (!tooClose) {
-                return candidatePercent;
-            }
-        }
-        
-        // If all calculated positions are taken, place randomly in the spread area
-        return startPercent + Math.random() * spreadPercent;
-    }
-    
     updateBlockPosition(block, centerX, centerY) {
-        // IMPORTANT: Don't move locked elements (completed towers)
-        if (block._isLocked) {
-            console.log('Attempted to move locked block', block._number, '- ignoring');
-            return;
-        }
+        // Don't move locked elements (completed towers)
+        if (block._isLocked) return;
         
         const dimensions = block._dimensions;
         
@@ -1068,9 +786,7 @@ class StacksRenderer {
     getDistanceToContainer(container, x, y) {
         const centerX = container._centerX;
         const centerY = container._centerY;
-        const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-        
-        return distance;
+        return Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
     }
     
     getBlockInContainer(container) {
@@ -1093,15 +809,11 @@ class StacksRenderer {
         const currentCenterX = vwToPx(STACKS_CONFIG.TOWER_CENTER_X_PERCENT);
         const deltaX = targetX - currentCenterX;
         
-        console.log('Animating tower to target position:', targetXPercent + '%', '(' + targetX + 'px)');
-        
         // Only animate blocks that are NOT already completed towers
         const elementsToAnimate = towerBlocks.filter(block => !block.classList.contains('completed-tower'));
         if (teddy && !teddy.classList.contains('completed-tower')) {
             elementsToAnimate.push(teddy);
         }
-        
-        console.log('Animating', elementsToAnimate.length, 'elements (excluding already completed towers)');
         
         elementsToAnimate.forEach(element => {
             element.style.transition = `all ${duration}ms ease-in-out`;
@@ -1110,65 +822,40 @@ class StacksRenderer {
                 const newX = element._centerX + deltaX;
                 this.updateBlockPosition(element, newX, element._centerY);
                 
-                // Mark as completed tower and set opacity
+                // Mark as completed tower
                 element.classList.add('completed-tower');
                 element.classList.remove('new-tower-element');
                 element.style.opacity = STACKS_CONFIG.COMPLETED_TOWER_OPACITY;
-                element.style.pointerEvents = 'none'; // Make non-interactive
+                element.style.pointerEvents = 'none';
                 element.style.cursor = 'default';
                 
-                // IMPORTANT: Lock the final position to prevent future movement
+                // Lock the final position
                 element._isLocked = true;
                 element._finalX = newX;
                 element._finalY = element._centerY;
                 
-                console.log('Block', element._number, 'locked at final position:', newX, element._centerY);
-                
             } else if (element.classList.contains('teddy')) {
                 // Handle both image teddies and fallback teddy groups
                 if (element.tagName === 'image') {
-                    // Original image teddy
                     const currentTeddyX = parseFloat(element.getAttribute('x'));
                     const newTeddyX = currentTeddyX + deltaX;
                     element.setAttribute('x', newTeddyX);
                     
-                    // Update stored position data
                     element._centerX = element._centerX + deltaX;
                     element._xPercent = pxToVw(element._centerX);
                 } else if (element.tagName === 'g') {
                     // Fallback teddy group - move all child elements
                     const newCenterX = element._centerX + deltaX;
                     
-                    // Update main circle
-                    if (element._mainCircle) {
-                        element._mainCircle.setAttribute('cx', newCenterX);
+                    // Update all child elements
+                    const children = element.children;
+                    for (let child of children) {
+                        if (child.tagName === 'circle') {
+                            const currentX = parseFloat(child.getAttribute('cx'));
+                            child.setAttribute('cx', currentX + deltaX);
+                        }
                     }
                     
-                    // Update eyes
-                    if (element._eye1) {
-                        const currentX1 = parseFloat(element._eye1.getAttribute('cx'));
-                        element._eye1.setAttribute('cx', currentX1 + deltaX);
-                    }
-                    if (element._eye2) {
-                        const currentX2 = parseFloat(element._eye2.getAttribute('cx'));
-                        element._eye2.setAttribute('cx', currentX2 + deltaX);
-                    }
-                    
-                    // Update mouth
-                    if (element._mouth) {
-                        const currentPath = element._mouth.getAttribute('d');
-                        // Parse and update the path coordinates
-                        const updatedPath = currentPath.replace(/M\s*([0-9.]+)/g, (match, x) => {
-                            return `M ${parseFloat(x) + deltaX}`;
-                        }).replace(/Q\s*([0-9.]+)/g, (match, x) => {
-                            return `Q ${parseFloat(x) + deltaX}`;
-                        }).replace(/([0-9.]+)\s*([0-9.]+)\s*([0-9.]+)$/g, (match, x, y, endX) => {
-                            return `${parseFloat(x) + deltaX} ${y} ${parseFloat(endX) + deltaX}`;
-                        });
-                        element._mouth.setAttribute('d', updatedPath);
-                    }
-                    
-                    // Update stored position data
                     element._centerX = newCenterX;
                     element._xPercent = pxToVw(newCenterX);
                 }
@@ -1176,24 +863,15 @@ class StacksRenderer {
                 // Mark teddy as completed tower element
                 element.classList.add('completed-tower');
                 element.style.opacity = STACKS_CONFIG.COMPLETED_TOWER_OPACITY;
-                
-                // Lock teddy position
                 element._isLocked = true;
                 element._finalX = element._centerX;
-                
-                console.log('Teddy locked at final position:', element._centerX);
             }
         });
         
-        // Clear transitions after animation and ensure positions are locked
+        // Clear transitions after animation
         setTimeout(() => {
             elementsToAnimate.forEach(element => {
                 element.style.transition = '';
-                
-                // Double-check lock status
-                if (element._isLocked) {
-                    console.log('Element', element.classList.contains('block') ? element._number : 'teddy', 'confirmed locked');
-                }
             });
             if (callback) callback();
         }, duration);
