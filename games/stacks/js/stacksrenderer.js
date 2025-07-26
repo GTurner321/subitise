@@ -290,7 +290,7 @@ class StacksRenderer {
         const x = vwToPx(xPercent);
         const y = vhToPx(yPercent);
         const baseSize = vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT) * 0.8;
-        const size = baseSize * STACKS_CONFIG.TEDDY_SIZE_MULTIPLIER; // CHANGED: 100% larger
+        const size = baseSize * STACKS_CONFIG.TEDDY_SIZE_MULTIPLIER;
         
         console.log('Creating teddy at:', x, y, 'with size:', size, 'and image:', imageUrl);
         
@@ -301,51 +301,30 @@ class StacksRenderer {
         teddy.setAttribute('width', size);
         teddy.setAttribute('height', size);
         
-        // Try different image path formats
-        const possiblePaths = [
-            imageUrl,                                    // Original path
-            imageUrl.replace('subitise/', ''),          // Remove subitise/ prefix
-            `../${imageUrl}`,                           // Try parent directory
-            `../../${imageUrl}`,                        // Try grandparent directory
-            imageUrl.replace('subitise/', 'games/subitise/') // Try games prefix
-        ];
-        
-        let pathIndex = 0;
-        
-        const tryNextPath = () => {
-            if (pathIndex < possiblePaths.length) {
-                const currentPath = possiblePaths[pathIndex];
-                console.log(`Trying teddy image path ${pathIndex + 1}/${possiblePaths.length}:`, currentPath);
-                teddy.setAttribute('href', currentPath);
-                pathIndex++;
-            } else {
-                console.error('All teddy image paths failed for:', imageUrl);
-                // Create a fallback colored circle instead
-                this.createFallbackTeddy(teddy, x, y, size);
-            }
-        };
-        
-        // Handle image load error
-        teddy.addEventListener('error', () => {
-            console.warn('Teddy image failed to load:', teddy.getAttribute('href'));
-            tryNextPath();
-        });
-        
-        // Handle image load success
-        teddy.addEventListener('load', () => {
-            console.log('Teddy image loaded successfully:', teddy.getAttribute('href'));
-        });
-        
+        // Start hidden to prevent any placeholder flash
         teddy.style.opacity = '0';
         teddy.style.transition = 'opacity 0.5s ease-in';
         
-        // Start with first path
-        tryNextPath();
+        // Handle successful load
+        const handleLoad = () => {
+            console.log('Teddy image loaded successfully:', imageUrl);
+            setTimeout(() => {
+                teddy.style.opacity = '1';
+            }, 100);
+        };
         
-        // Fade in the teddy
-        setTimeout(() => {
-            teddy.style.opacity = '1';
-        }, 100);
+        // Handle load failure
+        const handleError = () => {
+            console.warn('Teddy image failed to load:', imageUrl, '- using fallback');
+            this.createFallbackTeddy(teddy, x, y, size);
+        };
+        
+        // Set up listeners BEFORE setting href
+        teddy.addEventListener('load', handleLoad, { once: true });
+        teddy.addEventListener('error', handleError, { once: true });
+        
+        // Use the path directly from config (now fixed with proper absolute paths)
+        teddy.setAttribute('href', imageUrl);
         
         return teddy;
     }
