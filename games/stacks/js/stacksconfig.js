@@ -7,7 +7,7 @@ const STACKS_CONFIG = {
     
     // Tower positioning (percentage of viewport)
     TOWER_CENTER_X_PERCENT: 50,     // 50% from left
-    TOWER_BASE_Y_PERCENT: 75,       // FIXED: Higher up to prevent overlap with grass
+    TOWER_BASE_Y_PERCENT: 87,       // FIXED: Bottom block center at 13% from bottom (100-87=13)
     COMPLETED_TOWER_LEFT_X_PERCENT: 10,
     COMPLETED_TOWER_RIGHT_X_PERCENT: 90,
     
@@ -16,9 +16,16 @@ const STACKS_CONFIG = {
     GRASS_Y_MAX_PERCENT: 100,       // Bottom of grass area (screen bottom)
     GRASS_Y_PERCENT: 90,            // Default ground level (middle of grass)
     
-    // SIMPLIFIED: Block placement in grass area
-    GRASS_BLOCK_ZONE_MIN: 80,       // Top of block placement zone
-    GRASS_BLOCK_ZONE_MAX: 90,       // Bottom of block placement zone (top 50% of grass)
+    // SIMPLIFIED: Pre-defined block positions for initial placement
+    PREDEFINED_BLOCK_POSITIONS: [
+        { x: 37.0, y: 16.7 },
+        { x: 66.7, y: 8.2 },
+        { x: 31.8, y: 7.0 },
+        { x: 61.0, y: 13.0 },
+        { x: 44.3, y: 10.6 },
+        { x: 73.0, y: 10.6 },
+        { x: 55.8, y: 9.0 }
+    ],
     
     // Block positioning settings
     GROUND_SPREAD_PERCENT: 70,      // Spread blocks across 70% of screen width
@@ -127,65 +134,86 @@ const STACKS_CONFIG = {
     FINAL_RAINBOW_ARCS: 3
 };
 
-// SIMPLIFIED: Generate random ground position without overlap
+// SIMPLIFIED: Generate random ground position using predefined locations
 function generateRandomGroundPosition(existingBlocks = []) {
-    const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
-    const exclusionZone = STACKS_CONFIG.GROUND_EXCLUSION_ZONE_PERCENT;
-    const spread = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
-    const minDistance = STACKS_CONFIG.BLOCK_MIN_DISTANCE_PERCENT;
-    
-    // FIXED: Also avoid completed towers by checking for very low opacity blocks
-    const allExistingBlocks = [...existingBlocks];
-    
-    // Add completed tower positions to avoid (check for towers with low opacity)
-    const completedTowerBlocks = document.querySelectorAll('.block.completed-tower');
-    completedTowerBlocks.forEach(block => {
-        if (block._xPercent && block._yPercent) {
-            allExistingBlocks.push({
-                x: block._xPercent,
-                y: block._yPercent
-            });
-        }
+    // Get available positions (not yet used)
+    const availablePositions = STACKS_CONFIG.PREDEFINED_BLOCK_POSITIONS.filter(pos => {
+        // Check if this position is already taken
+        return !existingBlocks.some(block => 
+            Math.abs(block.x - pos.x) < 2 && Math.abs(block.y - pos.y) < 2
+        );
     });
     
+    if (availablePositions.length === 0) {
+        // Fallback: use random position in grass area away from tower
+        console.warn('All predefined positions taken, using random fallback');
+        const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+        const exclusionZone = STACKS_CONFIG.GROUND_EXCLUSION_ZONE_PERCENT;
+        
+        let x;
+        do {
+            x = 15 + Math.random() * 70; // Spread across most of screen
+        } while (Math.abs(x - centerX) < exclusionZone);
+        
+        const y = STACKS_CONFIG.GRASS_Y_MIN_PERCENT + Math.random() * 15; // Within grass area
+        return { x, y };
+    }
+    
+    // Randomly select from available positions
+    const selectedPosition = availablePositions[Math.floor(Math.random() * availablePositions.length)];
+    return { x: selectedPosition.x, y: selectedPosition.y };
+}
+
+// SIMPLIFIED: For user-placed and displaced blocks - free placement with overlap rules
+function generateUserPlacedGroundPosition(excludeBlocks = []) {
+    const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+    const exclusionZone = STACKS_CONFIG.GROUND_EXCLUSION_ZONE_PERCENT;
+    
     let attempts = 0;
-    const maxAttempts = 100;
+    const maxAttempts = 50;
     
     while (attempts < maxAttempts) {
         attempts++;
         
-        // Generate random X position avoiding tower area
-        let x;
-        do {
-            x = (50 - spread/2) + Math.random() * spread;
-        } while (Math.abs(x - centerX) < exclusionZone);
+        // Generate random position in grass area
+        let x = 15 + Math.random() * 70; // Spread across screen
+        
+        // Avoid tower area
+        if (Math.abs(x - centerX) < exclusionZone) {
+            continue;
+        }
         
         // Check for overlap with existing blocks
-        let hasOverlap = false;
-        for (let block of allExistingBlocks) {
+        let frontmostBlock = null;
+        const minDistance = STACKS_CONFIG.BLOCK_MIN_DISTANCE_PERCENT;
+        
+        for (let block of excludeBlocks) {
             const distance = Math.abs(x - block.x);
             if (distance < minDistance) {
-                hasOverlap = true;
-                break;
+                // Found overlapping block - track the frontmost (lowest Y)
+                if (!frontmostBlock || block.y > frontmostBlock.y) {
+                    frontmostBlock = block;
+                }
             }
         }
         
-        if (!hasOverlap) {
-            // Generate Y position in top 50% of grass area
-            const y = STACKS_CONFIG.GRASS_BLOCK_ZONE_MIN + 
-                     Math.random() * (STACKS_CONFIG.GRASS_BLOCK_ZONE_MAX - STACKS_CONFIG.GRASS_BLOCK_ZONE_MIN);
-            
-            console.log(`Generated position after ${attempts} attempts: ${x.toFixed(1)}%, ${y.toFixed(1)}%`);
-            return { x, y };
+        let y;
+        if (frontmostBlock) {
+            // Place in front of (lower than) the frontmost overlapping block
+            y = Math.min(frontmostBlock.y + 2, STACKS_CONFIG.GRASS_Y_MAX_PERCENT - 2);
+        } else {
+            // No overlap - place anywhere in grass area
+            y = STACKS_CONFIG.GRASS_Y_MIN_PERCENT + Math.random() * 15;
         }
+        
+        return { x, y };
     }
     
-    // Fallback: allow overlaps but avoid tower area and completed towers
-    console.warn('Could not find non-overlapping position, using fallback away from towers');
-    const fallbackX = centerX > 50 ? 15 + Math.random() * 20 : 65 + Math.random() * 20; // Far from center
-    const fallbackY = STACKS_CONFIG.GRASS_BLOCK_ZONE_MIN + 
-                     Math.random() * (STACKS_CONFIG.GRASS_BLOCK_ZONE_MAX - STACKS_CONFIG.GRASS_BLOCK_ZONE_MIN);
-    return { x: fallbackX, y: fallbackY };
+    // Fallback
+    return { 
+        x: 25 + Math.random() * 50, 
+        y: STACKS_CONFIG.GRASS_Y_MIN_PERCENT + Math.random() * 10 
+    };
 }
 
 // Helper function for container placement
