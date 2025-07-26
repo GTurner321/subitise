@@ -1,4 +1,75 @@
-class StacksRenderer {
+animateCompletedTower(towerBlocks, teddy, targetXPercent, callback) {
+        const duration = STACKS_CONFIG.BLOCK_ANIMATION_DURATION;
+        const targetX = vwToPx(targetXPercent);
+        const currentCenterX = vwToPx(STACKS_CONFIG.TOWER_CENTER_X_PERCENT);
+        const deltaX = targetX - currentCenterX;
+        
+        console.log('Animating tower to target position:', targetXPercent + '%', '(' + targetX + 'px)');
+        
+        // Only animate blocks that are NOT already completed towers
+        const elementsToAnimate = towerBlocks.filter(block => !block.classList.contains('completed-tower'));
+        if (teddy && !teddy.classList.contains('completed-tower')) {
+            elementsToAnimate.push(teddy);
+        }
+        
+        console.log('Animating', elementsToAnimate.length, 'elements (excluding already completed towers)');
+        
+        elementsToAnimate.forEach(element => {
+            element.style.transition = `all ${duration}ms ease-in-out`;
+            
+            if (element.classList.contains('block')) {
+                const newX = element._centerX + deltaX;
+                this.updateBlockPosition(element, newX, element._centerY);
+                
+                // Mark as completed tower and set opacity
+                element.classList.add('completed-tower');
+                element.classList.remove('new-tower-element');
+                element.style.opacity = STACKS_CONFIG.COMPLETED_TOWER_OPACITY;
+                element.style.pointerEvents = 'none'; // Make non-interactive
+                element.style.cursor = 'default';
+                
+                // IMPORTANT: Lock the final position to prevent future movement
+                element._isLocked = true;
+                element._finalX = newX;
+                element._finalY = element._centerY;
+                
+                console.log('Block', element._number, 'locked at final position:', newX, element._centerY);
+                
+            } else if (element.classList.contains('teddy')) {
+                // Handle teddy animation properly
+                const currentTeddyX = parseFloat(element.getAttribute('x'));
+                const newTeddyX = currentTeddyX + deltaX;
+                element.setAttribute('x', newTeddyX);
+                
+                // Update stored position data
+                element._centerX = element._centerX + deltaX;
+                element._xPercent = pxToVw(element._centerX);
+                
+                // Mark teddy as completed tower element
+                element.classList.add('completed-tower');
+                element.style.opacity = STACKS_CONFIG.COMPLETED_TOWER_OPACITY;
+                
+                // Lock teddy position
+                element._isLocked = true;
+                element._finalX = newTeddyX;
+                
+                console.log('Teddy locked at final position:', newTeddyX);
+            }
+        });
+        
+        // Clear transitions after animation and ensure positions are locked
+        setTimeout(() => {
+            elementsToAnimate.forEach(element => {
+                element.style.transition = '';
+                
+                // Double-check lock status
+                if (element._isLocked) {
+                    console.log('Element', element.classList.contains('block') ? element._number : 'teddy', 'confirmed locked');
+                }
+            });
+            if (callback) callback();
+        }, duration);
+    }class StacksRenderer {
     constructor(svg, gameController) {
         this.svg = svg;
         this.gameController = gameController;
@@ -24,23 +95,27 @@ class StacksRenderer {
     checkAndApplyGravity() {
         // Only check blocks that are not in containers, not being dragged, and not locked
         const groundBlocks = this.svg.querySelectorAll('.block:not(.completed-tower)');
-        const groundLevel = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
+        const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+        const grassBottom = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
         
         groundBlocks.forEach(block => {
             // Skip if block is in a container, being dragged, locked, or currently animating
             if (block._container || 
                 block === this.draggedElement || 
                 block._isLocked ||
-                block.style.transition) {
+                block.style.transition ||
+                block.classList.contains('new-tower-element')) { // Don't mess with intentionally placed blocks
                 return;
             }
             
             const currentYPercent = pxToVh(block._centerY);
             
-            // If block is floating above ground level, apply gravity
-            if (currentYPercent < groundLevel - 1) { // 1% tolerance
-                console.log('Found floating block:', block._number, 'at', currentYPercent + '%, applying gravity');
-                this.applyGravity(block, block._centerX, groundLevel);
+            // Only apply gravity if block is significantly above the grass area (not just slightly above grass bottom)
+            if (currentYPercent < grassTop - 5) { // Must be 5% above grass area to trigger gravity
+                console.log('Found truly floating block:', block._number, 'at', currentYPercent + '%, applying gravity');
+                // Use a random grass position, not just the bottom
+                const grassMidY = grassTop + ((grassBottom - grassTop) * 0.6); // 60% down the grass area
+                this.applyGravity(block, block._centerX, grassMidY);
             }
         });
     }
@@ -301,6 +376,13 @@ class StacksRenderer {
         teddy.setAttribute('width', size);
         teddy.setAttribute('height', size);
         
+        // Store position data for animation
+        teddy._centerX = x;
+        teddy._centerY = y - size/2;
+        teddy._xPercent = xPercent;
+        teddy._yPercent = yPercent;
+        teddy._size = size;
+        
         // Start hidden to prevent any placeholder flash
         teddy.style.opacity = '0';
         teddy.style.transition = 'opacity 0.5s ease-in';
@@ -376,14 +458,8 @@ class StacksRenderer {
         }
     }
     
-    renderTower(blocks, containers, centerXPercent = null, baseYPercent = null, isWide = false) {
-        // Use percentage-based positioning throughout
-        const centerX = centerXPercent || STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
-        const baseY = baseYPercent || STACKS_CONFIG.TOWER_BASE_Y_PERCENT;
-        const blockHeightPercent = STACKS_CONFIG.BLOCK_HEIGHT_PERCENT;
-        
-        console.log('renderTower called with', blocks.length, 'blocks', containers.length, 'containers');
-        console.log('Tower center:', centerX + '%', 'Base Y:', baseY + '%');
+    renderTowerWithPositions(blocks, containers, containerPositions, blockPositions, isWide = false) {
+        console.log('renderTowerWithPositions called with', blocks.length, 'blocks', containers.length, 'containers');
         
         // Clear only NEW tower elements (not completed towers)
         this.clearNewTowerElements();
@@ -394,25 +470,10 @@ class StacksRenderer {
         
         console.log('Tower has 3-digit numbers:', hasThreeDigitNumbers, 'Using wide blocks:', useWideBlocks);
         
-        // Render containers (bottom to top) using percentage positioning
-        containers.forEach((container, index) => {
-            let yPercent;
-            if (index === 0) {
-                // Bottom container sits in stable back position
-                yPercent = getRandomGroundY();
-            } else {
-                // Other containers stack above the bottom one
-                const bottomContainer = this.svg.querySelector('.container[data-index="0"]');
-                if (bottomContainer) {
-                    const bottomY = pxToVh(bottomContainer._centerY);
-                    yPercent = bottomY - (index * blockHeightPercent);
-                } else {
-                    yPercent = baseY - (index * blockHeightPercent);
-                }
-            }
-            
-            console.log(`Container ${index}: Y position = ${yPercent}% (pixel: ${vhToPx(yPercent)}px)`);
-            const containerElement = this.createContainer(centerX, yPercent, index, useWideBlocks);
+        // Render containers using provided positions
+        containerPositions.forEach((position, index) => {
+            console.log(`Container ${index}: Position = ${position.x}%, ${position.y}%`);
+            const containerElement = this.createContainer(position.x, position.y, index, useWideBlocks);
             containerElement.classList.add('new-tower-element');
             
             // Ensure container is properly positioned and visible
@@ -424,46 +485,32 @@ class StacksRenderer {
             console.log(`Container ${index} created and added to SVG:`, {
                 centerX: containerElement._centerX,
                 centerY: containerElement._centerY,
-                bounds: {
-                    x: containerElement.getAttribute('x'),
-                    y: containerElement.getAttribute('y'),
-                    width: containerElement.getAttribute('width'),
-                    height: containerElement.getAttribute('height')
-                }
+                xPercent: containerElement._xPercent,
+                yPercent: containerElement._yPercent
             });
         });
         
         // Verify all containers were created
         const createdContainers = this.svg.querySelectorAll('.container.new-tower-element');
-        console.log(`✅ Created ${createdContainers.length} containers for ${containers.length} requested`);
+        console.log(`✅ Created ${createdContainers.length} containers for ${containerPositions.length} requested`);
         
-        // Collect existing ground block positions for perspective layering
-        const existingGroundPositions = this.getExistingGroundPositions();
-        
-        // Render blocks with INITIAL PLACEMENT variance and proper spacing
-        blocks.forEach((block, index) => {
-            const groundPos = generateRandomGroundPosition(existingGroundPositions, true); // true = initial placement
-            
-            // Add this position to the list for the next block's spacing calculation
-            existingGroundPositions.push({
-                x: groundPos.x,
-                y: groundPos.y
-            });
-            
+        // Render blocks using provided positions
+        blockPositions.forEach((position, index) => {
+            const block = blocks[index];
             const blockElement = this.createBlock(
                 block.number, 
-                groundPos.x, 
-                groundPos.y, 
+                position.x, 
+                position.y, 
                 block.color,
                 useWideBlocks
             );
             blockElement.classList.add('new-tower-element');
             this.svg.appendChild(blockElement);
             
-            console.log('Added block', block.number, 'with initial height variance at:', groundPos.x + '%,', groundPos.y + '%');
+            console.log('Added block', block.number, 'at provided position:', position.x + '%,', position.y + '%');
         });
         
-        console.log('Tower render complete with height variance and proper spacing');
+        console.log('Tower render complete with provided positions');
     }
     
     clearNewTowerElements() {
@@ -821,16 +868,13 @@ class StacksRenderer {
         // Convert to percentages for storage
         const xPercent = pxToVw(x);
         
-        // Get existing ground block positions for perspective layering
-        const existingGroundPositions = this.getExistingGroundPositions(block);
-        
-        // UPDATED: Use perspective layering for Y position
-        const yPercent = getRandomGroundYWithPerspective(existingGroundPositions, xPercent);
+        // Get Y position with perspective from game controller
+        const existingGroundPositions = this.gameController.getExistingGroundPositions(block);
+        const yPercent = this.gameController.getRandomGroundYWithPerspective(existingGroundPositions, xPercent);
         
         console.log('Adjusted Y position with perspective layering:', yPercent + '%');
         
         // Apply gravity to bring to adjusted grass level
-        const targetY = vhToPx(yPercent);
         this.applyGravity(block, x, yPercent);
         
         // Ensure block remains interactive
@@ -890,28 +934,22 @@ class StacksRenderer {
         // Remove block from its current container
         block._container = null;
         
-        // Get existing ground block positions for proper spacing and perspective layering
-        const existingGroundPositions = this.getExistingGroundPositions(block);
+        // Get displacement position from game controller
+        const displacementPos = this.gameController.calculateDisplacementPosition(block);
         
-        // Use the generateCloseToTowerPosition function for proper placement
-        const groundPos = generateCloseToTowerPosition();
-        
-        // Apply perspective layering for Y position
-        const adjustedY = getRandomGroundYWithPerspective(existingGroundPositions, groundPos.x);
-        
-        console.log('Displacing block to position:', groundPos.x + '%,', adjustedY + '%');
+        console.log('Displacing block to position:', displacementPos.x + '%,', displacementPos.y + '%');
         
         // Convert to pixel coordinates
-        const groundX = vwToPx(groundPos.x);
-        const groundY = vhToPx(adjustedY);
+        const groundX = vwToPx(displacementPos.x);
+        const groundY = vhToPx(displacementPos.y);
         
         // Animate the block falling to the ground with gravity
         this.animateBlockToPosition(block, groundX, groundY, () => {
             // Update all position tracking
             block._centerX = groundX;
             block._centerY = groundY;
-            block._xPercent = groundPos.x;
-            block._yPercent = adjustedY;
+            block._xPercent = displacementPos.x;
+            block._yPercent = displacementPos.y;
             block._container = null;
             
             // Ensure block remains interactive and visible
@@ -922,7 +960,7 @@ class StacksRenderer {
             block.classList.add('new-tower-element');
             block._isLocked = false;
             
-            console.log('Block', block._number, 'displaced and positioned at:', groundPos.x + '%,', adjustedY + '%');
+            console.log('Block', block._number, 'displaced and positioned at:', displacementPos.x + '%,', displacementPos.y + '%');
         });
     }
     
