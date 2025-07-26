@@ -210,6 +210,12 @@ class StacksGameController {
         // Reset ground blocks for new question
         this.existingGroundBlocks = [];
         
+        // FIXED: Don't render new tower containers after 6th question
+        if (this.currentQuestion > 6) {
+            console.log('All 6 towers completed, no more template towers needed');
+            return;
+        }
+        
         // Generate numbers for current level and question
         const blockCount = this.currentQuestion + 1;
         const levelConfig = STACKS_CONFIG.LEVELS[this.currentLevel];
@@ -222,7 +228,7 @@ class StacksGameController {
             return;
         }
         
-        // Create blocks with random colors
+        // Create blocks with random colors (no repeats)
         const blocks = this.createGameBlocks(numbers, levelConfig.useWideBlocks);
         
         // Create containers
@@ -308,15 +314,14 @@ class StacksGameController {
     
     createGameBlocks(numbers, useWideBlocks = false) {
         const blocks = [];
-        const usedColors = new Set();
+        
+        // FIXED: Use brighter colors with no repeats
+        const availableColors = [...STACKS_CONFIG.BLOCK_COLORS]; // Copy array
         
         numbers.forEach(number => {
-            let color;
-            do {
-                color = STACKS_CONFIG.BLOCK_COLORS[Math.floor(Math.random() * STACKS_CONFIG.BLOCK_COLORS.length)];
-            } while (usedColors.has(color) && usedColors.size < STACKS_CONFIG.BLOCK_COLORS.length);
-            
-            usedColors.add(color);
+            // Randomly select from remaining colors
+            const colorIndex = Math.floor(Math.random() * availableColors.length);
+            const color = availableColors.splice(colorIndex, 1)[0]; // Remove and use
             
             blocks.push({
                 number: number,
@@ -343,6 +348,9 @@ class StacksGameController {
         
         // Visual feedback
         this.renderer.highlightCorrectOrder();
+        
+        // FIXED: Hide containers before moving tower
+        this.renderer.hideCurrentTowerContainers();
         
         // Add rainbow piece
         this.rainbow.addPiece();
