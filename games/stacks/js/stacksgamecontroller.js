@@ -16,6 +16,10 @@ class StacksGameController {
         this.gameActive = false;
         this.completedTowers = [];
         
+        // Game positioning state
+        this.currentTowerBasePosition = null;
+        this.existingGroundBlocks = [];
+        
         // Audio
         this.audioContext = null;
         this.audioEnabled = STACKS_CONFIG.AUDIO_ENABLED;
@@ -28,7 +32,6 @@ class StacksGameController {
         this.modalTitle = document.getElementById('modalTitle');
         this.modalMessage = document.getElementById('modalMessage');
         this.playAgainBtn = document.getElementById('playAgainBtn');
-        // Removed game info elements as they're no longer needed
         
         this.handleResize = this.handleResize.bind(this);
         
@@ -38,7 +41,7 @@ class StacksGameController {
     async initializeGame() {
         window.addEventListener('resize', this.handleResize);
         await this.initializeAudio();
-        this.removeGameInfoElements(); // Remove any existing info elements
+        this.removeGameInfoElements();
         this.createMuteButton();
         this.createBackButton();
         this.setupEventListeners();
@@ -47,13 +50,8 @@ class StacksGameController {
     }
     
     removeGameInfoElements() {
-        // Remove all game info elements that might exist in the DOM
         const elementsToRemove = [
-            'levelInfo',
-            'questionInfo',
-            'movesInfo',
-            'game-info-container',
-            'gameInfoContainer'
+            'levelInfo', 'questionInfo', 'movesInfo', 'game-info-container', 'gameInfoContainer'
         ];
         
         elementsToRemove.forEach(id => {
@@ -64,17 +62,12 @@ class StacksGameController {
             }
         });
         
-        // Also remove by class name in case they use classes
         const classesToRemove = [
-            'game-info-container',
-            'level-info',
-            'question-info',
-            'moves-info'
+            'game-info-container', 'level-info', 'question-info', 'moves-info'
         ];
         
         classesToRemove.forEach(className => {
             const elements = document.getElementsByClassName(className);
-            // Convert to array since getElementsByClassName returns a live collection
             Array.from(elements).forEach(element => {
                 console.log('Removing game info element by class:', className);
                 element.remove();
@@ -176,7 +169,6 @@ class StacksGameController {
             const gameWidth = window.innerWidth;
             const gameHeight = window.innerHeight;
             
-            // IMPORTANT: Remove viewBox to use 1:1 pixel coordinate system
             this.svg.removeAttribute('viewBox');
             this.svg.setAttribute('width', gameWidth);
             this.svg.setAttribute('height', gameHeight);
@@ -201,6 +193,8 @@ class StacksGameController {
         this.totalMoves = 0;
         this.questionMoves = 0;
         this.completedTowers = [];
+        this.existingGroundBlocks = [];
+        this.currentTowerBasePosition = null;
         
         // Hide modal
         if (this.modal) this.modal.classList.add('hidden');
@@ -223,8 +217,11 @@ class StacksGameController {
             this.renderer.clearNewTowerElements();
         }
         
+        // Reset ground blocks for new question
+        this.existingGroundBlocks = [];
+        
         // Generate numbers for current level and question
-        const blockCount = this.currentQuestion + 1; // Question 1 = 2 blocks, etc.
+        const blockCount = this.currentQuestion + 1;
         const levelConfig = STACKS_CONFIG.LEVELS[this.currentLevel];
         const numbers = levelConfig.generateNumbers(blockCount);
         
@@ -238,25 +235,33 @@ class StacksGameController {
         // Create blocks with random colors
         const blocks = this.createGameBlocks(numbers, levelConfig.useWideBlocks);
         
-        console.log('Created blocks:', blocks);
-        
         // Create containers
         const containers = [];
         for (let i = 0; i < blockCount; i++) {
             containers.push({ index: i });
         }
         
-        // Render the tower using PERCENTAGE-based coordinates
-        this.renderer.renderTower(
+        // Calculate all positions using game controller logic
+        const towerCenterX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+        const baseY = STACKS_CONFIG.TOWER_BASE_Y_PERCENT;
+        
+        // Calculate container positions
+        const containerPositions = this.calculateContainerPositions(blockCount, towerCenterX, baseY);
+        this.currentTowerBasePosition = containerPositions[0]; // Store base position
+        
+        // Calculate block positions with proper exclusions
+        const blockPositions = this.calculateInitialBlockPositions(blocks.length, towerCenterX);
+        
+        // Render the tower using calculated positions
+        this.renderer.renderTowerWithPositions(
             blocks, 
             containers, 
-            STACKS_CONFIG.TOWER_CENTER_X_PERCENT,  // Use percentage value
-            STACKS_CONFIG.TOWER_BASE_Y_PERCENT,    // Use percentage value
+            containerPositions,
+            blockPositions,
             levelConfig.useWideBlocks
         );
         
-        console.log('Tower rendered');
-        // Removed updateGameInfo() call
+        console.log('Tower rendered with calculated positions');
         
         // Give audio instruction
         if (this.audioEnabled) {
@@ -267,12 +272,235 @@ class StacksGameController {
         }
     }
     
+    // GAME LOGIC: Calculate container positions
+    calculateContainerPositions(containerCount, centerXPercent, baseYPercent) {
+        const positions = [];
+        const blockHeightPercent = STACKS_CONFIG.BLOCK_HEIGHT_PERCENT;
+        
+        for (let i = 0; i < containerCount; i++) {
+            let yPercent;
+            if (i === 0) {
+                // Bottom container in stable back position
+                yPercent = this.getRandomGroundY();
+            } else {
+                // Stack above previous containers
+                yPercent = positions[0].y - (i * blockHeightPercent);
+            }
+            
+            // Ensure container stays within viewport bounds
+            yPercent = Math.max(10, Math.min(yPercent, 85));
+            
+            positions.push({
+                x: centerXPercent,
+                y: yPercent,
+                index: i
+            });
+            
+            console.log(`Container ${i} position calculated: ${centerXPercent}%, ${yPercent}%`);
+        }
+        
+        return positions;
+    }
+    
+    // GAME LOGIC: Calculate initial block positions with exclusions
+    calculateInitialBlockPositions(blockCount, towerCenterX) {
+        const positions = [];
+        
+        for (let i = 0; i < blockCount; i++) {
+            const position = this.generateRandomGroundPositionWithExclusion(
+                this.existingGroundBlocks, 
+                towerCenterX, 
+                this.currentTowerBasePosition,
+                true // isInitialPlacement
+            );
+            
+            positions.push(position);
+            
+            // Add to existing blocks for next iteration
+            this.existingGroundBlocks.push(position);
+            
+            console.log(`Block ${i} position calculated:`, position.x + '%,', position.y + '%');
+        }
+        
+        return positions;
+    }
+    
+    // GAME LOGIC: Generate random ground position with exclusions
+    generateRandomGroundPositionWithExclusion(existingBlocks = [], towerCenterX, baseContainerPos, isInitialPlacement = false) {
+        const centerX = towerCenterX || STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+        const exclusionZone = STACKS_CONFIG.GROUND_EXCLUSION_ZONE_PERCENT;
+        const spread = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
+        const blockWidth = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
+        const minDistance = blockWidth * 0.75;
+        
+        const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+        const grassBottom = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
+        const grassHeight = grassBottom - grassTop;
+        const grassMidpoint = grassTop + (grassHeight * 0.5);
+        
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        while (attempts < maxAttempts) {
+            let x;
+            do {
+                x = (50 - spread/2) + Math.random() * spread;
+            } while (Math.abs(x - centerX) < exclusionZone);
+            
+            // Additional exclusion for base container area
+            if (baseContainerPos && Math.abs(x - centerX) < (exclusionZone * 0.7)) {
+                attempts++;
+                continue;
+            }
+            
+            // Check overlap with existing blocks
+            let overlappingBlock = null;
+            let hasOverlap = false;
+            
+            for (let block of existingBlocks) {
+                const distance = Math.abs(x - block.x);
+                if (distance < minDistance) {
+                    hasOverlap = true;
+                    if (!overlappingBlock || block.y > overlappingBlock.y) {
+                        overlappingBlock = block;
+                    }
+                }
+            }
+            
+            let y;
+            if (isInitialPlacement) {
+                const baseY = grassTop + (grassHeight * 0.25);
+                const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT;
+                y = baseY + (Math.random() - 0.5) * variance * 2;
+                y = Math.max(grassTop, Math.min(y, grassMidpoint));
+            } else if (hasOverlap && overlappingBlock) {
+                const minY = overlappingBlock.y;
+                const maxY = grassMidpoint;
+                y = minY >= maxY ? maxY : minY + Math.random() * (maxY - minY);
+                console.log('Block overlaps, placing in front at', y.toFixed(1) + '%');
+            } else {
+                const baseY = grassTop + (grassHeight * 0.2);
+                const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT * 0.5;
+                y = baseY + (Math.random() - 0.5) * variance * 2;
+                y = Math.max(grassTop, Math.min(y, grassMidpoint * 0.8));
+            }
+            
+            console.log('Generated ground position after', attempts + 1, 'attempts:', x.toFixed(1) + '%,', y.toFixed(1) + '%');
+            return { x, y };
+        }
+        
+        // Fallback
+        console.warn('Could not find suitable position after', maxAttempts, 'attempts, using fallback');
+        const fallbackX = centerX > 50 ? 25 : 75;
+        const baseY = grassTop + (grassHeight * 0.25);
+        const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT;
+        const fallbackY = baseY + (Math.random() - 0.5) * variance * 2;
+        return { x: fallbackX, y: Math.max(grassTop, Math.min(fallbackY, grassMidpoint)) };
+    }
+    
+    // GAME LOGIC: Calculate close-to-tower position for displaced blocks
+    calculateCloseToTowerPosition() {
+        const towerCenterX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+        const displacementRange = 20;
+        
+        const leftBound = Math.max(5, towerCenterX - displacementRange);
+        const rightBound = Math.min(95, towerCenterX + displacementRange);
+        
+        const x = leftBound + Math.random() * (rightBound - leftBound);
+        
+        const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+        const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
+        const y = grassTop + Math.random() * (grassHeight * 0.5);
+        
+        console.log('Generated close-to-tower position:', x.toFixed(1) + '%,', y.toFixed(1) + '%');
+        return { x, y };
+    }
+    
+    // GAME LOGIC: Calculate displacement position
+    calculateDisplacementPosition(excludeBlock = null) {
+        // Get current ground blocks excluding the one being displaced
+        const currentGroundBlocks = this.getExistingGroundPositions(excludeBlock);
+        
+        // Get position close to tower
+        const groundPos = this.calculateCloseToTowerPosition();
+        
+        // Apply perspective layering
+        const adjustedY = this.getRandomGroundYWithPerspective(currentGroundBlocks, groundPos.x);
+        
+        console.log('Calculated displacement position:', groundPos.x + '%,', adjustedY + '%');
+        return { x: groundPos.x, y: adjustedY };
+    }
+    
+    // GAME LOGIC: Get existing ground block positions
+    getExistingGroundPositions(excludeBlock = null) {
+        if (!this.renderer) return [];
+        
+        const groundBlocks = this.renderer.getGroundBlocks();
+        const positions = [];
+        
+        groundBlocks.forEach(block => {
+            if (block !== excludeBlock) {
+                positions.push({
+                    x: block._xPercent || pxToVw(block._centerX),
+                    y: block._yPercent || pxToVh(block._centerY)
+                });
+            }
+        });
+        
+        console.log('Found', positions.length, 'existing ground block positions');
+        return positions;
+    }
+    
+    // GAME LOGIC: Calculate Y position with perspective
+    getRandomGroundYWithPerspective(existingBlocks = [], targetX = null) {
+        if (!targetX || existingBlocks.length === 0) {
+            const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+            const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
+            const baseY = grassTop + (grassHeight * 0.2);
+            const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT * 0.5;
+            return baseY + (Math.random() - 0.5) * variance * 2;
+        }
+        
+        const blockWidth = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
+        const minDistance = blockWidth * 0.75;
+        const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+        const grassBottom = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
+        const grassHeight = grassBottom - grassTop;
+        const grassMidpoint = grassTop + (grassHeight * 0.5);
+        
+        let overlappingBlock = null;
+        for (let block of existingBlocks) {
+            const distance = Math.abs(targetX - block.x);
+            if (distance < minDistance) {
+                if (!overlappingBlock || block.y > overlappingBlock.y) {
+                    overlappingBlock = block;
+                }
+            }
+        }
+        
+        if (overlappingBlock) {
+            const minY = overlappingBlock.y;
+            const maxY = grassMidpoint;
+            return minY >= maxY ? maxY : minY + Math.random() * (maxY - minY);
+        } else {
+            const baseY = grassTop + (grassHeight * 0.2);
+            const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT * 0.5;
+            return baseY + (Math.random() - 0.5) * variance * 2;
+        }
+    }
+    
+    // GAME LOGIC: Get random ground Y for containers
+    getRandomGroundY() {
+        const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
+        const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
+        return grassTop + (grassHeight * 0.15);
+    }
+    
     createGameBlocks(numbers, useWideBlocks = false) {
         const blocks = [];
         const usedColors = new Set();
         
         numbers.forEach(number => {
-            // Pick a random color that hasn't been used
             let color;
             do {
                 color = STACKS_CONFIG.BLOCK_COLORS[Math.floor(Math.random() * STACKS_CONFIG.BLOCK_COLORS.length)];
@@ -293,7 +521,6 @@ class StacksGameController {
     onBlockMoved() {
         this.questionMoves++;
         this.totalMoves++;
-        // Removed updateGameInfo() call since info box is removed
         
         // Check if tower is complete and correct
         if (this.renderer.isValidTowerOrder()) {
@@ -313,10 +540,9 @@ class StacksGameController {
         // Add teddy to top of tower
         const teddyImageUrl = STACKS_CONFIG.TEDDY_IMAGES[this.currentQuestion - 1];
         const topContainer = this.renderer.getAllContainers()
-            .sort((a, b) => parseFloat(a.getAttribute('y')) - parseFloat(b.getAttribute('y')))[0]; // Top container
+            .sort((a, b) => parseFloat(a.getAttribute('y')) - parseFloat(b.getAttribute('y')))[0];
         
         if (topContainer) {
-            // Convert pixel position back to percentage for teddy creation
             const teddyXPercent = pxToVw(topContainer._centerX);
             const teddyYPercent = pxToVh(topContainer._centerY);
             
@@ -326,8 +552,6 @@ class StacksGameController {
                 teddyImageUrl
             );
             this.svg.appendChild(teddy);
-            
-            // Store reference for animation
             this.currentTeddy = teddy;
         }
         
@@ -358,38 +582,29 @@ class StacksGameController {
         let targetXPercent;
         
         if (isLeftSide) {
-            // Find the rightmost (furthest) left-side tower position
             const leftTowers = this.completedTowers.filter((_, index) => (index + 1) % 2 === 1);
             if (leftTowers.length === 0) {
-                // First left tower
                 targetXPercent = STACKS_CONFIG.COMPLETED_TOWER_LEFT_X_PERCENT;
             } else {
-                // Place next to the previous left tower
                 const lastLeftPosition = Math.max(...leftTowers.map(tower => tower.position));
                 targetXPercent = lastLeftPosition + STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
             }
         } else {
-            // Find the leftmost (furthest) right-side tower position  
             const rightTowers = this.completedTowers.filter((_, index) => (index + 1) % 2 === 0);
             if (rightTowers.length === 0) {
-                // First right tower
                 targetXPercent = STACKS_CONFIG.COMPLETED_TOWER_RIGHT_X_PERCENT;
             } else {
-                // Place next to the previous right tower
                 const lastRightPosition = Math.min(...rightTowers.map(tower => tower.position));
                 targetXPercent = lastRightPosition - STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
             }
         }
         
-        // Ensure we don't go off screen
         targetXPercent = Math.max(5, Math.min(95, targetXPercent));
         
         console.log('Calculated target position:', targetXPercent + '%', 'for tower', this.currentQuestion);
-        console.log('Existing completed towers:', this.completedTowers.map(t => t.position));
         
         // Animate tower to new position
         this.renderer.animateCompletedTower(towerBlocks, teddy, targetXPercent, () => {
-            // Store the completed tower with its FINAL position
             this.completedTowers.push({
                 blocks: towerBlocks,
                 teddy: teddy,
@@ -399,7 +614,6 @@ class StacksGameController {
             });
             
             console.log('Tower', this.currentQuestion, 'stored at position:', targetXPercent + '%');
-            console.log('All completed towers now:', this.completedTowers.map(t => `Q${t.question}: ${t.position.toFixed(1)}%`));
             
             // Check level progression
             this.checkLevelProgression();
@@ -421,9 +635,7 @@ class StacksGameController {
         const maxAllowedMoves = levelConfig.moveThreshold * (this.currentQuestion + 1);
         
         if (this.questionMoves > maxAllowedMoves) {
-            // Too many moves - check if we should drop level
             if (this.currentLevel > 1) {
-                // Look ahead to next question
                 const nextQuestionMoves = this.getNextQuestionEstimate();
                 if (nextQuestionMoves > maxAllowedMoves) {
                     this.currentLevel = Math.max(1, this.currentLevel - 1);
@@ -431,7 +643,6 @@ class StacksGameController {
                 }
             }
         } else {
-            // Good performance - can progress to next level
             if (this.currentLevel < 8) {
                 this.currentLevel++;
                 console.log('Advanced to level', this.currentLevel);
@@ -440,19 +651,16 @@ class StacksGameController {
     }
     
     getNextQuestionEstimate() {
-        // Simple heuristic - assume similar performance for next question
         return this.questionMoves;
     }
     
     endGame() {
-        // Add final rainbow arcs to complete it
         for (let i = 0; i < STACKS_CONFIG.FINAL_RAINBOW_ARCS; i++) {
             setTimeout(() => {
                 this.rainbow.addPiece();
             }, i * 300);
         }
         
-        // Show completion modal after rainbow is complete
         setTimeout(() => {
             this.showCompletionModal();
         }, STACKS_CONFIG.FINAL_RAINBOW_ARCS * 300 + 1000);
@@ -463,7 +671,6 @@ class StacksGameController {
             this.modalTitle.textContent = '🌈 Amazing Work! 🌈';
             this.modalMessage.textContent = `You've built all ${STACKS_CONFIG.TOTAL_QUESTIONS} towers with ${this.totalMoves} total moves!`;
             
-            // Remove dark background by making modal background transparent
             this.modal.style.background = 'transparent';
             this.modal.classList.remove('hidden');
             
@@ -473,14 +680,11 @@ class StacksGameController {
                 }, 500);
             }
             
-            // Start bear celebration
             setTimeout(() => {
                 this.bear.startCelebration();
             }, 1000);
         }
     }
-    
-    // Removed updateGameInfo() method since info box is no longer needed
     
     // Audio feedback methods
     playDragStartSound() {
