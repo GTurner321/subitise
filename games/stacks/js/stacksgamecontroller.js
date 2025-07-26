@@ -394,13 +394,20 @@ class StacksGameController {
                 continue;
             }
             
-            // FIXED: Calculate Y position with proper perspective layering
+            // FIXED: Calculate Y position with proper randomized heights and perspective layering
             let y;
             
             if (isInitialPlacement) {
-                // INITIAL PLACEMENT: Random height in TOP 50% of grass area
+                // INITIAL PLACEMENT: Random height in TOP 50% of grass area with variance
                 const topHalfHeight = grassHeight * 0.5;
-                y = grassTop + Math.random() * topHalfHeight;
+                const baseY = grassTop + Math.random() * topHalfHeight; // Base random position
+                
+                // Apply height variance for randomization
+                const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT;
+                y = baseY + (Math.random() - 0.5) * variance * 2; // ±variance
+                
+                // Ensure it stays within top 50% of grass
+                y = Math.max(grassTop, Math.min(y, grassMidpoint));
                 
                 // Check for overlapping blocks and apply perspective rule
                 let frontmostOverlappingBlock = null;
@@ -438,14 +445,14 @@ class StacksGameController {
                 y = Math.max(grassTop, Math.min(y, grassMidpoint * 0.8));
             }
             
-            console.log(`Generated valid position after ${attempts} attempts: ${x.toFixed(1)}%, ${y.toFixed(1)}%`);
+            console.log(`Generated valid position with randomized height after ${attempts} attempts: ${x.toFixed(1)}%, ${y.toFixed(1)}%`);
             return { x, y };
         }
         
         // Fallback - place on opposite side of tower
         console.warn('Could not find suitable position after', maxAttempts, 'attempts, using fallback');
         const fallbackX = centerX > 50 ? 25 : 75;
-        const fallbackY = grassTop + (grassHeight * 0.25);
+        const fallbackY = grassTop + (grassHeight * 0.3) + Math.random() * (grassHeight * 0.2); // Random within grass
         return { x: fallbackX, y: fallbackY };
     }
     
@@ -540,11 +547,15 @@ class StacksGameController {
         }
     }
     
-    // GAME LOGIC: Get random ground Y for containers
+    // GAME LOGIC: Get random ground Y for containers - FIXED to place ON grass
     getRandomGroundY() {
         const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
-        const grassHeight = STACKS_CONFIG.GROUND_Y_MAX_PERCENT - grassTop;
-        return grassTop + (grassHeight * 0.15);
+        const grassBottom = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
+        const grassHeight = grassBottom - grassTop;
+        
+        // FIXED: Place containers IN the grass area, not above it
+        // Use 60-80% of the way down the grass area for stable base positioning
+        return grassTop + (grassHeight * (0.6 + Math.random() * 0.2));
     }
     
     createGameBlocks(numbers, useWideBlocks = false) {
