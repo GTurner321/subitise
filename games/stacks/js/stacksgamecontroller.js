@@ -334,10 +334,11 @@ class StacksGameController {
         return positions;
     }
     
-    // GAME LOGIC: Generate random ground position with exclusions
+    // GAME LOGIC: Generate random ground position with exclusions - UPDATED with front exclusion
     generateRandomGroundPositionWithExclusion(existingBlocks = [], towerCenterX, baseContainerPos, isInitialPlacement = false) {
         const centerX = towerCenterX || STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
         const exclusionZone = STACKS_CONFIG.GROUND_EXCLUSION_ZONE_PERCENT;
+        const frontExclusionZone = STACKS_CONFIG.FRONT_EXCLUSION_ZONE_PERCENT;
         const spread = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
         const blockWidth = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
         
@@ -350,7 +351,7 @@ class StacksGameController {
         const grassMidpoint = grassTop + (grassHeight * 0.5); // 50% down grass area
         
         let attempts = 0;
-        const maxAttempts = 100; // Increased attempts for better placement
+        const maxAttempts = 100;
         
         while (attempts < maxAttempts) {
             attempts++;
@@ -359,14 +360,25 @@ class StacksGameController {
             let validX = false;
             let xAttempts = 0;
             
-            // Find valid X position avoiding tower and existing blocks
+            // Find valid X position avoiding tower, front area, and existing blocks
             while (!validX && xAttempts < 50) {
                 xAttempts++;
                 x = (50 - spread/2) + Math.random() * spread;
                 
-                // Check tower exclusion
+                // Check tower exclusion (sides and back)
                 if (Math.abs(x - centerX) < exclusionZone) {
                     continue;
+                }
+                
+                // NEW: Check front exclusion zone (prevent blocks in front of tower)
+                if (baseContainerPos) {
+                    const frontY = baseContainerPos.y; // Base container Y position
+                    const currentGrassY = grassTop + (grassHeight * 0.5); // Middle of grass for comparison
+                    
+                    // If we're in front of tower area (closer to viewer), exclude this X position
+                    if (Math.abs(x - centerX) < frontExclusionZone) {
+                        continue;
+                    }
                 }
                 
                 // Check base container exclusion
@@ -374,7 +386,7 @@ class StacksGameController {
                     continue;
                 }
                 
-                // FIXED: Check horizontal overlap with existing blocks
+                // FIXED: Check horizontal overlap with existing blocks (25% max overlap)
                 let hasInvalidOverlap = false;
                 for (let block of existingBlocks) {
                     const distance = Math.abs(x - block.x);
@@ -394,17 +406,17 @@ class StacksGameController {
                 continue;
             }
             
-            // FIXED: Calculate Y position with proper randomized heights and perspective layering
+            // Calculate Y position with proper randomized heights and perspective layering
             let y;
             
             if (isInitialPlacement) {
                 // INITIAL PLACEMENT: Random height in TOP 50% of grass area with variance
                 const topHalfHeight = grassHeight * 0.5;
-                const baseY = grassTop + Math.random() * topHalfHeight; // Base random position
+                const baseY = grassTop + Math.random() * topHalfHeight;
                 
                 // Apply height variance for randomization
                 const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT;
-                y = baseY + (Math.random() - 0.5) * variance * 2; // ±variance
+                y = baseY + (Math.random() - 0.5) * variance * 2;
                 
                 // Ensure it stays within top 50% of grass
                 y = Math.max(grassTop, Math.min(y, grassMidpoint));
@@ -414,7 +426,6 @@ class StacksGameController {
                 for (let block of existingBlocks) {
                     const distance = Math.abs(x - block.x);
                     if (distance < minDistance) {
-                        // This block overlaps - find the frontmost (closest to viewer/highest Y)
                         if (!frontmostOverlappingBlock || block.y > frontmostOverlappingBlock.y) {
                             frontmostOverlappingBlock = block;
                         }
@@ -422,15 +433,13 @@ class StacksGameController {
                 }
                 
                 if (frontmostOverlappingBlock) {
-                    // PERSPECTIVE RULE: Place this block IN FRONT (lower/higher Y) of overlapping block
+                    // PERSPECTIVE RULE: Place this block IN FRONT (higher Y) of overlapping block
                     const overlapY = frontmostOverlappingBlock.y;
-                    const maxFrontY = grassMidpoint; // Can't go past 50% down grass
+                    const maxFrontY = grassMidpoint;
                     
                     if (overlapY >= maxFrontY) {
-                        // Overlapping block is already at front limit
                         y = maxFrontY;
                     } else {
-                        // Place randomly between overlapping block and front limit
                         y = overlapY + Math.random() * (maxFrontY - overlapY);
                     }
                     
@@ -438,21 +447,21 @@ class StacksGameController {
                 }
                 
             } else {
-                // Non-initial placement - simpler logic
-                const baseY = grassTop + (grassHeight * 0.2); // Back layer
+                // Non-initial placement
+                const baseY = grassTop + (grassHeight * 0.2);
                 const variance = STACKS_CONFIG.INITIAL_BLOCK_Y_VARIANCE_PERCENT * 0.5;
                 y = baseY + (Math.random() - 0.5) * variance * 2;
                 y = Math.max(grassTop, Math.min(y, grassMidpoint * 0.8));
             }
             
-            console.log(`Generated valid position with randomized height after ${attempts} attempts: ${x.toFixed(1)}%, ${y.toFixed(1)}%`);
+            console.log(`Generated valid position with exclusions after ${attempts} attempts: ${x.toFixed(1)}%, ${y.toFixed(1)}%`);
             return { x, y };
         }
         
-        // Fallback - place on opposite side of tower
+        // Fallback - place on side opposite to tower, away from front
         console.warn('Could not find suitable position after', maxAttempts, 'attempts, using fallback');
-        const fallbackX = centerX > 50 ? 25 : 75;
-        const fallbackY = grassTop + (grassHeight * 0.3) + Math.random() * (grassHeight * 0.2); // Random within grass
+        const fallbackX = centerX > 50 ? 20 : 80; // Far sides
+        const fallbackY = grassTop + (grassHeight * 0.3) + Math.random() * (grassHeight * 0.2);
         return { x: fallbackX, y: fallbackY };
     }
     
@@ -547,15 +556,18 @@ class StacksGameController {
         }
     }
     
-    // GAME LOGIC: Get random ground Y for containers - FIXED to place ON grass
+    // GAME LOGIC: Get random ground Y for containers - FIXED to place base in lower grass area
     getRandomGroundY() {
         const grassTop = STACKS_CONFIG.GROUND_Y_MIN_PERCENT;
         const grassBottom = STACKS_CONFIG.GROUND_Y_MAX_PERCENT;
         const grassHeight = grassBottom - grassTop;
         
-        // FIXED: Place containers IN the grass area, not above it
-        // Use 60-80% of the way down the grass area for stable base positioning
-        return grassTop + (grassHeight * (0.6 + Math.random() * 0.2));
+        // FIXED: Place base containers in 25-50% down the grass area for proper grounding
+        const minPosition = 0.25; // 25% down grass
+        const maxPosition = 0.50; // 50% down grass
+        const randomPosition = minPosition + Math.random() * (maxPosition - minPosition);
+        
+        return grassTop + (grassHeight * randomPosition);
     }
     
     createGameBlocks(numbers, useWideBlocks = false) {
@@ -705,7 +717,8 @@ class StacksGameController {
                 }
             }
         } else {
-            if (this.currentLevel < 8) {
+            // UPDATED: Max level is now 6 instead of 8
+            if (this.currentLevel < 6) {
                 this.currentLevel++;
                 console.log('Advanced to level', this.currentLevel);
             }
