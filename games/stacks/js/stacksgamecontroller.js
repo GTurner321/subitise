@@ -205,6 +205,7 @@ class StacksGameController {
         // Clear only NEW tower elements (preserve completed towers)
         if (this.renderer) {
             this.renderer.clearNewTowerElements();
+            console.log('Cleared previous tower elements');
         }
         
         // Reset ground blocks for new question
@@ -249,6 +250,8 @@ class StacksGameController {
             blockPositions,
             levelConfig.useWideBlocks
         );
+        
+        console.log('New tower rendered with', containerPositions.length, 'containers and', blockPositions.length, 'blocks');
         
         console.log('Tower rendered with simplified positioning');
         
@@ -360,8 +363,8 @@ class StacksGameController {
         // Visual feedback
         this.renderer.highlightCorrectOrder();
         
-        // FIXED: Remove the missing function call
-        // this.renderer.hideCurrentTowerContainers();
+        // FIXED: Hide containers on completion
+        this.renderer.hideCurrentTowerContainers();
         
         // Add rainbow piece
         this.rainbow.addPiece();
@@ -397,7 +400,7 @@ class StacksGameController {
             this.moveTowerToSide();
         }, STACKS_CONFIG.TOWER_MOVE_DELAY);
         
-        console.log('Completion sequence started, tower will move in', STACKS_CONFIG.TOWER_MOVE_DELAY, 'ms');
+        console.log('Completion sequence started, containers hidden, tower will move in', STACKS_CONFIG.TOWER_MOVE_DELAY, 'ms');
     }
     
     moveTowerToSide() {
@@ -457,8 +460,9 @@ class StacksGameController {
                 // Check level progression
                 this.checkLevelProgression();
                 
-                // Start next question
+                // Start next question - NEW containers will be rendered here
                 this.currentQuestion++;
+                console.log('Starting next question:', this.currentQuestion);
                 setTimeout(() => {
                     this.startNewQuestion();
                 }, 1000);
