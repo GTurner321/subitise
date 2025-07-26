@@ -512,8 +512,10 @@ class StacksRenderer {
     
     handleDrop(x, y) {
         // Check containers with improved overlap detection
-        const containers = this.svg.querySelectorAll('.container');
+        const containers = this.svg.querySelectorAll('.container.new-tower-element');
         const tolerance = getDragTolerancePx();
+        
+        console.log('Handle drop at:', x, y, 'checking', containers.length, 'containers');
         
         // Sort containers by overlap area to find the best match
         const containerDistances = Array.from(containers).map(container => ({
@@ -528,7 +530,10 @@ class StacksRenderer {
             const distance = containerData.distance;
             const overlapArea = containerData.overlapArea;
             
+            console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1), 'overlap:', (overlapArea * 100).toFixed(1) + '%');
+            
             if (overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD || distance < tolerance) {
+                console.log('✅ Dropping in container', container.getAttribute('data-index'));
                 const existingBlock = this.getBlockInContainer(container);
                 const draggedFromContainer = this.getContainerForBlock(this.draggedElement);
                 
@@ -552,16 +557,10 @@ class StacksRenderer {
             }
         }
         
-        // Check if dropping on another block (not in container) - return to ground
-        const targetBlock = this.findBlockAtPoint({x, y});
-        if (targetBlock && targetBlock !== this.draggedElement && !this.getContainerForBlock(targetBlock)) {
-            this.returnBlockToGround(this.draggedElement);
-            return false;
-        }
-        
-        // Free placement on grass
+        // FIXED: Not dropping on container - place on grass where user dropped it
+        console.log('🌱 Placing block on grass at user drop position');
         this.placeBlockOnGrass(this.draggedElement, x, y);
-        return true;
+        return true; // Return true - user successfully placed block
     }
     
     calculateOverlapArea(container, dragX, dragY) {
