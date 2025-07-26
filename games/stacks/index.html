@@ -23,13 +23,13 @@
             background: transparent !important;
         }
         
-        /* Soft grass band at bottom */
+        /* Soft grass band at bottom - FIXED to reach exactly 20% */
         .grass-band {
             position: fixed !important;
             bottom: 0 !important;
             left: 0 !important;
             width: 100% !important;
-            height: 80px !important;
+            height: 20vh !important; /* Use vh directly, not calc */
             background: linear-gradient(to top, 
                 rgba(144, 238, 144, 0.6),
                 rgba(152, 251, 152, 0.7),
