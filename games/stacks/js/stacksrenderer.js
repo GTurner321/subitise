@@ -1,113 +1,4 @@
-handleDrop(x, y) {
-        // Check ALL containers with improved overlap detection
-        const containers = this.svg.querySelectorAll('.container');
-        const tolerance = getDragTolerancePx();
-        
-        console.log('Handling drop at:', x, y, 'with tolerance:', tolerance);
-        console.log('Checking', containers.length, 'containers with improved overlap detection');
-        
-        // Sort containers by distance to find the closest one
-        const containerDistances = Array.from(containers).map(container => ({
-            container: container,
-            distance: this.getDistanceToContainer(container, x, y),
-            overlapArea: this.calculateOverlapArea(container, x, y)
-        })).sort((a, b) => b.overlapArea - a.overlapArea); // Sort by overlap area (highest first)
-        
-        // Check if dropping on a container using improved overlap detection
-        for (let containerData of containerDistances) {
-            const container = containerData.container;
-            const distance = containerData.distance;
-            const overlapArea = containerData.overlapArea;
-            
-            console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1), 'overlap:', (overlapArea * 100).toFixed(1) + '%');
-            
-            // IMPROVED: Use overlap area threshold instead of just distance
-            if (overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD || distance < tolerance) {
-                console.log('✅ Dropping in container', container.getAttribute('data-index'), 'due to', overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD ? 'overlap' : 'proximity');
-                const existingBlock = this.getBlockInContainer(container);
-                const draggedFromContainer = this.getContainerForBlock(this.draggedElement);
-                
-                if (existingBlock) {
-                    if (draggedFromContainer) {
-                        // Both blocks are in tower - swap them
-                        this.swapBlocks(this.draggedElement, existingBlock);
-                    } else {
-                        // Dragged from ground onto tower block - displace the tower block
-                        this.displaceBlockToGround(existingBlock);
-                        this.placeBlockInContainer(this.draggedElement, container);
-                    }
-                } else {
-                    // Empty container - place block
-                    this.placeBlockInContainer(this.draggedElement, container);
-                }
-                
-                // Notify game controller of the move
-                this.gameController.onBlockMoved();
-                return true;
-            }
-        }
-        
-        // Check if dropping on another block (not in container) - should return to ground
-        const targetBlock = this.findBlockAtPoint({x, y});
-        if (targetBlock && targetBlock !== this.draggedElement && !this.getContainerForBlock(targetBlock)) {
-            console.log('Dropped on another ground block, returning to ground');
-            this.returnBlockToGround(this.draggedElement);
-            return false;
-        }
-        
-        // Free placement on grass - place block where user dropped it but apply gravity
-        console.log('🌱 Free placement on grass at:', x, y);
-        this.placeBlockOnGrass(this.draggedElement, x, y);
-        return true;
-    }
-    
-    // NEW: Calculate overlap area between dragged block and container
-    calculateOverlapArea(container, dragX, dragY) {
-        const draggedBlock = this.draggedElement;
-        if (!draggedBlock || !draggedBlock._dimensions) return 0;
-        
-        const dragWidth = draggedBlock._dimensions.width;
-        const dragHeight = draggedBlock._dimensions.height;
-        
-        // Dragged block bounds
-        const dragLeft = dragX - dragWidth / 2;
-        const dragRight = dragX + dragWidth / 2;
-        const dragTop = dragY - dragHeight / 2;
-        const dragBottom = dragY + dragHeight / 2;
-        
-        // Container bounds
-        const containerX = container._centerX;
-        const containerY = container._centerY;
-        const containerWidth = parseFloat(container.getAttribute('width'));
-        const containerHeight = parseFloat(container.getAttribute('height'));
-        
-        const containerLeft = containerX - containerWidth / 2;
-        const containerRight = containerX + containerWidth / 2;
-        const containerTop = containerY - containerHeight / 2;
-        const containerBottom = containerY + containerHeight / 2;
-        
-        // Calculate overlap rectangle
-        const overlapLeft = Math.max(dragLeft, containerLeft);
-        const overlapRight = Math.min(dragRight, containerRight);
-        const overlapTop = Math.max(dragTop, containerTop);
-        const overlapBottom = Math.min(dragBottom, containerBottom);
-        
-        // Check if there's any overlap
-        if (overlapLeft >= overlapRight || overlapTop >= overlapBottom) {
-            return 0; // No overlap
-        }
-        
-        // Calculate overlap area
-        const overlapWidth = overlapRight - overlapLeft;
-        const overlapHeight = overlapBottom - overlapTop;
-        const overlapArea = overlapWidth * overlapHeight;
-        
-        // Calculate dragged block total area
-        const draggedBlockArea = dragWidth * dragHeight;
-        
-        // Return overlap as percentage of dragged block area
-        return overlapArea / draggedBlockArea;
-    }class StacksRenderer {
+class StacksRenderer {
     constructor(svg, gameController) {
         this.svg = svg;
         this.gameController = gameController;
@@ -185,36 +76,6 @@ handleDrop(x, y) {
         console.log('Event listeners set up on SVG');
     }
     
-    getCompletedTowerBounds() {
-        const completedBlocks = this.svg.querySelectorAll('.block.completed-tower');
-        const bounds = { left: [], right: [] };
-        
-        completedBlocks.forEach(block => {
-            const x = pxToVw(block._centerX);
-            const width = pxToVw(block._dimensions.width);
-            const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
-            
-            if (x < centerX) {
-                // Left side tower
-                bounds.left.push({
-                    left: x - width/2,
-                    right: x + width/2,
-                    center: x
-                });
-            } else if (x > centerX) {
-                // Right side tower  
-                bounds.right.push({
-                    left: x - width/2,
-                    right: x + width/2,
-                    center: x
-                });
-            }
-        });
-        
-        console.log('Completed tower bounds:', bounds);
-        return bounds;
-    }
-    
     destroy() {
         // Clean up gravity check interval
         if (this.gravityInterval) {
@@ -252,13 +113,6 @@ handleDrop(x, y) {
         const rect = this.svg.getBoundingClientRect();
         const x = clientX - rect.left;
         const y = clientY - rect.top;
-        
-        console.log('getEventPoint:', {
-            eventType: e.type,
-            clientX, clientY,
-            rectLeft: rect.left, rectTop: rect.top,
-            finalX: x, finalY: y
-        });
         
         // Validate coordinates
         if (isNaN(x) || isNaN(y)) {
@@ -305,14 +159,14 @@ handleDrop(x, y) {
         shadow.setAttribute('rx', '8');
         shadow.setAttribute('ry', '8');
         
-        // Number text - UPDATED: No extra font size multiplier for wide blocks
+        // Number text - FIXED: No extra font size multiplier for wide blocks
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
         text.setAttribute('y', y);
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('dominant-baseline', 'central');
         
-        // FIXED: Standard font size calculation without multiplier for 3-digit blocks
+        // Standard font size calculation without multiplier for 3-digit blocks
         const baseFontSize = Math.min(dimensions.height * 0.5, dimensions.width * 0.4);
         // Only apply multiplier for regular blocks, not wide (3-digit) blocks
         const finalFontSize = isWide ? baseFontSize : baseFontSize * STACKS_CONFIG.BLOCK_FONT_SIZE_MULTIPLIER;
@@ -417,7 +271,6 @@ handleDrop(x, y) {
         // Handle load failure - simplified since paths should work now
         const handleError = () => {
             console.warn('Teddy image failed to load:', imageUrl, '- using fallback');
-            console.log('Image load error event details:', event);
             this.createFallbackTeddy(teddy, x, y, size);
         };
         
@@ -844,28 +697,31 @@ handleDrop(x, y) {
     }
     
     handleDrop(x, y) {
-        // Check ALL containers, not just new-tower-element ones
+        // Check ALL containers with improved overlap detection
         const containers = this.svg.querySelectorAll('.container');
         const tolerance = getDragTolerancePx();
         
         console.log('Handling drop at:', x, y, 'with tolerance:', tolerance);
-        console.log('Checking', containers.length, 'containers (all containers, not just new-tower-element)');
+        console.log('Checking', containers.length, 'containers with improved overlap detection');
         
-        // Sort containers by distance to find the closest one
+        // Sort containers by overlap area to find the best match
         const containerDistances = Array.from(containers).map(container => ({
             container: container,
-            distance: this.getDistanceToContainer(container, x, y)
-        })).sort((a, b) => a.distance - b.distance);
+            distance: this.getDistanceToContainer(container, x, y),
+            overlapArea: this.calculateOverlapArea(container, x, y)
+        })).sort((a, b) => b.overlapArea - a.overlapArea); // Sort by overlap area (highest first)
         
-        // Check if dropping on a container, starting with the closest
+        // Check if dropping on a container using improved overlap detection
         for (let containerData of containerDistances) {
             const container = containerData.container;
             const distance = containerData.distance;
+            const overlapArea = containerData.overlapArea;
             
-            console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1));
+            console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1), 'overlap:', (overlapArea * 100).toFixed(1) + '%');
             
-            if (distance < tolerance) {
-                console.log('✅ Dropping in container', container.getAttribute('data-index'));
+            // IMPROVED: Use overlap area threshold instead of just distance
+            if (overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD || distance < tolerance) {
+                console.log('✅ Dropping in container', container.getAttribute('data-index'), 'due to', overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD ? 'overlap' : 'proximity');
                 const existingBlock = this.getBlockInContainer(container);
                 const draggedFromContainer = this.getContainerForBlock(this.draggedElement);
                 
@@ -901,6 +757,53 @@ handleDrop(x, y) {
         console.log('🌱 Free placement on grass at:', x, y);
         this.placeBlockOnGrass(this.draggedElement, x, y);
         return true;
+    }
+    
+    calculateOverlapArea(container, dragX, dragY) {
+        const draggedBlock = this.draggedElement;
+        if (!draggedBlock || !draggedBlock._dimensions) return 0;
+        
+        const dragWidth = draggedBlock._dimensions.width;
+        const dragHeight = draggedBlock._dimensions.height;
+        
+        // Dragged block bounds
+        const dragLeft = dragX - dragWidth / 2;
+        const dragRight = dragX + dragWidth / 2;
+        const dragTop = dragY - dragHeight / 2;
+        const dragBottom = dragY + dragHeight / 2;
+        
+        // Container bounds
+        const containerX = container._centerX;
+        const containerY = container._centerY;
+        const containerWidth = parseFloat(container.getAttribute('width'));
+        const containerHeight = parseFloat(container.getAttribute('height'));
+        
+        const containerLeft = containerX - containerWidth / 2;
+        const containerRight = containerX + containerWidth / 2;
+        const containerTop = containerY - containerHeight / 2;
+        const containerBottom = containerY + containerHeight / 2;
+        
+        // Calculate overlap rectangle
+        const overlapLeft = Math.max(dragLeft, containerLeft);
+        const overlapRight = Math.min(dragRight, containerRight);
+        const overlapTop = Math.max(dragTop, containerTop);
+        const overlapBottom = Math.min(dragBottom, containerBottom);
+        
+        // Check if there's any overlap
+        if (overlapLeft >= overlapRight || overlapTop >= overlapBottom) {
+            return 0; // No overlap
+        }
+        
+        // Calculate overlap area
+        const overlapWidth = overlapRight - overlapLeft;
+        const overlapHeight = overlapBottom - overlapTop;
+        const overlapArea = overlapWidth * overlapHeight;
+        
+        // Calculate dragged block total area
+        const draggedBlockArea = dragWidth * dragHeight;
+        
+        // Return overlap as percentage of dragged block area
+        return overlapArea / draggedBlockArea;
     }
     
     placeBlockOnGrass(block, x, y) {
@@ -1166,11 +1069,6 @@ handleDrop(x, y) {
         const centerX = container._centerX;
         const centerY = container._centerY;
         const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-        
-        // Debug container bounds
-        const rect = container.getBoundingClientRect();
-        console.log(`Container ${container.getAttribute('data-index')} - Center: (${centerX}, ${centerY}), Drop point: (${x}, ${y}), Distance: ${distance.toFixed(1)}`);
-        console.log(`Container bounds:`, rect);
         
         return distance;
     }
