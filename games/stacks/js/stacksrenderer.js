@@ -1,4 +1,113 @@
-class StacksRenderer {
+handleDrop(x, y) {
+        // Check ALL containers with improved overlap detection
+        const containers = this.svg.querySelectorAll('.container');
+        const tolerance = getDragTolerancePx();
+        
+        console.log('Handling drop at:', x, y, 'with tolerance:', tolerance);
+        console.log('Checking', containers.length, 'containers with improved overlap detection');
+        
+        // Sort containers by distance to find the closest one
+        const containerDistances = Array.from(containers).map(container => ({
+            container: container,
+            distance: this.getDistanceToContainer(container, x, y),
+            overlapArea: this.calculateOverlapArea(container, x, y)
+        })).sort((a, b) => b.overlapArea - a.overlapArea); // Sort by overlap area (highest first)
+        
+        // Check if dropping on a container using improved overlap detection
+        for (let containerData of containerDistances) {
+            const container = containerData.container;
+            const distance = containerData.distance;
+            const overlapArea = containerData.overlapArea;
+            
+            console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1), 'overlap:', (overlapArea * 100).toFixed(1) + '%');
+            
+            // IMPROVED: Use overlap area threshold instead of just distance
+            if (overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD || distance < tolerance) {
+                console.log('✅ Dropping in container', container.getAttribute('data-index'), 'due to', overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD ? 'overlap' : 'proximity');
+                const existingBlock = this.getBlockInContainer(container);
+                const draggedFromContainer = this.getContainerForBlock(this.draggedElement);
+                
+                if (existingBlock) {
+                    if (draggedFromContainer) {
+                        // Both blocks are in tower - swap them
+                        this.swapBlocks(this.draggedElement, existingBlock);
+                    } else {
+                        // Dragged from ground onto tower block - displace the tower block
+                        this.displaceBlockToGround(existingBlock);
+                        this.placeBlockInContainer(this.draggedElement, container);
+                    }
+                } else {
+                    // Empty container - place block
+                    this.placeBlockInContainer(this.draggedElement, container);
+                }
+                
+                // Notify game controller of the move
+                this.gameController.onBlockMoved();
+                return true;
+            }
+        }
+        
+        // Check if dropping on another block (not in container) - should return to ground
+        const targetBlock = this.findBlockAtPoint({x, y});
+        if (targetBlock && targetBlock !== this.draggedElement && !this.getContainerForBlock(targetBlock)) {
+            console.log('Dropped on another ground block, returning to ground');
+            this.returnBlockToGround(this.draggedElement);
+            return false;
+        }
+        
+        // Free placement on grass - place block where user dropped it but apply gravity
+        console.log('🌱 Free placement on grass at:', x, y);
+        this.placeBlockOnGrass(this.draggedElement, x, y);
+        return true;
+    }
+    
+    // NEW: Calculate overlap area between dragged block and container
+    calculateOverlapArea(container, dragX, dragY) {
+        const draggedBlock = this.draggedElement;
+        if (!draggedBlock || !draggedBlock._dimensions) return 0;
+        
+        const dragWidth = draggedBlock._dimensions.width;
+        const dragHeight = draggedBlock._dimensions.height;
+        
+        // Dragged block bounds
+        const dragLeft = dragX - dragWidth / 2;
+        const dragRight = dragX + dragWidth / 2;
+        const dragTop = dragY - dragHeight / 2;
+        const dragBottom = dragY + dragHeight / 2;
+        
+        // Container bounds
+        const containerX = container._centerX;
+        const containerY = container._centerY;
+        const containerWidth = parseFloat(container.getAttribute('width'));
+        const containerHeight = parseFloat(container.getAttribute('height'));
+        
+        const containerLeft = containerX - containerWidth / 2;
+        const containerRight = containerX + containerWidth / 2;
+        const containerTop = containerY - containerHeight / 2;
+        const containerBottom = containerY + containerHeight / 2;
+        
+        // Calculate overlap rectangle
+        const overlapLeft = Math.max(dragLeft, containerLeft);
+        const overlapRight = Math.min(dragRight, containerRight);
+        const overlapTop = Math.max(dragTop, containerTop);
+        const overlapBottom = Math.min(dragBottom, containerBottom);
+        
+        // Check if there's any overlap
+        if (overlapLeft >= overlapRight || overlapTop >= overlapBottom) {
+            return 0; // No overlap
+        }
+        
+        // Calculate overlap area
+        const overlapWidth = overlapRight - overlapLeft;
+        const overlapHeight = overlapBottom - overlapTop;
+        const overlapArea = overlapWidth * overlapHeight;
+        
+        // Calculate dragged block total area
+        const draggedBlockArea = dragWidth * dragHeight;
+        
+        // Return overlap as percentage of dragged block area
+        return overlapArea / draggedBlockArea;
+    }class StacksRenderer {
     constructor(svg, gameController) {
         this.svg = svg;
         this.gameController = gameController;
@@ -196,16 +305,17 @@ class StacksRenderer {
         shadow.setAttribute('rx', '8');
         shadow.setAttribute('ry', '8');
         
-        // Number text - UPDATED: Larger font size
+        // Number text - UPDATED: No extra font size multiplier for wide blocks
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
         text.setAttribute('y', y);
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('dominant-baseline', 'central');
         
-        // UPDATED: Larger font size with multiplier
+        // FIXED: Standard font size calculation without multiplier for 3-digit blocks
         const baseFontSize = Math.min(dimensions.height * 0.5, dimensions.width * 0.4);
-        const finalFontSize = baseFontSize * STACKS_CONFIG.BLOCK_FONT_SIZE_MULTIPLIER;
+        // Only apply multiplier for regular blocks, not wide (3-digit) blocks
+        const finalFontSize = isWide ? baseFontSize : baseFontSize * STACKS_CONFIG.BLOCK_FONT_SIZE_MULTIPLIER;
         text.setAttribute('font-size', finalFontSize);
         
         text.setAttribute('font-weight', 'bold');
