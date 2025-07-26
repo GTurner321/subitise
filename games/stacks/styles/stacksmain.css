@@ -78,14 +78,14 @@ body {
     z-index: 2;
 }
 
-/* Rainbow container positioned above grass */
+/* Rainbow container positioned above grass - FIXED: Lower and smaller */
 .rainbow-container {
     position: absolute;
-    bottom: 25vh; /* 5vh above the 20vh grass area */
+    bottom: 22vh; /* Closer to grass area */
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) scale(0.7); /* Scale down to 70% size */
     width: 100%;
-    height: 40%;
+    height: 30%; /* Reduced height */
     z-index: 3;
     pointer-events: none;
 }
