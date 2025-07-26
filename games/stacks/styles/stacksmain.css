@@ -31,18 +31,18 @@ body {
 
 /* FIXED: Grass band positioned at bottom 20% of screen height */
 .grass-band {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: calc(100vh * 0.2); /* FIXED: Force exactly 20% of viewport height */
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 20vh !important; /* FIXED: Use vh directly */
     background: linear-gradient(to top, 
         rgba(144, 238, 144, 0.6),
         rgba(152, 251, 152, 0.7),
         rgba(173, 255, 47, 0.5)
-    );
-    z-index: 1;
-    box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3);
+    ) !important;
+    z-index: 1 !important;
+    box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3) !important;
 }
 
 /* Force proper viewport calculation */
