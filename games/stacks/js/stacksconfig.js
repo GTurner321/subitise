@@ -28,9 +28,15 @@ const STACKS_CONFIG = {
     // Font size multiplier for numbers in blocks
     BLOCK_FONT_SIZE_MULTIPLIER: 1.2, // 20% larger font size
     
-    // Drag and drop (percentage of viewport diagonal)
-    DRAG_TOLERANCE_PERCENT: 3,
+    // Drag and drop settings - UPDATED: More forgiving tolerances
+    DRAG_TOLERANCE_PERCENT: 4, // Increased from 3 to make targeting easier
     HOVER_TRANSFORM_PERCENT: 0.5,
+    
+    // Drop area settings - NEW: More forgiving drop detection
+    DROP_OVERLAP_THRESHOLD: 0.5, // 50% overlap required (down from implied 100%)
+    
+    // Front exclusion zone - NEW: Prevent blocks in front of tower
+    FRONT_EXCLUSION_ZONE_PERCENT: 20, // 20% exclusion zone in front of tower
     
     // Animation timings
     TOWER_MOVE_DELAY: 3000,
@@ -345,85 +351,71 @@ function getBlockDimensions(isWide = false) {
     return { width, height };
 }
 
-// Number generation helper functions
-function generateConsecutiveNumbers(min, max, count) {
+// Updated number generation helper functions for consecutive-only approach
+function generateConsecutiveNumbersInRange(min, max, count) {
     const maxStart = max - count + 1;
     if (maxStart < min) return null;
     
-    const start = Math.floor(Math.random() * (maxStart - min + 1)) + min;
-    const numbers = [];
-    for (let i = 0; i < count; i++) {
-        numbers.push(start + i);
+    let attempts = 0;
+    const maxAttempts = 50;
+    
+    while (attempts < maxAttempts) {
+        const start = Math.floor(Math.random() * (maxStart - min + 1)) + min;
+        const numbers = [];
+        let valid = true;
+        
+        // Generate consecutive sequence
+        for (let i = 0; i < count; i++) {
+            const num = start + i;
+            if (num > max) {
+                valid = false;
+                break;
+            }
+            numbers.push(num);
+        }
+        
+        if (valid) {
+            return shuffleArray([...numbers]);
+        }
+        attempts++;
     }
-    return shuffleArray([...numbers]);
+    
+    console.warn(`Could not generate ${count} consecutive numbers in range ${min}-${max} after ${maxAttempts} attempts`);
+    return null;
 }
 
-function generateNonConsecutiveNumbers(min, max, count) {
-    if (max - min + 1 < count) return null;
-    
-    const numbers = [];
-    const available = [];
-    for (let i = min; i <= max; i++) {
-        available.push(i);
-    }
-    
-    for (let i = 0; i < count; i++) {
-        const index = Math.floor(Math.random() * available.length);
-        numbers.push(available[index]);
-        available.splice(index, 1);
-    }
-    
-    return numbers;
-}
-
-function generateFromSet(set, count) {
+function generateConsecutiveFromSet(set, count) {
     if (set.length < count) return null;
     
+    let attempts = 0;
+    const maxAttempts = 50;
+    
+    while (attempts < maxAttempts) {
+        const startIndex = Math.floor(Math.random() * (set.length - count + 1));
+        const numbers = [];
+        
+        for (let i = 0; i < count; i++) {
+            numbers.push(set[startIndex + i]);
+        }
+        
+        return shuffleArray([...numbers]);
+    }
+    
+    return null;
+}
+
+function generateConsecutiveHundreds(count) {
+    const hundreds = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+    if (hundreds.length < count) return null;
+    
+    const startIndex = Math.floor(Math.random() * (hundreds.length - count + 1));
     const numbers = [];
-    const available = [...set];
     
     for (let i = 0; i < count; i++) {
-        const index = Math.floor(Math.random() * available.length);
-        numbers.push(available[index]);
-        available.splice(index, 1);
+        numbers.push(hundreds[startIndex + i]);
     }
     
-    return numbers;
-}
-
-function generateRandomNumbers(min, max, count) {
-    if (max - min + 1 < count) return null;
-    
-    const numbers = [];
-    const used = new Set();
-    
-    while (numbers.length < count) {
-        const num = Math.floor(Math.random() * (max - min + 1)) + min;
-        if (!used.has(num)) {
-            numbers.push(num);
-            used.add(num);
-        }
-    }
-    
-    return numbers;
-}
-
-function generateHundreds(count) {
-    const hundreds = [];
-    const used = new Set();
-    
-    while (hundreds.length < count) {
-        const tens = Math.floor(Math.random() * 9) + 1;
-        const units = Math.floor(Math.random() * 9) + 1;  
-        const num = tens * 100 + units * 10;
-        
-        if (!used.has(num)) {
-            hundreds.push(num);
-            used.add(num);
-        }
-    }
-    
-    return hundreds;
+    return shuffleArray([...numbers]);
 }
 
 function shuffleArray(array) {
