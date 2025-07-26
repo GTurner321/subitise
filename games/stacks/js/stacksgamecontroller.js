@@ -261,27 +261,31 @@ class StacksGameController {
         }
     }
     
-    // SIMPLIFIED: Calculate container positions with proper grass positioning
+    // SIMPLIFIED: Calculate container positions with proper stacking
     calculateContainerPositions(containerCount) {
         const positions = [];
         const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
         const blockHeight = STACKS_CONFIG.BLOCK_HEIGHT_PERCENT;
         
-        // Base container at grass level
-        const baseY = getContainerGroundY();
+        console.log('Calculating positions for', containerCount, 'containers with block height:', blockHeight + '%');
+        
+        // FIXED: Start with base container center position (79% from top)
+        const baseY = STACKS_CONFIG.TOWER_BASE_Y_PERCENT; // 79% from top
+        console.log('Base container center Y position:', baseY + '% (bottom at ~83%)');
         
         for (let i = 0; i < containerCount; i++) {
             let yPercent;
             if (i === 0) {
-                // Bottom container at grass level
+                // Bottom container center at the base position (79%)
                 yPercent = baseY;
             } else {
-                // Stack above previous containers
+                // FIXED: Stack each container exactly one block height above the previous
+                // Since baseY is the center, each container goes up by one block height
                 yPercent = baseY - (i * blockHeight);
             }
             
-            // Ensure containers stay within reasonable bounds
-            yPercent = Math.max(10, Math.min(yPercent, 85));
+            // Ensure containers stay within reasonable bounds (don't go off top of screen)
+            yPercent = Math.max(10, yPercent); // Don't go above 10% from top
             
             positions.push({
                 x: centerX,
@@ -289,7 +293,7 @@ class StacksGameController {
                 index: i
             });
             
-            console.log(`Container ${i} position: ${centerX}%, ${yPercent}%`);
+            console.log(`Container ${i}: center at ${yPercent}% (bottom at ~${yPercent + blockHeight/2}%)`);
         }
         
         return positions;
