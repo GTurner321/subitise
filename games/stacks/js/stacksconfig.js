@@ -12,10 +12,10 @@ const STACKS_CONFIG = {
     COMPLETED_TOWER_RIGHT_X_PERCENT: 90,
     COMPLETED_TOWER_SPACING_PERCENT: 12, // Spacing for square blocks
     
-    // Block positioning on ground - Random placement in grass area
-    GROUND_Y_MIN_PERCENT: 89,       // Top of grass area
-    GROUND_Y_MAX_PERCENT: 92,       // Bottom of grass area
-    GROUND_Y_PERCENT: 90.5,         // Default ground level (middle of grass area)
+    // Block positioning on ground - UPDATED: Raised grass area to match visual grass
+    GROUND_Y_MIN_PERCENT: 75,       // RAISED: Top of grass area (was 89, now 75)
+    GROUND_Y_MAX_PERCENT: 82,       // RAISED: Bottom of grass area (was 92, now 82)
+    GROUND_Y_PERCENT: 78.5,         // RAISED: Default ground level (middle of grass area)
     GROUND_SPREAD_PERCENT: 70,      // Spread across screen
     GROUND_EXCLUSION_ZONE_PERCENT: 15, // Area around tower to avoid
     
