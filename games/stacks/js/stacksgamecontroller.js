@@ -420,19 +420,67 @@ class StacksGameController {
             
             console.log('Tower', this.currentQuestion, 'stored at position:', targetXPercent + '%');
             
-            // Check level progression
-            this.checkLevelProgression();
-            
-            // Start next question or end game
-            if (this.currentQuestion < STACKS_CONFIG.TOTAL_QUESTIONS) {
+            // FIXED: Check if this is the 6th tower (all towers complete)
+            if (this.currentQuestion === 6) {
+                // Restore all towers to full opacity
+                this.restoreAllTowersOpacity();
+                
+                // Complete the rainbow (add remaining pieces to total 10)
+                this.completeRainbow();
+                
+                // Start end sequence
+                setTimeout(() => {
+                    this.endGame();
+                }, 2000);
+            } else {
+                // Check level progression
+                this.checkLevelProgression();
+                
+                // Start next question
                 this.currentQuestion++;
                 setTimeout(() => {
                     this.startNewQuestion();
                 }, 1000);
-            } else {
-                this.endGame();
             }
         });
+    }
+    
+    restoreAllTowersOpacity() {
+        // Restore all completed tower blocks to full opacity
+        const completedBlocks = this.svg.querySelectorAll('.block.completed-tower');
+        completedBlocks.forEach(block => {
+            block.style.opacity = '1';
+        });
+        
+        // Restore all completed teddies to full opacity  
+        const completedTeddies = this.svg.querySelectorAll('.teddy.completed-tower');
+        completedTeddies.forEach(teddy => {
+            teddy.style.opacity = '1';
+        });
+        
+        console.log('All towers restored to full opacity');
+    }
+    
+    completeRainbow() {
+        // Add remaining rainbow pieces to reach total of 10
+        const currentPieces = this.rainbow.getPieces();
+        const totalPieces = STACKS_CONFIG.RAINBOW_PIECES; // Should be 10
+        const piecesToAdd = totalPieces - currentPieces;
+        
+        console.log('Adding', piecesToAdd, 'final rainbow pieces');
+        
+        for (let i = 0; i < piecesToAdd; i++) {
+            setTimeout(() => {
+                this.rainbow.addPiece();
+            }, i * 200);
+        }
+        
+        // Start rainbow end sequence after all pieces are added
+        setTimeout(() => {
+            if (this.rainbow.startCongratulationsSequence) {
+                this.rainbow.startCongratulationsSequence();
+            }
+        }, piecesToAdd * 200 + 500);
     }
     
     checkLevelProgression() {
