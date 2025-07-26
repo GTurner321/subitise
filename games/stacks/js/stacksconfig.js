@@ -7,7 +7,7 @@ const STACKS_CONFIG = {
     
     // Tower positioning (percentage of viewport)
     TOWER_CENTER_X_PERCENT: 50,     // 50% from left
-    TOWER_BASE_Y_PERCENT: 87.2,     // Tower base position
+    TOWER_BASE_Y_PERCENT: 75,       // FIXED: Higher up to prevent overlap with grass
     COMPLETED_TOWER_LEFT_X_PERCENT: 10,
     COMPLETED_TOWER_RIGHT_X_PERCENT: 90,
     
@@ -22,11 +22,14 @@ const STACKS_CONFIG = {
     
     // Block positioning settings
     GROUND_SPREAD_PERCENT: 70,      // Spread blocks across 70% of screen width
-    GROUND_EXCLUSION_ZONE_PERCENT: 15, // Area around tower to avoid
+    GROUND_EXCLUSION_ZONE_PERCENT: 25, // INCREASED: Larger area around tower to avoid
     BLOCK_MIN_DISTANCE_PERCENT: 8,  // Minimum distance between blocks (no overlap)
     
     // FIXED: Completed tower spacing - one block width apart
     COMPLETED_TOWER_SPACING_PERCENT: 9.6, // One block width spacing
+    
+    // Completed tower opacity - REDUCED for less prominence
+    COMPLETED_TOWER_OPACITY: 0.5,   // More transparent
     
     // Teddy size multiplier
     TEDDY_SIZE_MULTIPLIER: 2.3,
@@ -43,9 +46,6 @@ const STACKS_CONFIG = {
     TOWER_MOVE_DELAY: 3000,
     BLOCK_ANIMATION_DURATION: 500,
     TEDDY_APPEAR_DELAY: 1000,
-    
-    // Completed tower opacity
-    COMPLETED_TOWER_OPACITY: 0.75,
     
     // Level system
     LEVELS: {
@@ -134,6 +134,20 @@ function generateRandomGroundPosition(existingBlocks = []) {
     const spread = STACKS_CONFIG.GROUND_SPREAD_PERCENT;
     const minDistance = STACKS_CONFIG.BLOCK_MIN_DISTANCE_PERCENT;
     
+    // FIXED: Also avoid completed towers by checking for very low opacity blocks
+    const allExistingBlocks = [...existingBlocks];
+    
+    // Add completed tower positions to avoid (check for towers with low opacity)
+    const completedTowerBlocks = document.querySelectorAll('.block.completed-tower');
+    completedTowerBlocks.forEach(block => {
+        if (block._xPercent && block._yPercent) {
+            allExistingBlocks.push({
+                x: block._xPercent,
+                y: block._yPercent
+            });
+        }
+    });
+    
     let attempts = 0;
     const maxAttempts = 100;
     
@@ -148,7 +162,7 @@ function generateRandomGroundPosition(existingBlocks = []) {
         
         // Check for overlap with existing blocks
         let hasOverlap = false;
-        for (let block of existingBlocks) {
+        for (let block of allExistingBlocks) {
             const distance = Math.abs(x - block.x);
             if (distance < minDistance) {
                 hasOverlap = true;
@@ -166,9 +180,9 @@ function generateRandomGroundPosition(existingBlocks = []) {
         }
     }
     
-    // Fallback: allow overlaps but avoid tower area
-    console.warn('Could not find non-overlapping position, allowing overlap');
-    const fallbackX = centerX > 50 ? 20 + Math.random() * 25 : 55 + Math.random() * 25;
+    // Fallback: allow overlaps but avoid tower area and completed towers
+    console.warn('Could not find non-overlapping position, using fallback away from towers');
+    const fallbackX = centerX > 50 ? 15 + Math.random() * 20 : 65 + Math.random() * 20; // Far from center
     const fallbackY = STACKS_CONFIG.GRASS_BLOCK_ZONE_MIN + 
                      Math.random() * (STACKS_CONFIG.GRASS_BLOCK_ZONE_MAX - STACKS_CONFIG.GRASS_BLOCK_ZONE_MIN);
     return { x: fallbackX, y: fallbackY };
@@ -176,7 +190,7 @@ function generateRandomGroundPosition(existingBlocks = []) {
 
 // Helper function for container placement
 function getContainerGroundY() {
-    return STACKS_CONFIG.GRASS_Y_PERCENT; // Place containers at middle of grass
+    return STACKS_CONFIG.TOWER_BASE_Y_PERCENT; // Use the tower base position
 }
 
 // Viewport conversion functions
