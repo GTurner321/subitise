@@ -355,11 +355,13 @@ class StacksGameController {
     completeQuestion() {
         this.gameActive = false;
         
+        console.log('🎉 Question completed! Starting completion sequence...');
+        
         // Visual feedback
         this.renderer.highlightCorrectOrder();
         
-        // FIXED: Hide containers before moving tower
-        this.renderer.hideCurrentTowerContainers();
+        // FIXED: Remove the missing function call
+        // this.renderer.hideCurrentTowerContainers();
         
         // Add rainbow piece
         this.rainbow.addPiece();
@@ -394,6 +396,8 @@ class StacksGameController {
         setTimeout(() => {
             this.moveTowerToSide();
         }, STACKS_CONFIG.TOWER_MOVE_DELAY);
+        
+        console.log('Completion sequence started, tower will move in', STACKS_CONFIG.TOWER_MOVE_DELAY, 'ms');
     }
     
     moveTowerToSide() {
@@ -549,6 +553,69 @@ class StacksGameController {
     }
     
     // Audio feedback methods
+    playDragStartSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(440, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.1);
+        } catch (error) {
+            // Silent failure
+        }
+    }
+    
+    playDropSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.2);
+        } catch (error) {
+            // Silent failure
+        }
+    }
+    
+    playReturnSound() {
+        if (!this.audioEnabled || !this.audioContext) return;
+        
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(330, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.15);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.15);
+        } catch (error) {
+            // Silent failure
+        }
+    }
+    
     playSuccessSound() {
         if (!this.audioEnabled || !this.audioContext) return;
         
