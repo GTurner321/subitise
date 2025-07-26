@@ -102,6 +102,26 @@ class StacksRenderer {
         return bounds;
     }
     
+    getExistingGroundPositions(excludeBlock = null) {
+        const existingGroundPositions = [];
+        const existingGroundBlocks = this.svg.querySelectorAll('.block:not(.completed-tower)');
+        
+        existingGroundBlocks.forEach(block => {
+            // Skip the block we're excluding and blocks that are in containers
+            if (block === excludeBlock || block._container) {
+                return;
+            }
+            
+            existingGroundPositions.push({
+                x: block._xPercent || pxToVw(block._centerX),
+                y: block._yPercent || pxToVh(block._centerY)
+            });
+        });
+        
+        console.log('Found', existingGroundPositions.length, 'existing ground blocks for positioning reference');
+        return existingGroundPositions;
+    }
+    
     destroy() {
         // Clean up gravity check interval
         if (this.gravityInterval) {
@@ -384,6 +404,7 @@ class StacksRenderer {
         const blockHeightPercent = STACKS_CONFIG.BLOCK_HEIGHT_PERCENT;
         
         console.log('renderTower called with', blocks.length, 'blocks', containers.length, 'containers');
+        console.log('Tower center:', centerX + '%', 'Base Y:', baseY + '%');
         
         // Clear only NEW tower elements (not completed towers)
         this.clearNewTowerElements();
@@ -411,23 +432,34 @@ class StacksRenderer {
                 }
             }
             
-            console.log(`Container ${index}: Y position = ${yPercent}%`);
+            console.log(`Container ${index}: Y position = ${yPercent}% (pixel: ${vhToPx(yPercent)}px)`);
             const containerElement = this.createContainer(centerX, yPercent, index, useWideBlocks);
             containerElement.classList.add('new-tower-element');
+            
+            // Ensure container is properly positioned and visible
+            containerElement.style.pointerEvents = 'auto';
+            containerElement.style.opacity = '0.8';
+            
             this.svg.appendChild(containerElement);
+            
+            console.log(`Container ${index} created and added to SVG:`, {
+                centerX: containerElement._centerX,
+                centerY: containerElement._centerY,
+                bounds: {
+                    x: containerElement.getAttribute('x'),
+                    y: containerElement.getAttribute('y'),
+                    width: containerElement.getAttribute('width'),
+                    height: containerElement.getAttribute('height')
+                }
+            });
         });
         
+        // Verify all containers were created
+        const createdContainers = this.svg.querySelectorAll('.container.new-tower-element');
+        console.log(`✅ Created ${createdContainers.length} containers for ${containers.length} requested`);
+        
         // Collect existing ground block positions for perspective layering
-        const existingGroundPositions = [];
-        const existingGroundBlocks = this.svg.querySelectorAll('.block:not(.completed-tower)');
-        existingGroundBlocks.forEach(block => {
-            if (!block._container) {
-                existingGroundPositions.push({
-                    x: block._xPercent || pxToVw(block._centerX),
-                    y: block._yPercent || pxToVh(block._centerY)
-                });
-            }
-        });
+        const existingGroundPositions = this.getExistingGroundPositions();
         
         // Render blocks with INITIAL PLACEMENT variance and proper spacing
         blocks.forEach((block, index) => {
@@ -742,16 +774,25 @@ class StacksRenderer {
     }
     
     handleDrop(x, y) {
-        const containers = this.svg.querySelectorAll('.container.new-tower-element'); // Only check current tower containers
+        // Check ALL containers, not just new-tower-element ones
+        const containers = this.svg.querySelectorAll('.container');
         const tolerance = getDragTolerancePx();
         
         console.log('Handling drop at:', x, y, 'with tolerance:', tolerance);
-        console.log('Checking', containers.length, 'containers');
+        console.log('Checking', containers.length, 'containers (all containers, not just new-tower-element)');
         
-        // Check if dropping on a container
-        for (let container of containers) {
-            const distance = this.getDistanceToContainer(container, x, y);
-            console.log('Container', container.getAttribute('data-index'), 'distance:', distance);
+        // Sort containers by distance to find the closest one
+        const containerDistances = Array.from(containers).map(container => ({
+            container: container,
+            distance: this.getDistanceToContainer(container, x, y)
+        })).sort((a, b) => a.distance - b.distance);
+        
+        // Check if dropping on a container, starting with the closest
+        for (let containerData of containerDistances) {
+            const container = containerData.container;
+            const distance = containerData.distance;
+            
+            console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1));
             
             if (distance < tolerance) {
                 console.log('✅ Dropping in container', container.getAttribute('data-index'));
@@ -870,24 +911,39 @@ class StacksRenderer {
         // Remove block from its current container
         block._container = null;
         
-        // Find a random position on the ground near the tower
-        const groundBlocks = this.getGroundBlocks();
-        const baseXPercent = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+        // Get existing ground block positions for proper spacing and perspective layering
+        const existingGroundPositions = this.getExistingGroundPositions(block);
         
-        // Create some randomness around the tower area
-        const randomOffset = (Math.random() - 0.5) * 20; // ±10% of viewport width
-        const newXPercent = Math.max(10, Math.min(90, baseXPercent + randomOffset));
+        // Use the generateCloseToTowerPosition function for proper placement
+        const groundPos = generateCloseToTowerPosition();
         
-        const groundX = vwToPx(newXPercent);
-        const groundY = vhToPx(STACKS_CONFIG.GROUND_Y_PERCENT);
+        // Apply perspective layering for Y position
+        const adjustedY = getRandomGroundYWithPerspective(existingGroundPositions, groundPos.x);
         
-        // Animate the block falling to the ground
+        console.log('Displacing block to position:', groundPos.x + '%,', adjustedY + '%');
+        
+        // Convert to pixel coordinates
+        const groundX = vwToPx(groundPos.x);
+        const groundY = vhToPx(adjustedY);
+        
+        // Animate the block falling to the ground with gravity
         this.animateBlockToPosition(block, groundX, groundY, () => {
+            // Update all position tracking
             block._centerX = groundX;
             block._centerY = groundY;
-            block._xPercent = newXPercent;
-            block._yPercent = STACKS_CONFIG.GROUND_Y_PERCENT;
+            block._xPercent = groundPos.x;
+            block._yPercent = adjustedY;
             block._container = null;
+            
+            // Ensure block remains interactive and visible
+            block.style.opacity = '1';
+            block.style.pointerEvents = 'all';
+            block.style.cursor = 'grab';
+            block.classList.remove('completed-tower');
+            block.classList.add('new-tower-element');
+            block._isLocked = false;
+            
+            console.log('Block', block._number, 'displaced and positioned at:', groundPos.x + '%,', adjustedY + '%');
         });
     }
     
