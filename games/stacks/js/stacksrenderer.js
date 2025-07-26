@@ -304,9 +304,10 @@ class StacksRenderer {
             }, 100);
         };
         
-        // Handle load failure
+        // Handle load failure - simplified since paths should work now
         const handleError = () => {
             console.warn('Teddy image failed to load:', imageUrl, '- using fallback');
+            console.log('Image load error event details:', event);
             this.createFallbackTeddy(teddy, x, y, size);
         };
         
@@ -314,7 +315,8 @@ class StacksRenderer {
         teddy.addEventListener('load', handleLoad, { once: true });
         teddy.addEventListener('error', handleError, { once: true });
         
-        // Use the path directly from config (now fixed with proper absolute paths)
+        // Use the corrected path directly from config
+        console.log('Setting teddy href to:', imageUrl);
         teddy.setAttribute('href', imageUrl);
         
         return teddy;
@@ -323,30 +325,32 @@ class StacksRenderer {
     createFallbackTeddy(teddyElement, x, y, size) {
         console.log('Creating fallback teddy at:', x, y);
         
-        // Remove the image element and create a colored circle instead
+        // Remove the image element and create a group for the fallback teddy
         const parent = teddyElement.parentNode;
         if (parent) {
             parent.removeChild(teddyElement);
             
-            // Create a simple colored circle as fallback
+            // Create a group to hold all fallback teddy elements
+            const fallbackGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            fallbackGroup.setAttribute('class', 'teddy fallback-teddy');
+            
+            // Store position data for animation - IMPORTANT!
+            fallbackGroup._centerX = x;
+            fallbackGroup._centerY = y - size/2;
+            fallbackGroup._xPercent = pxToVw(x);
+            fallbackGroup._yPercent = pxToVh(y - size/2);
+            fallbackGroup._size = size;
+            
+            // Create the main circle
             const fallbackTeddy = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            fallbackTeddy.setAttribute('class', 'teddy fallback-teddy');
             fallbackTeddy.setAttribute('cx', x);
             fallbackTeddy.setAttribute('cy', y - size/2);
             fallbackTeddy.setAttribute('r', size/3);
             fallbackTeddy.setAttribute('fill', '#8B4513'); // Brown color
             fallbackTeddy.setAttribute('stroke', '#654321');
             fallbackTeddy.setAttribute('stroke-width', '2');
-            fallbackTeddy.style.opacity = '1';
             
-            // Store position data for animation
-            fallbackTeddy._centerX = x;
-            fallbackTeddy._centerY = y - size/2;
-            fallbackTeddy._xPercent = pxToVw(x);
-            fallbackTeddy._yPercent = pxToVh(y - size/2);
-            fallbackTeddy._size = size;
-            
-            // Add a simple face
+            // Add eyes
             const eye1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             eye1.setAttribute('cx', x - size/8);
             eye1.setAttribute('cy', y - size/2 - size/12);
@@ -359,18 +363,31 @@ class StacksRenderer {
             eye2.setAttribute('r', size/20);
             eye2.setAttribute('fill', '#000');
             
+            // Add mouth
             const mouth = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             mouth.setAttribute('d', `M ${x - size/12} ${y - size/2 + size/12} Q ${x} ${y - size/2 + size/8} ${x + size/12} ${y - size/2 + size/12}`);
             mouth.setAttribute('stroke', '#000');
             mouth.setAttribute('stroke-width', '1');
             mouth.setAttribute('fill', 'none');
             
-            parent.appendChild(fallbackTeddy);
-            parent.appendChild(eye1);
-            parent.appendChild(eye2);
-            parent.appendChild(mouth);
+            // Add all elements to the group
+            fallbackGroup.appendChild(fallbackTeddy);
+            fallbackGroup.appendChild(eye1);
+            fallbackGroup.appendChild(eye2);
+            fallbackGroup.appendChild(mouth);
             
-            return fallbackTeddy;
+            // Store references to child elements for animation
+            fallbackGroup._mainCircle = fallbackTeddy;
+            fallbackGroup._eye1 = eye1;
+            fallbackGroup._eye2 = eye2;
+            fallbackGroup._mouth = mouth;
+            
+            fallbackGroup.style.opacity = '1';
+            
+            parent.appendChild(fallbackGroup);
+            
+            console.log('Fallback teddy group created with position data:', fallbackGroup._centerX, fallbackGroup._centerY);
+            return fallbackGroup;
         }
     }
     
@@ -1099,14 +1116,53 @@ class StacksRenderer {
                 console.log('Block', element._number, 'locked at final position:', newX, element._centerY);
                 
             } else if (element.classList.contains('teddy')) {
-                // Handle teddy animation properly
-                const currentTeddyX = parseFloat(element.getAttribute('x'));
-                const newTeddyX = currentTeddyX + deltaX;
-                element.setAttribute('x', newTeddyX);
-                
-                // Update stored position data
-                element._centerX = element._centerX + deltaX;
-                element._xPercent = pxToVw(element._centerX);
+                // Handle both image teddies and fallback teddy groups
+                if (element.tagName === 'image') {
+                    // Original image teddy
+                    const currentTeddyX = parseFloat(element.getAttribute('x'));
+                    const newTeddyX = currentTeddyX + deltaX;
+                    element.setAttribute('x', newTeddyX);
+                    
+                    // Update stored position data
+                    element._centerX = element._centerX + deltaX;
+                    element._xPercent = pxToVw(element._centerX);
+                } else if (element.tagName === 'g') {
+                    // Fallback teddy group - move all child elements
+                    const newCenterX = element._centerX + deltaX;
+                    
+                    // Update main circle
+                    if (element._mainCircle) {
+                        element._mainCircle.setAttribute('cx', newCenterX);
+                    }
+                    
+                    // Update eyes
+                    if (element._eye1) {
+                        const currentX1 = parseFloat(element._eye1.getAttribute('cx'));
+                        element._eye1.setAttribute('cx', currentX1 + deltaX);
+                    }
+                    if (element._eye2) {
+                        const currentX2 = parseFloat(element._eye2.getAttribute('cx'));
+                        element._eye2.setAttribute('cx', currentX2 + deltaX);
+                    }
+                    
+                    // Update mouth
+                    if (element._mouth) {
+                        const currentPath = element._mouth.getAttribute('d');
+                        // Parse and update the path coordinates
+                        const updatedPath = currentPath.replace(/M\s*([0-9.]+)/g, (match, x) => {
+                            return `M ${parseFloat(x) + deltaX}`;
+                        }).replace(/Q\s*([0-9.]+)/g, (match, x) => {
+                            return `Q ${parseFloat(x) + deltaX}`;
+                        }).replace(/([0-9.]+)\s*([0-9.]+)\s*([0-9.]+)$/g, (match, x, y, endX) => {
+                            return `${parseFloat(x) + deltaX} ${y} ${parseFloat(endX) + deltaX}`;
+                        });
+                        element._mouth.setAttribute('d', updatedPath);
+                    }
+                    
+                    // Update stored position data
+                    element._centerX = newCenterX;
+                    element._xPercent = pxToVw(newCenterX);
+                }
                 
                 // Mark teddy as completed tower element
                 element.classList.add('completed-tower');
@@ -1114,9 +1170,9 @@ class StacksRenderer {
                 
                 // Lock teddy position
                 element._isLocked = true;
-                element._finalX = newTeddyX;
+                element._finalX = element._centerX;
                 
-                console.log('Teddy locked at final position:', newTeddyX);
+                console.log('Teddy locked at final position:', element._centerX);
             }
         });
         
