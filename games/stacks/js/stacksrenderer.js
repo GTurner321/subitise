@@ -511,24 +511,21 @@ class StacksRenderer {
     }
     
     handleDrop(x, y) {
+        console.log('=== HANDLE DROP ===');
+        console.log('Drop coordinates:', x, y);
+        
         // Check containers with improved overlap detection
         const containers = this.svg.querySelectorAll('.container.new-tower-element');
         const tolerance = getDragTolerancePx();
         
-        console.log('Handle drop at:', x, y, 'checking', containers.length, 'containers');
+        console.log('Found', containers.length, 'active containers');
         
-        // Sort containers by overlap area to find the best match
-        const containerDistances = Array.from(containers).map(container => ({
-            container: container,
-            distance: this.getDistanceToContainer(container, x, y),
-            overlapArea: this.calculateOverlapArea(container, x, y)
-        })).sort((a, b) => b.overlapArea - a.overlapArea);
+        // Check if dropping on a container first
+        let droppedInContainer = false;
         
-        // Check if dropping on a container
-        for (let containerData of containerDistances) {
-            const container = containerData.container;
-            const distance = containerData.distance;
-            const overlapArea = containerData.overlapArea;
+        for (let container of containers) {
+            const distance = this.getDistanceToContainer(container, x, y);
+            const overlapArea = this.calculateOverlapArea(container, x, y);
             
             console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1), 'overlap:', (overlapArea * 100).toFixed(1) + '%');
             
@@ -551,16 +548,23 @@ class StacksRenderer {
                     this.placeBlockInContainer(this.draggedElement, container);
                 }
                 
+                droppedInContainer = true;
+                
                 // Notify game controller of the move
+                console.log('Notifying game controller of move...');
                 this.gameController.onBlockMoved();
-                return true;
+                break;
             }
         }
         
-        // FIXED: Not dropping on container - place on grass where user dropped it
-        console.log('🌱 Placing block on grass at user drop position');
-        this.placeBlockOnGrass(this.draggedElement, x, y);
-        return true; // Return true - user successfully placed block
+        if (!droppedInContainer) {
+            // FIXED: Place on grass where user dropped it
+            console.log('🌱 Not dropped in container, placing on grass');
+            this.placeBlockOnGrass(this.draggedElement, x, y);
+        }
+        
+        console.log('=== DROP COMPLETE ===');
+        return true;
     }
     
     calculateOverlapArea(container, dragX, dragY) {
@@ -728,8 +732,13 @@ class StacksRenderer {
     }
     
     placeBlockInContainer(block, container) {
+        console.log('=== PLACE BLOCK IN CONTAINER ===');
+        console.log('Placing block', block.getAttribute('data-number'), 'in container', container.getAttribute('data-index'));
+        
         const centerX = container._centerX;
         const centerY = container._centerY;
+        
+        console.log('Container center:', centerX, centerY);
         
         this.updateBlockPosition(block, centerX, centerY);
         block._centerX = centerX;
@@ -737,6 +746,9 @@ class StacksRenderer {
         block._xPercent = container._xPercent;
         block._yPercent = container._yPercent;
         block._container = container;
+        
+        console.log('Block placed in container, new position:', centerX, centerY);
+        console.log('=== PLACE IN CONTAINER COMPLETE ===');
     }
     
     returnBlockToGround(block) {
@@ -901,22 +913,39 @@ class StacksRenderer {
     }
     
     isValidTowerOrder() {
+        console.log('=== CHECKING TOWER ORDER ===');
+        
         const containers = Array.from(this.svg.querySelectorAll('.container.new-tower-element')).sort((a, b) => 
             parseFloat(b.getAttribute('y')) - parseFloat(a.getAttribute('y')) // Bottom to top
         );
         
-        console.log('Checking tower order for', containers.length, 'containers');
+        console.log('Found', containers.length, 'containers to check');
+        
+        if (containers.length === 0) {
+            console.log('No containers found - tower invalid');
+            return false;
+        }
         
         const towerNumbers = [];
-        for (let container of containers) {
+        let emptyContainers = 0;
+        
+        for (let i = 0; i < containers.length; i++) {
+            const container = containers[i];
             const block = this.getBlockInContainer(container);
+            
             if (block) {
-                towerNumbers.push(parseInt(block.getAttribute('data-number')));
-                console.log('Container has block:', block.getAttribute('data-number'));
+                const number = parseInt(block.getAttribute('data-number'));
+                towerNumbers.push(number);
+                console.log(`Container ${i} (index ${container.getAttribute('data-index')}): block ${number}`);
             } else {
-                console.log('Empty container found - tower not complete');
-                return false; // Empty container found
+                emptyContainers++;
+                console.log(`Container ${i} (index ${container.getAttribute('data-index')}): EMPTY`);
             }
+        }
+        
+        if (emptyContainers > 0) {
+            console.log(`Tower incomplete: ${emptyContainers} empty containers`);
+            return false;
         }
         
         console.log('Tower numbers (bottom to top):', towerNumbers);
@@ -924,12 +953,13 @@ class StacksRenderer {
         // Check if numbers are in ascending order (bottom to top)
         for (let i = 1; i < towerNumbers.length; i++) {
             if (towerNumbers[i] <= towerNumbers[i-1]) {
-                console.log('Numbers not in ascending order at position', i);
+                console.log(`Numbers not in ascending order: ${towerNumbers[i]} <= ${towerNumbers[i-1]} at position ${i}`);
                 return false;
             }
         }
         
         console.log('✅ Tower is valid and complete!');
+        console.log('=== TOWER CHECK COMPLETE ===');
         return true;
     }
     
