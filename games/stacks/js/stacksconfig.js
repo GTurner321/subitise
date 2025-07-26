@@ -166,19 +166,32 @@ function generateRandomGroundPosition(existingBlocks = []) {
     return { x: selectedPosition.x, y: selectedPosition.y };
 }
 
-// SIMPLIFIED: For user-placed blocks - free placement with overlap rendering
+// FIXED: For user-placed blocks - apply gravity and handle coordinate conversion properly
 function generateUserPlacedGroundPosition(dropX, dropY, excludeBlocks = []) {
-    // Convert pixel coordinates to percentages
-    const xPercent = pxToVw(dropX);
-    const yPercent = pxToVh(dropY);
+    // FIXED: Ensure we're working with valid pixel coordinates
+    if (isNaN(dropX) || isNaN(dropY)) {
+        console.error('Invalid coordinates passed to generateUserPlacedGroundPosition:', dropX, dropY);
+        return { x: 50, y: 85 }; // Safe fallback
+    }
     
-    // Ensure block is within grass area
-    const grassTop = STACKS_CONFIG.GRASS_Y_MIN_PERCENT;
-    const grassBottom = STACKS_CONFIG.GRASS_Y_MAX_PERCENT;
+    // Convert pixel coordinates to percentages - FIXED coordinate system
+    const xPercent = (dropX * 100) / window.innerWidth;
+    const yPercent = (dropY * 100) / window.innerHeight;
+    
+    console.log('User placement: pixels', dropX, dropY, 'to percentages', xPercent.toFixed(1), yPercent.toFixed(1));
+    
+    // Ensure block lands in grass area (bottom 20% = 80-100% in CSS coordinates)
+    const grassTop = 80; // Top of grass area
+    const grassBottom = 95; // Leave some margin at very bottom
     let adjustedY = Math.max(grassTop, Math.min(grassBottom, yPercent));
     
+    // If dropped above grass, force it into grass
+    if (yPercent < grassTop) {
+        adjustedY = grassTop + 5; // Place in top part of grass
+    }
+    
     // Check for overlap with existing blocks
-    const minDistance = STACKS_CONFIG.BLOCK_MIN_DISTANCE_PERCENT;
+    const minDistance = 8; // Block width in percentage
     let overlappingBlocks = [];
     
     for (let block of excludeBlocks) {
@@ -195,27 +208,28 @@ function generateUserPlacedGroundPosition(dropX, dropY, excludeBlocks = []) {
         );
         
         // Place in front of (higher Y than) the frontmost block
-        adjustedY = Math.min(frontmostBlock.y + 3, grassBottom - 1);
+        adjustedY = Math.min(frontmostBlock.y + 3, grassBottom);
     }
     
+    console.log('Adjusted position:', xPercent.toFixed(1), adjustedY.toFixed(1));
     return { x: xPercent, y: adjustedY };
 }
 
-// SIMPLIFIED: For displaced blocks - place close to tower with overlap handling
+// FIXED: For displaced blocks - place close to tower with proper coordinates
 function generateDisplacedBlockPosition(excludeBlocks = []) {
-    const centerX = STACKS_CONFIG.TOWER_CENTER_X_PERCENT;
+    const centerX = 50; // Tower center
     
-    // Place close to tower (within 20% either side)
+    // FIXED: Place within 38-62% as requested (12% either side of center)
     const side = Math.random() < 0.5 ? -1 : 1; // Left or right of tower
-    const x = centerX + (side * (10 + Math.random() * 15)); // 10-25% away from center
+    const x = centerX + (side * (5 + Math.random() * 7)); // 5-12% away from center = 38-62% range
     
-    // Start in grass area
-    const grassTop = STACKS_CONFIG.GRASS_Y_MIN_PERCENT;
-    const grassBottom = STACKS_CONFIG.GRASS_Y_MAX_PERCENT;
+    // Place in grass area (80-95% in CSS coordinates)
+    const grassTop = 80;
+    const grassBottom = 95;
     let y = grassTop + Math.random() * 10; // Top part of grass area
     
     // Check for overlap with existing blocks
-    const minDistance = STACKS_CONFIG.BLOCK_MIN_DISTANCE_PERCENT;
+    const minDistance = 8;
     let overlappingBlocks = [];
     
     for (let block of excludeBlocks) {
@@ -232,9 +246,10 @@ function generateDisplacedBlockPosition(excludeBlocks = []) {
         );
         
         // Place in front of the frontmost block
-        y = Math.min(frontmostBlock.y + 3, grassBottom - 1);
+        y = Math.min(frontmostBlock.y + 3, grassBottom);
     }
     
+    console.log('Displaced block position:', x.toFixed(1), y.toFixed(1));
     return { x, y };
 }
 
