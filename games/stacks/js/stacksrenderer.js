@@ -21,7 +21,7 @@ class StacksRenderer {
     
     checkAndApplyGravity() {
         const groundBlocks = this.svg.querySelectorAll('.block:not(.completed-tower)');
-        const grassTop = STACKS_CONFIG.GRASS_Y_MIN_PERCENT;
+        const grassTop = 80; // 80% from top = 20% from bottom
         
         groundBlocks.forEach(block => {
             // Skip if block is in container, being dragged, or animating
@@ -37,7 +37,7 @@ class StacksRenderer {
             
             // Apply gravity if block is significantly above grass area
             if (currentYPercent < grassTop - 5) {
-                const grassMidY = STACKS_CONFIG.GRASS_Y_PERCENT;
+                const grassMidY = 85; // 85% from top (middle of grass)
                 this.applyGravity(block, block._centerX, grassMidY);
             }
         });
@@ -97,6 +97,7 @@ class StacksRenderer {
     }
     
     createBlock(number, xPercent, yPercent, color, isWide = false) {
+        // Convert percentage coordinates to pixels
         const x = vwToPx(xPercent);
         const y = vhToPx(yPercent);
         const dimensions = getBlockDimensions(isWide);
@@ -181,7 +182,7 @@ class StacksRenderer {
         container.setAttribute('stroke-dasharray', '5,5');
         container.setAttribute('rx', '8');
         container.setAttribute('ry', '8');
-        container.setAttribute('opacity', STACKS_CONFIG.CONTAINER_OPACITY); // FIXED: Use config opacity
+        container.setAttribute('opacity', STACKS_CONFIG.CONTAINER_OPACITY);
         
         // Store position data
         container._centerX = x;
@@ -297,7 +298,7 @@ class StacksRenderer {
             const containerElement = this.createContainer(position.x, position.y, index, useWideBlocks);
             containerElement.classList.add('new-tower-element');
             containerElement.style.pointerEvents = 'auto';
-            containerElement.style.opacity = '0.8';
+            containerElement.style.opacity = STACKS_CONFIG.CONTAINER_OPACITY;
             this.svg.appendChild(containerElement);
         });
         
@@ -319,6 +320,20 @@ class StacksRenderer {
     clearNewTowerElements() {
         const elements = this.svg.querySelectorAll('.new-tower-element');
         elements.forEach(element => element.remove());
+    }
+    
+    hideCurrentTowerContainers() {
+        console.log('=== HIDING TOWER CONTAINERS ===');
+        const containers = this.svg.querySelectorAll('.container.new-tower-element');
+        console.log('Found', containers.length, 'containers to hide');
+        
+        containers.forEach((container, index) => {
+            container.style.opacity = '0';
+            container.style.transition = 'opacity 0.3s ease';
+            console.log('Hiding container', index);
+        });
+        
+        console.log('=== CONTAINERS HIDDEN ===');
     }
     
     clearTower() {
@@ -377,22 +392,36 @@ class StacksRenderer {
         e.preventDefault();
         const point = this.getEventPoint(e);
         
+        console.log('=== DRAG END ===');
+        console.log('Point:', point);
+        
         // Calculate drop position
         const dropX = point.x + this.dragOffset.x;
         const dropY = point.y + this.dragOffset.y;
         
-        // Enforce screen boundaries
-        const svgBounds = this.svg.getBoundingClientRect();
-        const boundedDropX = Math.max(0, Math.min(svgBounds.width, dropX));
-        const boundedDropY = Math.max(0, Math.min(svgBounds.height, dropY));
+        console.log('Drop position:', dropX, dropY);
         
-        // Try to drop in container or place on grass
-        const dropped = this.handleDrop(boundedDropX, boundedDropY);
+        // FIXED: ALWAYS reset drag state FIRST
+        this.resetDragState();
         
-        // Reset visual state
-        this.draggedElement.style.cursor = 'grab';
-        this.draggedElement._rect.setAttribute('stroke-width', '3');
-        this.draggedElement.classList.remove('block-dragging');
+        // Then handle the drop
+        this.handleDrop(dropX, dropY);
+        
+        // Audio feedback
+        this.gameController.playDropSound();
+        
+        console.log('=== DRAG END COMPLETE ===');
+    }
+    
+    resetDragState() {
+        if (this.draggedElement) {
+            // Reset visual state
+            this.draggedElement.style.cursor = 'grab';
+            if (this.draggedElement._rect) {
+                this.draggedElement._rect.setAttribute('stroke-width', '3');
+            }
+            this.draggedElement.classList.remove('block-dragging');
+        }
         
         // Clear hover effects
         this.clearContainerHover();
@@ -402,12 +431,7 @@ class StacksRenderer {
         this.draggedElement = null;
         this.dragOffset = { x: 0, y: 0 };
         
-        // Audio feedback
-        if (dropped) {
-            this.gameController.playDropSound();
-        } else {
-            this.gameController.playReturnSound();
-        }
+        console.log('Drag state reset');
     }
     
     findBlockAtPoint(point) {
@@ -514,38 +538,45 @@ class StacksRenderer {
         console.log('=== HANDLE DROP ===');
         console.log('Drop coordinates:', x, y);
         
-        // Check containers with improved overlap detection
+        // Get the block that was being dragged
+        const draggedBlock = this.draggedElement;
+        if (!draggedBlock) {
+            console.log('No dragged block found');
+            return false;
+        }
+        
+        // Check containers for drop
         const containers = this.svg.querySelectorAll('.container.new-tower-element');
         const tolerance = getDragTolerancePx();
         
         console.log('Found', containers.length, 'active containers');
         
-        // Check if dropping on a container first
+        // Check if dropping on a container
         let droppedInContainer = false;
         
         for (let container of containers) {
             const distance = this.getDistanceToContainer(container, x, y);
-            const overlapArea = this.calculateOverlapArea(container, x, y);
+            const overlapArea = this.calculateOverlapArea(container, x, y, draggedBlock);
             
             console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1), 'overlap:', (overlapArea * 100).toFixed(1) + '%');
             
             if (overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD || distance < tolerance) {
                 console.log('✅ Dropping in container', container.getAttribute('data-index'));
                 const existingBlock = this.getBlockInContainer(container);
-                const draggedFromContainer = this.getContainerForBlock(this.draggedElement);
+                const draggedFromContainer = this.getContainerForBlock(draggedBlock);
                 
                 if (existingBlock) {
                     if (draggedFromContainer) {
                         // Both blocks are in tower - swap them
-                        this.swapBlocks(this.draggedElement, existingBlock);
+                        this.swapBlocks(draggedBlock, existingBlock);
                     } else {
                         // Dragged from ground onto tower block - displace the tower block
                         this.displaceBlockToGround(existingBlock);
-                        this.placeBlockInContainer(this.draggedElement, container);
+                        this.placeBlockInContainer(draggedBlock, container);
                     }
                 } else {
                     // Empty container - place block
-                    this.placeBlockInContainer(this.draggedElement, container);
+                    this.placeBlockInContainer(draggedBlock, container);
                 }
                 
                 droppedInContainer = true;
@@ -558,17 +589,16 @@ class StacksRenderer {
         }
         
         if (!droppedInContainer) {
-            // FIXED: Place on grass where user dropped it
+            // Place on grass where user dropped it
             console.log('🌱 Not dropped in container, placing on grass');
-            this.placeBlockOnGrass(this.draggedElement, x, y);
+            this.placeBlockOnGrass(draggedBlock, x, y);
         }
         
         console.log('=== DROP COMPLETE ===');
         return true;
     }
     
-    calculateOverlapArea(container, dragX, dragY) {
-        const draggedBlock = this.draggedElement;
+    calculateOverlapArea(container, dragX, dragY, draggedBlock) {
         if (!draggedBlock || !draggedBlock._dimensions) return 0;
         
         const dragWidth = draggedBlock._dimensions.width;
@@ -612,27 +642,60 @@ class StacksRenderer {
     }
     
     placeBlockOnGrass(block, x, y) {
+        console.log('=== PLACE BLOCK ON GRASS ===');
+        console.log('Input coordinates (pixels):', x, y);
+        
         // Clear any container association
         block._container = null;
         
-        // Convert to percentages
-        const xPercent = pxToVw(x);
-        const yPercent = pxToVh(y);
+        // Validate input coordinates
+        if (isNaN(x) || isNaN(y) || x === undefined || y === undefined) {
+            console.error('Invalid coordinates for placeBlockOnGrass:', x, y);
+            // Use safe fallback position
+            x = window.innerWidth * 0.5;
+            y = window.innerHeight * 0.85;
+            console.log('Using fallback position (pixels):', x, y);
+        }
         
-        // For user-placed blocks, use the new overlap positioning
-        const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
-            x: b._xPercent,
-            y: b._yPercent
-        }));
+        // Convert pixels to percentages
+        let finalXPercent = (x * 100) / window.innerWidth;
+        let finalYPercent = (y * 100) / window.innerHeight;
         
-        const adjustedPos = generateUserPlacedGroundPosition(existingBlocks);
+        console.log('Converted to percentages:', finalXPercent.toFixed(1), finalYPercent.toFixed(1));
         
-        // Apply gravity to bring to adjusted grass level
-        this.applyGravity(block, vwToPx(adjustedPos.x), adjustedPos.y);
+        // Apply gravity if dropped above grass (grass starts at 80% from top)
+        const grassTop = 80;
+        
+        if (finalYPercent < grassTop) {
+            // Dropped above grass - apply gravity to bring to grass
+            console.log('Block dropped above grass, applying gravity');
+            finalYPercent = 85; // 85% from top (middle of grass area)
+            console.log('Gravity applied, new Y%:', finalYPercent);
+        } else {
+            console.log('Block dropped in grass area, using drop position');
+        }
+        
+        // Convert final percentages back to pixels for SVG positioning
+        const finalX = (finalXPercent * window.innerWidth) / 100;
+        const finalY = (finalYPercent * window.innerHeight) / 100;
+        
+        console.log('Final position - percentages:', finalXPercent.toFixed(1), finalYPercent.toFixed(1), 'pixels:', finalX, finalY);
+        
+        // Apply positioning using pixels (SVG uses pixels)
+        this.updateBlockPosition(block, finalX, finalY);
+        
+        // Store position as percentages (our coordinate system)
+        block._centerX = finalX;
+        block._centerY = finalY;
+        block._xPercent = finalXPercent;
+        block._yPercent = finalYPercent;
         
         // Ensure block remains interactive
         block.style.cursor = 'grab';
         block.style.pointerEvents = 'all';
+        
+        console.log('Block placed successfully - stored as %:', finalXPercent.toFixed(1), finalYPercent.toFixed(1));
+        console.log('=== PLACE BLOCK COMPLETE ===');
     }
     
     applyGravity(block, targetX, targetYPercent) {
@@ -669,27 +732,24 @@ class StacksRenderer {
         // Remove block from its current container
         block._container = null;
         
-        // Get existing blocks for overlap detection
-        const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
-            x: b._xPercent,
-            y: b._yPercent
-        }));
+        // Simple displacement - place near tower on grass
+        const centerX = 50; // Tower center
+        const side = Math.random() < 0.5 ? -1 : 1; // Left or right
+        const x = centerX + (side * (10 + Math.random() * 10)); // 10-20% away
+        const y = 85; // Middle of grass area
         
-        // Use displaced block positioning (close to tower with overlap handling)
-        const displacementPos = generateDisplacedBlockPosition(existingBlocks);
+        // Convert to pixel coordinates
+        const groundX = (x * window.innerWidth) / 100;
+        const groundY = (y * window.innerHeight) / 100;
         
-        // FIXED: Convert to pixel coordinates using proper calculation
-        const groundX = (displacementPos.x * window.innerWidth) / 100;
-        const groundY = (displacementPos.y * window.innerHeight) / 100;
-        
-        console.log('Displacing block to:', displacementPos.x, displacementPos.y, '% =', groundX, groundY, 'px');
+        console.log('Displacing block to:', x, y, '% =', groundX, groundY, 'px');
         
         // Animate the block to the ground
         this.animateBlockToPosition(block, groundX, groundY, () => {
             block._centerX = groundX;
             block._centerY = groundY;
-            block._xPercent = displacementPos.x;
-            block._yPercent = displacementPos.y;
+            block._xPercent = x;
+            block._yPercent = y;
             block._container = null;
             
             // Ensure block remains interactive
@@ -755,27 +815,16 @@ class StacksRenderer {
         // Clear any container association
         block._container = null;
         
-        // FIXED: Use displaced block positioning for pulled blocks
-        const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
-            x: b._xPercent,
-            y: b._yPercent
-        }));
-        
-        // Use displaced positioning (close to tower with overlap handling)
-        const groundPos = generateDisplacedBlockPosition(existingBlocks);
-        
-        // FIXED: Convert to pixel coordinates properly
-        const groundX = (groundPos.x * window.innerWidth) / 100;
-        const groundY = (groundPos.y * window.innerHeight) / 100;
-        
-        console.log('Returning block to ground at:', groundPos.x, groundPos.y, '% =', groundX, groundY, 'px');
+        // Simple return to grass area
+        const fallbackX = window.innerWidth * 0.5;
+        const fallbackY = window.innerHeight * 0.85;
         
         // Animate the block to the ground
-        this.animateBlockToPosition(block, groundX, groundY, () => {
-            block._centerX = groundX;
-            block._centerY = groundY;
-            block._xPercent = groundPos.x;
-            block._yPercent = groundPos.y;
+        this.animateBlockToPosition(block, fallbackX, fallbackY, () => {
+            block._centerX = fallbackX;
+            block._centerY = fallbackY;
+            block._xPercent = 50;
+            block._yPercent = 85;
         });
     }
     
