@@ -666,13 +666,14 @@ class StacksRenderer {
         // Remove block from its current container
         block._container = null;
         
-        // Use the new user-placed positioning for displaced blocks
+        // Get existing blocks for overlap detection
         const existingBlocks = this.getGroundBlocks().filter(b => b !== block).map(b => ({
             x: b._xPercent,
             y: b._yPercent
         }));
         
-        const displacementPos = generateUserPlacedGroundPosition(existingBlocks);
+        // Use displaced block positioning (close to tower with overlap handling)
+        const displacementPos = generateDisplacedBlockPosition(existingBlocks);
         
         // Convert to pixel coordinates
         const groundX = vwToPx(displacementPos.x);
