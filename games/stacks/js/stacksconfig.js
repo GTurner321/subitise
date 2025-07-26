@@ -253,9 +253,9 @@ function generateDisplacedBlockPosition(excludeBlocks = []) {
     return { x, y };
 }
 
-// Helper function for container placement
+// Helper function for container placement - FIXED to use tower base position
 function getContainerGroundY() {
-    return STACKS_CONFIG.TOWER_BASE_Y_PERCENT; // Use the tower base position
+    return STACKS_CONFIG.TOWER_BASE_Y_PERCENT; // Use the tower base position consistently
 }
 
 // Viewport conversion functions
