@@ -647,38 +647,49 @@ class StacksGameController {
         const towerBlocks = this.renderer.getTowerBlocks();
         const teddy = this.currentTeddy;
         
-        // Determine which side this tower goes to
+        // Determine which side this tower goes to (alternating left/right)
         const isLeftSide = this.currentQuestion % 2 === 1;
         
         console.log('Moving tower', this.currentQuestion, 'to', isLeftSide ? 'left' : 'right', 'side');
         
-        // Calculate target position based on existing completed towers
+        // FIXED: Calculate target position with proper spacing
         let targetXPercent;
+        const blockWidth = STACKS_CONFIG.BLOCK_WIDTH_PERCENT;
+        const spacing = blockWidth * 1.2; // 1.2 block widths spacing (20% gap)
         
         if (isLeftSide) {
+            // Count existing left towers for positioning
             const leftTowers = this.completedTowers.filter((_, index) => (index + 1) % 2 === 1);
             if (leftTowers.length === 0) {
+                // First left tower
                 targetXPercent = STACKS_CONFIG.COMPLETED_TOWER_LEFT_X_PERCENT;
             } else {
-                const lastLeftPosition = Math.max(...leftTowers.map(tower => tower.position));
-                targetXPercent = lastLeftPosition + STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
+                // Find the rightmost left tower and place next to it
+                const rightmostLeftPosition = Math.max(...leftTowers.map(tower => tower.position));
+                targetXPercent = rightmostLeftPosition + spacing;
             }
         } else {
+            // Count existing right towers for positioning
             const rightTowers = this.completedTowers.filter((_, index) => (index + 1) % 2 === 0);
             if (rightTowers.length === 0) {
+                // First right tower
                 targetXPercent = STACKS_CONFIG.COMPLETED_TOWER_RIGHT_X_PERCENT;
             } else {
-                const lastRightPosition = Math.min(...rightTowers.map(tower => tower.position));
-                targetXPercent = lastRightPosition - STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
+                // Find the leftmost right tower and place next to it
+                const leftmostRightPosition = Math.min(...rightTowers.map(tower => tower.position));
+                targetXPercent = leftmostRightPosition - spacing;
             }
         }
         
+        // Ensure we don't go off screen
         targetXPercent = Math.max(5, Math.min(95, targetXPercent));
         
         console.log('Calculated target position:', targetXPercent + '%', 'for tower', this.currentQuestion);
+        console.log('Existing completed towers:', this.completedTowers.map(t => `Q${t.question}: ${t.position.toFixed(1)}%`));
         
         // Animate tower to new position
         this.renderer.animateCompletedTower(towerBlocks, teddy, targetXPercent, () => {
+            // Store the completed tower with its FINAL position
             this.completedTowers.push({
                 blocks: towerBlocks,
                 teddy: teddy,
@@ -688,17 +699,20 @@ class StacksGameController {
             });
             
             console.log('Tower', this.currentQuestion, 'stored at position:', targetXPercent + '%');
+            console.log('All completed towers now:', this.completedTowers.map(t => `Q${t.question}: ${t.position.toFixed(1)}%`));
             
             // Check level progression
             this.checkLevelProgression();
             
-            // Start next question or end game
+            // FIXED: Start next question or end game
             if (this.currentQuestion < STACKS_CONFIG.TOTAL_QUESTIONS) {
                 this.currentQuestion++;
+                console.log('Starting next question:', this.currentQuestion);
                 setTimeout(() => {
                     this.startNewQuestion();
                 }, 1000);
             } else {
+                console.log('All questions completed, ending game');
                 this.endGame();
             }
         });
