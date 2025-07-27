@@ -125,7 +125,7 @@ body {
     border-radius: 50%;
     cursor: grab;
     user-select: none;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease;
     z-index: 10;
     
     /* 3D appearance */
@@ -140,10 +140,9 @@ body {
     cursor: grabbing;
 }
 
-/* Enhanced bead states */
+/* Enhanced bead states - removed color changes, only scale */
 .bead.touched {
     transform: scale(1.15);
-    filter: brightness(0.8);
     box-shadow: 0 4px 8px rgba(0,0,0,0.4), 
                 inset 0 1px 3px rgba(255,255,255,0.5);
 }
@@ -153,7 +152,6 @@ body {
     transform: scale(1.15);
     box-shadow: 0 8px 16px rgba(0,0,0,0.5), 
                 inset 0 1px 3px rgba(255,255,255,0.5);
-    filter: brightness(0.8);
 }
 
 /* Bead pulse animation */
@@ -205,6 +203,9 @@ body {
     -webkit-user-select: none;
     user-select: none;
     pointer-events: auto;
+    
+    /* Remove default focus outline */
+    outline: none;
 }
 
 .number-btn:hover {
@@ -215,6 +216,13 @@ body {
 .number-btn:active {
     transform: translateY(0);
     transition: all 0.1s ease;
+}
+
+/* Remove focus outline completely */
+.number-btn:focus {
+    outline: none;
+    border: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 /* Enhanced button feedback animations */
@@ -402,11 +410,18 @@ body {
     /* Touch support */
     touch-action: manipulation;
     pointer-events: auto;
+    
+    /* Remove focus outline */
+    outline: none;
 }
 
 .play-again-btn:hover {
     background: #45a049;
     transform: translateY(-2px);
+}
+
+.play-again-btn:focus {
+    outline: none;
 }
 
 .hidden {
