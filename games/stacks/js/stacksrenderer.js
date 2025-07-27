@@ -565,7 +565,7 @@ class StacksRenderer {
             console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1), 'overlap:', (overlapArea * 100).toFixed(1) + '%');
             
             // FIXED: Use 50% overlap threshold as requested
-            if (overlapArea >= 0.5 || distance < tolerance) {
+            if (overlapArea >= 0.5) {
                 console.log('✅ Dropping in container', container.getAttribute('data-index'));
                 const existingBlock = this.getBlockInContainer(container);
                 const draggedFromContainer = this.getContainerForBlock(draggedBlock);
@@ -603,59 +603,62 @@ class StacksRenderer {
         return true;
     }
     
-    calculateOverlapArea(container, dragX, dragY, draggedBlock) {
-        if (!draggedBlock || !draggedBlock._dimensions) return 0;
-        
-        const dragWidth = draggedBlock._dimensions.width;
-        const dragHeight = draggedBlock._dimensions.height;
-        
-        // Dragged block bounds
-        const dragLeft = dragX - dragWidth / 2;
-        const dragRight = dragX + dragWidth / 2;
-        const dragTop = dragY - dragHeight / 2;
-        const dragBottom = dragY + dragHeight / 2;
-        
-        // Container bounds
-        const containerX = container._centerX;
-        const containerY = container._centerY;
-        const containerWidth = parseFloat(container.getAttribute('width'));
-        const containerHeight = parseFloat(container.getAttribute('height'));
-        
-        const containerLeft = containerX - containerWidth / 2;
-        const containerRight = containerX + containerWidth / 2;
-        const containerTop = containerY - containerHeight / 2;
-        const containerBottom = containerY + containerHeight / 2;
-        
-        // Calculate overlap rectangle
-        const overlapLeft = Math.max(dragLeft, containerLeft);
-        const overlapRight = Math.min(dragRight, containerRight);
-        const overlapTop = Math.max(dragTop, containerTop);
-        const overlapBottom = Math.min(dragBottom, containerBottom);
-        
-        // Check if there's any overlap
-        if (overlapLeft >= overlapRight || overlapTop >= overlapBottom) {
-            return 0; // No overlap
-        }
-        
-        // Calculate overlap dimensions
-        const overlapWidth = overlapRight - overlapLeft;
-        const overlapHeight = overlapBottom - overlapTop;
-        
-        // FIXED: Calculate percentage overlap for BOTH width and height
-        const widthOverlapPercent = overlapWidth / dragWidth;
-        const heightOverlapPercent = overlapHeight / dragHeight;
-        
-        // FIXED: Return the MINIMUM of width and height overlap (both must be >= 50%)
-        const minOverlapPercent = Math.min(widthOverlapPercent, heightOverlapPercent);
-        
-        console.log('Overlap analysis:', {
-            widthOverlap: (widthOverlapPercent * 100).toFixed(1) + '%',
-            heightOverlap: (heightOverlapPercent * 100).toFixed(1) + '%',
-            minOverlap: (minOverlapPercent * 100).toFixed(1) + '%'
-        });
-        
-        return minOverlapPercent;
+calculateOverlapArea(container, dragX, dragY, draggedBlock) {
+    if (!draggedBlock || !draggedBlock._dimensions) return 0;
+    
+    const dragWidth = draggedBlock._dimensions.width;
+    const dragHeight = draggedBlock._dimensions.height;
+    
+    // Dragged block bounds
+    const dragLeft = dragX - dragWidth / 2;
+    const dragRight = dragX + dragWidth / 2;
+    const dragTop = dragY - dragHeight / 2;
+    const dragBottom = dragY + dragHeight / 2;
+    
+    // Container bounds
+    const containerX = container._centerX;
+    const containerY = container._centerY;
+    const containerWidth = parseFloat(container.getAttribute('width'));
+    const containerHeight = parseFloat(container.getAttribute('height'));
+    
+    const containerLeft = containerX - containerWidth / 2;
+    const containerRight = containerX + containerWidth / 2;
+    const containerTop = containerY - containerHeight / 2;
+    const containerBottom = containerY + containerHeight / 2;
+    
+    // Calculate overlap rectangle
+    const overlapLeft = Math.max(dragLeft, containerLeft);
+    const overlapRight = Math.min(dragRight, containerRight);
+    const overlapTop = Math.max(dragTop, containerTop);
+    const overlapBottom = Math.min(dragBottom, containerBottom);
+    
+    // Check if there's any overlap
+    if (overlapLeft >= overlapRight || overlapTop >= overlapBottom) {
+        return 0; // No overlap
     }
+    
+    // Calculate overlap dimensions
+    const overlapWidth = overlapRight - overlapLeft;
+    const overlapHeight = overlapBottom - overlapTop;
+    
+    // FIXED: Calculate percentage overlap for BOTH width and height
+    const widthOverlapPercent = overlapWidth / dragWidth;
+    const heightOverlapPercent = overlapHeight / dragHeight;
+    
+    console.log('Overlap analysis:', {
+        widthOverlap: (widthOverlapPercent * 100).toFixed(1) + '%',
+        heightOverlap: (heightOverlapPercent * 100).toFixed(1) + '%',
+        widthMeets50: widthOverlapPercent >= 0.5,
+        heightMeets50: heightOverlapPercent >= 0.5
+    });
+    
+    // FIXED: Both width AND height must be >= 50% for valid placement
+    if (widthOverlapPercent >= 0.5 && heightOverlapPercent >= 0.5) {
+        return Math.min(widthOverlapPercent, heightOverlapPercent);
+    } else {
+        return 0; // Insufficient overlap in either dimension
+    }
+}
     
     placeBlockOnGrass(block, x, y) {
         console.log('=== PLACE BLOCK ON GRASS ===');
