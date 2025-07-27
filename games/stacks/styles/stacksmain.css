@@ -224,14 +224,14 @@ body {
     justify-content: center !important;
 }
 
-/* Game completion modal styling */
+/* Game completion modal styling - FIXED: No dark background */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: transparent; /* FIXED: Transparent background to show game */
     display: flex;
     justify-content: center;
     align-items: center;
