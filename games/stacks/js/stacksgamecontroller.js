@@ -537,24 +537,24 @@ class StacksGameController {
         }, STACKS_CONFIG.FINAL_RAINBOW_ARCS * 300 + 1000);
     }
     
-    showCompletionModal() {
-        if (this.modal && this.modalTitle && this.modalMessage) {
-            this.modalTitle.textContent = '🌈 Amazing Work! 🌈';
-            this.modalMessage.textContent = `You've built all ${STACKS_CONFIG.TOTAL_QUESTIONS} towers with ${this.totalMoves} total moves!`;
-            
-            this.modal.classList.remove('hidden');
-            
-            if (this.audioEnabled) {
-                setTimeout(() => {
-                    this.speakText('Amazing work! You have completed all the towers!');
-                }, 500);
-            }
-            
+showCompletionModal() {
+    if (this.modal && this.modalTitle && this.modalMessage) {
+        // FIXED: Use simple "Well Done!" message as requested
+        this.modalTitle.textContent = '🌈 Well Done! 🌈';
+                
+        this.modal.classList.remove('hidden');
+        
+        if (this.audioEnabled) {
             setTimeout(() => {
-                this.bear.startCelebration();
-            }, 1000);
+                this.speakText('Well done! You have completed all the towers! Play again or return to the home page.');
+            }, 500);
         }
+        
+        setTimeout(() => {
+            this.bear.startCelebration();
+        }, 1000);
     }
+}
     
     // Audio feedback methods
     playDragStartSound() {
