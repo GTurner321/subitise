@@ -637,13 +637,24 @@ class StacksRenderer {
             return 0; // No overlap
         }
         
-        // Calculate overlap area as percentage of dragged block area
+        // Calculate overlap dimensions
         const overlapWidth = overlapRight - overlapLeft;
         const overlapHeight = overlapBottom - overlapTop;
-        const overlapArea = overlapWidth * overlapHeight;
-        const draggedBlockArea = dragWidth * dragHeight;
         
-        return overlapArea / draggedBlockArea;
+        // FIXED: Calculate percentage overlap for BOTH width and height
+        const widthOverlapPercent = overlapWidth / dragWidth;
+        const heightOverlapPercent = overlapHeight / dragHeight;
+        
+        // FIXED: Return the MINIMUM of width and height overlap (both must be >= 50%)
+        const minOverlapPercent = Math.min(widthOverlapPercent, heightOverlapPercent);
+        
+        console.log('Overlap analysis:', {
+            widthOverlap: (widthOverlapPercent * 100).toFixed(1) + '%',
+            heightOverlap: (heightOverlapPercent * 100).toFixed(1) + '%',
+            minOverlap: (minOverlapPercent * 100).toFixed(1) + '%'
+        });
+        
+        return minOverlapPercent;
     }
     
     placeBlockOnGrass(block, x, y) {
