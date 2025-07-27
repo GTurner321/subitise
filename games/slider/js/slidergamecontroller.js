@@ -325,17 +325,23 @@ class SliderGameController {
         });
         
         document.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            Array.from(e.changedTouches).forEach(touch => {
-                this.handleDragMove(touch.clientX, touch.clientY, touch.identifier);
-            });
+            // Only prevent default for touches that are part of active drag operations
+            if (this.dragState.activeTouches.size > 0) {
+                e.preventDefault();
+                Array.from(e.changedTouches).forEach(touch => {
+                    this.handleDragMove(touch.clientX, touch.clientY, touch.identifier);
+                });
+            }
         });
         
         document.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            Array.from(e.changedTouches).forEach(touch => {
-                this.handleDragEnd(touch.clientX, touch.clientY, touch.identifier);
-            });
+            // Only prevent default for touches that are part of active drag operations
+            if (this.dragState.activeTouches.size > 0) {
+                e.preventDefault();
+                Array.from(e.changedTouches).forEach(touch => {
+                    this.handleDragEnd(touch.clientX, touch.clientY, touch.identifier);
+                });
+            }
         });
     }
     
