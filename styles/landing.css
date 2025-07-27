@@ -1413,3 +1413,64 @@
         font-size: 0.9rem !important;
     }
 }
+
+/* Slider Random specific preview styles */
+.sliderrandom-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+}
+
+.preview-target {
+    text-align: center;
+}
+
+.preview-target .target-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.preview-target .target-text {
+    font-size: 1rem;
+    color: #e74c3c;
+    font-weight: normal;
+}
+
+.preview-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.slider-bar {
+    display: flex;
+    gap: 2px;
+    background: #808080;
+    padding: 3px;
+    border-radius: 3px;
+    min-width: 80px;
+    border: 1px solid #333;
+}
+
+.bead {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.3);
+    background: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.6), transparent 50%);
+}
+
+.bead.blue {
+    background-color: #4285f4;
+    background-image: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.6), transparent 50%);
+}
+
+.bead.red {
+    background-color: #ea4335;
+    background-image: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.6), transparent 50%);
+}
