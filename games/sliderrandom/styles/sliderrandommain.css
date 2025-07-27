@@ -1,4 +1,65 @@
-/* Slider Random Game Specific Styles */
+/* Target number display */
+.target-display {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 35%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 5;
+    background: transparent;
+}
+
+.target-number {
+    font-size: 8rem;
+    font-weight: bold;
+    color: #2c3e50;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    margin-bottom: 10px;
+    font-family: 'Arial', sans-serif;
+}
+
+.target-text {
+    font-size: 2.5rem;
+    font-weight: normal;
+    color: #e74c3c;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    font-family: 'Arial', sans-serif;
+}
+
+/* Responsive sizing for target display */
+@media (max-width: 768px) {
+    .target-number {
+        font-size: 6rem;
+    }
+    
+    .target-text {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .target-number {
+        font-size: 4rem;
+    }
+    
+    .target-text {
+        font-size: 1.5rem;
+    }
+}
+
+/* Game area adjustments */
+.game-area {
+    flex: 1;
+    position: relative;
+    background: white;
+    overflow: hidden;
+    width: 80%;
+    margin: 0 auto;
+}
 
 /* Arrow positioning and animation */
 .slider-arrow {
@@ -20,87 +81,7 @@
     }
 }
 
-/* Enhanced number buttons layout for more buttons */
-.number-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-    gap: 8px;
-    padding: 15px;
-    background: #f5f5f5;
-    justify-items: center;
-    align-items: center;
-    max-width: 100%;
-    min-height: 120px;
-}
-
-/* Responsive button sizing */
-.number-btn {
-    width: 70px;
-    height: 70px;
-    border: none;
-    border-radius: 15px;
-    font-size: 2rem;
-    font-weight: bold;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    position: relative;
-    
-    /* Touch support */
-    touch-action: manipulation;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-    pointer-events: auto;
-    
-    /* Remove default focus outline */
-    outline: none;
-}
-
-/* Larger screens - bigger buttons */
-@media (min-width: 768px) {
-    .number-btn {
-        width: 80px;
-        height: 80px;
-        font-size: 2.2rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    .number-btn {
-        width: 90px;
-        height: 90px;
-        font-size: 2.5rem;
-    }
-    
-    .number-buttons {
-        grid-template-columns: repeat(10, 1fr);
-        gap: 10px;
-        padding: 20px;
-    }
-}
-
-/* Button color variations for more numbers */
-.number-btn:nth-child(1) { background-color: #ff6b6b; --btn-color: #ff6b6b; }
-.number-btn:nth-child(2) { background-color: #4ecdc4; --btn-color: #4ecdc4; }
-.number-btn:nth-child(3) { background-color: #45b7d1; --btn-color: #45b7d1; }
-.number-btn:nth-child(4) { background-color: #f9ca24; --btn-color: #f9ca24; }
-.number-btn:nth-child(5) { background-color: #f0932b; --btn-color: #f0932b; }
-.number-btn:nth-child(6) { background-color: #eb4d4b; --btn-color: #eb4d4b; }
-.number-btn:nth-child(7) { background-color: #6c5ce7; --btn-color: #6c5ce7; }
-.number-btn:nth-child(8) { background-color: #a29bfe; --btn-color: #a29bfe; }
-.number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
-.number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
-.number-btn:nth-child(11) { background-color: #e17055; --btn-color: #e17055; }
-.number-btn:nth-child(12) { background-color: #81ecec; --btn-color: #81ecec; }
-.number-btn:nth-child(13) { background-color: #fab1a0; --btn-color: #fab1a0; }
-.number-btn:nth-child(14) { background-color: #00cec9; --btn-color: #00cec9; }
-.number-btn:nth-child(15) { background-color: #e84393; --btn-color: #e84393; }
-.number-btn:nth-child(16) { background-color: #fdcb6e; --btn-color: #fdcb6e; }
-.number-btn:nth-child(17) { background-color: #6c5ce7; --btn-color: #6c5ce7; }
-.number-btn:nth-child(18) { background-color: #fd79a8; --btn-color: #fd79a8; }
-.number-btn:nth-child(19) { background-color: #55a3ff; --btn-color: #55a3ff; }
+/* Remove all button-related styles since we don't have buttons */
 
 /* Hide buttons that are not needed for current level */
 .number-btn.hidden {
