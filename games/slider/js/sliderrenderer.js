@@ -15,6 +15,9 @@ class SliderRenderer {
             1: []  // Bottom bar: array of {bead, position} sorted by position
         };
         
+        // Momentum tracking for each bead
+        this.momentumBeads = new Map(); // beadId -> {velocity, lastPosition, lastTime, animationId}
+        
         this.updateContainerRect();
         this.initializeBeads();
         this.updateBarState();
@@ -112,7 +115,7 @@ class SliderRenderer {
             width: ${this.beadDiameter}px;
             height: ${this.beadDiameter}px;
             position: absolute;
-            transition: all 0.2s ease;
+            transition: none;
         `;
         
         // Color: first 5 blue, last 5 red
@@ -282,22 +285,139 @@ class SliderRenderer {
         this.updateBarState();
     }
     
-    // Enhanced touch target detection - preserve width, double height
+    // Start momentum animation for a bead with given velocity
+    startMomentum(bead, velocity) {
+        // Stop any existing momentum for this bead
+        this.stopMomentum(bead);
+        
+        const now = performance.now();
+        const momentumData = {
+            velocity: velocity,
+            lastPosition: bead.position,
+            lastTime: now,
+            animationId: null
+        };
+        
+        // Start momentum animation
+        const animate = (currentTime) => {
+            if (!this.momentumBeads.has(bead.id)) return;
+            
+            const data = this.momentumBeads.get(bead.id);
+            const deltaTime = (currentTime - data.lastTime) / 1000; // Convert to seconds
+            
+            // Apply friction
+            const friction = 0.95; // Adjust for how quickly beads slow down
+            data.velocity *= Math.pow(friction, deltaTime * 60); // Frame-rate independent
+            
+            // Stop if velocity is too small
+            if (Math.abs(data.velocity) < 0.01) {
+                this.stopMomentum(bead);
+                this.snapToNearbyBeads(bead);
+                return;
+            }
+            
+            // Calculate movement
+            const movement = data.velocity * deltaTime;
+            const direction = movement > 0 ? 1 : -1;
+            
+            // Get connected beads and check collision
+            const connectedBeads = this.getConnectedBeads(bead, direction);
+            const maxMovement = this.calculateBlockMaxMovement(connectedBeads, direction);
+            const actualMovement = Math.sign(movement) * Math.min(Math.abs(movement), maxMovement);
+            
+            if (Math.abs(actualMovement) > 0.001) {
+                this.moveBeads(connectedBeads, actualMovement);
+                data.lastPosition = bead.position;
+            } else {
+                // Hit a wall or another bead - stop momentum
+                this.stopMomentum(bead);
+                this.snapToNearbyBeads(bead);
+                return;
+            }
+            
+            data.lastTime = currentTime;
+            data.animationId = requestAnimationFrame(animate);
+        };
+        
+        this.momentumBeads.set(bead.id, momentumData);
+        momentumData.animationId = requestAnimationFrame(animate);
+    }
+    
+    // Stop momentum animation for a bead
+    stopMomentum(bead) {
+        const momentumData = this.momentumBeads.get(bead.id);
+        if (momentumData) {
+            if (momentumData.animationId) {
+                cancelAnimationFrame(momentumData.animationId);
+            }
+            this.momentumBeads.delete(bead.id);
+        }
+    }
+    
+    // Calculate dynamic touch target for a bead based on surrounding gaps
+    getDynamicTouchTarget(bead) {
+        const beadRect = bead.element.getBoundingClientRect();
+        const barBeads = this.barState[bead.barIndex];
+        const currentIndex = barBeads.findIndex(item => item.bead === bead);
+        
+        if (currentIndex === -1) {
+            // Fallback to standard touch target
+            return {
+                left: beadRect.left,
+                right: beadRect.right,
+                top: beadRect.top + beadRect.height/2 - this.beadDiameter,
+                bottom: beadRect.bottom + beadRect.height/2 + this.beadDiameter
+            };
+        }
+        
+        // Calculate gaps on both sides
+        let leftGap = 0;
+        let rightGap = 0;
+        
+        // Calculate bar bounds in position units
+        const barStartX = this.frameImageRect.width * 0.07;
+        const barEndX = this.frameImageRect.width * 0.92;
+        const barLength = barEndX - barStartX;
+        const playableLength = barLength - (2 * this.beadRadius);
+        const maxPosition = playableLength / this.beadDiameter;
+        
+        // Left gap
+        if (currentIndex > 0) {
+            const leftBead = barBeads[currentIndex - 1];
+            leftGap = bead.position - leftBead.position - 1.0; // Subtract 1 for bead width
+        } else {
+            // Gap to start of bar
+            leftGap = bead.position;
+        }
+        
+        // Right gap
+        if (currentIndex < barBeads.length - 1) {
+            const rightBead = barBeads[currentIndex + 1];
+            rightGap = rightBead.position - bead.position - 1.0; // Subtract 1 for bead width
+        } else {
+            // Gap to end of bar
+            rightGap = maxPosition - bead.position;
+        }
+        
+        // Calculate extensions (max 1 diameter, half of available gap)
+        const leftExtension = Math.min(this.beadDiameter, (leftGap * this.beadDiameter) / 2);
+        const rightExtension = Math.min(this.beadDiameter, (rightGap * this.beadDiameter) / 2);
+        
+        return {
+            left: beadRect.left - leftExtension,
+            right: beadRect.right + rightExtension,
+            top: beadRect.top + beadRect.height/2 - this.beadDiameter,
+            bottom: beadRect.bottom + beadRect.height/2 + this.beadDiameter
+        };
+    }
+    
+    // Enhanced touch target detection with dynamic sizing
     getBeadAtPosition(x, y) {
         for (let bead of this.beads) {
-            const beadRect = bead.element.getBoundingClientRect();
+            const touchTarget = this.getDynamicTouchTarget(bead);
             
-            // Create rectangular touch target: 1 diameter wide × 2 diameters tall
-            const touchWidth = this.beadDiameter;
-            const touchHeight = this.beadDiameter * 2;
-            
-            const touchLeft = beadRect.left + beadRect.width/2 - touchWidth/2;
-            const touchTop = beadRect.top + beadRect.height/2 - touchHeight/2;
-            const touchRight = touchLeft + touchWidth;
-            const touchBottom = touchTop + touchHeight;
-            
-            if (x >= touchLeft && x <= touchRight &&
-                y >= touchTop && y <= touchBottom) {
+            if (x >= touchTarget.left && x <= touchTarget.right &&
+                y >= touchTarget.top && y <= touchTarget.bottom) {
                 return bead;
             }
         }
@@ -312,7 +432,7 @@ class SliderRenderer {
         
         if (isTouched) {
             bead.element.classList.add('touched');
-            // No pulse animation - just maintain the larger size and darker color
+            // No pulse animation - just maintain the larger size
         } else {
             bead.element.classList.remove('touched');
         }
@@ -515,6 +635,12 @@ class SliderRenderer {
     }
     
     reset() {
+        // Stop all momentum animations
+        for (let bead of this.beads) {
+            this.stopMomentum(bead);
+        }
+        this.momentumBeads.clear();
+        
         this.initializeBeads();
         this.updateBarState();
     }
