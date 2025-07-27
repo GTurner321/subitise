@@ -18,6 +18,9 @@ class SliderGameController {
             activeTouches: new Map()
         };
         
+        // Velocity tracking for momentum
+        this.velocityTracking = new Map(); // touchId -> {positions: [], times: []}
+        
         // Audio
         this.audioEnabled = CONFIG.AUDIO_ENABLED;
         this.audioContext = null;
@@ -27,6 +30,14 @@ class SliderGameController {
         this.invalidArrangementStartTime = null;
         this.readyForAnswerTimer = null;
         this.readyForAnswerStartTime = null;
+        this.lastActivityTime = null;
+        
+        // Keyboard input handling
+        this.keyboardInput = {
+            currentInput: '',
+            lastKeyTime: 0,
+            inputTimeout: null
+        };
         
         // UI elements
         this.arrowElement = null;
@@ -90,6 +101,7 @@ class SliderGameController {
             display: flex;
             align-items: center;
             justify-content: center;
+            outline: none;
         `;
         
         this.updateMuteButtonIcon();
@@ -267,6 +279,9 @@ class SliderGameController {
     }
     
     initializeEventListeners() {
+        // Keyboard input handling
+        document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+        
         // Number button clicks
         this.numberButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -324,11 +339,129 @@ class SliderGameController {
         });
     }
     
+    handleKeyPress(e) {
+        // Only handle number keys and prevent if buttons are disabled
+        if (this.buttonsDisabled || !this.awaitingButtonPress) return;
+        
+        const key = e.key;
+        if (!/^[0-9]$/.test(key)) return;
+        
+        e.preventDefault();
+        
+        const now = Date.now();
+        const digit = parseInt(key);
+        
+        // Clear existing timeout
+        if (this.keyboardInput.inputTimeout) {
+            clearTimeout(this.keyboardInput.inputTimeout);
+            this.keyboardInput.inputTimeout = null;
+        }
+        
+        // If more than 3 seconds since last key, start fresh
+        if (now - this.keyboardInput.lastKeyTime > 3000) {
+            this.keyboardInput.currentInput = '';
+        }
+        
+        this.keyboardInput.currentInput += digit;
+        this.keyboardInput.lastKeyTime = now;
+        
+        console.log(`Keyboard input: ${this.keyboardInput.currentInput}, expected: ${this.expectedBeadsOnRight}`);
+        
+        // Check for immediate matches (single digit answers)
+        if (this.keyboardInput.currentInput.length === 1) {
+            const singleDigit = parseInt(this.keyboardInput.currentInput);
+            
+            // For single digit answers (2, 4, 6, 8)
+            if ([2, 4, 6, 8].includes(singleDigit) && singleDigit === this.expectedBeadsOnRight) {
+                this.processKeyboardInput(singleDigit);
+                return;
+            }
+            
+            // For "2" when expecting "20" - wait to see if "0" follows
+            if (digit === 2 && this.expectedBeadsOnRight === 20) {
+                this.keyboardInput.inputTimeout = setTimeout(() => {
+                    // If no second digit, treat as invalid
+                    this.resetKeyboardInput();
+                }, 3000);
+                return;
+            }
+            
+            // For "1" - always wait for second digit for 10, 12, 14, 16, 18
+            if (digit === 1) {
+                this.keyboardInput.inputTimeout = setTimeout(() => {
+                    // If no second digit, reset
+                    this.resetKeyboardInput();
+                }, 3000);
+                return;
+            }
+            
+            // Invalid single digit input
+            this.resetKeyboardInput();
+            return;
+        }
+        
+        // Handle two-digit input
+        if (this.keyboardInput.currentInput.length === 2) {
+            const twoDigit = parseInt(this.keyboardInput.currentInput);
+            
+            // Check if it matches expected answer
+            if (twoDigit === this.expectedBeadsOnRight) {
+                this.processKeyboardInput(twoDigit);
+            } else {
+                // Wrong answer - show feedback
+                this.handleIncorrectKeyboardInput(twoDigit);
+            }
+            return;
+        }
+        
+        // More than 2 digits - reset
+        this.resetKeyboardInput();
+    }
+    
+    processKeyboardInput(number) {
+        // Find the button with this number
+        const targetButton = Array.from(this.numberButtons).find(btn => 
+            parseInt(btn.dataset.number) === number
+        );
+        
+        if (targetButton) {
+            this.resetKeyboardInput();
+            this.handleNumberClick(number, targetButton);
+        }
+    }
+    
+    handleIncorrectKeyboardInput(number) {
+        // Find the button with this number (if it exists)
+        const targetButton = Array.from(this.numberButtons).find(btn => 
+            parseInt(btn.dataset.number) === number
+        );
+        
+        if (targetButton) {
+            this.resetKeyboardInput();
+            this.handleIncorrectAnswer(targetButton);
+        } else {
+            // Number not found in buttons - just reset
+            this.resetKeyboardInput();
+        }
+    }
+    
+    resetKeyboardInput() {
+        this.keyboardInput.currentInput = '';
+        this.keyboardInput.lastKeyTime = 0;
+        if (this.keyboardInput.inputTimeout) {
+            clearTimeout(this.keyboardInput.inputTimeout);
+            this.keyboardInput.inputTimeout = null;
+        }
+    }
+    
     handleDragStart(x, y, touchId = 'mouse') {
         if (this.sliderDisabled) {
             console.log('Slider disabled - ignoring drag start');
             return;
         }
+        
+        // Record activity
+        this.lastActivityTime = Date.now();
         
         const bead = this.sliderRenderer.getBeadAtPosition(x, y);
         if (!bead) return;
@@ -348,13 +481,36 @@ class SliderGameController {
         
         this.dragState.activeTouches.set(touchId, dragState);
         bead.isDragging = true;
+        
+        // Initialize velocity tracking
+        this.velocityTracking.set(touchId, {
+            positions: [x],
+            times: [Date.now()]
+        });
     }
     
     handleDragMove(x, y, touchId = 'mouse') {
         if (this.sliderDisabled) return;
         
+        // Record activity
+        this.lastActivityTime = Date.now();
+        
         const dragState = this.dragState.activeTouches.get(touchId);
         if (!dragState || !dragState.isDragging || !dragState.draggedBead) return;
+        
+        // Update velocity tracking
+        const velocityData = this.velocityTracking.get(touchId);
+        if (velocityData) {
+            const now = Date.now();
+            velocityData.positions.push(x);
+            velocityData.times.push(now);
+            
+            // Keep only recent history (last 100ms)
+            while (velocityData.times.length > 1 && now - velocityData.times[0] > 100) {
+                velocityData.positions.shift();
+                velocityData.times.shift();
+            }
+        }
         
         if (!dragState.hasStartedMoving) {
             dragState.hasStartedMoving = true;
@@ -385,26 +541,68 @@ class SliderGameController {
         const dragState = this.dragState.activeTouches.get(touchId);
         if (!dragState || !dragState.isDragging) return;
         
+        // Record activity
+        this.lastActivityTime = Date.now();
+        
         const bead = dragState.draggedBead;
         
         this.sliderRenderer.setBeadTouchState(bead, false);
         bead.isDragging = false;
         bead.element.classList.remove('dragging');
         
-        if (dragState.hasStartedMoving) {
-            const snappedPosition = Math.round(bead.position);
-            const snapDelta = snappedPosition - bead.position;
+        // Calculate velocity for momentum
+        const velocityData = this.velocityTracking.get(touchId);
+        let velocity = 0;
+        
+        if (velocityData && velocityData.positions.length >= 2) {
+            const recentPositions = velocityData.positions.slice(-5); // Use last 5 samples
+            const recentTimes = velocityData.times.slice(-5);
             
-            if (Math.abs(snapDelta) > 0.001) {
-                bead.position = snappedPosition;
-                this.sliderRenderer.positionBead(bead);
-                this.sliderRenderer.updateBarState();
+            if (recentPositions.length >= 2) {
+                const deltaX = recentPositions[recentPositions.length - 1] - recentPositions[0];
+                const deltaTime = (recentTimes[recentTimes.length - 1] - recentTimes[0]) / 1000; // Convert to seconds
+                
+                if (deltaTime > 0) {
+                    velocity = (deltaX / this.sliderRenderer.beadDiameter) / deltaTime; // Velocity in bead diameters per second
+                    
+                    // Apply velocity threshold - only start momentum if moving fast enough
+                    if (Math.abs(velocity) > 2) { // Minimum 2 diameters per second
+                        this.sliderRenderer.startMomentum(bead, velocity);
+                    } else {
+                        // Snap immediately if velocity is too low
+                        if (dragState.hasStartedMoving) {
+                            const snappedPosition = Math.round(bead.position);
+                            const snapDelta = snappedPosition - bead.position;
+                            
+                            if (Math.abs(snapDelta) > 0.001) {
+                                bead.position = snappedPosition;
+                                this.sliderRenderer.positionBead(bead);
+                                this.sliderRenderer.updateBarState();
+                            }
+                            
+                            this.sliderRenderer.snapToNearbyBeads(bead);
+                        }
+                    }
+                }
             }
-            
-            this.sliderRenderer.snapToNearbyBeads(bead);
+        } else {
+            // No velocity data - just snap
+            if (dragState.hasStartedMoving) {
+                const snappedPosition = Math.round(bead.position);
+                const snapDelta = snappedPosition - bead.position;
+                
+                if (Math.abs(snapDelta) > 0.001) {
+                    bead.position = snappedPosition;
+                    this.sliderRenderer.positionBead(bead);
+                    this.sliderRenderer.updateBarState();
+                }
+                
+                this.sliderRenderer.snapToNearbyBeads(bead);
+            }
         }
         
         this.dragState.activeTouches.delete(touchId);
+        this.velocityTracking.delete(touchId);
         
         setTimeout(() => this.checkGameState(), 300);
     }
@@ -419,12 +617,11 @@ class SliderGameController {
         console.log(`Slider disabled: ${this.sliderDisabled}`);
         
         if (hasMiddleBeads) {
-            // Invalid arrangement - start 10-second timer for message
+            // Invalid arrangement - start 10-second inactivity timer
             if (!this.invalidArrangementStartTime) {
                 this.invalidArrangementStartTime = currentTime;
-                this.invalidArrangementTimer = setTimeout(() => {
-                    this.speakText('Arrange beads onto one side or the other, don\'t leave any in the middle');
-                }, 10000);
+                this.lastActivityTime = currentTime; // Reset activity timer
+                this.scheduleInactivityCheck();
             }
             
             // Clear ready timer
@@ -491,6 +688,32 @@ class SliderGameController {
         
         console.log(`Final state: awaiting=${this.awaitingButtonPress}, disabled=${this.sliderDisabled}`);
         console.log(`=== END GAME STATE CHECK ===\n`);
+    }
+    
+    scheduleInactivityCheck() {
+        // Clear existing timer
+        if (this.invalidArrangementTimer) {
+            clearTimeout(this.invalidArrangementTimer);
+        }
+        
+        this.invalidArrangementTimer = setTimeout(() => {
+            const now = Date.now();
+            const timeSinceActivity = now - (this.lastActivityTime || now);
+            
+            // Check if 10 seconds have passed since last activity AND beads are still in middle
+            if (timeSinceActivity >= 10000 && this.sliderRenderer.hasBeadsInMiddle()) {
+                this.speakText('don\'t leave any beads in the middle');
+                
+                // Reset activity time and schedule next check
+                this.lastActivityTime = now;
+                this.scheduleInactivityCheck();
+            } else if (this.sliderRenderer.hasBeadsInMiddle()) {
+                // Still has middle beads but activity was recent - check again later
+                const remainingTime = Math.max(100, 10000 - timeSinceActivity);
+                this.invalidArrangementTimer = setTimeout(() => this.scheduleInactivityCheck(), remainingTime);
+            }
+            // If no middle beads, timer will be cleared by checkGameState
+        }, 10000);
     }
     
     handleNumberClick(selectedNumber, buttonElement) {
@@ -647,6 +870,7 @@ class SliderGameController {
         if (this.gameComplete) return;
         
         this.clearTimers();
+        this.resetKeyboardInput();
         
         if (this.currentQuestion === 1) {
             this.speakText('We\'re going to count in twos, so start by sliding 2 beads to the right side');
@@ -664,12 +888,16 @@ class SliderGameController {
         this.buttonsDisabled = false;
         this.awaitingButtonPress = false;
         this.sliderDisabled = false;
+        this.lastActivityTime = null;
         
         this.clearTimers();
+        this.resetKeyboardInput();
         
         this.dragState = {
             activeTouches: new Map()
         };
+        
+        this.velocityTracking.clear();
         
         this.rainbow.reset();
         this.bear.reset();
@@ -683,6 +911,7 @@ class SliderGameController {
     completeGame() {
         this.gameComplete = true;
         this.clearTimers();
+        this.resetKeyboardInput();
         
         this.bear.startCelebration();
         this.modal.classList.remove('hidden');
@@ -762,6 +991,7 @@ class SliderGameController {
     
     destroy() {
         this.clearTimers();
+        this.resetKeyboardInput();
         
         if ('speechSynthesis' in window) {
             speechSynthesis.cancel();
