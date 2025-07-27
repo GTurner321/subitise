@@ -365,8 +365,8 @@ class SliderRenderer {
             return {
                 left: beadRect.left,
                 right: beadRect.right,
-                top: beadRect.top + beadRect.height/2 - this.beadRadius,
-                bottom: beadRect.top + beadRect.height/2 + this.beadRadius
+                top: beadRect.top + beadRect.height/2 - this.beadDiameter,
+                bottom: beadRect.top + beadRect.height/2 + this.beadDiameter
             };
         }
         
@@ -406,8 +406,8 @@ class SliderRenderer {
         return {
             left: beadRect.left - leftExtension,
             right: beadRect.right + rightExtension,
-            top: beadRect.top + beadRect.height/2 - this.beadRadius,
-            bottom: beadRect.top + beadRect.height/2 + this.beadRadius
+            top: beadRect.top + beadRect.height/2 - this.beadDiameter,
+            bottom: beadRect.top + beadRect.height/2 + this.beadDiameter
         };
     }
     
