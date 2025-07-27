@@ -21,25 +21,7 @@ class SliderRandomGameController {
         // Multi-touch drag state
         this.dragState = {
             activeTouches: new Map()
-        }
-    
-    createStar(x, y) {
-        const star = document.createElement('div');
-        star.className = 'completion-star';
-        star.innerHTML = '✨';
-        star.style.cssText = `
-            position: fixed;
-            left: ${x - 15}px;
-            top: ${y - 15}px;
-            font-size: 30px;
-            color: #FFD700;
-            text-align: center;
-            pointer-events: none;
-            z-index: 1000;
-        `;
-        
-        return star;
-    };
+        };
         
         // Velocity tracking for momentum
         this.velocityTracking = new Map(); // touchId -> {positions: [], times: []}
@@ -54,13 +36,6 @@ class SliderRandomGameController {
         this.readyForAnswerTimer = null;
         this.readyForAnswerStartTime = null;
         this.lastActivityTime = null;
-        
-        // Keyboard input handling
-        this.keyboardInput = {
-            currentInput: '',
-            lastKeyTime: 0,
-            inputTimeout: null
-        };
         
         // UI elements
         this.arrowElement = null;
@@ -199,6 +174,12 @@ class SliderRandomGameController {
         document.body.appendChild(this.questionCounter);
     }
     
+    updateQuestionCounter() {
+        if (this.questionCounter) {
+            this.questionCounter.textContent = `Question ${this.currentQuestion}/${CONFIG.MAX_QUESTIONS} - Level ${this.currentLevel}`;
+        }
+    }
+    
     initializeTargetDisplay() {
         this.targetDisplay = document.getElementById('targetDisplay');
         this.targetNumberElement = document.getElementById('targetNumber');
@@ -220,6 +201,25 @@ class SliderRandomGameController {
             this.targetNumberElement.textContent = this.targetNumber.toString();
             this.targetTextElement.textContent = this.numberToText(this.targetNumber);
         }
+    }
+    
+    // Generate random number from current level
+    generateTargetNumber() {
+        const levelNumbers = CONFIG.LEVELS[this.currentLevel];
+        const availableNumbers = levelNumbers.filter(num => !this.usedNumbers.has(num));
+        
+        // If all numbers in this level have been used, reset the used numbers for this level only
+        if (availableNumbers.length === 0) {
+            // Reset only numbers from current level
+            levelNumbers.forEach(num => this.usedNumbers.delete(num));
+            availableNumbers.push(...levelNumbers);
+        }
+        
+        const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+        const targetNumber = availableNumbers[randomIndex];
+        
+        this.usedNumbers.add(targetNumber);
+        return targetNumber;
     }
     
     createArrowElement() {
@@ -330,41 +330,6 @@ class SliderRandomGameController {
         } catch (error) {
             // Silent failure
         }
-    }
-    
-    updateQuestionCounter() {
-        if (this.questionCounter) {
-            this.questionCounter.textContent = `Question ${this.currentQuestion}/${CONFIG.MAX_QUESTIONS} - Level ${this.currentLevel}`;
-        }
-    }
-        const levelNumbers = CONFIG.LEVELS[this.currentLevel];
-        const availableNumbers = levelNumbers.filter(num => !this.usedNumbers.has(num));
-        
-        // If all numbers in this level have been used, reset the used numbers for this level only
-        if (availableNumbers.length === 0) {
-            // Reset only numbers from current level
-            levelNumbers.forEach(num => this.usedNumbers.delete(num));
-            availableNumbers.push(...levelNumbers);
-        }
-        
-        const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-        const targetNumber = availableNumbers[randomIndex];
-        
-        this.usedNumbers.add(targetNumber);
-        return targetNumber;
-    }
-    
-    // Generate random number from current level
-    generateTargetNumber() {
-        this.numberButtons.forEach(btn => {
-            const btnNumber = parseInt(btn.dataset.number);
-            // Show buttons up to level 4 range, or all buttons for level 5
-            const shouldShow = this.currentLevel === 5 ? 
-                (btnNumber >= 2 && btnNumber <= 19) : 
-                (btnNumber >= 2 && btnNumber <= Math.max(...CONFIG.LEVELS[this.currentLevel]));
-            
-            btn.classList.toggle('hidden', !shouldShow);
-        });
     }
     
     initializeEventListeners() {
@@ -592,7 +557,7 @@ class SliderRandomGameController {
             
             this.awaitingButtonPress = false;
             this.sliderDisabled = false;
-            console.log(`❌ Invalid arrangement - buttons disabled`);
+            console.log(`❌ Invalid arrangement`);
             console.log(`=== END GAME STATE CHECK ===\n`);
             return;
         }
@@ -620,7 +585,7 @@ class SliderRandomGameController {
             
             console.log(`✅ Correct count - starting completion timer`);
         } else {
-            // Wrong count - clear timer and disable buttons
+            // Wrong count - clear timer
             if (this.readyForAnswerTimer) {
                 clearTimeout(this.readyForAnswerTimer);
                 this.readyForAnswerTimer = null;
@@ -709,7 +674,6 @@ class SliderRandomGameController {
             console.log(`Level down! ${oldLevel} -> ${this.currentLevel}`);
         }
         
-        // Update button visibility for new level
         this.updateQuestionCounter();
     }
     
@@ -753,66 +717,26 @@ class SliderRandomGameController {
                 starContainer.parentNode.removeChild(starContainer);
             }
         }, 2000);
-    } = 'opacity 700ms ease-in-out';
-                btn.style.opacity = '0.1';
-            }
-        });
-        
-        setTimeout(() => {
-            setTimeout(() => {
-                this.numberButtons.forEach(btn => {
-                    if (btn !== buttonElement) {
-                        btn.style.transition = 'opacity 700ms ease-in-out';
-                        btn.style.opacity = '1';
-                    }
-                });
-                
-                if (crossOverlay && crossOverlay.parentNode) {
-                    crossOverlay.style.transition = 'opacity 700ms ease-out';
-                    crossOverlay.style.opacity = '0';
-                }
-                
-                setTimeout(() => {
-                    if (crossOverlay && crossOverlay.parentNode) {
-                        crossOverlay.parentNode.removeChild(crossOverlay);
-                    }
-                    
-                    this.numberButtons.forEach(btn => {
-                        btn.style.transition = '';
-                    });
-                    
-                    this.buttonsDisabled = false;
-                }, 700);
-            }, 700);
-        }, 700);
     }
     
-    createStarCelebration(buttonElement) {
-        const buttonRect = buttonElement.getBoundingClientRect();
-        const centerX = buttonRect.left + buttonRect.width / 2;
-        const centerY = buttonRect.top + buttonRect.height / 2;
-        
-        const starContainer = document.createElement('div');
-        starContainer.className = 'star-celebration-container completion-effect';
-        starContainer.style.cssText = `
+    createStar(x, y) {
+        const star = document.createElement('div');
+        star.className = 'completion-star';
+        star.innerHTML = '✨';
+        star.style.cssText = `
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            left: ${x - 15}px;
+            top: ${y - 15}px;
+            font-size: 30px;
+            color: #FFD700;
+            text-align: center;
             pointer-events: none;
             z-index: 1000;
         `;
         
-        const starPositions = [
-            { x: centerX - 60, y: centerY - 60 },
-            { x: centerX + 60, y: centerY - 60 },
-            { x: centerX + 72, y: centerY },
-            { x: centerX + 60, y: centerY + 60 },
-            { x: centerX - 60, y: centerY + 60 },
-            { x: centerX - 72, y: centerY }
-        ];
-        
+        return star;
+    }
+    
     startNewQuestion() {
         if (this.gameComplete) return;
         
@@ -867,7 +791,6 @@ class SliderRandomGameController {
     completeGame() {
         this.gameComplete = true;
         this.clearTimers();
-        this.resetKeyboardInput();
         
         this.bear.startCelebration();
         this.modal.classList.remove('hidden');
