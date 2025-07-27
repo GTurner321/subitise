@@ -401,11 +401,14 @@ class StacksRenderer {
         
         console.log('Drop position:', dropX, dropY);
         
-        // FIXED: ALWAYS reset drag state FIRST
+        // FIXED: Store dragged element reference BEFORE resetting drag state
+        const draggedBlock = this.draggedElement;
+        
+        // Reset drag state FIRST (but keep reference to block)
         this.resetDragState();
         
-        // Then handle the drop
-        this.handleDrop(dropX, dropY);
+        // Then handle the drop with the stored reference
+        this.handleDrop(dropX, dropY, draggedBlock);
         
         // Audio feedback
         this.gameController.playDropSound();
@@ -534,16 +537,17 @@ class StacksRenderer {
         text.setAttribute('x', centerX);
     }
     
-    handleDrop(x, y) {
+    handleDrop(x, y, draggedBlock) {
         console.log('=== HANDLE DROP ===');
         console.log('Drop coordinates:', x, y);
         
-        // Get the block that was being dragged
-        const draggedBlock = this.draggedElement;
+        // Use the passed draggedBlock reference
         if (!draggedBlock) {
             console.log('No dragged block found');
             return false;
         }
+        
+        console.log('Dragged block:', draggedBlock.getAttribute('data-number'));
         
         // Check containers for drop
         const containers = this.svg.querySelectorAll('.container.new-tower-element');
@@ -560,7 +564,8 @@ class StacksRenderer {
             
             console.log('Container', container.getAttribute('data-index'), 'distance:', distance.toFixed(1), 'overlap:', (overlapArea * 100).toFixed(1) + '%');
             
-            if (overlapArea >= STACKS_CONFIG.DROP_OVERLAP_THRESHOLD || distance < tolerance) {
+            // FIXED: Use 50% overlap threshold as requested
+            if (overlapArea >= 0.5 || distance < tolerance) {
                 console.log('✅ Dropping in container', container.getAttribute('data-index'));
                 const existingBlock = this.getBlockInContainer(container);
                 const draggedFromContainer = this.getContainerForBlock(draggedBlock);
@@ -663,32 +668,50 @@ class StacksRenderer {
         
         console.log('Converted to percentages:', finalXPercent.toFixed(1), finalYPercent.toFixed(1));
         
-        // Apply gravity if dropped above grass (grass starts at 80% from top)
+        // FIXED: Apply gravity if dropped above grass (grass starts at 80% from top)
         const grassTop = 80;
         
         if (finalYPercent < grassTop) {
-            // Dropped above grass - apply gravity to bring to grass
-            console.log('Block dropped above grass, applying gravity');
+            // Dropped above grass - apply gravity animation to bring to grass
+            console.log('Block dropped above grass, applying gravity animation');
             finalYPercent = 85; // 85% from top (middle of grass area)
-            console.log('Gravity applied, new Y%:', finalYPercent);
+            
+            // Convert to pixels for animation
+            const finalX = (finalXPercent * window.innerWidth) / 100;
+            const finalY = (finalYPercent * window.innerHeight) / 100;
+            
+            console.log('Gravity animation to:', finalXPercent.toFixed(1), finalYPercent.toFixed(1));
+            
+            // Animate the fall
+            block.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            this.updateBlockPosition(block, finalX, finalY);
+            
+            // Store final position after animation
+            setTimeout(() => {
+                block.style.transition = '';
+                block._centerX = finalX;
+                block._centerY = finalY;
+                block._xPercent = finalXPercent;
+                block._yPercent = finalYPercent;
+                console.log('Gravity animation complete');
+            }, 600);
+            
         } else {
             console.log('Block dropped in grass area, using drop position');
+            
+            // Convert final percentages back to pixels for SVG positioning
+            const finalX = (finalXPercent * window.innerWidth) / 100;
+            const finalY = (finalYPercent * window.innerHeight) / 100;
+            
+            // Apply positioning immediately (no animation needed)
+            this.updateBlockPosition(block, finalX, finalY);
+            
+            // Store position
+            block._centerX = finalX;
+            block._centerY = finalY;
+            block._xPercent = finalXPercent;
+            block._yPercent = finalYPercent;
         }
-        
-        // Convert final percentages back to pixels for SVG positioning
-        const finalX = (finalXPercent * window.innerWidth) / 100;
-        const finalY = (finalYPercent * window.innerHeight) / 100;
-        
-        console.log('Final position - percentages:', finalXPercent.toFixed(1), finalYPercent.toFixed(1), 'pixels:', finalX, finalY);
-        
-        // Apply positioning using pixels (SVG uses pixels)
-        this.updateBlockPosition(block, finalX, finalY);
-        
-        // Store position as percentages (our coordinate system)
-        block._centerX = finalX;
-        block._centerY = finalY;
-        block._xPercent = finalXPercent;
-        block._yPercent = finalYPercent;
         
         // Ensure block remains interactive
         block.style.cursor = 'grab';
