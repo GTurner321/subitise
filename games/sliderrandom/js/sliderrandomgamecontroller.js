@@ -3,7 +3,7 @@ class SliderRandomGameController {
         this.sliderRenderer = new SliderRandomRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
-        this.guineaPigWave = new EnhancedGuineaPigWave('../../assets/raisin/');
+        this.guineaPigWave = new SimplifiedGuineaPigWave('../../assets/raisin/');
         
         // Game state
         this.currentQuestion = 1;
