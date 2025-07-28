@@ -858,10 +858,6 @@ class SliderRandomGameController {
         }
         this.invalidArrangementStartTime = null;
         
-        if (this.guineaPigWave) {
-            this.guineaPigWave.stopAnimation();
-        }
-        
         this.sliderDisabled = false;
     }
     
