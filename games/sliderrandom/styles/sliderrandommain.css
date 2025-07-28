@@ -63,7 +63,7 @@
     overflow: hidden;
     width: 80%;
     margin: 0 auto;
-    min-height: 100vh; /* Ensure the game area has a defined height */
+    height: 100%;
 }
 
 /* Arrow positioning and animation */
