@@ -154,8 +154,8 @@ class SliderRandomGameController {
     createArrowElement() {
         this.arrowElement = document.createElement('img');
         this.arrowElement.className = 'slider-arrow';
-        this.arrowElement.src = '../../assets/slider/uparrow.png';
-        this.arrowElement.alt = 'Up Arrow';
+        this.arrowElement.src = '../../assets/slider/leftarrow.png';
+        this.arrowElement.alt = 'Left Arrow';
         
         this.arrowElement.style.cssText = `
             position: absolute;
@@ -174,7 +174,7 @@ class SliderRandomGameController {
             // Fallback to text arrow if image fails
             this.arrowElement.style.display = 'none';
             const textArrow = document.createElement('div');
-            textArrow.innerHTML = '↑';
+            textArrow.innerHTML = '←';
             textArrow.className = 'slider-arrow';
             textArrow.style.cssText = `
                 position: absolute;
@@ -198,34 +198,42 @@ class SliderRandomGameController {
     positionArrow() {
         if (!this.arrowElement) return;
         
+        const frameRect = this.sliderRenderer.frameImageRect;
+        if (!frameRect) {
+            // Fallback if frame rect not available yet
+            const gameArea = document.querySelector('.game-area');
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const sliderContainerTop = gameAreaRect.top + (gameAreaRect.height * 0.35);
+            const sliderContainerHeight = gameAreaRect.height * 0.60;
+            
+            this.arrowElement.style.height = `${gameAreaRect.height * 0.15}px`;
+            this.arrowElement.style.width = 'auto';
+            this.arrowElement.style.left = `${gameAreaRect.right - 100}px`;
+            this.arrowElement.style.top = `${sliderContainerTop + sliderContainerHeight * 0.5}px`;
+            return;
+        }
+        
+        // Size the arrow to be about 15% of game area height
         const gameArea = document.querySelector('.game-area');
         const gameAreaRect = gameArea.getBoundingClientRect();
-        const frameRect = this.sliderRenderer.frameImageRect;
-        
-        // Height = 20% of game area
-        const arrowHeight = gameAreaRect.height * 0.2;
+        const arrowHeight = gameAreaRect.height * 0.15;
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position at 75% from left of GAME AREA
-        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.75);
+        // Position at the right end of the slider frame, centered vertically
+        const arrowX = frameRect.x + frameRect.width + 10; // Just to the right of frame
+        const arrowY = frameRect.y + (frameRect.height / 2); // Vertically centered on frame
         
-        // Vertical position still relative to frame (underneath slider frame)
-        // Account for the new slider position at 40% instead of 10%
-        const sliderContainerTop = gameAreaRect.top + (gameAreaRect.height * 0.40);
-        const sliderContainerHeight = gameAreaRect.height * 0.60;
-        const arrowY = frameRect ? (frameRect.y + frameRect.height + 10) : (sliderContainerTop + sliderContainerHeight * 0.7);
-        
-        // Center the arrow horizontally on the 75% point of the game area
+        // Center the arrow on the calculated position
         if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
             const arrowWidth = this.arrowElement.offsetWidth || (arrowHeight * 0.6);
-            this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`;
+            this.arrowElement.style.left = `${arrowX}px`;
+            this.arrowElement.style.top = `${arrowY - (arrowHeight / 2)}px`; // Center vertically
         } else {
             // Fallback positioning if image not loaded yet
-            this.arrowElement.style.left = `${arrowX - (arrowHeight * 0.3)}px`;
+            this.arrowElement.style.left = `${arrowX}px`;
+            this.arrowElement.style.top = `${arrowY - (arrowHeight / 2)}px`;
         }
-        
-        this.arrowElement.style.top = `${arrowY}px`;
     }
     
     showArrow() {
