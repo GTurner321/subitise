@@ -173,6 +173,32 @@ class SliderRandomGameController {
             targetNumber: this.targetNumberElement,
             targetText: this.targetTextElement
         });
+        
+        // Check slider elements too
+        const sliderContainer = document.getElementById('sliderContainer');
+        const topBar = document.getElementById('topBar');
+        const bottomBar = document.getElementById('bottomBar');
+        
+        console.log('Slider elements:', {
+            sliderContainer: sliderContainer,
+            topBar: topBar,
+            bottomBar: bottomBar
+        });
+        
+        // Force styling on slider container to make it visible
+        if (sliderContainer) {
+            sliderContainer.style.cssText = `
+                position: absolute;
+                top: 200px;
+                left: 10%;
+                width: 80%;
+                height: 400px;
+                background: rgba(255, 0, 0, 0.3);
+                border: 5px solid red;
+                z-index: 9999;
+            `;
+            console.log('Forced slider container styling');
+        }
     }
     
     // Convert number to written word
