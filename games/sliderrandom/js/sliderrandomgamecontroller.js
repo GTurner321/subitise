@@ -585,7 +585,7 @@ class SliderRandomGameController {
                 
                 // Only show feedback on first correct arrangement
                 this.speakText('Well done!');
-                this.guineaPigWave.startAnimation();
+                this.guineaPigWave.startAnimation(88);
             } else {
                 console.log(`⏳ Completion timer already running - maintaining countdown`);
             }
