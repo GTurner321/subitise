@@ -59,14 +59,11 @@ class SliderRandomGameController {
     }
     
     initializeGame() {
-        console.log('SliderRandomGameController: Initializing game...');
         this.initializeAudio();
         this.createMuteButton();
         this.createArrowElement();
         this.initializeTargetDisplay();
         this.initializeEventListeners();
-        
-        console.log('SliderRandomGameController: About to start new question');
         this.startNewQuestion();
     }
     
