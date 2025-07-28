@@ -185,28 +185,17 @@ class SliderRandomGameController {
             bottomBar: bottomBar
         });
         
-        // Force styling on slider container to make it visible
-        if (sliderContainer) {
-            sliderContainer.style.cssText = `
-                position: absolute;
-                top: 200px;
-                left: 10%;
-                width: 80%;
-                height: 400px;
-                background: rgba(255, 0, 0, 0.3);
-                border: 5px solid red;
-                z-index: 9999;
-            `;
-            console.log('Forced slider container styling');
-            
-            // Force the renderer to recalculate dimensions after we set proper size
-            setTimeout(() => {
-                console.log('Recalculating renderer dimensions...');
-                this.sliderRenderer.updateContainerRect();
-                this.sliderRenderer.initializeBeads();
-                this.sliderRenderer.updateBarState();
-            }, 50);
-        }
+        // Remove the forced styling - let CSS handle positioning
+        console.log('Slider elements found, using CSS positioning');
+        
+        // Force the renderer to recalculate dimensions after layout is ready
+        setTimeout(() => {
+            console.log('Recalculating renderer dimensions...');
+            this.sliderRenderer.updateContainerRect();
+            this.sliderRenderer.initializeBeads();
+            this.sliderRenderer.updateBarState();
+        }, 50);
+    }
     }
     
     // Convert number to written word
