@@ -459,12 +459,19 @@ class SliderRandomGameController {
             }
         }
         
-        // Force a final bar state update to ensure consistency
+        // Force a comprehensive final state update to ensure consistency
+        this.sliderRenderer.beads.forEach(bead => {
+            this.sliderRenderer.positionBead(bead);
+        });
         this.sliderRenderer.updateBarState();
         
         this.dragState.activeTouches.delete(touchId);
         this.velocityTracking.delete(touchId);
         
+        // Force immediate state check, then backup checks
+        this.checkGameState();
+        
+        // Reduced frequency fallback checks
         setTimeout(() => this.checkGameState(), 300);
     }
     
@@ -507,67 +514,50 @@ class SliderRandomGameController {
             this.invalidArrangementStartTime = null;
         }
         
-        // Force bar state update to ensure accuracy
+        // Force comprehensive state update - the issue isn't counting, it's state sync
         this.sliderRenderer.updateBarState();
         
-        // Create a hash of current bead positions to detect actual changes
-        const currentHash = this.createArrangementHash();
+        // Force all beads to update their positions - touching a bead fixes it, so we simulate that
+        this.sliderRenderer.beads.forEach(bead => {
+            this.sliderRenderer.positionBead(bead);
+        });
+        this.sliderRenderer.updateBarState();
+        
+        // Create hash to track changes
+        const currentHash = this.createLightweightHash();
         const arrangementChanged = this.lastArrangementHash !== currentHash;
         
         if (arrangementChanged) {
-            console.log(`🔄 Bead arrangement changed - hash: ${currentHash}`);
+            console.log(`🔄 Arrangement changed - hash: ${this.lastArrangementHash} → ${currentHash}`);
             this.lastArrangementHash = currentHash;
-            
-            // Clear completion timer ONLY if arrangement changed AND we have the wrong count
-            // This prevents clearing the timer when we have the right count but minor position adjustments
         }
         
-        // Valid arrangement - count right side beads with detailed logging
+        // Count with both methods
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-        
-        // Additional verification - let's double-check by counting manually
         const manualCount = this.countBeadsOnRightSideManual();
         
-        console.log(`Right side count (renderer): ${rightSideCount}`);
-        console.log(`Right side count (manual): ${manualCount}`);
+        console.log(`Counts - Renderer: ${rightSideCount}, Manual: ${manualCount}, Target: ${this.targetNumber}`);
+        console.log(`Timer state - Active: ${!!this.completionCheckTimer}, Awaiting: ${this.awaitingCompletion}`);
         
-        if (rightSideCount !== manualCount) {
-            console.warn(`⚠️ Count mismatch detected! Renderer: ${rightSideCount}, Manual: ${manualCount}`);
-            console.log(`Forcing bar state update and recounting...`);
+        // Force timer state consistency check
+        if (rightSideCount === this.targetNumber && manualCount === this.targetNumber) {
+            console.log(`✅ Both counts correct (${rightSideCount})`);
             
-            // Force update all bead positions and bar state
-            this.sliderRenderer.beads.forEach(bead => {
-                this.sliderRenderer.positionBead(bead);
-            });
-            this.sliderRenderer.updateBarState();
-            
-            // Recount after forced update
-            const updatedCount = this.sliderRenderer.countBeadsOnRightSide();
-            console.log(`Updated count after forced refresh: ${updatedCount}`);
-        }
-        
-        const finalCount = Math.max(rightSideCount, manualCount); // Use the higher count in case of discrepancy
-        
-        if (finalCount === this.targetNumber) {
-            // Correct count achieved
-            if (arrangementChanged && this.completionCheckTimer) {
-                // Clear and restart timer only if arrangement changed
-                clearTimeout(this.completionCheckTimer);
-                this.completionCheckTimer = null;
-                console.log(`🔄 Completion timer restarted - arrangement changed with correct count`);
-            }
-            
-            // Start completion timer only if not already running
-            if (!this.completionCheckTimer) {
-                console.log(`🎯 Starting 2-second completion timer - correct count: ${finalCount}`);
+            // Force clear and restart timer if arrangement changed OR if timer should be running but isn't
+            if ((arrangementChanged && this.completionCheckTimer) || (rightSideCount === this.targetNumber && !this.completionCheckTimer)) {
+                if (this.completionCheckTimer) {
+                    clearTimeout(this.completionCheckTimer);
+                    console.log(`🔄 Timer restarted due to arrangement change`);
+                } else {
+                    console.log(`🔄 Timer missing - creating new one`);
+                }
+                
                 this.awaitingCompletion = true;
                 this.completionCheckTimer = setTimeout(() => {
-                    // Timer runs continuously until this point - record completion time now
                     const completionTime = Date.now();
-                    console.log(`⏰ 2-second pause completed! Question finished.`);
+                    console.log(`⏰ 2-second pause completed!`);
                     
-                    // Show feedback ONLY after 2-second pause completes
-                    const encouragements = ['Well done!', 'Perfect!', 'Good job!'];
+                    const encouragements = ['Well done!', 'Perfect!', 'Good job!', 'Correct!'];
                     const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
                     this.speakText(randomEncouragement);
                     this.guineaPigWave.startAnimation(88);
@@ -575,29 +565,38 @@ class SliderRandomGameController {
                     this.handleCorrectAnswer(completionTime);
                 }, CONFIG.COMPLETION_DELAY);
             } else {
-                console.log(`⏳ 2-second completion timer running... waiting for pause to complete`);
+                console.log(`⏳ Timer already running correctly`);
             }
-            
-            console.log(`✅ Correct count maintained - completion timer active`);
         } else {
-            // Wrong count - clear completion timer
+        } else {
+            // Wrong count - clear timer
+            console.log(`❌ Wrong count - Renderer: ${rightSideCount}, Manual: ${manualCount}, need: ${this.targetNumber}`);
             if (this.completionCheckTimer) {
                 clearTimeout(this.completionCheckTimer);
                 this.completionCheckTimer = null;
-                console.log(`🔄 Completion timer cleared - wrong count`);
+                console.log(`🔄 Timer cleared - wrong count`);
             }
             
             this.awaitingCompletion = false;
             this.sliderDisabled = false;
-            
-            console.log(`⏳ Wrong count: ${finalCount}, need ${this.targetNumber}`);
         }
         
         console.log(`Final state: awaiting=${this.awaitingCompletion}, disabled=${this.sliderDisabled}`);
         console.log(`=== END GAME STATE CHECK ===\n`);
     }
     
-    // Create a hash of the current bead arrangement to detect changes
+    // Lightweight hash generation for better performance
+    createLightweightHash() {
+        let hash = 0;
+        for (let bead of this.sliderRenderer.beads) {
+            // Simple hash based on position, not string concatenation
+            hash += bead.position * (bead.barIndex + 1) * 100;
+            hash = hash % 999999; // Keep number manageable
+        }
+        return hash;
+    }
+    
+    // Keep original method for debugging when needed
     createArrangementHash() {
         const positions = this.sliderRenderer.beads
             .map(bead => `${bead.id}:${bead.position.toFixed(3)}`)
