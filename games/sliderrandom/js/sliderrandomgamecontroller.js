@@ -480,10 +480,11 @@ class SliderRandomGameController {
                 this.scheduleInactivityCheck();
             }
             
-            // Clear completion timer
+            // Clear completion timer - user is still making changes
             if (this.completionCheckTimer) {
                 clearTimeout(this.completionCheckTimer);
                 this.completionCheckTimer = null;
+                console.log(`🔄 Completion timer cleared - invalid arrangement`);
             }
             
             this.awaitingCompletion = false;
@@ -505,25 +506,35 @@ class SliderRandomGameController {
         console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.targetNumber) {
-            // Correct - start 2-second completion timer
-            if (!this.completionCheckTimer) {
-                this.awaitingCompletion = true;
-                this.completionCheckTimer = setTimeout(() => {
-                    console.log(`⏰ 2 seconds elapsed - question completed!`);
-                    this.handleCorrectAnswer();
-                }, CONFIG.COMPLETION_DELAY);
-                
+            // Correct - start/restart 2-second completion timer
+            if (this.completionCheckTimer) {
+                // Clear existing timer - user made a change, restart the 2-second wait
+                clearTimeout(this.completionCheckTimer);
+                console.log(`🔄 Restarting completion timer - user made changes`);
+            }
+            
+            this.awaitingCompletion = true;
+            this.completionCheckTimer = setTimeout(() => {
+                // Timer runs continuously until this point - record completion time now
+                const completionTime = Date.now();
+                console.log(`⏰ 2 seconds of correct arrangement completed!`);
+                this.handleCorrectAnswer(completionTime);
+            }, CONFIG.COMPLETION_DELAY);
+            
+            if (!this.awaitingCompletion) {
+                // First time reaching correct answer
                 this.speakText('Well done!');
                 this.showArrow();
                 this.guineaPigWave.startAnimation();
             }
             
-            console.log(`✅ Correct count - starting completion timer`);
+            console.log(`✅ Correct count - completion timer started/restarted`);
         } else {
-            // Wrong count - clear timer
+            // Wrong count - clear completion timer
             if (this.completionCheckTimer) {
                 clearTimeout(this.completionCheckTimer);
                 this.completionCheckTimer = null;
+                console.log(`🔄 Completion timer cleared - wrong count`);
             }
             
             this.awaitingCompletion = false;
@@ -562,25 +573,34 @@ class SliderRandomGameController {
         }, 10000);
     }
     
-    handleCorrectAnswer() {
+    handleCorrectAnswer(completionTime) {
         this.clearTimers();
         
-        // Calculate completion time (subtract 2 seconds for the completion delay)
-        const completionTime = (Date.now() - this.questionStartTime - CONFIG.COMPLETION_DELAY) / 1000;
-        console.log(`Question completed in ${completionTime} seconds`);
+        // Calculate effective completion time (total time minus the 2-second waiting period)
+        const totalTime = (completionTime - this.questionStartTime) / 1000;
+        const effectiveTime = totalTime - (CONFIG.COMPLETION_DELAY / 1000);
         
-        // Level progression logic
-        if (completionTime < CONFIG.LEVEL_UP_TIME_LIMIT) {
+        console.log(`Question completed:`);
+        console.log(`  Total time: ${totalTime.toFixed(2)} seconds`);
+        console.log(`  Effective time: ${effectiveTime.toFixed(2)} seconds`);
+        console.log(`  Level threshold: ${CONFIG.LEVEL_UP_TIME_LIMIT} seconds`);
+        
+        // Level progression logic based on effective time
+        if (effectiveTime < CONFIG.LEVEL_UP_TIME_LIMIT) {
             // Move up a level (max level 5)
             if (this.currentLevel < 5) {
                 this.currentLevel++;
-                console.log(`Level up! Now at level ${this.currentLevel}`);
+                console.log(`⬆️ Level up! Now at level ${this.currentLevel}`);
+            } else {
+                console.log(`Already at max level (${this.currentLevel})`);
             }
         } else {
             // Move down a level (min level 1)
             if (this.currentLevel > 1) {
                 this.currentLevel--;
-                console.log(`Level down! Now at level ${this.currentLevel}`);
+                console.log(`⬇️ Level down! Now at level ${this.currentLevel}`);
+            } else {
+                console.log(`Already at min level (${this.currentLevel})`);
             }
         }
         
