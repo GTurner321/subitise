@@ -570,7 +570,6 @@ class SliderRandomGameController {
             
             console.log(`✅ Correct count - completion timer active`);
         } else {
-        } else {
             // Wrong count - clear timer
             console.log(`❌ Wrong count - Renderer: ${rightSideCount}, Manual: ${manualCount}, need: ${this.targetNumber}`);
             if (this.completionCheckTimer) {
