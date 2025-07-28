@@ -190,17 +190,17 @@ class SimplifiedGuineaPigWave {
             this.guineaPig.phase = 'pause';
             
         } else {
-            // Phase 3: Bobbling movement to exit
+            // Phase 3: Bobbling movement to exit - uniform slow speed with bobbles
             const bobbleElapsed = elapsed - fastEntryTime - pauseTime;
             const bobbleProgress = bobbleElapsed / bobbleExitTime;
             
-            // X position: from 80% to 100%+ (off screen)
-            const xProgress = 0.8 + (bobbleProgress * 0.3); // 0.8 to 1.1 (goes off screen)
+            // X position: from 80% to 120% (well off screen) at uniform speed
+            const xProgress = 0.8 + (bobbleProgress * 0.4); // 0.8 to 1.2 (goes well off screen)
             x = this.calculateX(xProgress);
             
-            // Bobbling Y movement: fine v-toothed pattern
-            const bobbleFrequency = 8; // Number of bobbles per second
-            const bobbleAmplitude = 8; // Pixels of vertical movement
+            // Bobbling Y movement: fine v-toothed pattern simulating walking
+            const bobbleFrequency = 12; // Higher frequency for finer bobbles
+            const bobbleAmplitude = 6; // Smaller amplitude for subtle effect
             const bobbleOffset = Math.sin(bobbleElapsed * bobbleFrequency * Math.PI / 1000) * bobbleAmplitude;
             y = baseY + bobbleOffset;
             
@@ -231,30 +231,31 @@ class SimplifiedGuineaPigWave {
         y = baseY; // No vertical movement in this scenario
         
         if (elapsed <= timeToReachPause) {
-            // Phase 1: Moving to pause position
+            // Phase 1: Moving to pause position at uniform speed
             const phaseProgress = elapsed / timeToReachPause;
             progress = phaseProgress * pausePos;
             this.guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.guineaPig.phase = 'approaching';
             
         } else if (elapsed <= timeToReachPause + pauseTime) {
-            // Phase 2: Brief pause (0.5 seconds)
+            // Phase 2: Brief pause (0.5 seconds) - stay as guineapig2
             progress = pausePos;
             this.guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.guineaPig.phase = 'pausing';
             
         } else if (elapsed <= timeToReachPause + pauseTime + frontFacingTime) {
-            // Phase 3: Face front (2 seconds)
+            // Phase 3: Face front (2 seconds) - change to guineapig3
             progress = pausePos;
             this.guineaPig.element.src = `${this.imagePath}guineapig3.png`;
             this.guineaPig.phase = 'facing_front';
             
         } else {
-            // Phase 4: Continue to exit
+            // Phase 4: Turn back to guineapig2 and continue moving off the page
             const exitElapsed = elapsed - timeToReachPause - pauseTime - frontFacingTime;
             const exitProgress = exitElapsed / timeFromPauseToEnd;
-            progress = pausePos + (exitProgress * (1 - pausePos));
-            this.guineaPig.element.src = `${this.imagePath}guineapig2.png`;
+            // Continue from pause position to well off screen (120% to ensure it exits)
+            progress = pausePos + (exitProgress * (1.2 - pausePos));
+            this.guineaPig.element.src = `${this.imagePath}guineapig2.png`; // Back to right-facing
             this.guineaPig.phase = 'exiting';
         }
         
