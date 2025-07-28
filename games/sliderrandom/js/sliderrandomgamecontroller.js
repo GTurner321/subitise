@@ -567,7 +567,7 @@ class SliderRandomGameController {
                     console.log(`⏰ 2-second pause completed! Question finished.`);
                     
                     // Show feedback ONLY after 2-second pause completes
-                    const encouragements = ['Well done!', 'Perfect!', 'Good job!', 'Correct!'];
+                    const encouragements = ['Well done!', 'Perfect!', 'Good job!'];
                     const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
                     this.speakText(randomEncouragement);
                     this.guineaPigWave.startAnimation(88);
