@@ -164,9 +164,15 @@ class SimplifiedGuineaPigWave {
     
     updateBobblingMovement(elapsed) {
         const { fastEntryTime, pauseTime, bobbleExitTime } = this.scenario1;
-        const totalTime = fastEntryTime + pauseTime + bobbleExitTime;
+        const totalTime = fastEntryTime + pauseTime + bobbleExitTime; // 2000 + 500 + 3000 = 5500ms
+        
+        // Debug logging
+        if (elapsed % 500 < 16) { // Log every 500ms
+            console.log(`Bobbling - Elapsed: ${elapsed}ms, Total: ${totalTime}ms, Phase: ${this.guineaPig.phase}`);
+        }
         
         if (elapsed >= totalTime) {
+            console.log('Bobbling animation complete - hiding guinea pig');
             this.guineaPig.element.style.opacity = '0';
             return;
         }
@@ -221,7 +227,14 @@ class SimplifiedGuineaPigWave {
         const timeFromPauseToEnd = 2000 * (1 - pausePos); // Proportional time from pause to end
         const totalTime = timeToReachPause + pauseTime + frontFacingTime + timeFromPauseToEnd;
         
+        // Debug logging
+        if (elapsed % 500 < 16) { // Log every 500ms
+            console.log(`PauseFront - Elapsed: ${elapsed}ms, Total: ${totalTime}ms, Phase: ${this.guineaPig.phase}, PausePos: ${pausePos.toFixed(2)}`);
+            console.log(`Times - ToReach: ${timeToReachPause}ms, Pause: ${pauseTime}ms, Front: ${frontFacingTime}ms, FromPause: ${timeFromPauseToEnd}ms`);
+        }
+        
         if (elapsed >= totalTime) {
+            console.log('PauseFront animation complete - hiding guinea pig');
             this.guineaPig.element.style.opacity = '0';
             return;
         }
