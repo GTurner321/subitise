@@ -13,6 +13,7 @@ class SliderRandomGameController {
         this.gameComplete = false;
         this.sliderDisabled = false;
         this.awaitingCompletion = false;
+        this.lastArrangementHash = null; // Track when arrangement actually changes
         
         // Level management
         this.usedNumbers = new Set(); // Track used numbers in current level
@@ -484,22 +485,23 @@ class SliderRandomGameController {
         console.log(`Slider disabled: ${this.sliderDisabled}`);
         
         if (hasMiddleBeads) {
-            // Invalid arrangement - start 10-second inactivity timer
-            if (!this.invalidArrangementStartTime) {
-                this.invalidArrangementStartTime = currentTime;
-                this.lastActivityTime = currentTime; // Reset activity timer
-                this.scheduleInactivityCheck();
-            }
-            
-            // Clear completion timer - user is still making changes
+            // Invalid arrangement - clear completion timer
             if (this.completionCheckTimer) {
                 clearTimeout(this.completionCheckTimer);
                 this.completionCheckTimer = null;
                 console.log(`🔄 Completion timer cleared - invalid arrangement`);
             }
             
+            // Start inactivity timer
+            if (!this.invalidArrangementStartTime) {
+                this.invalidArrangementStartTime = currentTime;
+                this.lastActivityTime = currentTime;
+                this.scheduleInactivityCheck();
+            }
+            
             this.awaitingCompletion = false;
             this.sliderDisabled = false;
+            this.lastArrangementHash = null; // Reset arrangement tracking
             console.log(`❌ Invalid arrangement - waiting for valid arrangement`);
             console.log(`=== END GAME STATE CHECK ===\n`);
             return;
@@ -514,6 +516,22 @@ class SliderRandomGameController {
         
         // Force bar state update to ensure accuracy
         this.sliderRenderer.updateBarState();
+        
+        // Create a hash of current bead positions to detect actual changes
+        const currentHash = this.createArrangementHash();
+        const arrangementChanged = this.lastArrangementHash !== currentHash;
+        
+        if (arrangementChanged) {
+            console.log(`🔄 Bead arrangement changed - hash: ${currentHash}`);
+            this.lastArrangementHash = currentHash;
+            
+            // Clear completion timer if arrangement changed
+            if (this.completionCheckTimer) {
+                clearTimeout(this.completionCheckTimer);
+                this.completionCheckTimer = null;
+                console.log(`🔄 Completion timer cleared - arrangement changed`);
+            }
+        }
         
         // Valid arrangement - count right side beads with detailed logging
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
@@ -542,29 +560,26 @@ class SliderRandomGameController {
         const finalCount = Math.max(rightSideCount, manualCount); // Use the higher count in case of discrepancy
         
         if (finalCount === this.targetNumber) {
-            // Correct - start/restart 2-second completion timer
-            if (this.completionCheckTimer) {
-                // Clear existing timer - user made a change, restart the 2-second wait
-                clearTimeout(this.completionCheckTimer);
-                console.log(`🔄 Restarting completion timer - user made changes`);
-            }
-            
-            this.awaitingCompletion = true;
-            this.completionCheckTimer = setTimeout(() => {
-                // Timer runs continuously until this point - record completion time now
-                const completionTime = Date.now();
-                console.log(`⏰ 2 seconds of correct arrangement completed!`);
-                this.handleCorrectAnswer(completionTime);
-            }, CONFIG.COMPLETION_DELAY);
-            
-            if (!this.awaitingCompletion) {
-                // First time reaching correct answer
+            // Correct - start completion timer only if not already running
+            if (!this.completionCheckTimer) {
+                console.log(`🎯 Starting NEW completion timer - first time reaching correct count`);
+                this.awaitingCompletion = true;
+                this.completionCheckTimer = setTimeout(() => {
+                    // Timer runs continuously until this point - record completion time now
+                    const completionTime = Date.now();
+                    console.log(`⏰ 2 seconds of correct arrangement completed!`);
+                    this.handleCorrectAnswer(completionTime);
+                }, CONFIG.COMPLETION_DELAY);
+                
+                // Only show feedback on first correct arrangement
                 this.speakText('Well done!');
                 this.showArrow();
                 this.guineaPigWave.startAnimation();
+            } else {
+                console.log(`⏳ Completion timer already running - maintaining countdown`);
             }
             
-            console.log(`✅ Correct count - completion timer started/restarted`);
+            console.log(`✅ Correct count - completion timer active`);
         } else {
             // Wrong count - clear completion timer
             if (this.completionCheckTimer) {
@@ -581,6 +596,15 @@ class SliderRandomGameController {
         
         console.log(`Final state: awaiting=${this.awaitingCompletion}, disabled=${this.sliderDisabled}`);
         console.log(`=== END GAME STATE CHECK ===\n`);
+    }
+    
+    // Create a hash of the current bead arrangement to detect changes
+    createArrangementHash() {
+        const positions = this.sliderRenderer.beads
+            .map(bead => `${bead.id}:${bead.position.toFixed(3)}`)
+            .sort()
+            .join('|');
+        return positions;
     }
     
     // Manual verification method to double-check bead counting
