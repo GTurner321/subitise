@@ -205,9 +205,12 @@ class SliderRandomGameController {
         const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.75);
         
         // Vertical position still relative to frame (underneath slider frame)
-        const arrowY = frameRect ? (frameRect.y + frameRect.height + 10) : (gameAreaRect.top + gameAreaRect.height * 0.7);
+        // Account for the new slider position at 40% instead of 10%
+        const sliderContainerTop = gameAreaRect.top + (gameAreaRect.height * 0.40);
+        const sliderContainerHeight = gameAreaRect.height * 0.60;
+        const arrowY = frameRect ? (frameRect.y + frameRect.height + 10) : (sliderContainerTop + sliderContainerHeight * 0.7);
         
-        // Center the arrow horizontally on the 80% point of the game area
+        // Center the arrow horizontally on the 75% point of the game area
         if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
             const arrowWidth = this.arrowElement.offsetWidth || (arrowHeight * 0.6);
             this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`;
