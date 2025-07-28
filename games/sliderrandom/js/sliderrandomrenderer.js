@@ -120,7 +120,7 @@ class SliderRandomRenderer {
         const beadElement = document.createElement('div');
         beadElement.className = 'bead';
         
-        beadElement.style.cssText = `
+        bead.element.style.cssText = `
             width: ${this.beadDiameter}px;
             height: ${this.beadDiameter}px;
             position: absolute;
@@ -171,13 +171,6 @@ class SliderRandomRenderer {
         bead.element.style.top = `${beadTop}px`;
         
         console.log(`Positioned bead ${bead.id} at (${beadLeft}, ${beadTop}), size: ${this.beadDiameter}px`);
-        
-        // Force visibility with inline styles for debugging
-        bead.element.style.backgroundColor = bead.isBlue ? '#4285f4' : '#ea4335';
-        bead.element.style.border = '2px solid black';
-        bead.element.style.zIndex = '10000';
-        bead.element.style.display = 'block';
-        bead.element.style.visibility = 'visible';
     }
     
     updateBarState() {
