@@ -181,17 +181,17 @@ class SimplifiedGuineaPigWave {
         const baseY = this.guineaPig.yPosition;
         
         if (elapsed <= fastEntryTime) {
-            // Phase 1: Fast entry with deceleration to 80% of screen
+            // Phase 1: Faster entry with stronger deceleration to 70% of screen
             const progress = elapsed / fastEntryTime;
-            // Ease-out cubic for deceleration effect
-            const easedProgress = 1 - Math.pow(1 - progress, 3);
-            x = this.calculateX(easedProgress * 0.8); // Move to 80% of screen
+            // Stronger ease-out (quartic) for more dramatic deceleration
+            const easedProgress = 1 - Math.pow(1 - progress, 4);
+            x = this.calculateX(easedProgress * 0.7); // Move to 70% of screen (changed from 80%)
             y = baseY;
             this.guineaPig.phase = 'entry';
             
         } else if (elapsed <= fastEntryTime + pauseTime) {
-            // Phase 2: Pause at 80%
-            x = this.calculateX(0.8);
+            // Phase 2: Pause at 70%
+            x = this.calculateX(0.7);
             y = baseY;
             this.guineaPig.phase = 'pause';
             
@@ -200,8 +200,8 @@ class SimplifiedGuineaPigWave {
             const bobbleElapsed = elapsed - fastEntryTime - pauseTime;
             const bobbleProgress = bobbleElapsed / bobbleExitTime;
             
-            // X position: from 80% to 120% (well off screen) at uniform speed
-            const xProgress = 0.8 + (bobbleProgress * 0.4); // 0.8 to 1.2 (goes well off screen)
+            // X position: from 70% to 120% (well off screen) at uniform speed
+            const xProgress = 0.7 + (bobbleProgress * 0.5); // 0.7 to 1.2 (goes well off screen)
             x = this.calculateX(xProgress);
             
             // Bobbling Y movement: fine v-toothed pattern simulating walking
