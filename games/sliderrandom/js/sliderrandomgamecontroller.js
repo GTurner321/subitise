@@ -1,6 +1,11 @@
 class SliderRandomGameController {
     constructor() {
+        console.log('SliderRandomGameController: Constructor starting...');
+        
+        console.log('SliderRandomGameController: Creating SliderRandomRenderer...');
         this.sliderRenderer = new SliderRandomRenderer();
+        console.log('SliderRandomGameController: SliderRandomRenderer created:', this.sliderRenderer);
+        
         this.rainbow = new Rainbow();
         this.bear = new Bear();
         this.guineaPigWave = new EnhancedGuineaPigWave('../../assets/raisin/');
@@ -41,7 +46,6 @@ class SliderRandomGameController {
         this.arrowElement = null;
         this.muteButton = null;
         this.muteContainer = null;
-        this.questionCounter = null;
         this.targetDisplay = null;
         this.targetNumberElement = null;
         this.targetTextElement = null;
@@ -51,15 +55,18 @@ class SliderRandomGameController {
         this.playAgainBtn = document.getElementById('playAgainBtn');
         
         this.initializeGame();
+        console.log('SliderRandomGameController: Constructor complete');
     }
     
     initializeGame() {
+        console.log('SliderRandomGameController: Initializing game...');
         this.initializeAudio();
         this.createMuteButton();
         this.createArrowElement();
-        this.createQuestionCounter();
         this.initializeTargetDisplay();
         this.initializeEventListeners();
+        
+        console.log('SliderRandomGameController: About to start new question');
         this.startNewQuestion();
     }
     
@@ -156,34 +163,19 @@ class SliderRandomGameController {
         }
     }
     
-    createQuestionCounter() {
-        this.questionCounter = document.createElement('div');
-        this.questionCounter.className = 'question-counter';
-        this.questionCounter.style.cssText = `
-            position: absolute;
-            top: 80px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            z-index: 1000;
-        `;
-        this.updateQuestionCounter();
-        document.body.appendChild(this.questionCounter);
-    }
-    
-    updateQuestionCounter() {
-        if (this.questionCounter) {
-            this.questionCounter.textContent = `Question ${this.currentQuestion}/${CONFIG.MAX_QUESTIONS} - Level ${this.currentLevel}`;
-        }
-    }
+    // Remove all createQuestionCounter and updateQuestionCounter methods
     
     initializeTargetDisplay() {
+        console.log('SliderRandomGameController: Initializing target display...');
         this.targetDisplay = document.getElementById('targetDisplay');
         this.targetNumberElement = document.getElementById('targetNumber');
         this.targetTextElement = document.getElementById('targetText');
+        
+        console.log('Target display elements:', {
+            targetDisplay: this.targetDisplay,
+            targetNumber: this.targetNumberElement,
+            targetText: this.targetTextElement
+        });
     }
     
     // Convert number to written word
@@ -674,7 +666,7 @@ class SliderRandomGameController {
             console.log(`Level down! ${oldLevel} -> ${this.currentLevel}`);
         }
         
-        this.updateQuestionCounter();
+        // Remove updateQuestionCounter call
     }
     
     createStarCelebration() {
@@ -751,7 +743,6 @@ class SliderRandomGameController {
         
         console.log(`Starting question ${this.currentQuestion}: Put ${this.targetNumber} beads on the right side`);
         
-        this.updateQuestionCounter();
         this.updateTargetDisplay();
         
         this.speakText(`Put ${this.targetNumber} beads on the right side`);
@@ -782,7 +773,6 @@ class SliderRandomGameController {
         this.rainbow.reset();
         this.bear.reset();
         this.sliderRenderer.reset();
-        this.updateQuestionCounter();
         this.modal.classList.add('hidden');
         
         setTimeout(() => this.startNewQuestion(), 500);
@@ -885,10 +875,6 @@ class SliderRandomGameController {
         
         if (this.arrowElement && this.arrowElement.parentNode) {
             this.arrowElement.parentNode.removeChild(this.arrowElement);
-        }
-        
-        if (this.questionCounter && this.questionCounter.parentNode) {
-            this.questionCounter.parentNode.removeChild(this.questionCounter);
         }
         
         if (this.guineaPigWave) {
