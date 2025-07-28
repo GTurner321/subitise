@@ -31,6 +31,7 @@ class SliderRandomRenderer {
     
     updateContainerRect() {
         this.containerRect = this.sliderContainer.getBoundingClientRect();
+        console.log('SliderRandomRenderer: Container rect:', this.containerRect);
         
         // Calculate actual frame image dimensions (1516x475 aspect ratio)
         const containerAspectRatio = this.containerRect.width / this.containerRect.height;
@@ -57,6 +58,9 @@ class SliderRandomRenderer {
         // Bead diameter is 12% of frame height, made 20% larger
         this.beadDiameter = this.frameImageRect.height * 0.12 * 1.2;
         this.beadRadius = this.beadDiameter / 2;
+        
+        console.log('SliderRandomRenderer: Frame rect:', this.frameImageRect);
+        console.log('SliderRandomRenderer: Bead diameter:', this.beadDiameter);
         
         this.updateBarDimensions();
     }
