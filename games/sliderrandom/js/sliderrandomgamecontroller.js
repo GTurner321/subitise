@@ -32,20 +32,12 @@ class SliderRandomGameController {
         this.readyForAnswerStartTime = null;
         this.lastActivityTime = null;
         
-        // Keyboard input handling
-        this.keyboardInput = {
-            currentInput: '',
-            lastKeyTime: 0,
-            inputTimeout: null
-        };
-        
         // UI elements
         this.arrowElement = null;
         this.muteButton = null;
         this.muteContainer = null;
         
         // DOM elements
-        this.numberButtons = document.querySelectorAll('.number-btn');
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         
@@ -57,7 +49,6 @@ class SliderRandomGameController {
         this.createMuteButton();
         this.createArrowElement();
         this.initializeEventListeners();
-        this.shuffleButtons();
         this.startNewQuestion();
     }
     
@@ -264,42 +255,7 @@ class SliderRandomGameController {
         }
     }
     
-    shuffleButtons() {
-        const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
-        
-        for (let i = buttonNumbers.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
-        }
-        
-        this.numberButtons.forEach((button, index) => {
-            button.dataset.number = buttonNumbers[index];
-            button.textContent = buttonNumbers[index];
-        });
-    }
-    
     initializeEventListeners() {
-        // Keyboard input handling
-        document.addEventListener('keydown', (e) => this.handleKeyPress(e));
-        
-        // Number button clicks
-        this.numberButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                if (this.buttonsDisabled) return;
-                
-                const selectedNumber = parseInt(e.target.dataset.number);
-                this.handleNumberClick(selectedNumber, e.target);
-            });
-            
-            btn.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                if (this.buttonsDisabled) return;
-                
-                const selectedNumber = parseInt(e.target.dataset.number);
-                this.handleNumberClick(selectedNumber, e.target);
-            });
-        });
-        
         // Play again button
         this.playAgainBtn.addEventListener('click', () => this.startNewGame());
         
@@ -722,161 +678,10 @@ class SliderRandomGameController {
         }, 10000);
     }
     
-    handleNumberClick(selectedNumber, buttonElement) {
-        if (!this.awaitingButtonPress) return;
-        
-        const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-        
-        if (selectedNumber === rightSideCount) {
-            this.handleCorrectAnswer(buttonElement);
-        } else {
-            this.handleIncorrectAnswer(buttonElement);
-        }
-    }
-    
-    handleCorrectAnswer(buttonElement) {
-        this.buttonsDisabled = true;
-        this.clearTimers();
-        
-        buttonElement.classList.add('correct');
-        setTimeout(() => buttonElement.classList.remove('correct'), CONFIG.FLASH_DURATION);
-        
-        this.createStarCelebration(buttonElement);
-        this.rainbow.addPiece();
-        this.playCompletionSound();
-        
-        if (this.audioEnabled) {
-            const encouragements = ['Well done!', 'Excellent!', 'Perfect!', 'Great job!'];
-            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-            setTimeout(() => this.speakText(randomEncouragement), 400);
-        }
-        
-        const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-        if (rightSideCount === 20 && parseInt(buttonElement.dataset.number) === 20) {
-            setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
-            return;
-        }
-        
-        this.currentQuestion++;
-        this.expectedBeadsOnRight += 2;
-        this.awaitingButtonPress = false;
-        this.buttonsDisabled = false;
-        this.sliderDisabled = false;
-        
-        setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY);
-    }
-    
-    handleIncorrectAnswer(buttonElement) {
-        this.buttonsDisabled = true;
-        this.playFailureSound();
-        
-        buttonElement.classList.add('incorrect');
-        setTimeout(() => buttonElement.classList.remove('incorrect'), CONFIG.FLASH_DURATION);
-        
-        const crossOverlay = document.createElement('div');
-        crossOverlay.className = 'cross-overlay';
-        buttonElement.appendChild(crossOverlay);
-        
-        this.numberButtons.forEach(btn => {
-            if (btn !== buttonElement) {
-                btn.style.transition = 'opacity 700ms ease-in-out';
-                btn.style.opacity = '0.1';
-            }
-        });
-        
-        setTimeout(() => {
-            setTimeout(() => {
-                this.numberButtons.forEach(btn => {
-                    if (btn !== buttonElement) {
-                        btn.style.transition = 'opacity 700ms ease-in-out';
-                        btn.style.opacity = '1';
-                    }
-                });
-                
-                if (crossOverlay && crossOverlay.parentNode) {
-                    crossOverlay.style.transition = 'opacity 700ms ease-out';
-                    crossOverlay.style.opacity = '0';
-                }
-                
-                setTimeout(() => {
-                    if (crossOverlay && crossOverlay.parentNode) {
-                        crossOverlay.parentNode.removeChild(crossOverlay);
-                    }
-                    
-                    this.numberButtons.forEach(btn => {
-                        btn.style.transition = '';
-                    });
-                    
-                    this.buttonsDisabled = false;
-                }, 700);
-            }, 700);
-        }, 700);
-    }
-    
-    createStarCelebration(buttonElement) {
-        const buttonRect = buttonElement.getBoundingClientRect();
-        const centerX = buttonRect.left + buttonRect.width / 2;
-        const centerY = buttonRect.top + buttonRect.height / 2;
-        
-        const starContainer = document.createElement('div');
-        starContainer.className = 'star-celebration-container completion-effect';
-        starContainer.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1000;
-        `;
-        
-        const starPositions = [
-            { x: centerX - 60, y: centerY - 60 },
-            { x: centerX + 60, y: centerY - 60 },
-            { x: centerX + 72, y: centerY },
-            { x: centerX + 60, y: centerY + 60 },
-            { x: centerX - 60, y: centerY + 60 },
-            { x: centerX - 72, y: centerY }
-        ];
-        
-        starPositions.forEach((pos, index) => {
-            const star = this.createStar(pos.x, pos.y);
-            star.style.animationDelay = `${index * 0.1}s`;
-            starContainer.appendChild(star);
-        });
-        
-        document.body.appendChild(starContainer);
-        
-        setTimeout(() => {
-            if (starContainer.parentNode) {
-                starContainer.parentNode.removeChild(starContainer);
-            }
-        }, 2000);
-    }
-    
-    createStar(x, y) {
-        const star = document.createElement('div');
-        star.className = 'completion-star';
-        star.innerHTML = '✨';
-        star.style.cssText = `
-            position: fixed;
-            left: ${x - 15}px;
-            top: ${y - 15}px;
-            font-size: 30px;
-            color: #FFD700;
-            text-align: center;
-            pointer-events: none;
-            z-index: 1000;
-        `;
-        
-        return star;
-    }
-    
     startNewQuestion() {
         if (this.gameComplete) return;
         
         this.clearTimers();
-        this.resetKeyboardInput();
         
         if (this.currentQuestion === 1) {
             this.speakText('We\'re going to count in twos, so start by sliding 2 beads to the right side');
@@ -897,7 +702,6 @@ class SliderRandomGameController {
         this.lastActivityTime = null;
         
         this.clearTimers();
-        this.resetKeyboardInput();
         
         this.dragState = {
             activeTouches: new Map()
@@ -908,7 +712,6 @@ class SliderRandomGameController {
         this.rainbow.reset();
         this.bear.reset();
         this.sliderRenderer.reset();
-        this.shuffleButtons();
         this.modal.classList.add('hidden');
         
         setTimeout(() => this.startNewQuestion(), 500);
@@ -917,7 +720,6 @@ class SliderRandomGameController {
     completeGame() {
         this.gameComplete = true;
         this.clearTimers();
-        this.resetKeyboardInput();
         
         this.bear.startCelebration();
         this.modal.classList.remove('hidden');
@@ -997,7 +799,6 @@ class SliderRandomGameController {
     
     destroy() {
         this.clearTimers();
-        this.resetKeyboardInput();
         
         if ('speechSynthesis' in window) {
             speechSynthesis.cancel();
