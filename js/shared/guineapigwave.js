@@ -1,32 +1,36 @@
-class EnhancedGuineaPigWave {
+class SimplifiedGuineaPigWave {
     constructor(imagePath = 'assets/raisin/') {
-        this.guineaPigs = [];
-        this.gameArea = document.querySelector('.game-area');
+        this.guineaPig = null;
         this.animationId = null;
         this.isAnimating = false;
         
         // Configurable image path for different game folders
         this.imagePath = imagePath;
         
-        // Animation scenarios
+        // Only 2 scenarios now
         this.scenarios = [
-            'single_guinea_pig',
-            'single_guinea_pig_with_pause',
-            'two_guinea_pigs',
-            'two_guinea_pigs_with_pause',
-            'three_guinea_pigs_with_reversal'
+            'bobbling_movement',    // Scenario 1: Fast entry, slow down, pause, bobble off
+            'pause_and_face_front' // Scenario 2: Uniform speed with pause and face front
         ];
         
-        // Timing parameters for pausing scenarios
-        this.baseMoveTime = 2000; // 2 seconds total movement time (like simple file)
-        this.pauseDuration = 1000; // Regular pause duration
-        this.frontFacingDuration = 2000; // Forward-facing duration
-        this.nonPausingDuration = 2000; // Duration for non-pausing guinea pigs (2 seconds to cross page)
+        // Timing parameters
+        this.scenario1 = {
+            fastEntryTime: 2000,    // 2 seconds to come in and stop
+            pauseTime: 500,         // 0.5 seconds pause
+            bobbleExitTime: 3000    // 3 seconds to bobble off
+        };
+        
+        this.scenario2 = {
+            pausePosition: { min: 0.3, max: 0.6 }, // 30-60% through path
+            pauseTime: 500,         // 0.5 seconds pause
+            frontFacingTime: 2000   // 2 seconds facing front
+        };
         
         this.startTime = null;
         this.screenWidth = 0;
         this.screenHeight = 0;
         this.currentScenario = null;
+        this.entranceHeight = 0.75; // Default 75% from top (can be overridden)
         
         this.addStyles();
         this.updateScreenDimensions();
@@ -39,12 +43,12 @@ class EnhancedGuineaPigWave {
     
     addStyles() {
         // Check if styles already exist
-        if (document.querySelector('#enhanced-guinea-pig-wave-middle-styles')) return;
+        if (document.querySelector('#simplified-guinea-pig-wave-styles')) return;
         
         const styleElement = document.createElement('style');
-        styleElement.id = 'enhanced-guinea-pig-wave-middle-styles';
+        styleElement.id = 'simplified-guinea-pig-wave-styles';
         styleElement.textContent = `
-            .enhanced-guinea-pig-wave-middle {
+            .simplified-guinea-pig-wave {
                 position: fixed !important;
                 opacity: 1 !important;
                 z-index: 50 !important;
@@ -62,20 +66,29 @@ class EnhancedGuineaPigWave {
         this.screenHeight = window.innerHeight;
     }
     
-    createGuineaPigElement(yPosition, size, shouldPause = false, pausePoint = 0.5, shouldReverse = false) {
+    // Method for game controllers to set entrance height
+    setEntranceHeight(heightPercentage) {
+        // heightPercentage should be 0-100 (e.g., 60 for 60% from top)
+        this.entranceHeight = heightPercentage / 100;
+    }
+    
+    createGuineaPigElement() {
         const element = document.createElement('img');
-        element.className = 'enhanced-guinea-pig-wave-middle';
+        element.className = 'simplified-guinea-pig-wave';
         element.src = `${this.imagePath}guineapig2.png`; // Start facing right
         
-        // Initial positioning
+        // Calculate entrance position
+        const yPosition = this.screenHeight * this.entranceHeight;
+        
+        // Initial positioning (off-screen left)
         element.style.cssText = `
             left: -200px;
             top: ${yPosition}px;
             opacity: 1;
         `;
         
-        // Set size
-        const height = this.screenHeight * size;
+        // Set size to 20% of screen height
+        const height = this.screenHeight * 0.2;
         element.style.height = `${height}px`;
         element.style.width = 'auto';
         
@@ -84,71 +97,39 @@ class EnhancedGuineaPigWave {
         return {
             element: element,
             yPosition: yPosition,
-            size: size,
-            shouldPause: shouldPause,
-            pausePoint: pausePoint,
-            shouldReverse: shouldReverse,
-            isReversing: false,
-            pauseState: 'none' // 'none', 'pausing', 'front_facing'
+            pausePosition: null, // Will be set for scenario 2
+            phase: 'entry' // Track current phase of animation
         };
     }
     
     selectRandomScenario() {
-        const scenarioIndex = Math.floor(Math.random() * this.scenarios.length);
-        this.currentScenario = this.scenarios[scenarioIndex];
+        // 50% chance for each scenario
+        this.currentScenario = Math.random() < 0.5 ? 'bobbling_movement' : 'pause_and_face_front';
         console.log('Selected scenario:', this.currentScenario);
         
-        // Clear existing guinea pigs
-        this.clearGuineaPigs();
+        // Clear existing guinea pig
+        this.clearGuineaPig();
         
-        // Create guinea pigs based on scenario
-        switch (this.currentScenario) {
-            case 'single_guinea_pig':
-                this.guineaPigs.push(
-                    this.createGuineaPigElement(this.screenHeight * 0.75, 0.2)
-                );
-                break;
-                
-            case 'single_guinea_pig_with_pause':
-                const pausePoint = 0.3 + Math.random() * 0.3; // 30-60%
-                this.guineaPigs.push(
-                    this.createGuineaPigElement(this.screenHeight * 0.75, 0.2, true, pausePoint)
-                );
-                break;
-                
-            case 'two_guinea_pigs':
-                this.guineaPigs.push(
-                    this.createGuineaPigElement(this.screenHeight * 0.6, 0.15),
-                    this.createGuineaPigElement(this.screenHeight * 0.8, 0.15)
-                );
-                break;
-                
-            case 'two_guinea_pigs_with_pause':
-                const pausingIndex = Math.floor(Math.random() * 2); // 0 or 1
-                const pausePoint2 = 0.3 + Math.random() * 0.3; // 30-60%
-                
-                this.guineaPigs.push(
-                    this.createGuineaPigElement(this.screenHeight * 0.6, 0.15, pausingIndex === 0, pausePoint2),
-                    this.createGuineaPigElement(this.screenHeight * 0.8, 0.15, pausingIndex === 1, pausePoint2)
-                );
-                break;
-                
-            case 'three_guinea_pigs_with_reversal':
-                this.guineaPigs.push(
-                    this.createGuineaPigElement(this.screenHeight * 0.4, 0.15, true, 0.5, true), // Top one reverses
-                    this.createGuineaPigElement(this.screenHeight * 0.6, 0.15),
-                    this.createGuineaPigElement(this.screenHeight * 0.8, 0.15)
-                );
-                break;
+        // Create guinea pig
+        this.guineaPig = this.createGuineaPigElement();
+        
+        // Set pause position for scenario 2
+        if (this.currentScenario === 'pause_and_face_front') {
+            const min = this.scenario2.pausePosition.min;
+            const max = this.scenario2.pausePosition.max;
+            this.guineaPig.pausePosition = min + Math.random() * (max - min);
         }
     }
     
-    startAnimation() {
+    startAnimation(entranceHeightPercentage = 75) {
         if (this.isAnimating) {
             this.stopAnimation();
         }
         
-        console.log('Starting enhanced guinea pig wave animation (middle version)');
+        console.log('Starting simplified guinea pig wave animation');
+        
+        // Set entrance height if provided
+        this.setEntranceHeight(entranceHeightPercentage);
         
         this.updateScreenDimensions();
         this.selectRandomScenario();
@@ -165,187 +146,141 @@ class EnhancedGuineaPigWave {
         const currentTime = performance.now();
         const elapsed = currentTime - this.startTime;
         
-        // Check if all guinea pigs are done (different durations for different scenarios)
-        let allDone = true;
-        this.guineaPigs.forEach(guineaPig => {
-            if (guineaPig.element.style.opacity !== '0') {
-                allDone = false;
-            }
-        });
-        
-        if (allDone) {
+        // Check if animation is complete
+        if (this.guineaPig.element.style.opacity === '0') {
             this.completeAnimation();
             return;
         }
         
-        // Update each guinea pig
-        this.guineaPigs.forEach(guineaPig => {
-            this.updateGuineaPig(guineaPig, elapsed);
-        });
+        // Update guinea pig based on scenario
+        if (this.currentScenario === 'bobbling_movement') {
+            this.updateBobblingMovement(elapsed);
+        } else {
+            this.updatePauseAndFaceFront(elapsed);
+        }
         
         this.animationId = requestAnimationFrame(() => this.animate());
     }
     
-    updateGuineaPig(guineaPig, elapsed) {
-        if (!guineaPig.shouldPause) {
-            // Simple left-to-right movement (faster, like simple file)
-            this.updateSimpleMovement(guineaPig, elapsed);
-        } else if (!guineaPig.shouldReverse) {
-            // Movement with pause (scenarios 2 and 4) - proportional timing
-            this.updateMovementWithPause(guineaPig, elapsed);
-        } else {
-            // Movement with reversal (scenario 5) - fixed 50% pause point
-            this.updateMovementWithReversal(guineaPig, elapsed);
-        }
-    }
-    
-    updateGuineaPigSize(guineaPig, state) {
-        let height;
+    updateBobblingMovement(elapsed) {
+        const { fastEntryTime, pauseTime, bobbleExitTime } = this.scenario1;
+        const totalTime = fastEntryTime + pauseTime + bobbleExitTime;
         
-        if (state === 'static') {
-            // Static guinea pig (guineapig3) = 30% of screen height
-            height = this.screenHeight * 0.3;
-        } else {
-            // Moving guinea pig (guineapig1/2) = original size
-            height = this.screenHeight * guineaPig.size;
-        }
-        
-        guineaPig.element.style.height = `${height}px`;
-        guineaPig.element.style.width = 'auto';
-    }
-    
-    updateSimpleMovement(guineaPig, elapsed) {
-        // Non-pausing guinea pigs cross the page in 2 seconds
-        if (elapsed >= this.nonPausingDuration) {
-            // Animation complete for this guinea pig
-            guineaPig.element.style.opacity = '0';
+        if (elapsed >= totalTime) {
+            this.guineaPig.element.style.opacity = '0';
             return;
         }
         
-        const progress = elapsed / this.nonPausingDuration;
-        const position = this.calculatePosition(progress, guineaPig.yPosition);
+        let x, y;
+        const baseY = this.guineaPig.yPosition;
         
-        guineaPig.element.style.left = `${position.x - (guineaPig.element.offsetWidth / 2)}px`;
-        guineaPig.element.style.top = `${position.y - (guineaPig.element.offsetHeight / 2)}px`;
-    }
-    
-    updateMovementWithPause(guineaPig, elapsed) {
-        // Proportional timing based on pause point
-        // If pause at 30%: 30% of 2s before pause = 0.6s, 70% of 2s after pause = 1.4s
-        // Total: 0.6s + 1s pause + 2s front + 1.4s = 5s
-        
-        const firstHalfDuration = guineaPig.pausePoint * this.baseMoveTime; // e.g., 30% of 2s = 0.6s
-        const secondHalfDuration = (1 - guineaPig.pausePoint) * this.baseMoveTime; // e.g., 70% of 2s = 1.4s
-        const totalDuration = firstHalfDuration + this.pauseDuration + this.frontFacingDuration + secondHalfDuration;
-        
-        if (elapsed >= totalDuration) {
-            // Animation complete for this guinea pig
-            guineaPig.element.style.opacity = '0';
-            return;
-        }
-        
-        let progress = 0;
-        
-        if (elapsed <= firstHalfDuration) {
-            // First part: moving to pause point
-            progress = (elapsed / firstHalfDuration) * guineaPig.pausePoint;
-            guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-            this.updateGuineaPigSize(guineaPig, 'moving');
+        if (elapsed <= fastEntryTime) {
+            // Phase 1: Fast entry with deceleration to 80% of screen
+            const progress = elapsed / fastEntryTime;
+            // Ease-out cubic for deceleration effect
+            const easedProgress = 1 - Math.pow(1 - progress, 3);
+            x = this.calculateX(easedProgress * 0.8); // Move to 80% of screen
+            y = baseY;
+            this.guineaPig.phase = 'entry';
             
-        } else if (elapsed <= firstHalfDuration + this.pauseDuration) {
-            // Regular pause: stay at pause point with same image and SAME SIZE
-            progress = guineaPig.pausePoint;
-            guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-            this.updateGuineaPigSize(guineaPig, 'moving'); // Keep original size during pause
-            
-        } else if (elapsed <= firstHalfDuration + this.pauseDuration + this.frontFacingDuration) {
-            // Front-facing pause: INSTANTLY enlarge to front-facing and stay for 2 seconds
-            progress = guineaPig.pausePoint;
-            guineaPig.element.src = `${this.imagePath}guineapig3.png`;
-            this.updateGuineaPigSize(guineaPig, 'static'); // Instantly enlarge to front-facing
+        } else if (elapsed <= fastEntryTime + pauseTime) {
+            // Phase 2: Pause at 80%
+            x = this.calculateX(0.8);
+            y = baseY;
+            this.guineaPig.phase = 'pause';
             
         } else {
-            // Second part: moving from pause point to exit
-            const secondHalfElapsed = elapsed - firstHalfDuration - this.pauseDuration - this.frontFacingDuration;
-            const secondHalfProgress = secondHalfElapsed / secondHalfDuration;
-            progress = guineaPig.pausePoint + (secondHalfProgress * (1 - guineaPig.pausePoint));
-            guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-            this.updateGuineaPigSize(guineaPig, 'moving'); // Back to original size
+            // Phase 3: Bobbling movement to exit
+            const bobbleElapsed = elapsed - fastEntryTime - pauseTime;
+            const bobbleProgress = bobbleElapsed / bobbleExitTime;
+            
+            // X position: from 80% to 100%+ (off screen)
+            const xProgress = 0.8 + (bobbleProgress * 0.3); // 0.8 to 1.1 (goes off screen)
+            x = this.calculateX(xProgress);
+            
+            // Bobbling Y movement: fine v-toothed pattern
+            const bobbleFrequency = 8; // Number of bobbles per second
+            const bobbleAmplitude = 8; // Pixels of vertical movement
+            const bobbleOffset = Math.sin(bobbleElapsed * bobbleFrequency * Math.PI / 1000) * bobbleAmplitude;
+            y = baseY + bobbleOffset;
+            
+            this.guineaPig.phase = 'bobbling';
         }
         
         // Update position
-        const position = this.calculatePosition(progress, guineaPig.yPosition);
-        guineaPig.element.style.left = `${position.x - (guineaPig.element.offsetWidth / 2)}px`;
-        guineaPig.element.style.top = `${position.y - (guineaPig.element.offsetHeight / 2)}px`;
+        this.guineaPig.element.style.left = `${x - (this.guineaPig.element.offsetWidth / 2)}px`;
+        this.guineaPig.element.style.top = `${y - (this.guineaPig.element.offsetHeight / 2)}px`;
     }
     
-    updateMovementWithReversal(guineaPig, elapsed) {
-        // Scenario 5: Fixed 50% pause point, then reverse
-        // 1s left to right (50% of 2s) + 1s pause + 2s front + 1s return = 5s total
-        const firstHalfDuration = 1000; // 1 second to reach 50%
-        const totalDuration = firstHalfDuration + this.pauseDuration + this.frontFacingDuration + 1000; // 5s total
+    updatePauseAndFaceFront(elapsed) {
+        const { pauseTime, frontFacingTime } = this.scenario2;
+        const pausePos = this.guineaPig.pausePosition;
         
-        if (elapsed >= totalDuration) {
-            // Animation complete for this guinea pig
-            guineaPig.element.style.opacity = '0';
+        // Calculate durations based on pause position
+        const timeToReachPause = 2000 * pausePos; // Proportional time to reach pause
+        const timeFromPauseToEnd = 2000 * (1 - pausePos); // Proportional time from pause to end
+        const totalTime = timeToReachPause + pauseTime + frontFacingTime + timeFromPauseToEnd;
+        
+        if (elapsed >= totalTime) {
+            this.guineaPig.element.style.opacity = '0';
             return;
         }
         
-        let progress = 0;
+        let progress, x, y;
+        const baseY = this.guineaPig.yPosition;
+        y = baseY; // No vertical movement in this scenario
         
-        if (elapsed <= firstHalfDuration) {
-            // First part: moving to 50% point
-            progress = (elapsed / firstHalfDuration) * 0.5; // 0 to 0.5
-            guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-            this.updateGuineaPigSize(guineaPig, 'moving');
+        if (elapsed <= timeToReachPause) {
+            // Phase 1: Moving to pause position
+            const phaseProgress = elapsed / timeToReachPause;
+            progress = phaseProgress * pausePos;
+            this.guineaPig.element.src = `${this.imagePath}guineapig2.png`;
+            this.guineaPig.phase = 'approaching';
             
-        } else if (elapsed <= firstHalfDuration + this.pauseDuration) {
-            // Regular pause: stay at 50% point with same image and SAME SIZE (no enlarging)
-            progress = 0.5;
-            guineaPig.element.src = `${this.imagePath}guineapig2.png`;
-            this.updateGuineaPigSize(guineaPig, 'moving'); // Keep original size
+        } else if (elapsed <= timeToReachPause + pauseTime) {
+            // Phase 2: Brief pause (0.5 seconds)
+            progress = pausePos;
+            this.guineaPig.element.src = `${this.imagePath}guineapig2.png`;
+            this.guineaPig.phase = 'pausing';
             
-        } else if (elapsed <= firstHalfDuration + this.pauseDuration + this.frontFacingDuration) {
-            // Front-facing pause: stay at 50% point but change image and size
-            progress = 0.5;
-            guineaPig.element.src = `${this.imagePath}guineapig3.png`;
-            this.updateGuineaPigSize(guineaPig, 'static'); // Enlarge for front-facing
+        } else if (elapsed <= timeToReachPause + pauseTime + frontFacingTime) {
+            // Phase 3: Face front (2 seconds)
+            progress = pausePos;
+            this.guineaPig.element.src = `${this.imagePath}guineapig3.png`;
+            this.guineaPig.phase = 'facing_front';
             
         } else {
-            // Reverse movement: moving from 50% back to 0%
-            const reverseElapsed = elapsed - firstHalfDuration - this.pauseDuration - this.frontFacingDuration;
-            const reverseProgress = reverseElapsed / 1000; // 1 second to reverse
-            progress = 0.5 - (reverseProgress * 0.5); // 0.5 to 0
-            
-            // FIXED: Switch to LEFT-FACING image (guineapig1) for reverse movement
-            guineaPig.element.src = `${this.imagePath}guineapig1.png`;
-            this.updateGuineaPigSize(guineaPig, 'moving'); // Back to original size
+            // Phase 4: Continue to exit
+            const exitElapsed = elapsed - timeToReachPause - pauseTime - frontFacingTime;
+            const exitProgress = exitElapsed / timeFromPauseToEnd;
+            progress = pausePos + (exitProgress * (1 - pausePos));
+            this.guineaPig.element.src = `${this.imagePath}guineapig2.png`;
+            this.guineaPig.phase = 'exiting';
         }
         
+        x = this.calculateX(progress);
+        
         // Update position
-        const position = this.calculatePosition(Math.max(0, progress), guineaPig.yPosition);
-        guineaPig.element.style.left = `${position.x - (guineaPig.element.offsetWidth / 2)}px`;
-        guineaPig.element.style.top = `${position.y - (guineaPig.element.offsetHeight / 2)}px`;
+        this.guineaPig.element.style.left = `${x - (this.guineaPig.element.offsetWidth / 2)}px`;
+        this.guineaPig.element.style.top = `${y - (this.guineaPig.element.offsetHeight / 2)}px`;
     }
     
-    calculatePosition(progress, yPosition) {
+    calculateX(progress) {
         // X position: from off-screen left to off-screen right
         const startX = -200; // Start off-screen left
         const endX = this.screenWidth + 200; // End off-screen right
-        const x = startX + (progress * (endX - startX));
-        
-        return { x, y: yPosition };
+        return startX + (progress * (endX - startX));
     }
     
     completeAnimation() {
-        console.log('Enhanced guinea pig wave animation complete (middle version)');
+        console.log('Simplified guinea pig wave animation complete');
         
         this.isAnimating = false;
         
-        // Hide all guinea pigs
-        this.guineaPigs.forEach(guineaPig => {
-            guineaPig.element.style.opacity = '0';
-        });
+        // Hide guinea pig
+        if (this.guineaPig) {
+            this.guineaPig.element.style.opacity = '0';
+        }
         
         // Clean up
         if (this.animationId) {
@@ -359,14 +294,14 @@ class EnhancedGuineaPigWave {
     stopAnimation() {
         if (!this.isAnimating) return;
         
-        console.log('Stopping enhanced guinea pig wave animation (middle version)');
+        console.log('Stopping simplified guinea pig wave animation');
         
         this.isAnimating = false;
         
-        // Hide all guinea pigs
-        this.guineaPigs.forEach(guineaPig => {
-            guineaPig.element.style.opacity = '0';
-        });
+        // Hide guinea pig
+        if (this.guineaPig) {
+            this.guineaPig.element.style.opacity = '0';
+        }
         
         // Clean up
         if (this.animationId) {
@@ -377,13 +312,11 @@ class EnhancedGuineaPigWave {
         this.startTime = null;
     }
     
-    clearGuineaPigs() {
-        this.guineaPigs.forEach(guineaPig => {
-            if (guineaPig.element && guineaPig.element.parentNode) {
-                guineaPig.element.parentNode.removeChild(guineaPig.element);
-            }
-        });
-        this.guineaPigs = [];
+    clearGuineaPig() {
+        if (this.guineaPig && this.guineaPig.element && this.guineaPig.element.parentNode) {
+            this.guineaPig.element.parentNode.removeChild(this.guineaPig.element);
+        }
+        this.guineaPig = null;
     }
     
     isCurrentlyAnimating() {
@@ -392,14 +325,30 @@ class EnhancedGuineaPigWave {
     
     destroy() {
         this.stopAnimation();
-        this.clearGuineaPigs();
+        this.clearGuineaPig();
         
         // Remove styles when destroying
-        const styleElement = document.querySelector('#enhanced-guinea-pig-wave-middle-styles');
+        const styleElement = document.querySelector('#simplified-guinea-pig-wave-styles');
         if (styleElement && styleElement.parentNode) {
             styleElement.parentNode.removeChild(styleElement);
         }
-        
-        this.gameArea = null;
     }
 }
+
+// Example usage for game controllers:
+/*
+// In your game controller file:
+
+// Create the animation instance
+const guineaPigWave = new SimplifiedGuineaPigWave('assets/raisin/');
+
+// Method 1: Set entrance height before starting animation
+guineaPigWave.setEntranceHeight(60); // 60% from top
+guineaPigWave.startAnimation();
+
+// Method 2: Set entrance height when starting animation
+guineaPigWave.startAnimation(60); // 60% from top
+
+// Method 3: Use default entrance height (75% from top)
+guineaPigWave.startAnimation();
+*/
