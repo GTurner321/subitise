@@ -198,6 +198,14 @@ class SliderRandomGameController {
                 z-index: 9999;
             `;
             console.log('Forced slider container styling');
+            
+            // Force the renderer to recalculate dimensions after we set proper size
+            setTimeout(() => {
+                console.log('Recalculating renderer dimensions...');
+                this.sliderRenderer.updateContainerRect();
+                this.sliderRenderer.initializeBeads();
+                this.sliderRenderer.updateBarState();
+            }, 50);
         }
     }
     
