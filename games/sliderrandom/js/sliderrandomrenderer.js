@@ -31,7 +31,6 @@ class SliderRandomRenderer {
     
     updateContainerRect() {
         this.containerRect = this.sliderContainer.getBoundingClientRect();
-        console.log('SliderRandomRenderer: Container rect:', this.containerRect);
         
         // Calculate actual frame image dimensions (1516x475 aspect ratio)
         const containerAspectRatio = this.containerRect.width / this.containerRect.height;
@@ -58,9 +57,6 @@ class SliderRandomRenderer {
         // Bead diameter is 12% of frame height, made 20% larger
         this.beadDiameter = this.frameImageRect.height * 0.12 * 1.2;
         this.beadRadius = this.beadDiameter / 2;
-        
-        console.log('SliderRandomRenderer: Frame rect:', this.frameImageRect);
-        console.log('SliderRandomRenderer: Bead diameter:', this.beadDiameter);
         
         this.updateBarDimensions();
     }
@@ -94,8 +90,6 @@ class SliderRandomRenderer {
     }
     
     initializeBeads() {
-        console.log('SliderRandomRenderer: Initializing beads...');
-        
         // Clear existing beads
         this.beads.forEach(bead => {
             if (bead.element && bead.element.parentNode) {
@@ -109,16 +103,20 @@ class SliderRandomRenderer {
             for (let beadIndex = 0; beadIndex < CONFIG.BEADS_PER_BAR; beadIndex++) {
                 const bead = this.createBead(barIndex, beadIndex);
                 this.beads.push(bead);
-                console.log(`Created bead ${bead.id} at position ${bead.position} on bar ${barIndex}`);
             }
         }
-        
-        console.log('SliderRandomRenderer: Total beads created:', this.beads.length);
     }
     
     createBead(barIndex, beadIndex) {
         const beadElement = document.createElement('div');
         beadElement.className = 'bead';
+        
+        beadElement.style.cssText = `
+            width: ${this.beadDiameter}px;
+            height: ${this.beadDiameter}px;
+            position: absolute;
+            transition: none;
+        `;
         
         // Color: first 5 blue, last 5 red
         const isBlue = beadIndex < 5;
@@ -135,23 +133,13 @@ class SliderRandomRenderer {
             isBlue: isBlue
         };
         
-        beadElement.style.cssText = `
-            width: ${this.beadDiameter}px;
-            height: ${this.beadDiameter}px;
-            position: absolute;
-            transition: none;
-        `;
-        
         this.positionBead(bead);
         this.sliderContainer.appendChild(beadElement);
         return bead;
     }
     
     positionBead(bead) {
-        if (!this.frameImageRect) {
-            console.log('SliderRandomRenderer: No frameImageRect, cannot position bead');
-            return;
-        }
+        if (!this.frameImageRect) return;
         
         const barY = bead.barIndex === 0 ? 0.34 : 0.60;
         
@@ -169,8 +157,6 @@ class SliderRandomRenderer {
         
         bead.element.style.left = `${beadLeft}px`;
         bead.element.style.top = `${beadTop}px`;
-        
-        console.log(`Positioned bead ${bead.id} at (${beadLeft}, ${beadTop}), size: ${this.beadDiameter}px`);
     }
     
     updateBarState() {
@@ -181,19 +167,10 @@ class SliderRandomRenderer {
                 .map(bead => ({ bead, position: bead.position }))
                 .sort((a, b) => a.position - b.position);
         }
-    }
-    
-    // Reset all beads to left side (starting positions)
-    resetBeadsToLeft() {
-        this.beads.forEach((bead, index) => {
-            const barIndex = Math.floor(index / CONFIG.BEADS_PER_BAR);
-            const beadIndex = index % CONFIG.BEADS_PER_BAR;
-            
-            bead.position = beadIndex;
-            bead.barIndex = barIndex;
-            this.positionBead(bead);
-        });
-        this.updateBarState();
+        
+        console.log('Bar state updated:');
+        console.log('Top bar:', this.barState[0].map(item => `${item.bead.id}(${item.position.toFixed(2)})`));
+        console.log('Bottom bar:', this.barState[1].map(item => `${item.bead.id}(${item.position.toFixed(2)})`));
     }
     
     // Calculate the maximum distance a bead can move in a direction
@@ -282,6 +259,9 @@ class SliderRandomRenderer {
                 }
             }
         }
+        
+        console.log(`Connected block for ${bead.id} moving ${direction > 0 ? 'right' : 'left'}:`, 
+                   connectedBeads.map(b => b.id));
         
         return connectedBeads;
     }
@@ -452,6 +432,7 @@ class SliderRandomRenderer {
         
         if (isTouched) {
             bead.element.classList.add('touched');
+            // No pulse animation - just maintain the larger size
         } else {
             bead.element.classList.remove('touched');
         }
@@ -484,6 +465,7 @@ class SliderRandomRenderer {
                     bead.position = targetPosition;
                     this.positionBead(bead);
                     snapped = true;
+                    console.log(`Snapped ${bead.id} to right of ${leftBead.bead.id}`);
                 }
             }
         }
@@ -498,6 +480,7 @@ class SliderRandomRenderer {
                     bead.position = targetPosition;
                     this.positionBead(bead);
                     snapped = true;
+                    console.log(`Snapped ${bead.id} to left of ${rightBead.bead.id}`);
                 }
             }
         }
@@ -508,10 +491,12 @@ class SliderRandomRenderer {
                 bead.position = 0;
                 this.positionBead(bead);
                 snapped = true;
+                console.log(`Snapped ${bead.id} to bar start`);
             } else if (bead.position >= maxPosition - snapRadius) {
                 bead.position = maxPosition;
                 this.positionBead(bead);
                 snapped = true;
+                console.log(`Snapped ${bead.id} to bar end`);
             }
         }
         
@@ -557,25 +542,41 @@ class SliderRandomRenderer {
             totalRightSideBeads += rightSideBeadsOnThisBar;
         }
         
+        console.log(`Total right-side beads: ${totalRightSideBeads}`);
         return totalRightSideBeads;
     }
     
     hasBeadsInMiddle() {
         // Check using the 11-gap criteria: valid arrangement has exactly 10 zero gaps per bar
-        const tolerance = 0.15;
+        // (10 beads can create at most 10 zero gaps, with 1 non-zero gap remaining)
+        const tolerance = 0.15; // Increased tolerance - 0.1 should definitely be accepted as zero
+        
+        console.log(`\n=== CHECKING FOR MIDDLE BEADS ===`);
         
         for (let barIndex = 0; barIndex < 2; barIndex++) {
             const gaps = this.calculateBarGaps(barIndex);
             
             // Count gaps that are effectively zero (within tolerance)
             const zeroGaps = gaps.filter(g => Math.abs(g) < tolerance).length;
+            const nonZeroGaps = gaps.filter(g => Math.abs(g) >= tolerance);
+            
+            console.log(`Bar ${barIndex}: ${zeroGaps}/11 gaps are zero (tolerance: ${tolerance})`);
+            console.log(`  All gap values:`, gaps.map((g, i) => `s${i}:${g.toFixed(4)}`));
+            console.log(`  Zero gaps (< ${tolerance}):`, gaps.filter(g => Math.abs(g) < tolerance).map(g => g.toFixed(4)));
+            console.log(`  Non-zero gaps (>= ${tolerance}):`, nonZeroGaps.map(g => g.toFixed(4)));
             
             // Need exactly 10 zero gaps for valid arrangement
             if (zeroGaps !== 10) {
+                console.log(`  ❌ Bar ${barIndex} has middle beads (${zeroGaps} zero gaps, need exactly 10)`);
+                console.log(`=== END CHECK - HAS MIDDLE BEADS ===\n`);
                 return true; // Has middle beads
+            } else {
+                console.log(`  ✅ Bar ${barIndex} is valid (exactly 10 zero gaps)`);
             }
         }
         
+        console.log(`✅ No middle beads - all bars have valid arrangements`);
+        console.log(`=== END CHECK - NO MIDDLE BEADS ===\n`);
         return false; // No middle beads
     }
     
@@ -640,7 +641,8 @@ class SliderRandomRenderer {
         }
         this.momentumBeads.clear();
         
-        this.resetBeadsToLeft();
+        this.initializeBeads();
+        this.updateBarState();
     }
     
     playSnapSound() {
@@ -668,4 +670,3 @@ class SliderRandomRenderer {
             // Silent failure
         }
     }
-}
