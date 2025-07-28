@@ -565,14 +565,15 @@ class SliderRandomGameController {
                     // Timer runs continuously until this point - record completion time now
                     const completionTime = Date.now();
                     console.log(`⏰ 2-second pause completed! Question finished.`);
+                    
+                    // Show feedback ONLY after 2-second pause completes
+                    this.speakText('Well done!');
+                    this.guineaPigWave.startAnimation(88);
+                    
                     this.handleCorrectAnswer(completionTime);
                 }, CONFIG.COMPLETION_DELAY);
-                
-                // Only show feedback on first correct arrangement
-                this.speakText('Well done!');
-                this.guineaPigWave.startAnimation(88);
             } else {
-                console.log(`⏳ 2-second completion timer running... (${CONFIG.COMPLETION_DELAY/1000}s remaining)`);
+                console.log(`⏳ 2-second completion timer running... waiting for pause to complete`);
             }
             
             console.log(`✅ Correct count maintained - completion timer active`);
