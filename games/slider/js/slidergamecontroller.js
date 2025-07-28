@@ -941,10 +941,6 @@ class SliderGameController {
         this.invalidArrangementStartTime = null;
         this.readyForAnswerStartTime = null;
         
-        if (this.guineaPigWave) {
-            this.guineaPigWave.stopAnimation();
-        }
-        
         this.sliderDisabled = false;
     }
     
