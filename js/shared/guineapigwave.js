@@ -21,7 +21,7 @@ class SimplifiedGuineaPigWave {
         };
         
         this.scenario2 = {
-            pausePosition: { min: 0.3, max: 0.6 }, // 30-60% through path
+            pausePosition: { min: 0.4, max: 0.7 }, // Changed from 30-60% to 40-70%
             pauseTime: 500,         // 0.5 seconds pause
             frontFacingTime: 2000   // 2 seconds facing front
         };
@@ -113,11 +113,14 @@ class SimplifiedGuineaPigWave {
         // Create guinea pig
         this.guineaPig = this.createGuineaPigElement();
         
-        // Set pause position for scenario 2
+        // Set pause position and deceleration for scenario 2
         if (this.currentScenario === 'pause_and_face_front') {
             const min = this.scenario2.pausePosition.min;
             const max = this.scenario2.pausePosition.max;
             this.guineaPig.pausePosition = min + Math.random() * (max - min);
+            
+            // Random deceleration strength (between 3 and 5 for varied stopping behavior)
+            this.guineaPig.decelerationPower = 3 + Math.random() * 2;
         }
     }
     
@@ -221,8 +224,9 @@ class SimplifiedGuineaPigWave {
     updatePauseAndFaceFront(elapsed) {
         const { pauseTime, frontFacingTime } = this.scenario2;
         const pausePos = this.guineaPig.pausePosition;
+        const decelerationPower = this.guineaPig.decelerationPower;
         
-        // Calculate durations based on pause position
+        // Calculate durations - same timing approach but with deceleration/acceleration
         const timeToReachPause = 2000 * pausePos; // Proportional time to reach pause
         const timeFromPauseToEnd = 2000 * (1 - pausePos); // Proportional time from pause to end
         const totalTime = timeToReachPause + pauseTime + frontFacingTime + timeFromPauseToEnd;
@@ -244,9 +248,11 @@ class SimplifiedGuineaPigWave {
         y = baseY; // No vertical movement in this scenario
         
         if (elapsed <= timeToReachPause) {
-            // Phase 1: Moving to pause position at uniform speed
+            // Phase 1: Fast entry with strong deceleration to pause position (like bead sliding and stopping)
             const phaseProgress = elapsed / timeToReachPause;
-            progress = phaseProgress * pausePos;
+            // Use the random deceleration power for varied stopping behavior
+            const easedProgress = 1 - Math.pow(1 - phaseProgress, decelerationPower);
+            progress = easedProgress * pausePos;
             this.guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.guineaPig.phase = 'approaching';
             
@@ -263,11 +269,13 @@ class SimplifiedGuineaPigWave {
             this.guineaPig.phase = 'facing_front';
             
         } else {
-            // Phase 4: Turn back to guineapig2 and continue moving off the page
+            // Phase 4: Strong acceleration from pause position to off screen (like bead being flicked)
             const exitElapsed = elapsed - timeToReachPause - pauseTime - frontFacingTime;
             const exitProgress = exitElapsed / timeFromPauseToEnd;
-            // Continue from pause position to well off screen (120% to ensure it exits)
-            progress = pausePos + (exitProgress * (1.2 - pausePos));
+            // Use ease-in (acceleration) - symmetrical to the deceleration
+            const acceleratedProgress = Math.pow(exitProgress, decelerationPower);
+            // Continue from pause position to well off screen (130% to ensure complete exit)
+            progress = pausePos + (acceleratedProgress * (1.3 - pausePos));
             this.guineaPig.element.src = `${this.imagePath}guineapig2.png`; // Back to right-facing
             this.guineaPig.phase = 'exiting';
         }
