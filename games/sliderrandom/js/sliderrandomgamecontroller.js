@@ -567,6 +567,8 @@ class SliderRandomGameController {
             } else {
                 console.log(`⏳ Timer already running correctly`);
             }
+            
+            console.log(`✅ Correct count - completion timer active`);
         } else {
         } else {
             // Wrong count - clear timer
