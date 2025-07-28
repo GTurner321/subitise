@@ -518,12 +518,8 @@ class SliderRandomGameController {
             console.log(`🔄 Bead arrangement changed - hash: ${currentHash}`);
             this.lastArrangementHash = currentHash;
             
-            // Clear completion timer if arrangement changed
-            if (this.completionCheckTimer) {
-                clearTimeout(this.completionCheckTimer);
-                this.completionCheckTimer = null;
-                console.log(`🔄 Completion timer cleared - arrangement changed`);
-            }
+            // Clear completion timer ONLY if arrangement changed AND we have the wrong count
+            // This prevents clearing the timer when we have the right count but minor position adjustments
         }
         
         // Valid arrangement - count right side beads with detailed logging
@@ -553,14 +549,22 @@ class SliderRandomGameController {
         const finalCount = Math.max(rightSideCount, manualCount); // Use the higher count in case of discrepancy
         
         if (finalCount === this.targetNumber) {
-            // Correct - start completion timer only if not already running
+            // Correct count achieved
+            if (arrangementChanged && this.completionCheckTimer) {
+                // Clear and restart timer only if arrangement changed
+                clearTimeout(this.completionCheckTimer);
+                this.completionCheckTimer = null;
+                console.log(`🔄 Completion timer restarted - arrangement changed with correct count`);
+            }
+            
+            // Start completion timer only if not already running
             if (!this.completionCheckTimer) {
-                console.log(`🎯 Starting NEW completion timer - first time reaching correct count`);
+                console.log(`🎯 Starting 2-second completion timer - correct count: ${finalCount}`);
                 this.awaitingCompletion = true;
                 this.completionCheckTimer = setTimeout(() => {
                     // Timer runs continuously until this point - record completion time now
                     const completionTime = Date.now();
-                    console.log(`⏰ 2 seconds of correct arrangement completed!`);
+                    console.log(`⏰ 2-second pause completed! Question finished.`);
                     this.handleCorrectAnswer(completionTime);
                 }, CONFIG.COMPLETION_DELAY);
                 
@@ -568,10 +572,10 @@ class SliderRandomGameController {
                 this.speakText('Well done!');
                 this.guineaPigWave.startAnimation(88);
             } else {
-                console.log(`⏳ Completion timer already running - maintaining countdown`);
+                console.log(`⏳ 2-second completion timer running... (${CONFIG.COMPLETION_DELAY/1000}s remaining)`);
             }
             
-            console.log(`✅ Correct count - completion timer active`);
+            console.log(`✅ Correct count maintained - completion timer active`);
         } else {
             // Wrong count - clear completion timer
             if (this.completionCheckTimer) {
