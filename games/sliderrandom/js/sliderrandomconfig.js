@@ -15,6 +15,25 @@ const CONFIG = {
         '#ffd700'  // Gold
     ],
     
+    // Level system for random numbers
+    LEVELS: {
+        1: [2, 3, 4, 5],
+        2: [6, 7, 8, 9, 10],
+        3: [11, 12, 13, 14, 15],
+        4: [16, 17, 18, 19],
+        5: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    },
+    
+    // Number words for display
+    NUMBER_WORDS: {
+        2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
+        11: 'eleven', 12: 'twelve', 13: 'thirteen', 14: 'fourteen', 15: 'fifteen', 16: 'sixteen', 17: 'seventeen', 18: 'eighteen', 19: 'nineteen'
+    },
+    
+    // Timing
+    LEVEL_UP_TIME_LIMIT: 13, // 15 seconds minus 2 seconds for completion check
+    COMPLETION_DELAY: 2000, // 2 seconds before checking completion
+    
     // Bead properties
     BEADS_PER_BAR: 10,
     TOTAL_BEADS: 20,
@@ -41,8 +60,5 @@ const CONFIG = {
     
     // Timing
     FLASH_DURATION: 800,
-    NEXT_QUESTION_DELAY: 2000,
-    
-    // Button numbers (will be shuffled each game)
-    BUTTON_NUMBERS: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+    NEXT_QUESTION_DELAY: 2000
 };
