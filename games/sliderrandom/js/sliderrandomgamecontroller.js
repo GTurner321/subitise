@@ -201,35 +201,47 @@ class SliderRandomGameController {
         
         const frameRect = this.sliderRenderer.frameImageRect;
         if (!frameRect) {
-            // Fallback if frame rect not available yet
-            const gameArea = document.querySelector('.game-area');
-            const gameAreaRect = gameArea.getBoundingClientRect();
-            const sliderContainerTop = gameAreaRect.top + (gameAreaRect.height * 0.35);
-            const sliderContainerHeight = gameAreaRect.height * 0.60;
-            
-            this.arrowElement.style.height = `${gameAreaRect.height * 0.15}px`;
-            this.arrowElement.style.width = 'auto';
-            this.arrowElement.style.left = `${gameAreaRect.right - 100}px`;
-            this.arrowElement.style.top = `${sliderContainerTop + sliderContainerHeight * 0.5}px`;
+            console.log('Frame rect not available yet, skipping arrow positioning');
             return;
         }
         
-        // Size the arrow to be about 15% of game area height
-        const gameArea = document.querySelector('.game-area');
-        const gameAreaRect = gameArea.getBoundingClientRect();
-        const arrowHeight = gameAreaRect.height * 0.15;
+        console.log('Frame positioning:', {
+            x: frameRect.x,
+            y: frameRect.y,
+            width: frameRect.width,
+            height: frameRect.height
+        });
+        
+        // Size the arrow to be proportional to the frame height
+        const arrowHeight = frameRect.height * 0.25; // 25% of frame height
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position at the right end of the slider frame, centered vertically
-        const arrowX = frameRect.x + frameRect.width + 10; // Just to the right of frame
+        // Position at the right edge of the slider frame (outside, not inside)
+        // The frame rect gives us the exact position and size of the slider frame image
+        const arrowX = frameRect.x + frameRect.width + 15; // 15px margin outside the right edge
         const arrowY = frameRect.y + (frameRect.height / 2); // Vertically centered on frame
         
-        // Center the arrow on the calculated position
+        console.log('Arrow positioning:', {
+            arrowX,
+            arrowY,
+            arrowHeight,
+            frameRight: frameRect.x + frameRect.width,
+            frameCenter: frameRect.y + (frameRect.height / 2)
+        });
+        
+        // Position the arrow - center it both horizontally and vertically on the calculated point
         if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
             const arrowWidth = this.arrowElement.offsetWidth || (arrowHeight * 0.6);
-            this.arrowElement.style.left = `${arrowX}px`;
+            this.arrowElement.style.left = `${arrowX}px`; // Left edge of arrow at calculated X
             this.arrowElement.style.top = `${arrowY - (arrowHeight / 2)}px`; // Center vertically
+            
+            console.log('Final arrow position:', {
+                left: arrowX,
+                top: arrowY - (arrowHeight / 2),
+                width: arrowWidth,
+                height: arrowHeight
+            });
         } else {
             // Fallback positioning if image not loaded yet
             this.arrowElement.style.left = `${arrowX}px`;
@@ -243,7 +255,7 @@ class SliderRandomGameController {
         this.positionArrow();
         this.arrowElement.style.opacity = '1';
         
-        // Pulse continuously throughout the entire 4-second duration
+        // Pulse continuously when correct answer is achieved
         this.arrowElement.style.animation = 'arrowPulse 1s ease-in-out infinite';
         
         setTimeout(() => {
@@ -786,7 +798,29 @@ class SliderRandomGameController {
         // Give audio instruction
         this.speakText(`Put ${this.targetNumber} beads on the right side`);
         
+        // Show arrow during "right side" part of instruction (2-3 seconds in)
+        setTimeout(() => {
+            this.showArrowBriefly();
+        }, 2000);
+        
         console.log(`Question ${this.currentQuestion}: Put ${this.targetNumber} beads on the right (Level ${this.currentLevel})`);
+    }
+    
+    showArrowBriefly() {
+        if (!this.arrowElement) return;
+        
+        this.positionArrow();
+        this.arrowElement.style.opacity = '1';
+        
+        // Pulse for 1 second (between 2-3 seconds into instruction)
+        this.arrowElement.style.animation = 'arrowPulse 0.5s ease-in-out infinite';
+        
+        setTimeout(() => {
+            if (this.arrowElement) {
+                this.arrowElement.style.animation = '';
+                this.arrowElement.style.opacity = '0';
+            }
+        }, 1000); // Show for 1 second (2-3 seconds into question)
     }
     
     startNewGame() {
