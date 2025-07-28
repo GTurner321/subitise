@@ -196,7 +196,6 @@ class SliderRandomGameController {
             this.sliderRenderer.updateBarState();
         }, 50);
     }
-    }
     
     // Convert number to written word
     numberToText(num) {
