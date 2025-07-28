@@ -7,11 +7,16 @@ class SliderRandomGameController {
         
         // Game state
         this.currentQuestion = 1;
-        this.expectedBeadsOnRight = 2;
+        this.currentLevel = 1;
+        this.targetNumber = 2;
+        this.questionStartTime = null;
         this.gameComplete = false;
-        this.buttonsDisabled = false;
-        this.awaitingButtonPress = false;
         this.sliderDisabled = false;
+        this.awaitingCompletion = false;
+        
+        // Level management
+        this.usedNumbers = new Set(); // Track used numbers in current level
+        this.availableNumbers = [...CONFIG.LEVELS[1]]; // Copy of current level numbers
         
         // Multi-touch drag state
         this.dragState = {
@@ -28,14 +33,15 @@ class SliderRandomGameController {
         // Timing for delayed messages
         this.invalidArrangementTimer = null;
         this.invalidArrangementStartTime = null;
-        this.readyForAnswerTimer = null;
-        this.readyForAnswerStartTime = null;
+        this.completionCheckTimer = null;
         this.lastActivityTime = null;
         
         // UI elements
         this.arrowElement = null;
         this.muteButton = null;
         this.muteContainer = null;
+        this.largeNumberElement = document.getElementById('largeNumber');
+        this.numberTextElement = document.getElementById('numberText');
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
@@ -148,7 +154,7 @@ class SliderRandomGameController {
     createArrowElement() {
         this.arrowElement = document.createElement('img');
         this.arrowElement.className = 'slider-arrow';
-        this.arrowElement.src = '../../assets/slider/uparrow.png'; // Fixed path from slider game folder
+        this.arrowElement.src = '../../assets/slider/uparrow.png';
         this.arrowElement.alt = 'Up Arrow';
         
         this.arrowElement.style.cssText = `
@@ -201,7 +207,7 @@ class SliderRandomGameController {
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position at 75% from left of GAME AREA (not 80%)
+        // Position at 75% from left of GAME AREA
         const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.75);
         
         // Vertical position still relative to frame (underneath slider frame)
@@ -302,121 +308,6 @@ class SliderRandomGameController {
                 });
             }
         });
-    }
-    
-    handleKeyPress(e) {
-        // Only handle number keys and prevent if buttons are disabled
-        if (this.buttonsDisabled || !this.awaitingButtonPress) return;
-        
-        const key = e.key;
-        if (!/^[0-9]$/.test(key)) return;
-        
-        e.preventDefault();
-        
-        const now = Date.now();
-        const digit = parseInt(key);
-        
-        // Clear existing timeout
-        if (this.keyboardInput.inputTimeout) {
-            clearTimeout(this.keyboardInput.inputTimeout);
-            this.keyboardInput.inputTimeout = null;
-        }
-        
-        // If more than 3 seconds since last key, start fresh
-        if (now - this.keyboardInput.lastKeyTime > 3000) {
-            this.keyboardInput.currentInput = '';
-        }
-        
-        this.keyboardInput.currentInput += digit;
-        this.keyboardInput.lastKeyTime = now;
-        
-        console.log(`Keyboard input: ${this.keyboardInput.currentInput}, expected: ${this.expectedBeadsOnRight}`);
-        
-        // Check for immediate matches (single digit answers)
-        if (this.keyboardInput.currentInput.length === 1) {
-            const singleDigit = parseInt(this.keyboardInput.currentInput);
-            
-            // For single digit answers (2, 4, 6, 8)
-            if ([2, 4, 6, 8].includes(singleDigit) && singleDigit === this.expectedBeadsOnRight) {
-                this.processKeyboardInput(singleDigit);
-                return;
-            }
-            
-            // For "2" when expecting "20" - wait to see if "0" follows
-            if (digit === 2 && this.expectedBeadsOnRight === 20) {
-                this.keyboardInput.inputTimeout = setTimeout(() => {
-                    // If no second digit, treat as invalid
-                    this.resetKeyboardInput();
-                }, 3000);
-                return;
-            }
-            
-            // For "1" - always wait for second digit for 10, 12, 14, 16, 18
-            if (digit === 1) {
-                this.keyboardInput.inputTimeout = setTimeout(() => {
-                    // If no second digit, reset
-                    this.resetKeyboardInput();
-                }, 3000);
-                return;
-            }
-            
-            // Invalid single digit input
-            this.resetKeyboardInput();
-            return;
-        }
-        
-        // Handle two-digit input
-        if (this.keyboardInput.currentInput.length === 2) {
-            const twoDigit = parseInt(this.keyboardInput.currentInput);
-            
-            // Check if it matches expected answer
-            if (twoDigit === this.expectedBeadsOnRight) {
-                this.processKeyboardInput(twoDigit);
-            } else {
-                // Wrong answer - show feedback
-                this.handleIncorrectKeyboardInput(twoDigit);
-            }
-            return;
-        }
-        
-        // More than 2 digits - reset
-        this.resetKeyboardInput();
-    }
-    
-    processKeyboardInput(number) {
-        // Find the button with this number
-        const targetButton = Array.from(this.numberButtons).find(btn => 
-            parseInt(btn.dataset.number) === number
-        );
-        
-        if (targetButton) {
-            this.resetKeyboardInput();
-            this.handleNumberClick(number, targetButton);
-        }
-    }
-    
-    handleIncorrectKeyboardInput(number) {
-        // Find the button with this number (if it exists)
-        const targetButton = Array.from(this.numberButtons).find(btn => 
-            parseInt(btn.dataset.number) === number
-        );
-        
-        if (targetButton) {
-            this.resetKeyboardInput();
-            this.handleIncorrectAnswer(targetButton);
-        } else {
-            // Number not found in buttons - just reset
-            this.resetKeyboardInput();
-        }
-    }
-    
-    resetKeyboardInput() {
-        this.keyboardInput.currentInput = '';
-        this.keyboardInput.lastKeyTime = 0;
-        if (this.keyboardInput.inputTimeout) {
-            clearTimeout(this.keyboardInput.inputTimeout);
-            this.keyboardInput.inputTimeout = null;
-        }
     }
     
     handleDragStart(x, y, touchId = 'mouse') {
@@ -577,7 +468,7 @@ class SliderRandomGameController {
         const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
         
         console.log(`\n=== GAME STATE CHECK ===`);
-        console.log(`Expected beads on right: ${this.expectedBeadsOnRight}`);
+        console.log(`Target number: ${this.targetNumber}`);
         console.log(`Has middle beads: ${hasMiddleBeads}`);
         console.log(`Slider disabled: ${this.sliderDisabled}`);
         
@@ -589,16 +480,15 @@ class SliderRandomGameController {
                 this.scheduleInactivityCheck();
             }
             
-            // Clear ready timer
-            if (this.readyForAnswerTimer) {
-                clearTimeout(this.readyForAnswerTimer);
-                this.readyForAnswerTimer = null;
-                this.readyForAnswerStartTime = null;
+            // Clear completion timer
+            if (this.completionCheckTimer) {
+                clearTimeout(this.completionCheckTimer);
+                this.completionCheckTimer = null;
             }
             
-            this.awaitingButtonPress = false;
+            this.awaitingCompletion = false;
             this.sliderDisabled = false;
-            console.log(`❌ Invalid arrangement - buttons disabled`);
+            console.log(`❌ Invalid arrangement - waiting for valid arrangement`);
             console.log(`=== END GAME STATE CHECK ===\n`);
             return;
         }
@@ -614,44 +504,35 @@ class SliderRandomGameController {
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         console.log(`Right side count: ${rightSideCount}`);
         
-        if (rightSideCount === this.expectedBeadsOnRight) {
-            // Correct - enable buttons immediately and start 3-second timer
-            this.awaitingButtonPress = true;
-            
-            if (!this.readyForAnswerStartTime) {
-                this.readyForAnswerStartTime = currentTime;
-                this.readyForAnswerTimer = setTimeout(() => {
-                    console.log(`⏰ 3 seconds elapsed - pausing slider and showing guinea pig`);
-                    
-                    this.sliderDisabled = true;
-                    
-                    if (this.currentQuestion === 1) {
-                        this.speakText('Now select the button underneath for the number of beads on the right side');
-                    } else {
-                        this.speakText('Select the matching button underneath');
-                    }
-                    
-                    this.showArrow();
-                    this.guineaPigWave.startAnimation();
-                }, 3000);
+        if (rightSideCount === this.targetNumber) {
+            // Correct - start 2-second completion timer
+            if (!this.completionCheckTimer) {
+                this.awaitingCompletion = true;
+                this.completionCheckTimer = setTimeout(() => {
+                    console.log(`⏰ 2 seconds elapsed - question completed!`);
+                    this.handleCorrectAnswer();
+                }, CONFIG.COMPLETION_DELAY);
+                
+                this.speakText('Well done!');
+                this.showArrow();
+                this.guineaPigWave.startAnimation();
             }
             
-            console.log(`✅ Correct count - buttons enabled immediately`);
+            console.log(`✅ Correct count - starting completion timer`);
         } else {
-            // Wrong count - clear timer and disable buttons
-            if (this.readyForAnswerTimer) {
-                clearTimeout(this.readyForAnswerTimer);
-                this.readyForAnswerTimer = null;
-                this.readyForAnswerStartTime = null;
+            // Wrong count - clear timer
+            if (this.completionCheckTimer) {
+                clearTimeout(this.completionCheckTimer);
+                this.completionCheckTimer = null;
             }
             
-            this.awaitingButtonPress = false;
+            this.awaitingCompletion = false;
             this.sliderDisabled = false;
             
-            console.log(`⏳ Wrong count: ${rightSideCount}, need ${this.expectedBeadsOnRight}`);
+            console.log(`⏳ Wrong count: ${rightSideCount}, need ${this.targetNumber}`);
         }
         
-        console.log(`Final state: awaiting=${this.awaitingButtonPress}, disabled=${this.sliderDisabled}`);
+        console.log(`Final state: awaiting=${this.awaitingCompletion}, disabled=${this.sliderDisabled}`);
         console.log(`=== END GAME STATE CHECK ===\n`);
     }
     
@@ -681,28 +562,117 @@ class SliderRandomGameController {
         }, 10000);
     }
     
+    handleCorrectAnswer() {
+        this.clearTimers();
+        
+        // Calculate completion time (subtract 2 seconds for the completion delay)
+        const completionTime = (Date.now() - this.questionStartTime - CONFIG.COMPLETION_DELAY) / 1000;
+        console.log(`Question completed in ${completionTime} seconds`);
+        
+        // Level progression logic
+        if (completionTime < CONFIG.LEVEL_UP_TIME_LIMIT) {
+            // Move up a level (max level 5)
+            if (this.currentLevel < 5) {
+                this.currentLevel++;
+                console.log(`Level up! Now at level ${this.currentLevel}`);
+            }
+        } else {
+            // Move down a level (min level 1)
+            if (this.currentLevel > 1) {
+                this.currentLevel--;
+                console.log(`Level down! Now at level ${this.currentLevel}`);
+            }
+        }
+        
+        // Update available numbers for new level
+        this.updateAvailableNumbers();
+        
+        // Add rainbow piece and play sound
+        this.rainbow.addPiece();
+        this.playCompletionSound();
+        
+        // Check if game is complete
+        if (this.currentQuestion >= CONFIG.MAX_QUESTIONS) {
+            setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
+            return;
+        }
+        
+        // Move to next question
+        this.currentQuestion++;
+        setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY);
+    }
+    
+    updateAvailableNumbers() {
+        const levelNumbers = [...CONFIG.LEVELS[this.currentLevel]];
+        
+        // Remove used numbers from current level
+        this.availableNumbers = levelNumbers.filter(num => !this.usedNumbers.has(num));
+        
+        // If all numbers in level have been used, reset the used set for this level
+        if (this.availableNumbers.length === 0) {
+            this.usedNumbers.clear();
+            this.availableNumbers = [...levelNumbers];
+        }
+        
+        console.log(`Level ${this.currentLevel} available numbers:`, this.availableNumbers);
+    }
+    
+    selectRandomNumber() {
+        if (this.availableNumbers.length === 0) {
+            this.updateAvailableNumbers();
+        }
+        
+        const randomIndex = Math.floor(Math.random() * this.availableNumbers.length);
+        const selectedNumber = this.availableNumbers[randomIndex];
+        
+        // Mark this number as used
+        this.usedNumbers.add(selectedNumber);
+        
+        // Remove from available numbers
+        this.availableNumbers.splice(randomIndex, 1);
+        
+        return selectedNumber;
+    }
+    
+    updateTargetDisplay(number) {
+        this.largeNumberElement.textContent = number;
+        this.numberTextElement.textContent = CONFIG.NUMBER_WORDS[number];
+    }
+    
     startNewQuestion() {
         if (this.gameComplete) return;
         
         this.clearTimers();
         
-        if (this.currentQuestion === 1) {
-            this.speakText('We\'re going to count in twos, so start by sliding 2 beads to the right side');
-            // Don't show arrow immediately - only after 3 seconds via timer
-        } else {
-            this.speakText('Now slide 2 more beads to the right side');
-            // Don't show arrow immediately - only after 3 seconds via timer
-        }
+        // Reset slider to all beads on left
+        this.sliderRenderer.reset();
+        
+        // Select new target number
+        this.targetNumber = this.selectRandomNumber();
+        this.updateTargetDisplay(this.targetNumber);
+        
+        // Record question start time
+        this.questionStartTime = Date.now();
+        
+        // Give audio instruction
+        this.speakText(`Put ${this.targetNumber} beads on the right side`);
+        
+        console.log(`Question ${this.currentQuestion}: Put ${this.targetNumber} beads on the right (Level ${this.currentLevel})`);
     }
     
     startNewGame() {
         this.currentQuestion = 1;
-        this.expectedBeadsOnRight = 2;
+        this.currentLevel = 1;
+        this.targetNumber = 2;
         this.gameComplete = false;
-        this.buttonsDisabled = false;
-        this.awaitingButtonPress = false;
         this.sliderDisabled = false;
+        this.awaitingCompletion = false;
+        this.questionStartTime = null;
         this.lastActivityTime = null;
+        
+        // Reset level management
+        this.usedNumbers.clear();
+        this.availableNumbers = [...CONFIG.LEVELS[1]];
         
         this.clearTimers();
         
@@ -739,12 +709,11 @@ class SliderRandomGameController {
             clearTimeout(this.invalidArrangementTimer);
             this.invalidArrangementTimer = null;
         }
-        if (this.readyForAnswerTimer) {
-            clearTimeout(this.readyForAnswerTimer);
-            this.readyForAnswerTimer = null;
+        if (this.completionCheckTimer) {
+            clearTimeout(this.completionCheckTimer);
+            this.completionCheckTimer = null;
         }
         this.invalidArrangementStartTime = null;
-        this.readyForAnswerStartTime = null;
         
         if (this.guineaPigWave) {
             this.guineaPigWave.stopAnimation();
