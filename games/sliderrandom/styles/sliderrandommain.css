@@ -69,7 +69,7 @@ body {
 /* Target number display */
 .target-number-display {
     position: absolute;
-    top: 10%;
+    top: 5%;
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
@@ -119,7 +119,7 @@ body {
 /* Slider container */
 .slider-container {
     position: absolute;
-    top: 40%;
+    top: 35%;
     left: 10%;
     width: 80%;
     height: 60%;
