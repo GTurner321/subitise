@@ -31,6 +31,7 @@ class SliderRandomRenderer {
     
     updateContainerRect() {
         this.containerRect = this.sliderContainer.getBoundingClientRect();
+        console.log('SliderRandomRenderer: Container rect:', this.containerRect);
         
         // Calculate actual frame image dimensions (1516x475 aspect ratio)
         const containerAspectRatio = this.containerRect.width / this.containerRect.height;
@@ -57,6 +58,9 @@ class SliderRandomRenderer {
         // Bead diameter is 12% of frame height, made 20% larger
         this.beadDiameter = this.frameImageRect.height * 0.12 * 1.2;
         this.beadRadius = this.beadDiameter / 2;
+        
+        console.log('SliderRandomRenderer: Frame rect:', this.frameImageRect);
+        console.log('SliderRandomRenderer: Bead diameter:', this.beadDiameter);
         
         this.updateBarDimensions();
     }
@@ -90,6 +94,8 @@ class SliderRandomRenderer {
     }
     
     initializeBeads() {
+        console.log('SliderRandomRenderer: Initializing beads...');
+        
         // Clear existing beads
         this.beads.forEach(bead => {
             if (bead.element && bead.element.parentNode) {
@@ -103,8 +109,11 @@ class SliderRandomRenderer {
             for (let beadIndex = 0; beadIndex < CONFIG.BEADS_PER_BAR; beadIndex++) {
                 const bead = this.createBead(barIndex, beadIndex);
                 this.beads.push(bead);
+                console.log(`Created bead ${bead.id} at position ${bead.position} on bar ${barIndex}`);
             }
         }
+        
+        console.log('SliderRandomRenderer: Total beads created:', this.beads.length);
     }
     
     createBead(barIndex, beadIndex) {
@@ -139,7 +148,10 @@ class SliderRandomRenderer {
     }
     
     positionBead(bead) {
-        if (!this.frameImageRect) return;
+        if (!this.frameImageRect) {
+            console.log('SliderRandomRenderer: No frameImageRect, cannot position bead');
+            return;
+        }
         
         const barY = bead.barIndex === 0 ? 0.34 : 0.60;
         
@@ -157,6 +169,8 @@ class SliderRandomRenderer {
         
         bead.element.style.left = `${beadLeft}px`;
         bead.element.style.top = `${beadTop}px`;
+        
+        console.log(`Positioned bead ${bead.id} at (${beadLeft}, ${beadTop}), size: ${this.beadDiameter}px`);
     }
     
     updateBarState() {
