@@ -94,6 +94,8 @@ class SliderRandomRenderer {
     }
     
     initializeBeads() {
+        console.log('SliderRandomRenderer: Initializing beads...');
+        
         // Clear existing beads
         this.beads.forEach(bead => {
             if (bead.element && bead.element.parentNode) {
@@ -107,8 +109,11 @@ class SliderRandomRenderer {
             for (let beadIndex = 0; beadIndex < CONFIG.BEADS_PER_BAR; beadIndex++) {
                 const bead = this.createBead(barIndex, beadIndex);
                 this.beads.push(bead);
+                console.log(`Created bead ${bead.id} at position ${bead.position} on bar ${barIndex}`);
             }
         }
+        
+        console.log('SliderRandomRenderer: Total beads created:', this.beads.length);
     }
     
     createBead(barIndex, beadIndex) {
@@ -143,7 +148,10 @@ class SliderRandomRenderer {
     }
     
     positionBead(bead) {
-        if (!this.frameImageRect) return;
+        if (!this.frameImageRect) {
+            console.log('SliderRandomRenderer: No frameImageRect, cannot position bead');
+            return;
+        }
         
         const barY = bead.barIndex === 0 ? 0.34 : 0.60;
         
@@ -161,6 +169,15 @@ class SliderRandomRenderer {
         
         bead.element.style.left = `${beadLeft}px`;
         bead.element.style.top = `${beadTop}px`;
+        
+        console.log(`Positioned bead ${bead.id} at (${beadLeft}, ${beadTop}), size: ${this.beadDiameter}px`);
+        
+        // Force visibility with inline styles for debugging
+        bead.element.style.backgroundColor = bead.isBlue ? '#4285f4' : '#ea4335';
+        bead.element.style.border = '2px solid black';
+        bead.element.style.zIndex = '10000';
+        bead.element.style.display = 'block';
+        bead.element.style.visibility = 'visible';
     }
     
     updateBarState() {
