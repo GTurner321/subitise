@@ -120,13 +120,6 @@ class SliderRandomRenderer {
         const beadElement = document.createElement('div');
         beadElement.className = 'bead';
         
-        bead.element.style.cssText = `
-            width: ${this.beadDiameter}px;
-            height: ${this.beadDiameter}px;
-            position: absolute;
-            transition: none;
-        `;
-        
         // Color: first 5 blue, last 5 red
         const isBlue = beadIndex < 5;
         beadElement.classList.add(isBlue ? 'blue' : 'red');
@@ -141,6 +134,13 @@ class SliderRandomRenderer {
             isTouched: false,
             isBlue: isBlue
         };
+        
+        beadElement.style.cssText = `
+            width: ${this.beadDiameter}px;
+            height: ${this.beadDiameter}px;
+            position: absolute;
+            transition: none;
+        `;
         
         this.positionBead(bead);
         this.sliderContainer.appendChild(beadElement);
