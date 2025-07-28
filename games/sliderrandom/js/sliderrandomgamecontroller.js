@@ -465,6 +465,9 @@ class SliderRandomGameController {
             }
         }
         
+        // Force a final bar state update to ensure consistency
+        this.sliderRenderer.updateBarState();
+        
         this.dragState.activeTouches.delete(touchId);
         this.velocityTracking.delete(touchId);
         
@@ -509,11 +512,36 @@ class SliderRandomGameController {
             this.invalidArrangementStartTime = null;
         }
         
-        // Valid arrangement - count right side beads
-        const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-        console.log(`Right side count: ${rightSideCount}`);
+        // Force bar state update to ensure accuracy
+        this.sliderRenderer.updateBarState();
         
-        if (rightSideCount === this.targetNumber) {
+        // Valid arrangement - count right side beads with detailed logging
+        const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
+        
+        // Additional verification - let's double-check by counting manually
+        const manualCount = this.countBeadsOnRightSideManual();
+        
+        console.log(`Right side count (renderer): ${rightSideCount}`);
+        console.log(`Right side count (manual): ${manualCount}`);
+        
+        if (rightSideCount !== manualCount) {
+            console.warn(`⚠️ Count mismatch detected! Renderer: ${rightSideCount}, Manual: ${manualCount}`);
+            console.log(`Forcing bar state update and recounting...`);
+            
+            // Force update all bead positions and bar state
+            this.sliderRenderer.beads.forEach(bead => {
+                this.sliderRenderer.positionBead(bead);
+            });
+            this.sliderRenderer.updateBarState();
+            
+            // Recount after forced update
+            const updatedCount = this.sliderRenderer.countBeadsOnRightSide();
+            console.log(`Updated count after forced refresh: ${updatedCount}`);
+        }
+        
+        const finalCount = Math.max(rightSideCount, manualCount); // Use the higher count in case of discrepancy
+        
+        if (finalCount === this.targetNumber) {
             // Correct - start/restart 2-second completion timer
             if (this.completionCheckTimer) {
                 // Clear existing timer - user made a change, restart the 2-second wait
@@ -548,11 +576,60 @@ class SliderRandomGameController {
             this.awaitingCompletion = false;
             this.sliderDisabled = false;
             
-            console.log(`⏳ Wrong count: ${rightSideCount}, need ${this.targetNumber}`);
+            console.log(`⏳ Wrong count: ${finalCount}, need ${this.targetNumber}`);
         }
         
         console.log(`Final state: awaiting=${this.awaitingCompletion}, disabled=${this.sliderDisabled}`);
         console.log(`=== END GAME STATE CHECK ===\n`);
+    }
+    
+    // Manual verification method to double-check bead counting
+    countBeadsOnRightSideManual() {
+        const tolerance = 0.35; // Same tolerance as renderer
+        let totalRightSideBeads = 0;
+        
+        // Calculate bar bounds (same as renderer)
+        const barStartX = this.sliderRenderer.frameImageRect.width * 0.07;
+        const barEndX = this.sliderRenderer.frameImageRect.width * 0.92;
+        const barLength = barEndX - barStartX;
+        const playableLength = barLength - (2 * this.sliderRenderer.beadRadius);
+        const maxPosition = playableLength / this.sliderRenderer.beadDiameter;
+        
+        console.log(`Manual count - maxPosition: ${maxPosition.toFixed(3)}`);
+        
+        // Check each bar separately
+        for (let barIndex = 0; barIndex < 2; barIndex++) {
+            const barBeads = this.sliderRenderer.beads.filter(bead => bead.barIndex === barIndex);
+            const sortedBeads = barBeads.sort((a, b) => b.position - a.position); // Sort right to left
+            
+            let rightSideBeadsOnThisBar = 0;
+            
+            console.log(`Bar ${barIndex} beads (right to left):`, 
+                       sortedBeads.map(b => `${b.id}(${b.position.toFixed(3)})`));
+            
+            // Count continuous beads from the right end
+            for (let i = 0; i < sortedBeads.length; i++) {
+                const bead = sortedBeads[i];
+                const expectedPosition = maxPosition - i; // Expected position for i-th bead from right
+                const difference = Math.abs(bead.position - expectedPosition);
+                
+                console.log(`  Bead ${bead.id}: pos=${bead.position.toFixed(3)}, expected=${expectedPosition.toFixed(3)}, diff=${difference.toFixed(3)}`);
+                
+                // Check if this bead is in the correct position (within tolerance)
+                if (difference <= tolerance) {
+                    rightSideBeadsOnThisBar++;
+                    console.log(`    ✅ Counted (within tolerance ${tolerance})`);
+                } else {
+                    console.log(`    ❌ Gap found - stopping count`);
+                    break;
+                }
+            }
+            
+            console.log(`Bar ${barIndex} contributes ${rightSideBeadsOnThisBar} beads`);
+            totalRightSideBeads += rightSideBeadsOnThisBar;
+        }
+        
+        return totalRightSideBeads;
     }
     
     scheduleInactivityCheck() {
