@@ -557,7 +557,7 @@ class SliderRandomGameController {
                     const completionTime = Date.now();
                     console.log(`⏰ 2-second pause completed!`);
                     
-                    const encouragements = ['Well done!', 'Perfect!', 'Good job!', 'Correct!'];
+                    const encouragements = ['Well done!', 'Perfect!', 'Good job!'];
                     const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
                     this.speakText(randomEncouragement);
                     this.guineaPigWave.startAnimation(88);
