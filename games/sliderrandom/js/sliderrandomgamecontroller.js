@@ -199,52 +199,33 @@ class SliderRandomGameController {
     positionArrow() {
         if (!this.arrowElement) return;
         
-        const frameRect = this.sliderRenderer.frameImageRect;
-        if (!frameRect) {
-            console.log('Frame rect not available yet, skipping arrow positioning');
-            return;
-        }
+        const gameArea = document.querySelector('.game-area');
+        const gameAreaRect = gameArea.getBoundingClientRect();
         
-        console.log('Frame positioning:', {
-            x: frameRect.x,
-            y: frameRect.y,
-            width: frameRect.width,
-            height: frameRect.height
-        });
-        
-        // Size the arrow to be proportional to the frame height
-        const arrowHeight = frameRect.height * 0.25; // 25% of frame height
+        // Use approximate positioning relative to game area
+        const arrowHeight = gameAreaRect.height * 0.2; // Slightly larger (was 0.15)
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position at the right edge of the slider frame (outside, not inside)
-        // The frame rect gives us the exact position and size of the slider frame image
-        const arrowX = frameRect.x + frameRect.width + 15; // 15px margin outside the right edge
-        const arrowY = frameRect.y + (frameRect.height / 2); // Vertically centered on frame
+        // Position at 85% through the game area from left, 67% down from top
+        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.85);
+        const arrowY = gameAreaRect.top + (gameAreaRect.height * 0.67);
         
-        console.log('Arrow positioning:', {
+        console.log('Arrow positioning (approximate):', {
+            gameAreaRect,
             arrowX,
             arrowY,
-            arrowHeight,
-            frameRight: frameRect.x + frameRect.width,
-            frameCenter: frameRect.y + (frameRect.height / 2)
+            arrowHeight
         });
         
-        // Position the arrow - center it both horizontally and vertically on the calculated point
+        // Center the arrow on the calculated position
         if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
             const arrowWidth = this.arrowElement.offsetWidth || (arrowHeight * 0.6);
-            this.arrowElement.style.left = `${arrowX}px`; // Left edge of arrow at calculated X
+            this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`; // Center horizontally
             this.arrowElement.style.top = `${arrowY - (arrowHeight / 2)}px`; // Center vertically
-            
-            console.log('Final arrow position:', {
-                left: arrowX,
-                top: arrowY - (arrowHeight / 2),
-                width: arrowWidth,
-                height: arrowHeight
-            });
         } else {
             // Fallback positioning if image not loaded yet
-            this.arrowElement.style.left = `${arrowX}px`;
+            this.arrowElement.style.left = `${arrowX - (arrowHeight * 0.3)}px`;
             this.arrowElement.style.top = `${arrowY - (arrowHeight / 2)}px`;
         }
     }
