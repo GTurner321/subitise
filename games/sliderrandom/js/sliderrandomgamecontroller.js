@@ -207,8 +207,8 @@ class SliderRandomGameController {
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position at 90% through the game area from left, 65% down from top
-        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.90);
+        // Position at 92% through the game area from left, 65% down from top
+        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.92);
         const arrowY = gameAreaRect.top + (gameAreaRect.height * 0.65);
         
         console.log('Arrow positioning (approximate):', {
@@ -778,10 +778,10 @@ class SliderRandomGameController {
         // Give audio instruction
         this.speakText(`Put ${this.targetNumber} beads on the right side`);
         
-        // Show arrow during "right side" part of instruction (2-3 seconds in)
+        // Show arrow during instruction (1-4 seconds in)
         setTimeout(() => {
             this.showArrowBriefly();
-        }, 2000);
+        }, 1000);
         
         console.log(`Question ${this.currentQuestion}: Put ${this.targetNumber} beads on the right (Level ${this.currentLevel})`);
     }
@@ -792,15 +792,15 @@ class SliderRandomGameController {
         this.positionArrow();
         this.arrowElement.style.opacity = '1';
         
-        // Pulse for 1 second (between 2-3 seconds into instruction)
-        this.arrowElement.style.animation = 'arrowPulse 0.5s ease-in-out infinite';
+        // Pulse for 3 seconds (1-4 seconds into instruction) with 1-second intervals
+        this.arrowElement.style.animation = 'arrowPulse 1s ease-in-out infinite';
         
         setTimeout(() => {
             if (this.arrowElement) {
                 this.arrowElement.style.animation = '';
                 this.arrowElement.style.opacity = '0';
             }
-        }, 1000); // Show for 1 second (2-3 seconds into question)
+        }, 3000); // Show for 3 seconds (1-4 seconds into question)
     }
     
     startNewGame() {
