@@ -567,7 +567,9 @@ class SliderRandomGameController {
                     console.log(`⏰ 2-second pause completed! Question finished.`);
                     
                     // Show feedback ONLY after 2-second pause completes
-                    this.speakText('Well done!');
+                    const encouragements = ['Well done!', 'Perfect!', 'Good job!', 'Correct!'];
+                    const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+                    this.speakText(randomEncouragement);
                     this.guineaPigWave.startAnimation(88);
                     
                     this.handleCorrectAnswer(completionTime);
@@ -665,7 +667,7 @@ class SliderRandomGameController {
             
             // Check if 10 seconds have passed since last activity AND beads are still in middle
             if (timeSinceActivity >= 10000 && this.sliderRenderer.hasBeadsInMiddle()) {
-                this.speakText('don\'t leave any beads in the middle');
+                this.speakText(`Don't leave any beads in the middle. Arrange ${this.targetNumber} beads on the right side.`);
                 
                 // Reset activity time and schedule next check
                 this.lastActivityTime = now;
@@ -719,13 +721,13 @@ class SliderRandomGameController {
         
         // Check if game is complete
         if (this.currentQuestion >= CONFIG.MAX_QUESTIONS) {
-            setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
+            setTimeout(() => this.completeGame(), 2000); // 2-second delay before completion
             return;
         }
         
-        // Move to next question
+        // Move to next question with 2-second delay
         this.currentQuestion++;
-        setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY);
+        setTimeout(() => this.startNewQuestion(), 2000); // 2-second delay before next question
     }
     
     updateAvailableNumbers() {
