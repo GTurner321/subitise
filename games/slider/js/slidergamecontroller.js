@@ -153,7 +153,7 @@ class SliderGameController {
         // Button positions (centers) as percentages: 16.25, 23.75, 31.25, 38.75, 46.25, 53.75, 61.25, 68.75, 76.25, 83.75
         const buttonCenterPositions = [16.25, 23.75, 31.25, 38.75, 46.25, 53.75, 61.25, 68.75, 76.25, 83.75];
         const buttonWidth = 6.5; // 6.5% of page width
-        const buttonHeight = 6.5; // Keep square, so same as width
+        // Height = width to make square buttons
         
         // Create buttons
         for (let i = 0; i < 10; i++) {
@@ -164,14 +164,14 @@ class SliderGameController {
             
             // Position as percentage
             const leftPosition = buttonCenterPositions[i] - (buttonWidth / 2);
-            const bottomPosition = 10 - (buttonHeight / 2); // Center at 10% from bottom
+            const bottomPosition = 10 - (buttonWidth / 2); // Use buttonWidth for height to make square
             
             button.style.cssText = `
                 position: absolute;
                 left: ${leftPosition}vw;
                 bottom: ${bottomPosition}vh;
                 width: ${buttonWidth}vw;
-                height: ${buttonHeight}vh;
+                height: ${buttonWidth}vw;
                 font-size: calc(${buttonWidth / 2}vw);
                 border: none;
                 border-radius: 18px;
@@ -369,14 +369,14 @@ class SliderGameController {
         const gameArea = document.querySelector('.game-area');
         const gameAreaRect = gameArea.getBoundingClientRect();
         
-        // Height = 20% of game area
-        const arrowHeight = gameAreaRect.height * 0.2;
+        // Height = 30% of game area (50% larger than before which was 20%)
+        const arrowHeight = gameAreaRect.height * 0.3;
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position at 95% from left of GAME AREA, 34% from top
-        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.95);
-        const arrowY = gameAreaRect.top + (gameAreaRect.height * 0.34);
+        // Position at 92% from left of GAME AREA (3% further left from 95%), 37% from top (3% lower from 34%)
+        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.92);
+        const arrowY = gameAreaRect.top + (gameAreaRect.height * 0.37);
         
         // Center the arrow horizontally and vertically on the calculated position
         if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
