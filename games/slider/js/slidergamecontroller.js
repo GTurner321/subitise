@@ -818,7 +818,7 @@ class SliderGameController {
         console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.expectedBeadsOnRight) {
-            // Correct - enable buttons immediately and start 2-second timer (reduced from 3)
+            // Correct - enable buttons immediately and start 2-second timer
             this.awaitingButtonPress = true;
             
             if (!this.readyForAnswerStartTime) {
@@ -828,7 +828,7 @@ class SliderGameController {
                     
                     this.sliderDisabled = true;
                     
-                    // Add rainbow piece immediately when correct arrangement is achieved
+                    // Add rainbow piece at the END of the 2-second pause when beads are disabled
                     this.rainbow.addPiece();
                     
                     if (this.currentQuestion === 1) {
