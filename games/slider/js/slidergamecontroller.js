@@ -127,103 +127,102 @@ class SliderGameController {
         this.createMuteButton();
         this.createArrowElement();
         this.initializeEventListeners();
-        this.shuffleButtons();
         this.createButtonsAsPercentages();
         
-        // Fade in slider container
+        // Fade in slider container after a short delay to ensure frame loads
         setTimeout(() => {
             const sliderContainer = document.getElementById('sliderContainer');
             sliderContainer.classList.add('loaded');
-        }, 100);
+        }, 200); // Increased delay to ensure assets are ready
         
         this.startNewQuestion();
     }
     
     createButtonsAsPercentages() {
-        // Remove existing buttons
-        this.numberButtons.forEach(btn => btn.remove());
-        
-        // Create new buttons as percentages
-        const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
-        const numberButtonsContainer = document.querySelector('.number-buttons');
-        
         // Clear the container
+        const numberButtonsContainer = document.querySelector('.number-buttons');
         numberButtonsContainer.innerHTML = '';
+        
+        // Shuffle the button numbers at the start of each game
+        const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
+        for (let i = buttonNumbers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
+        }
         
         // Button positions (centers) as percentages: 16.25, 23.75, 31.25, 38.75, 46.25, 53.75, 61.25, 68.75, 76.25, 83.75
         const buttonCenterPositions = [16.25, 23.75, 31.25, 38.75, 46.25, 53.75, 61.25, 68.75, 76.25, 83.75];
         const buttonWidth = 6.5; // 6.5% of page width
-        // Height = width to make square buttons
+        const buttonHeight = 6.5; // 6.5vh for height to make proper squares
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'];
         
-        // Create buttons
-        for (let i = 0; i < 10; i++) {
-            const button = document.createElement('button');
-            button.className = 'number-btn';
-            button.dataset.number = buttonNumbers[i];
-            button.textContent = buttonNumbers[i];
+        // Wait 0.5 seconds before creating buttons
+        setTimeout(() => {
+            // Create buttons
+            for (let i = 0; i < 10; i++) {
+                const button = document.createElement('button');
+                button.className = 'number-btn';
+                button.dataset.number = buttonNumbers[i];
+                button.textContent = buttonNumbers[i];
+                
+                // Position as percentage - center at 11% from bottom
+                const leftPosition = buttonCenterPositions[i] - (buttonWidth / 2);
+                const bottomPosition = 11 - (buttonHeight / 2); // Center at 11% from bottom
+                
+                button.style.cssText = `
+                    position: absolute;
+                    left: ${leftPosition}vw;
+                    bottom: ${bottomPosition}vh;
+                    width: ${buttonWidth}vw;
+                    height: ${buttonHeight}vh;
+                    font-size: calc(${buttonWidth / 2}vw);
+                    border: none;
+                    border-radius: 18px;
+                    font-weight: bold;
+                    color: white;
+                    cursor: pointer;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                    touch-action: manipulation;
+                    -webkit-touch-callout: none;
+                    -webkit-user-select: none;
+                    user-select: none;
+                    pointer-events: auto;
+                    outline: none;
+                    background-color: ${colors[i]};
+                    opacity: 0;
+                    transform: translateY(10px);
+                    transition: all 0.3s ease;
+                `;
+                
+                // Add event listeners
+                button.addEventListener('click', (e) => {
+                    if (this.buttonsDisabled) return;
+                    const selectedNumber = parseInt(e.target.dataset.number);
+                    this.handleNumberClick(selectedNumber, e.target);
+                });
+                
+                button.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    if (this.buttonsDisabled) return;
+                    const selectedNumber = parseInt(e.target.dataset.number);
+                    this.handleNumberClick(selectedNumber, e.target);
+                });
+                
+                numberButtonsContainer.appendChild(button);
+                
+                // Fade in each button with a slight delay
+                setTimeout(() => {
+                    button.classList.add('fade-in');
+                }, i * 50); // 50ms delay between each button
+            }
             
-            // Position as percentage
-            const leftPosition = buttonCenterPositions[i] - (buttonWidth / 2);
-            const bottomPosition = 10 - (buttonWidth / 2); // Use buttonWidth for height to make square
+            // Update the buttons reference
+            this.numberButtons = document.querySelectorAll('.number-btn');
             
-            button.style.cssText = `
-                position: absolute;
-                left: ${leftPosition}vw;
-                bottom: ${bottomPosition}vh;
-                width: ${buttonWidth}vw;
-                height: ${buttonWidth}vw;
-                font-size: calc(${buttonWidth / 2}vw);
-                border: none;
-                border-radius: 18px;
-                font-weight: bold;
-                color: white;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                touch-action: manipulation;
-                -webkit-touch-callout: none;
-                -webkit-user-select: none;
-                user-select: none;
-                pointer-events: auto;
-                outline: none;
-                background-color: var(--btn-color);
-            `;
+            // Fade in the container
+            numberButtonsContainer.classList.add('loaded');
             
-            // Add button color
-            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'];
-            button.style.setProperty('--btn-color', colors[i]);
-            button.style.backgroundColor = colors[i];
-            
-            // Add event listeners
-            button.addEventListener('click', (e) => {
-                if (this.buttonsDisabled) return;
-                const selectedNumber = parseInt(e.target.dataset.number);
-                this.handleNumberClick(selectedNumber, e.target);
-            });
-            
-            button.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                if (this.buttonsDisabled) return;
-                const selectedNumber = parseInt(e.target.dataset.number);
-                this.handleNumberClick(selectedNumber, e.target);
-            });
-            
-            // Add hover effects
-            button.addEventListener('mouseenter', () => {
-                button.style.transform = 'translateY(-2px)';
-                button.style.boxShadow = '0 6px 12px rgba(0,0,0,0.3)';
-            });
-            
-            button.addEventListener('mouseleave', () => {
-                button.style.transform = 'translateY(0)';
-                button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-            });
-            
-            numberButtonsContainer.appendChild(button);
-        }
-        
-        // Update the buttons reference
-        this.numberButtons = document.querySelectorAll('.number-btn');
+        }, 500); // 0.5 second initial delay
     }
     
     async initializeAudio() {
@@ -369,25 +368,21 @@ class SliderGameController {
         const gameArea = document.querySelector('.game-area');
         const gameAreaRect = gameArea.getBoundingClientRect();
         
-        // Height = 30% of game area (50% larger than before which was 20%)
-        const arrowHeight = gameAreaRect.height * 0.3;
+        // Width = 8% of game area width, maintain aspect ratio (448x517)
+        const arrowWidth = gameAreaRect.width * 0.08;
+        const aspectRatio = 517 / 448; // height / width
+        const arrowHeight = arrowWidth * aspectRatio;
+        
+        this.arrowElement.style.width = `${arrowWidth}px`;
         this.arrowElement.style.height = `${arrowHeight}px`;
-        this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
         // Position at 92% from left of GAME AREA (3% further left from 95%), 37% from top (3% lower from 34%)
         const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.92);
         const arrowY = gameAreaRect.top + (gameAreaRect.height * 0.37);
         
         // Center the arrow horizontally and vertically on the calculated position
-        if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
-            const arrowWidth = this.arrowElement.offsetWidth || (arrowHeight * 0.6);
-            this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`;
-            this.arrowElement.style.top = `${arrowY - (arrowHeight / 2)}px`;
-        } else {
-            // Fallback positioning if image not loaded yet
-            this.arrowElement.style.left = `${arrowX - (arrowHeight * 0.3)}px`;
-            this.arrowElement.style.top = `${arrowY - (arrowHeight / 2)}px`;
-        }
+        this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`;
+        this.arrowElement.style.top = `${arrowY - (arrowHeight / 2)}px`;
     }
     
     showArrow() {
