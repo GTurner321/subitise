@@ -166,9 +166,9 @@ class SliderGameController {
                 button.dataset.number = buttonNumbers[i];
                 button.textContent = buttonNumbers[i];
                 
-                // Position as percentage - center at 5.25vw from bottom (center of 10.5vw container)
+                // Position as percentage - bottom edge at 2vw, centers will be at 5.25vw
                 const leftPosition = buttonCenterPositions[i] - (buttonWidth / 2);
-                const bottomPosition = 5.25; // Center of the 10.5vw container (2 + 6.5/2 = 5.25)
+                const bottomPosition = 2; // Bottom edge of buttons at 2vw from bottom
                 
                 button.style.cssText = `
                     position: absolute;
