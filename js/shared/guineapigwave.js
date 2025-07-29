@@ -7,7 +7,7 @@ class SimplifiedGuineaPigWave {
         // Configurable image path for different game folders
         this.imagePath = imagePath;
         
-        // Only 2 scenarios now
+        // Only 2 scenarios
         this.scenarios = [
             'bobbling_movement',    // Scenario 1: Fast entry, slow down, pause, bobble off
             'pause_and_face_front' // Scenario 2: Uniform speed with pause and face front
@@ -21,7 +21,7 @@ class SimplifiedGuineaPigWave {
         };
         
         this.scenario2 = {
-            pausePosition: { min: 0.4, max: 0.7 }, // Changed from 30-60% to 40-70%
+            pausePosition: { min: 0.4, max: 0.7 }, // 40-70% through path
             pauseTime: 500,         // 0.5 seconds pause
             frontFacingTime: 2000   // 2 seconds facing front
         };
@@ -98,6 +98,8 @@ class SimplifiedGuineaPigWave {
             element: element,
             yPosition: yPosition,
             pausePosition: null, // Will be set for scenario 2
+            stopPosition: null,  // Will be set for scenario 1
+            decelerationPower: null, // Will be set for both scenarios
             phase: 'entry' // Track current phase of animation
         };
     }
@@ -113,7 +115,7 @@ class SimplifiedGuineaPigWave {
         // Create guinea pig
         this.guineaPig = this.createGuineaPigElement();
         
-        // Set pause position and deceleration for scenario 2
+        // Set parameters for both scenarios
         if (this.currentScenario === 'pause_and_face_front') {
             const min = this.scenario2.pausePosition.min;
             const max = this.scenario2.pausePosition.max;
@@ -121,6 +123,13 @@ class SimplifiedGuineaPigWave {
             
             // Random deceleration strength (between 3 and 5 for varied stopping behavior)
             this.guineaPig.decelerationPower = 3 + Math.random() * 2;
+        } else if (this.currentScenario === 'bobbling_movement') {
+            // Random deceleration strength chosen first
+            this.guineaPig.decelerationPower = 3 + Math.random() * 2; // 3 to 5
+            
+            // Calculate the natural stop position based on deceleration strength
+            // Power 3 (weak) → stops around 70%, Power 5 (strong) → stops around 50%
+            this.guineaPig.stopPosition = 0.7 - ((this.guineaPig.decelerationPower - 3) / 2) * 0.2; // 0.7 to 0.5
         }
     }
     
@@ -169,16 +178,7 @@ class SimplifiedGuineaPigWave {
         const { fastEntryTime, pauseTime, bobbleExitTime } = this.scenario1;
         const totalTime = fastEntryTime + pauseTime + bobbleExitTime; // 2000 + 500 + 3000 = 5500ms
         
-        // Debug logging
-        if (elapsed % 500 < 16) { // Log every 500ms
-            console.log(`Bobbling - Elapsed: ${elapsed}ms, Total: ${totalTime}ms, Phase: ${this.guineaPig.phase}`);
-            console.log(`Position - X: ${x}px, Y: ${y}px, StopPos: ${this.guineaPig.stopPosition?.toFixed(2)}, DecPower: ${this.guineaPig.decelerationPower?.toFixed(2)}`);
-            console.log(`Element - Left: ${this.guineaPig.element.style.left}, Top: ${this.guineaPig.element.style.top}, Opacity: ${this.guineaPig.element.style.opacity}`);
-            console.log(`Image - Src: ${this.guineaPig.element.src}, Width: ${this.guineaPig.element.offsetWidth}px, Height: ${this.guineaPig.element.offsetHeight}px`);
-        }
-        
         if (elapsed >= totalTime) {
-            console.log('Bobbling animation complete - hiding guinea pig');
             this.guineaPig.element.style.opacity = '0';
             return;
         }
@@ -235,19 +235,12 @@ class SimplifiedGuineaPigWave {
         const timeFromPauseToEnd = 2000 * (1 - pausePos); // Proportional time from pause to end
         const totalTime = timeToReachPause + pauseTime + frontFacingTime + timeFromPauseToEnd;
         
-        // Debug logging
-        if (elapsed % 500 < 16) { // Log every 500ms
-            console.log(`PauseFront - Elapsed: ${elapsed}ms, Total: ${totalTime}ms, Phase: ${this.guineaPig.phase}, PausePos: ${pausePos.toFixed(2)}`);
-            console.log(`Times - ToReach: ${timeToReachPause}ms, Pause: ${pauseTime}ms, Front: ${frontFacingTime}ms, FromPause: ${timeFromPauseToEnd}ms`);
-        }
-        
         if (elapsed >= totalTime) {
-            console.log('PauseFront animation complete - hiding guinea pig');
             this.guineaPig.element.style.opacity = '0';
             return;
         }
         
-        let progress, x, y;
+        let x, y;
         const baseY = this.guineaPig.yPosition;
         y = baseY; // No vertical movement in this scenario
         
@@ -256,19 +249,22 @@ class SimplifiedGuineaPigWave {
             const phaseProgress = elapsed / timeToReachPause;
             // Use the random deceleration power for varied stopping behavior
             const easedProgress = 1 - Math.pow(1 - phaseProgress, decelerationPower);
-            progress = easedProgress * pausePos;
+            const progress = easedProgress * pausePos;
+            x = this.calculateX(progress);
             this.guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.guineaPig.phase = 'approaching';
             
         } else if (elapsed <= timeToReachPause + pauseTime) {
             // Phase 2: Brief pause (0.5 seconds) - stay as guineapig2
-            progress = pausePos;
+            const progress = pausePos;
+            x = this.calculateX(progress);
             this.guineaPig.element.src = `${this.imagePath}guineapig2.png`;
             this.guineaPig.phase = 'pausing';
             
         } else if (elapsed <= timeToReachPause + pauseTime + frontFacingTime) {
             // Phase 3: Face front (2 seconds) - change to guineapig3
-            progress = pausePos;
+            const progress = pausePos;
+            x = this.calculateX(progress);
             this.guineaPig.element.src = `${this.imagePath}guineapig3.png`;
             this.guineaPig.phase = 'facing_front';
             
@@ -279,12 +275,11 @@ class SimplifiedGuineaPigWave {
             // Use ease-in (acceleration) - symmetrical to the deceleration
             const acceleratedProgress = Math.pow(exitProgress, decelerationPower);
             // Continue from pause position to well off screen (130% to ensure complete exit)
-            progress = pausePos + (acceleratedProgress * (1.3 - pausePos));
+            const progress = pausePos + (acceleratedProgress * (1.3 - pausePos));
+            x = this.calculateX(progress);
             this.guineaPig.element.src = `${this.imagePath}guineapig2.png`; // Back to right-facing
             this.guineaPig.phase = 'exiting';
         }
-        
-        x = this.calculateX(progress);
         
         // Update position
         this.guineaPig.element.style.left = `${x - (this.guineaPig.element.offsetWidth / 2)}px`;
