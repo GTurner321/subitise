@@ -1072,8 +1072,6 @@ class SliderGameController {
             }
         }, duration);
     }
-        }
-    }
     
     startNewGame() {
         this.currentQuestion = 1;
