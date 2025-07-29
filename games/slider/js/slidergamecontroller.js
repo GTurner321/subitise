@@ -166,14 +166,14 @@ class SliderGameController {
                 button.dataset.number = buttonNumbers[i];
                 button.textContent = buttonNumbers[i];
                 
-                // Position as percentage - center at 11vh from bottom (this should be visible!)
+                // Position as percentage - center at 5.25vw from bottom (center of 10.5vw container)
                 const leftPosition = buttonCenterPositions[i] - (buttonWidth / 2);
-                const bottomPosition = 11; // 11% from bottom should definitely be visible
+                const bottomPosition = 5.25; // Center of the 10.5vw container (2 + 6.5/2 = 5.25)
                 
                 button.style.cssText = `
                     position: absolute;
                     left: ${leftPosition}vw;
-                    bottom: ${bottomPosition}vh;
+                    bottom: ${bottomPosition}vw;
                     width: ${buttonWidth}vw;
                     height: ${buttonHeight}vw;
                     font-size: calc(${buttonWidth / 2}vw);
