@@ -94,6 +94,12 @@ body {
     height: 60%;
     z-index: 2;
     touch-action: none; /* Prevent touch behaviors only on slider area */
+    opacity: 0; /* Start hidden */
+    transition: opacity 0.5s ease-in-out;
+}
+
+.slider-container.loaded {
+    opacity: 1; /* Fade in when loaded */
 }
 
 /* Slider frame background */
@@ -103,7 +109,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('../../../assets/slider/sliderframe.png');
+    background-image: url('assets/slider/sliderframe.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
@@ -182,20 +188,16 @@ body {
     gap: 10px;
     flex-wrap: wrap;
     min-height: 120px;
+    position: relative;
+    height: 20vh; /* Set height to 20% of viewport height */
 }
 
 .number-btn {
-    width: 90px;
-    height: 90px;
+    /* Remove default button styles that might cause black outlines */
     border: none;
-    border-radius: 18px;
-    font-size: 3rem;
-    font-weight: bold;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    outline: none;
+    background: none;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    position: relative; /* For overlay positioning */
     
     /* Touch support */
     touch-action: manipulation;
@@ -203,9 +205,15 @@ body {
     -webkit-user-select: none;
     user-select: none;
     pointer-events: auto;
+    cursor: pointer;
     
-    /* Remove default focus outline */
-    outline: none;
+    /* Typography */
+    font-weight: bold;
+    color: white;
+    font-family: inherit;
+    
+    /* Transitions */
+    transition: all 0.2s ease;
 }
 
 .number-btn:hover {
@@ -218,8 +226,9 @@ body {
     transition: all 0.1s ease;
 }
 
-/* Remove focus outline completely */
-.number-btn:focus {
+/* Completely remove any focus outline */
+.number-btn:focus,
+.number-btn:focus-visible {
     outline: none;
     border: none;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -258,17 +267,14 @@ body {
     }
 }
 
-/* Button colors */
-.number-btn:nth-child(1) { background-color: #ff6b6b; --btn-color: #ff6b6b; }
-.number-btn:nth-child(2) { background-color: #4ecdc4; --btn-color: #4ecdc4; }
-.number-btn:nth-child(3) { background-color: #45b7d1; --btn-color: #45b7d1; }
-.number-btn:nth-child(4) { background-color: #f9ca24; --btn-color: #f9ca24; }
-.number-btn:nth-child(5) { background-color: #f0932b; --btn-color: #f0932b; }
-.number-btn:nth-child(6) { background-color: #eb4d4b; --btn-color: #eb4d4b; }
-.number-btn:nth-child(7) { background-color: #6c5ce7; --btn-color: #6c5ce7; }
-.number-btn:nth-child(8) { background-color: #a29bfe; --btn-color: #a29bfe; }
-.number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
-.number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
+/* Arrow pulse animation */
+@keyframes arrowPulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Remove the old button colors since buttons are now created dynamically */
 
 /* Cross overlay for incorrect answers (from subitise game) */
 .cross-overlay {
