@@ -9,6 +9,11 @@ class SliderRandomRenderer {
         this.beadDiameter = 0;
         this.beadRadius = 0;
         
+        // Preload click sound for better performance
+        this.clickSound = new Audio('../../assets/slider/click.mp3');
+        this.clickSound.volume = 0.30; // Doubled from 0.15 to 0.30
+        this.clickSound.preload = 'auto';
+        
         // Bar state tracking - positions are continuous values along the bar
         this.barState = {
             0: [], // Top bar: array of {bead, position} sorted by position
@@ -649,9 +654,9 @@ class SliderRandomRenderer {
         if (!CONFIG.AUDIO_ENABLED) return;
         
         try {
-            const audio = new Audio('../../assets/slider/click.mp3');
-            audio.volume = 0.15; // Match the volume from the original gain settings
-            audio.play().catch(error => {
+            // Use preloaded audio and reset to beginning for rapid successive plays
+            this.clickSound.currentTime = 0;
+            this.clickSound.play().catch(error => {
                 // Silent failure if audio can't play
                 console.log('Click sound failed to play:', error);
             });
