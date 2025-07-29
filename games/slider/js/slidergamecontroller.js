@@ -58,10 +58,10 @@ class SliderGameController {
         
         // Preload images
         const imageAssets = [
-            'assets/slider/sliderframe.png', // Priority - needed immediately
-            'assets/slider/leftarrow.png',
-            'assets/raisin/guineapig2.png',
-            'assets/raisin/guineapig3.png'
+            '../../assets/slider/sliderframe.png', // Priority - needed immediately
+            '../../assets/slider/leftarrow.png',
+            '../../assets/raisin/guineapig2.png',
+            '../../assets/raisin/guineapig3.png'
         ];
         
         imageAssets.forEach(src => {
@@ -82,7 +82,7 @@ class SliderGameController {
         
         // Preload audio
         const audioAssets = [
-            'assets/slider/click.mp3'
+            '../../assets/slider/click.mp3'
         ];
         
         audioAssets.forEach(src => {
@@ -121,7 +121,7 @@ class SliderGameController {
         this.sliderRenderer = new SliderRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
-        this.guineaPigWave = new SimplifiedGuineaPigWave('assets/raisin/');
+        this.guineaPigWave = new SimplifiedGuineaPigWave('../../assets/raisin/');
         
         this.initializeAudio();
         this.createMuteButton();
@@ -322,7 +322,7 @@ class SliderGameController {
     createArrowElement() {
         this.arrowElement = document.createElement('img');
         this.arrowElement.className = 'slider-arrow';
-        this.arrowElement.src = 'assets/slider/leftarrow.png'; // Changed to leftarrow.png
+        this.arrowElement.src = '../../assets/slider/leftarrow.png'; // Changed to leftarrow.png
         this.arrowElement.alt = 'Left Arrow';
         
         this.arrowElement.style.cssText = `
@@ -434,6 +434,7 @@ class SliderGameController {
             [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
         }
         
+        // Update the dynamically created buttons
         this.numberButtons.forEach((button, index) => {
             button.dataset.number = buttonNumbers[index];
             button.textContent = buttonNumbers[index];
