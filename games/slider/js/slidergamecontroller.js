@@ -204,18 +204,22 @@ class SliderGameController {
                 });
                 
                 numberButtonsContainer.appendChild(button);
+                console.log(`Button ${i} created:`, button.dataset.number, 'at position', leftPosition, bottomPosition);
                 
                 // Fade in each button with a slight delay
                 setTimeout(() => {
                     button.classList.add('fade-in');
+                    console.log(`Button ${i} fade-in applied`);
                 }, i * 50); // 50ms delay between each button
             }
             
             // Update the buttons reference
             this.numberButtons = document.querySelectorAll('.number-btn');
+            console.log(`Created ${this.numberButtons.length} buttons`);
             
             // Fade in the container
             numberButtonsContainer.classList.add('loaded');
+            console.log('Button container loaded class added');
             
         }, 500); // 0.5 second initial delay
     }
