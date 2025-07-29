@@ -10,7 +10,7 @@ class SliderRenderer {
         this.beadRadius = 0;
         
         // Preload click sound for better performance
-        this.clickSound = new Audio('assets/slider/click.mp3');
+        this.clickSound = new Audio('../../assets/slider/click.mp3');
         this.clickSound.volume = 0.7; // Set to 70% volume
         this.clickSound.preload = 'auto';
         
