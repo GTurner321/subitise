@@ -172,6 +172,9 @@ class SimplifiedGuineaPigWave {
         // Debug logging
         if (elapsed % 500 < 16) { // Log every 500ms
             console.log(`Bobbling - Elapsed: ${elapsed}ms, Total: ${totalTime}ms, Phase: ${this.guineaPig.phase}`);
+            console.log(`Position - X: ${x}px, Y: ${y}px, StopPos: ${this.guineaPig.stopPosition?.toFixed(2)}, DecPower: ${this.guineaPig.decelerationPower?.toFixed(2)}`);
+            console.log(`Element - Left: ${this.guineaPig.element.style.left}, Top: ${this.guineaPig.element.style.top}, Opacity: ${this.guineaPig.element.style.opacity}`);
+            console.log(`Image - Src: ${this.guineaPig.element.src}, Width: ${this.guineaPig.element.offsetWidth}px, Height: ${this.guineaPig.element.offsetHeight}px`);
         }
         
         if (elapsed >= totalTime) {
@@ -184,35 +187,26 @@ class SimplifiedGuineaPigWave {
         const baseY = this.guineaPig.yPosition;
         
         if (elapsed <= fastEntryTime) {
-            // Phase 1: Fast entry with random deceleration - stop position determined by deceleration strength
+            // Phase 1: Fast entry with random deceleration - stop position pre-calculated
             const progress = elapsed / fastEntryTime;
             const easedProgress = 1 - Math.pow(1 - progress, this.guineaPig.decelerationPower);
-            
-            // Map deceleration power to natural stop position
-            // Power 3 (weak) → stops around 70%, Power 5 (strong) → stops around 50%
-            const naturalStopPosition = 0.7 - ((this.guineaPig.decelerationPower - 3) / 2) * 0.2; // 0.7 to 0.5
-            
-            // Store the natural stop position for use in other phases
-            if (this.guineaPig.stopPosition === null) {
-                this.guineaPig.stopPosition = naturalStopPosition;
-            }
             
             x = this.calculateX(easedProgress * this.guineaPig.stopPosition);
             y = baseY;
             this.guineaPig.phase = 'entry';
             
         } else if (elapsed <= fastEntryTime + pauseTime) {
-            // Phase 2: Pause at the naturally determined stop position
+            // Phase 2: Pause at the pre-calculated stop position
             x = this.calculateX(this.guineaPig.stopPosition);
             y = baseY;
             this.guineaPig.phase = 'pause';
             
         } else {
-            // Phase 3: Bobbling movement from natural stop position to exit
+            // Phase 3: Bobbling movement from pre-calculated stop position to exit
             const bobbleElapsed = elapsed - fastEntryTime - pauseTime;
             const bobbleProgress = bobbleElapsed / bobbleExitTime;
             
-            // X position: from natural stop position to 120% (well off screen) at uniform speed
+            // X position: from stop position to 120% (well off screen) at uniform speed
             const remainingDistance = 1.2 - this.guineaPig.stopPosition;
             const xProgress = this.guineaPig.stopPosition + (bobbleProgress * remainingDistance);
             x = this.calculateX(xProgress);
