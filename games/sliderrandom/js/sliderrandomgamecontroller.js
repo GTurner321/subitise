@@ -9,7 +9,7 @@ class SliderRandomGameController {
         // Game state
         this.currentQuestion = 1;
         this.currentLevel = 1;
-        this.targetNumber = 2;
+        this.targetNumber = null; // Don't set default value
         this.questionStartTime = null;
         this.gameComplete = false;
         this.sliderDisabled = false;
@@ -844,6 +844,10 @@ class SliderRandomGameController {
     updateTargetDisplay(number) {
         this.largeNumberElement.textContent = number;
         this.numberTextElement.textContent = CONFIG.NUMBER_WORDS[number];
+        
+        // Show the target display now that it has content
+        const targetDisplay = document.getElementById('targetNumberDisplay');
+        targetDisplay.classList.add('ready');
     }
     
     startNewQuestion() {
