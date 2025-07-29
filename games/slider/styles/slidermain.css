@@ -193,7 +193,13 @@ body {
     flex-wrap: wrap;
     min-height: 120px;
     position: relative;
-    height: 20vh; /* Set height to 20% of viewport height */
+    height: 22vh; /* Set height to 22% of viewport height */
+    opacity: 0; /* Start hidden */
+    transition: opacity 0.5s ease-in-out;
+}
+
+.number-buttons.loaded {
+    opacity: 1; /* Fade in when buttons are created */
 }
 
 .number-btn {
@@ -202,6 +208,11 @@ body {
     outline: none;
     background: none;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    
+    /* Start invisible for individual button fade-in */
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
     
     /* Touch support */
     touch-action: manipulation;
@@ -215,14 +226,20 @@ body {
     font-weight: bold;
     color: white;
     font-family: inherit;
-    
-    /* Transitions */
-    transition: all 0.2s ease;
+}
+
+.number-btn.fade-in {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .number-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.number-btn.fade-in:hover {
+    transform: translateY(-2px);
 }
 
 .number-btn:active {
