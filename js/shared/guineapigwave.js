@@ -184,27 +184,37 @@ class SimplifiedGuineaPigWave {
         const baseY = this.guineaPig.yPosition;
         
         if (elapsed <= fastEntryTime) {
-            // Phase 1: Faster entry with stronger deceleration to 70% of screen
+            // Phase 1: Fast entry with random deceleration - stop position determined by deceleration strength
             const progress = elapsed / fastEntryTime;
-            // Stronger ease-out (quartic) for more dramatic deceleration
-            const easedProgress = 1 - Math.pow(1 - progress, 4);
-            x = this.calculateX(easedProgress * 0.7); // Move to 70% of screen (changed from 80%)
+            const easedProgress = 1 - Math.pow(1 - progress, this.guineaPig.decelerationPower);
+            
+            // Map deceleration power to natural stop position
+            // Power 3 (weak) → stops around 70%, Power 5 (strong) → stops around 50%
+            const naturalStopPosition = 0.7 - ((this.guineaPig.decelerationPower - 3) / 2) * 0.2; // 0.7 to 0.5
+            
+            // Store the natural stop position for use in other phases
+            if (this.guineaPig.stopPosition === null) {
+                this.guineaPig.stopPosition = naturalStopPosition;
+            }
+            
+            x = this.calculateX(easedProgress * this.guineaPig.stopPosition);
             y = baseY;
             this.guineaPig.phase = 'entry';
             
         } else if (elapsed <= fastEntryTime + pauseTime) {
-            // Phase 2: Pause at 70%
-            x = this.calculateX(0.7);
+            // Phase 2: Pause at the naturally determined stop position
+            x = this.calculateX(this.guineaPig.stopPosition);
             y = baseY;
             this.guineaPig.phase = 'pause';
             
         } else {
-            // Phase 3: Bobbling movement to exit - uniform slow speed with bobbles
+            // Phase 3: Bobbling movement from natural stop position to exit
             const bobbleElapsed = elapsed - fastEntryTime - pauseTime;
             const bobbleProgress = bobbleElapsed / bobbleExitTime;
             
-            // X position: from 70% to 120% (well off screen) at uniform speed
-            const xProgress = 0.7 + (bobbleProgress * 0.5); // 0.7 to 1.2 (goes well off screen)
+            // X position: from natural stop position to 120% (well off screen) at uniform speed
+            const remainingDistance = 1.2 - this.guineaPig.stopPosition;
+            const xProgress = this.guineaPig.stopPosition + (bobbleProgress * remainingDistance);
             x = this.calculateX(xProgress);
             
             // Bobbling Y movement: fine v-toothed pattern simulating walking
