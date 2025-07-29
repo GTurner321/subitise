@@ -800,13 +800,13 @@ class SliderRandomGameController {
         
         // Check if game is complete
         if (this.currentQuestion >= CONFIG.MAX_QUESTIONS) {
-            setTimeout(() => this.completeGame(), 2000); // 2-second delay before completion
+            setTimeout(() => this.completeGame(), 4000); // 4-second delay before game completion
             return;
         }
         
-        // Move to next question with 2-second delay
+        // Move to next question with 4-second delay (2 + 2 additional seconds)
         this.currentQuestion++;
-        setTimeout(() => this.startNewQuestion(), 2000); // 2-second delay before next question
+        setTimeout(() => this.startNewQuestion(), 4000); // 4-second delay before next question
     }
     
     updateAvailableNumbers() {
