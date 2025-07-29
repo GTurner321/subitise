@@ -74,6 +74,12 @@ body {
     transform: translateX(-50%);
     text-align: center;
     z-index: 3;
+    opacity: 0; /* Start hidden */
+    transition: opacity 0.3s ease-in-out;
+}
+
+.target-number-display.ready {
+    opacity: 1; /* Show when number is set */
 }
 
 .large-number {
