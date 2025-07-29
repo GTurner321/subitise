@@ -1,10 +1,5 @@
 class SliderGameController {
     constructor() {
-        this.sliderRenderer = new SliderRenderer();
-        this.rainbow = new Rainbow();
-        this.bear = new Bear();
-        this.guineaPigWave = new SimplifiedGuineaPigWave('../../assets/raisin/');
-        
         // Game state
         this.currentQuestion = 1;
         this.expectedBeadsOnRight = 2;
@@ -12,6 +7,7 @@ class SliderGameController {
         this.buttonsDisabled = false;
         this.awaitingButtonPress = false;
         this.sliderDisabled = false;
+        this.questionStartTime = null;
         
         // Multi-touch drag state
         this.dragState = {
@@ -49,16 +45,185 @@ class SliderGameController {
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         
-        this.initializeGame();
+        // Preload assets before initializing game
+        this.preloadAssets().then(() => {
+            this.initializeGame();
+        });
     }
     
+    async preloadAssets() {
+        console.log('🔄 Preloading game assets...');
+        
+        const assetsToLoad = [];
+        
+        // Preload images
+        const imageAssets = [
+            'assets/slider/sliderframe.png', // Priority - needed immediately
+            'assets/slider/leftarrow.png',
+            'assets/raisin/guineapig2.png',
+            'assets/raisin/guineapig3.png'
+        ];
+        
+        imageAssets.forEach(src => {
+            const promise = new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    console.log(`✅ Loaded image: ${src}`);
+                    resolve(img);
+                };
+                img.onerror = () => {
+                    console.warn(`⚠️ Failed to load image: ${src}`);
+                    resolve(null); // Don't fail the entire loading process
+                };
+                img.src = src;
+            });
+            assetsToLoad.push(promise);
+        });
+        
+        // Preload audio
+        const audioAssets = [
+            'assets/slider/click.mp3'
+        ];
+        
+        audioAssets.forEach(src => {
+            const promise = new Promise((resolve, reject) => {
+                const audio = new Audio();
+                audio.oncanplaythrough = () => {
+                    console.log(`✅ Loaded audio: ${src}`);
+                    resolve(audio);
+                };
+                audio.onerror = () => {
+                    console.warn(`⚠️ Failed to load audio: ${src}`);
+                    resolve(null); // Don't fail the entire loading process
+                };
+                audio.preload = 'auto';
+                audio.src = src;
+            });
+            assetsToLoad.push(promise);
+        });
+        
+        // Wait for all assets to load (or fail gracefully)
+        try {
+            await Promise.all(assetsToLoad);
+            console.log('✅ All assets preloaded successfully');
+            
+            // Small delay to ensure everything is ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+        } catch (error) {
+            console.warn('⚠️ Some assets failed to preload, continuing anyway:', error);
+        }
+    }
+    
+    
     initializeGame() {
+        // Initialize components after preloading
+        this.sliderRenderer = new SliderRenderer();
+        this.rainbow = new Rainbow();
+        this.bear = new Bear();
+        this.guineaPigWave = new SimplifiedGuineaPigWave('assets/raisin/');
+        
         this.initializeAudio();
         this.createMuteButton();
         this.createArrowElement();
         this.initializeEventListeners();
         this.shuffleButtons();
+        this.createButtonsAsPercentages();
+        
+        // Fade in slider container
+        setTimeout(() => {
+            const sliderContainer = document.getElementById('sliderContainer');
+            sliderContainer.classList.add('loaded');
+        }, 100);
+        
         this.startNewQuestion();
+    }
+    
+    createButtonsAsPercentages() {
+        // Remove existing buttons
+        this.numberButtons.forEach(btn => btn.remove());
+        
+        // Create new buttons as percentages
+        const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
+        const numberButtonsContainer = document.querySelector('.number-buttons');
+        
+        // Clear the container
+        numberButtonsContainer.innerHTML = '';
+        
+        // Button positions (centers) as percentages: 16.25, 23.75, 31.25, 38.75, 46.25, 53.75, 61.25, 68.75, 76.25, 83.75
+        const buttonCenterPositions = [16.25, 23.75, 31.25, 38.75, 46.25, 53.75, 61.25, 68.75, 76.25, 83.75];
+        const buttonWidth = 6.5; // 6.5% of page width
+        const buttonHeight = 6.5; // Keep square, so same as width
+        
+        // Create buttons
+        for (let i = 0; i < 10; i++) {
+            const button = document.createElement('button');
+            button.className = 'number-btn';
+            button.dataset.number = buttonNumbers[i];
+            button.textContent = buttonNumbers[i];
+            
+            // Position as percentage
+            const leftPosition = buttonCenterPositions[i] - (buttonWidth / 2);
+            const bottomPosition = 10 - (buttonHeight / 2); // Center at 10% from bottom
+            
+            button.style.cssText = `
+                position: absolute;
+                left: ${leftPosition}vw;
+                bottom: ${bottomPosition}vh;
+                width: ${buttonWidth}vw;
+                height: ${buttonHeight}vh;
+                font-size: calc(${buttonWidth / 2}vw);
+                border: none;
+                border-radius: 18px;
+                font-weight: bold;
+                color: white;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                touch-action: manipulation;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+                pointer-events: auto;
+                outline: none;
+                background-color: var(--btn-color);
+            `;
+            
+            // Add button color
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'];
+            button.style.setProperty('--btn-color', colors[i]);
+            button.style.backgroundColor = colors[i];
+            
+            // Add event listeners
+            button.addEventListener('click', (e) => {
+                if (this.buttonsDisabled) return;
+                const selectedNumber = parseInt(e.target.dataset.number);
+                this.handleNumberClick(selectedNumber, e.target);
+            });
+            
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (this.buttonsDisabled) return;
+                const selectedNumber = parseInt(e.target.dataset.number);
+                this.handleNumberClick(selectedNumber, e.target);
+            });
+            
+            // Add hover effects
+            button.addEventListener('mouseenter', () => {
+                button.style.transform = 'translateY(-2px)';
+                button.style.boxShadow = '0 6px 12px rgba(0,0,0,0.3)';
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                button.style.transform = 'translateY(0)';
+                button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+            });
+            
+            numberButtonsContainer.appendChild(button);
+        }
+        
+        // Update the buttons reference
+        this.numberButtons = document.querySelectorAll('.number-btn');
     }
     
     async initializeAudio() {
@@ -157,8 +322,8 @@ class SliderGameController {
     createArrowElement() {
         this.arrowElement = document.createElement('img');
         this.arrowElement.className = 'slider-arrow';
-        this.arrowElement.src = '../../assets/slider/uparrow.png'; // Fixed path from slider game folder
-        this.arrowElement.alt = 'Up Arrow';
+        this.arrowElement.src = 'assets/slider/leftarrow.png'; // Changed to leftarrow.png
+        this.arrowElement.alt = 'Left Arrow';
         
         this.arrowElement.style.cssText = `
             position: absolute;
@@ -177,7 +342,7 @@ class SliderGameController {
             // Fallback to text arrow if image fails
             this.arrowElement.style.display = 'none';
             const textArrow = document.createElement('div');
-            textArrow.innerHTML = '↑';
+            textArrow.innerHTML = '←';
             textArrow.className = 'slider-arrow';
             textArrow.style.cssText = `
                 position: absolute;
@@ -203,29 +368,26 @@ class SliderGameController {
         
         const gameArea = document.querySelector('.game-area');
         const gameAreaRect = gameArea.getBoundingClientRect();
-        const frameRect = this.sliderRenderer.frameImageRect;
         
         // Height = 20% of game area
         const arrowHeight = gameAreaRect.height * 0.2;
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position at 75% from left of GAME AREA (not 80%)
-        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.75);
+        // Position at 95% from left of GAME AREA, 34% from top
+        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.95);
+        const arrowY = gameAreaRect.top + (gameAreaRect.height * 0.34);
         
-        // Vertical position still relative to frame (underneath slider frame)
-        const arrowY = frameRect ? (frameRect.y + frameRect.height + 10) : (gameAreaRect.top + gameAreaRect.height * 0.7);
-        
-        // Center the arrow horizontally on the 80% point of the game area
+        // Center the arrow horizontally and vertically on the calculated position
         if (this.arrowElement.complete || this.arrowElement.tagName === 'DIV') {
             const arrowWidth = this.arrowElement.offsetWidth || (arrowHeight * 0.6);
             this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`;
+            this.arrowElement.style.top = `${arrowY - (arrowHeight / 2)}px`;
         } else {
             // Fallback positioning if image not loaded yet
             this.arrowElement.style.left = `${arrowX - (arrowHeight * 0.3)}px`;
+            this.arrowElement.style.top = `${arrowY - (arrowHeight / 2)}px`;
         }
-        
-        this.arrowElement.style.top = `${arrowY}px`;
     }
     
     showArrow() {
@@ -615,14 +777,14 @@ class SliderGameController {
     
     checkGameState() {
         const currentTime = Date.now();
-        const hasMiddle = this.sliderRenderer.hasBeadsInMiddle();
+        const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
         
         console.log(`\n=== GAME STATE CHECK ===`);
         console.log(`Expected beads on right: ${this.expectedBeadsOnRight}`);
-        console.log(`Has middle beads: ${hasMiddle}`);
+        console.log(`Has middle beads: ${hasMiddleBeads}`);
         console.log(`Slider disabled: ${this.sliderDisabled}`);
         
-        if (hasMiddle) {
+        if (hasMiddleBeads) {
             // Invalid arrangement - start 10-second inactivity timer
             if (!this.invalidArrangementStartTime) {
                 this.invalidArrangementStartTime = currentTime;
@@ -656,15 +818,18 @@ class SliderGameController {
         console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.expectedBeadsOnRight) {
-            // Correct - enable buttons immediately and start 3-second timer
+            // Correct - enable buttons immediately and start 2-second timer (reduced from 3)
             this.awaitingButtonPress = true;
             
             if (!this.readyForAnswerStartTime) {
                 this.readyForAnswerStartTime = currentTime;
                 this.readyForAnswerTimer = setTimeout(() => {
-                    console.log(`⏰ 3 seconds elapsed - pausing slider and showing guinea pig`);
+                    console.log(`⏰ 2 seconds elapsed - pausing slider and showing guinea pig`);
                     
                     this.sliderDisabled = true;
+                    
+                    // Add rainbow piece immediately when correct arrangement is achieved
+                    this.rainbow.addPiece();
                     
                     if (this.currentQuestion === 1) {
                         this.speakText('Now select the button underneath for the number of beads on the right side');
@@ -674,7 +839,7 @@ class SliderGameController {
                     
                     this.showArrow();
                     this.guineaPigWave.startAnimation(70);
-                }, 3000);
+                }, 2000); // Reduced from 3000 to 2000
             }
             
             console.log(`✅ Correct count - buttons enabled immediately`);
@@ -742,7 +907,7 @@ class SliderGameController {
         setTimeout(() => buttonElement.classList.remove('correct'), CONFIG.FLASH_DURATION);
         
         this.createStarCelebration(buttonElement);
-        this.rainbow.addPiece();
+        // Rainbow piece already added in checkGameState when correct arrangement was achieved
         this.playCompletionSound();
         
         if (this.audioEnabled) {
@@ -877,13 +1042,35 @@ class SliderGameController {
         
         this.clearTimers();
         this.resetKeyboardInput();
+        this.questionStartTime = Date.now();
         
         if (this.currentQuestion === 1) {
             this.speakText('We\'re going to count in twos, so start by sliding 2 beads to the right side');
-            // Don't show arrow immediately - only after 3 seconds via timer
+            // Show arrow from 1 to 6 seconds for first question (longer instruction)
+            setTimeout(() => this.showArrowBriefly(5000), 1000); // Show for 5 seconds starting at 1 second
         } else {
             this.speakText('Now slide 2 more beads to the right side');
-            // Don't show arrow immediately - only after 3 seconds via timer
+            // Show arrow from 1 to 4 seconds for subsequent questions
+            setTimeout(() => this.showArrowBriefly(3000), 1000); // Show for 3 seconds starting at 1 second
+        }
+    }
+    
+    showArrowBriefly(duration = 3000) {
+        if (!this.arrowElement) return;
+        
+        this.positionArrow();
+        this.arrowElement.style.opacity = '1';
+        
+        // Pulse for the specified duration with 1-second intervals
+        this.arrowElement.style.animation = 'arrowPulse 1s ease-in-out infinite';
+        
+        setTimeout(() => {
+            if (this.arrowElement) {
+                this.arrowElement.style.animation = '';
+                this.arrowElement.style.opacity = '0';
+            }
+        }, duration);
+    }
         }
     }
     
