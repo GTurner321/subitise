@@ -649,23 +649,12 @@ class SliderRandomRenderer {
         if (!CONFIG.AUDIO_ENABLED) return;
         
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            // Crisp mechanical click sound - single frequency, very short
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-            
-            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.001);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.025);
-            
-            oscillator.type = 'square'; // Square wave for sharp click
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.025); // Very short duration
+            const audio = new Audio('../../assets/slider/click.mp3');
+            audio.volume = 0.15; // Match the volume from the original gain settings
+            audio.play().catch(error => {
+                // Silent failure if audio can't play
+                console.log('Click sound failed to play:', error);
+            });
         } catch (error) {
             // Silent failure
         }
