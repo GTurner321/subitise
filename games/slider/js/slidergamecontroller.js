@@ -153,6 +153,12 @@ class SliderGameController {
         // Wait 0.5 seconds before creating buttons
         setTimeout(() => {
             console.log('Creating buttons...');
+            
+            // Debug the container
+            const containerRect = numberButtonsContainer.getBoundingClientRect();
+            console.log('Button container rect:', containerRect);
+            console.log('Container height:', containerRect.height, 'Container bottom:', containerRect.bottom);
+            
             // Create buttons
             for (let i = 0; i < 10; i++) {
                 const button = document.createElement('button');
@@ -160,9 +166,9 @@ class SliderGameController {
                 button.dataset.number = buttonNumbers[i];
                 button.textContent = buttonNumbers[i];
                 
-                // Position as percentage - center at 11vh from bottom
+                // Position as percentage - center at 11vh from bottom (this should be visible!)
                 const leftPosition = buttonCenterPositions[i] - (buttonWidth / 2);
-                const bottomPosition = 11; // Center at exactly 11% from bottom
+                const bottomPosition = 11; // 11% from bottom should definitely be visible
                 
                 button.style.cssText = `
                     position: absolute;
@@ -184,8 +190,8 @@ class SliderGameController {
                     pointer-events: auto;
                     outline: none;
                     background-color: ${colors[i]};
-                    opacity: 0;
-                    transform: translateY(10px);
+                    opacity: 1;
+                    transform: translateY(0px);
                     transition: all 0.3s ease;
                 `;
                 
@@ -205,6 +211,12 @@ class SliderGameController {
                 
                 numberButtonsContainer.appendChild(button);
                 console.log(`Button ${i} created:`, button.dataset.number, 'at position', leftPosition, bottomPosition);
+                
+                // Debug the actual button position
+                setTimeout(() => {
+                    const buttonRect = button.getBoundingClientRect();
+                    console.log(`Button ${i} actual position:`, buttonRect);
+                }, 10);
                 
                 // Fade in each button with a slight delay
                 setTimeout(() => {
