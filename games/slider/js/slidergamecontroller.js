@@ -58,7 +58,7 @@ class SliderGameController {
         
         // Preload images
         const imageAssets = [
-            '../../assets/slider/sliderframe.png', // Priority - needed immediately
+            '../../assets/slider/sliderframe.png',
             '../../assets/slider/leftarrow.png',
             '../../assets/raisin/guineapig2.png',
             '../../assets/raisin/guineapig3.png'
@@ -129,12 +129,6 @@ class SliderGameController {
         this.initializeEventListeners();
         this.createButtonsAsPercentages();
         
-        // Fade in slider container after a short delay to ensure frame loads
-        setTimeout(() => {
-            const sliderContainer = document.getElementById('sliderContainer');
-            sliderContainer.classList.add('loaded');
-        }, 200); // Increased delay to ensure assets are ready
-        
         this.startNewQuestion();
     }
     
@@ -158,6 +152,7 @@ class SliderGameController {
         
         // Wait 0.5 seconds before creating buttons
         setTimeout(() => {
+            console.log('Creating buttons...');
             // Create buttons
             for (let i = 0; i < 10; i++) {
                 const button = document.createElement('button');
