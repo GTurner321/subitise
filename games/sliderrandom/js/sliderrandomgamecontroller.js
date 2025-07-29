@@ -1,5 +1,6 @@
 class SliderRandomGameController {
     constructor() {
+        // Initialize components but don't start game yet
         this.sliderRenderer = new SliderRandomRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
@@ -48,7 +49,73 @@ class SliderRandomGameController {
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         
-        this.initializeGame();
+        // Preload assets before initializing game
+        this.preloadAssets().then(() => {
+            this.initializeGame();
+        });
+    }
+    
+    async preloadAssets() {
+        console.log('🔄 Preloading game assets...');
+        
+        const assetsToLoad = [];
+        
+        // Preload images (excluding slider frame which loads immediately)
+        const imageAssets = [
+            '../../assets/slider/leftarrow.png',
+            '../../assets/raisin/guineapig2.png',
+            '../../assets/raisin/guineapig3.png'
+        ];
+        
+        imageAssets.forEach(src => {
+            const promise = new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    console.log(`✅ Loaded image: ${src}`);
+                    resolve(img);
+                };
+                img.onerror = () => {
+                    console.warn(`⚠️ Failed to load image: ${src}`);
+                    resolve(null); // Don't fail the entire loading process
+                };
+                img.src = src;
+            });
+            assetsToLoad.push(promise);
+        });
+        
+        // Preload audio
+        const audioAssets = [
+            '../../assets/slider/click.mp3'
+        ];
+        
+        audioAssets.forEach(src => {
+            const promise = new Promise((resolve, reject) => {
+                const audio = new Audio();
+                audio.oncanplaythrough = () => {
+                    console.log(`✅ Loaded audio: ${src}`);
+                    resolve(audio);
+                };
+                audio.onerror = () => {
+                    console.warn(`⚠️ Failed to load audio: ${src}`);
+                    resolve(null); // Don't fail the entire loading process
+                };
+                audio.preload = 'auto';
+                audio.src = src;
+            });
+            assetsToLoad.push(promise);
+        });
+        
+        // Wait for all assets to load (or fail gracefully)
+        try {
+            await Promise.all(assetsToLoad);
+            console.log('✅ All assets preloaded successfully');
+            
+            // Small delay to ensure everything is ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+        } catch (error) {
+            console.warn('⚠️ Some assets failed to preload, continuing anyway:', error);
+        }
     }
     
     initializeGame() {
@@ -56,6 +123,13 @@ class SliderRandomGameController {
         this.createMuteButton();
         this.createArrowElement();
         this.initializeEventListeners();
+        
+        // Add 1-second delay then fade in slider elements
+        setTimeout(() => {
+            const sliderContainer = document.getElementById('sliderContainer');
+            sliderContainer.classList.add('loaded');
+        }, 1000);
+        
         this.startNewQuestion();
     }
     
