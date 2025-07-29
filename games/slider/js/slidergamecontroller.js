@@ -615,14 +615,14 @@ class SliderGameController {
     
     checkGameState() {
         const currentTime = Date.now();
-        const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
+        const hasMiddle = this.sliderRenderer.hasBeadsInMiddle();
         
         console.log(`\n=== GAME STATE CHECK ===`);
         console.log(`Expected beads on right: ${this.expectedBeadsOnRight}`);
-        console.log(`Has middle beads: ${hasMiddleBeads}`);
+        console.log(`Has middle beads: ${hasMiddle}`);
         console.log(`Slider disabled: ${this.sliderDisabled}`);
         
-        if (hasMiddleBeads) {
+        if (hasMiddle) {
             // Invalid arrangement - start 10-second inactivity timer
             if (!this.invalidArrangementStartTime) {
                 this.invalidArrangementStartTime = currentTime;
