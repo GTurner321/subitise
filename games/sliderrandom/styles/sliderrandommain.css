@@ -126,6 +126,12 @@ body {
     height: 60%;
     z-index: 2;
     touch-action: none; /* Prevent touch behaviors only on slider area */
+    opacity: 0; /* Start hidden */
+    transition: opacity 0.5s ease-in-out;
+}
+
+.slider-container.loaded {
+    opacity: 1; /* Fade in when loaded */
 }
 
 /* Slider frame background */
