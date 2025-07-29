@@ -60,8 +60,9 @@ class SliderRandomGameController {
         
         const assetsToLoad = [];
         
-        // Preload images (excluding slider frame which loads immediately)
+        // Preload images (including slider frame as priority)
         const imageAssets = [
+            '../../assets/slider/sliderframe.png', // Priority - needed immediately
             '../../assets/slider/leftarrow.png',
             '../../assets/raisin/guineapig2.png',
             '../../assets/raisin/guineapig3.png'
@@ -124,11 +125,15 @@ class SliderRandomGameController {
         this.createArrowElement();
         this.initializeEventListeners();
         
-        // Add 1-second delay then fade in slider elements
+        // Set initial target number immediately
+        this.targetNumber = this.selectRandomNumber();
+        this.updateTargetDisplay(this.targetNumber);
+        
+        // Start slider fade-in as soon as target number is ready
         setTimeout(() => {
             const sliderContainer = document.getElementById('sliderContainer');
             sliderContainer.classList.add('loaded');
-        }, 1000);
+        }, 100); // Much shorter delay - just enough for target number to render
         
         this.startNewQuestion();
     }
@@ -849,9 +854,12 @@ class SliderRandomGameController {
         // Reset slider to all beads on left
         this.sliderRenderer.reset();
         
-        // Select new target number
-        this.targetNumber = this.selectRandomNumber();
-        this.updateTargetDisplay(this.targetNumber);
+        // Only select new target number if this isn't the first question
+        // (first question target is set in initializeGame)
+        if (this.currentQuestion > 1) {
+            this.targetNumber = this.selectRandomNumber();
+            this.updateTargetDisplay(this.targetNumber);
+        }
         
         // Record question start time
         this.questionStartTime = Date.now();
