@@ -147,7 +147,7 @@ class SliderGameController {
         // Button positions (centers) as percentages: 16.25, 23.75, 31.25, 38.75, 46.25, 53.75, 61.25, 68.75, 76.25, 83.75
         const buttonCenterPositions = [16.25, 23.75, 31.25, 38.75, 46.25, 53.75, 61.25, 68.75, 76.25, 83.75];
         const buttonWidth = 6.5; // 6.5% of page width
-        const buttonHeight = 6.5; // 6.5vh for height to make proper squares
+        const buttonHeight = 6.5; // Use same 6.5vw for height to make square buttons
         const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'];
         
         // Wait 0.5 seconds before creating buttons
@@ -175,7 +175,7 @@ class SliderGameController {
                     left: ${leftPosition}vw;
                     bottom: ${bottomPosition}vh;
                     width: ${buttonWidth}vw;
-                    height: ${buttonHeight}vh;
+                    height: ${buttonHeight}vw;
                     font-size: calc(${buttonWidth / 2}vw);
                     border: none;
                     border-radius: 18px;
