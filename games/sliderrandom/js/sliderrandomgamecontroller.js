@@ -286,9 +286,9 @@ class SliderRandomGameController {
         this.arrowElement.style.height = `${arrowHeight}px`;
         this.arrowElement.style.width = 'auto'; // Maintain aspect ratio
         
-        // Position at 92% through the game area from left, 59% down from top
+        // Position at 92% through the game area from left, 57% down from top
         const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.92);
-        const arrowY = gameAreaRect.top + (gameAreaRect.height * 0.59);
+        const arrowY = gameAreaRect.top + (gameAreaRect.height * 0.57);
         
         console.log('Arrow positioning (approximate):', {
             gameAreaRect,
