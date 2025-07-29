@@ -144,10 +144,10 @@ class SliderGameController {
             [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
         }
         
-        // Button positions (centers) as percentages: 16.25, 23.75, 31.25, 38.75, 46.25, 53.75, 61.25, 68.75, 76.25, 83.75
-        const buttonCenterPositions = [16.25, 23.75, 31.25, 38.75, 46.25, 53.75, 61.25, 68.75, 76.25, 83.75];
-        const buttonWidth = 6.5; // 6.5% of page width
-        const buttonHeight = 6.5; // Use same 6.5vw for height to make square buttons
+        // Button left positions: 15.5, 22.5, 29.5, 36.5, 43.5, 50.5, 57.5, 64.5, 71.5, 78.5
+        const buttonLeftPositions = [15.5, 22.5, 29.5, 36.5, 43.5, 50.5, 57.5, 64.5, 71.5, 78.5];
+        const buttonWidth = 6; // 6vw width
+        const buttonHeight = 6; // 6vw height (square buttons)
         const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'];
         
         // Wait 0.5 seconds before creating buttons
@@ -166,9 +166,9 @@ class SliderGameController {
                 button.dataset.number = buttonNumbers[i];
                 button.textContent = buttonNumbers[i];
                 
-                // Position as percentage - bottom edge at 2vw, centers will be at 5.25vw
-                const leftPosition = buttonCenterPositions[i] - (buttonWidth / 2);
-                const bottomPosition = 2; // Bottom edge of buttons at 2vw from bottom
+                // Position buttons: left edge positions and bottom edge at 1.5vw
+                const leftPosition = buttonLeftPositions[i];
+                const bottomPosition = 1.5; // Bottom edge of buttons at 1.5vw from bottom
                 
                 button.style.cssText = `
                     position: absolute;
