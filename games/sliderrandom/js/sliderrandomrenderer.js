@@ -11,7 +11,7 @@ class SliderRandomRenderer {
         
         // Preload click sound for better performance
         this.clickSound = new Audio('../../assets/slider/click.mp3');
-        this.clickSound.volume = 0.5; // Increased to 50% volume
+        this.clickSound.volume = 0.7; // Increased to 70% volume
         this.clickSound.preload = 'auto';
         
         // Bar state tracking - positions are continuous values along the bar
