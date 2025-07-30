@@ -355,10 +355,14 @@ class SliderGameController {
         console.log('🏹 Arrow element created, adding to DOM...');
         document.body.appendChild(this.arrowElement);
         
-        console.log('🏹 Calling initial positionSliderArrow...');
-        this.positionSliderArrow();
+        console.log('🏹 Calling initial updateSliderArrowPosition...');
+        console.log('🔍 Method type:', typeof this.updateSliderArrowPosition);
+        if (typeof this.updateSliderArrowPosition === 'function') {
+            this.updateSliderArrowPosition();
+        } else {
+            console.error('❌ updateSliderArrowPosition is not a function:', this.updateSliderArrowPosition);
+        }
         
-        // Add error handling for missing image
         this.arrowElement.addEventListener('error', () => {
             console.error('❌ Arrow image failed to load:', this.arrowElement.src);
             // Fallback to text arrow if image fails
@@ -380,7 +384,7 @@ class SliderGameController {
             this.arrowElement.parentNode.replaceChild(textArrow, this.arrowElement);
             this.arrowElement = textArrow;
             console.log('🏹 Switched to text arrow fallback');
-            this.positionSliderArrow();
+            this.updateSliderArrowPosition();
         });
         
         this.arrowElement.addEventListener('load', () => {
@@ -389,7 +393,7 @@ class SliderGameController {
         
         window.addEventListener('resize', () => {
             console.log('🏹 Window resized, repositioning arrow...');
-            this.positionSliderArrow();
+            this.updateSliderArrowPosition();
         });
         
         console.log('🏹 Arrow element setup complete');
@@ -1128,16 +1132,15 @@ class SliderGameController {
         console.log('🏹 Arrow element exists, calling positionArrow...');
         
         // Add debugging right before the call
-        console.log('🔍 About to call this.positionSliderArrow()');
-        console.log('🔍 this.positionSliderArrow type:', typeof this.positionSliderArrow);
-        console.log('🔍 this.positionSliderArrow:', this.positionSliderArrow);
+        console.log('🔍 About to call this.updateSliderArrowPosition()');
+        console.log('🔍 this.updateSliderArrowPosition type:', typeof this.updateSliderArrowPosition);
         
         // Force position update with current values
         try {
-            this.positionSliderArrow();
-            console.log('✅ positionSliderArrow() call completed');
+            this.updateSliderArrowPosition();
+            console.log('✅ updateSliderArrowPosition() call completed');
         } catch (error) {
-            console.error('💥 Error calling positionSliderArrow():', error);
+            console.error('💥 Error calling updateSliderArrowPosition():', error);
         }
         
         console.log('🏹 Setting arrow opacity to 1...');
