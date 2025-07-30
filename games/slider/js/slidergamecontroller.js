@@ -641,10 +641,7 @@ class SliderGameController {
     }
     
     handleDragStart(x, y, touchId = 'mouse') {
-        if (this.sliderDisabled) {
-            console.log('Slider disabled - ignoring drag start');
-            return;
-        }
+        if (this.sliderDisabled) return;
         
         // Record activity
         this.lastActivityTime = Date.now();
@@ -797,11 +794,6 @@ class SliderGameController {
         const currentTime = Date.now();
         const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
         
-        console.log(`\n=== GAME STATE CHECK ===`);
-        console.log(`Expected beads on right: ${this.expectedBeadsOnRight}`);
-        console.log(`Has middle beads: ${hasMiddleBeads}`);
-        console.log(`Slider disabled: ${this.sliderDisabled}`);
-        
         if (hasMiddleBeads) {
             // Invalid arrangement - clear ready timer but keep slider active
             if (this.readyForAnswerTimer) {
@@ -819,8 +811,6 @@ class SliderGameController {
             
             this.awaitingButtonPress = false;
             // Slider stays active - user needs to fix the arrangement
-            console.log(`❌ Invalid arrangement - slider stays active`);
-            console.log(`=== END GAME STATE CHECK ===\n`);
             return;
         }
         
@@ -833,7 +823,6 @@ class SliderGameController {
         
         // Valid arrangement - count right side beads
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-        console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.expectedBeadsOnRight) {
             // Correct count - start 2-second timer, slider stays active until button selection
@@ -842,8 +831,6 @@ class SliderGameController {
             if (!this.readyForAnswerStartTime) {
                 this.readyForAnswerStartTime = currentTime;
                 this.readyForAnswerTimer = setTimeout(() => {
-                    console.log(`⏰ 2 seconds elapsed - NOW disabling slider and enabling buttons`);
-                    
                     // ONLY NOW disable slider and enable buttons
                     this.sliderDisabled = true;
                     this.awaitingButtonPress = true;
@@ -860,8 +847,6 @@ class SliderGameController {
                     this.guineaPigWave.startAnimation(70);
                 }, 2000);
             }
-            
-            console.log(`✅ Correct count - slider stays active for 2 more seconds`);
         } else {
             // Wrong count - clear timer, slider stays active
             if (this.readyForAnswerTimer) {
@@ -872,11 +857,7 @@ class SliderGameController {
             
             this.awaitingButtonPress = false;
             // Slider stays active - user needs to add/remove beads
-            console.log(`⏳ Wrong count: ${rightSideCount}, need ${this.expectedBeadsOnRight} - slider stays active`);
         }
-        
-        console.log(`Final state: awaiting=${this.awaitingButtonPress}, disabled=${this.sliderDisabled}`);
-        console.log(`=== END GAME STATE CHECK ===\n`);
     }
     
     scheduleInactivityCheck() {
@@ -1095,9 +1076,6 @@ class SliderGameController {
         this.resetKeyboardInput();
         this.questionStartTime = Date.now();
         
-        // ENSURE SLIDER STARTS DISABLED for all questions
-        this.sliderDisabled = true;
-        
         if (this.currentQuestion === 1) {
             // UPDATED TIMING: 1 second delay for first question
             setTimeout(() => {
@@ -1105,7 +1083,6 @@ class SliderGameController {
                 // Enable slider 3 seconds AFTER this message starts
                 setTimeout(() => {
                     this.sliderDisabled = false;
-                    console.log('🎮 Slider enabled for Question 1 (3s after audio)');
                 }, 3000);
             }, 1000);
             // Show arrow from 1-6 seconds (5-second duration starting at 1 second)
@@ -1116,18 +1093,13 @@ class SliderGameController {
                 this.speakText('Slide 2 more beads to the right side');
                 // Enable slider at the START of this message
                 this.sliderDisabled = false;
-                console.log('🎮 Slider enabled for Question 2+ (at start of audio)');
             }, 1000);
             // Show arrow from 1-4 seconds (3-second duration starting at 1 second)
             setTimeout(() => this.showArrowBriefly(3000), 1000);
         }
         
-        // Check game state immediately when slider becomes live again
-        // This catches cases where beads were moved too quickly to the correct position
-        setTimeout(() => {
-            console.log('Initial game state check for new question');
-            this.checkGameState();
-        }, 100); // Small delay to ensure everything is initialized
+        // Check game state after initialization
+        setTimeout(() => this.checkGameState(), 100);
     }
     
     showArrowBriefly(duration = 3000) {
@@ -1135,9 +1107,6 @@ class SliderGameController {
         
         // Force position update with current values
         this.positionArrow();
-        
-        // Add debug logging to verify positioning
-        console.log('Arrow positioning - X:', this.arrowElement.style.left, 'Y:', this.arrowElement.style.top);
         
         this.arrowElement.style.opacity = '1';
         
