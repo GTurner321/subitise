@@ -836,20 +836,20 @@ class SliderGameController {
         console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.expectedBeadsOnRight) {
-            // Correct - but DON'T enable buttons immediately to prevent audio conflicts
+            // Correct - but DON'T enable buttons until the "Select..." message plays
             this.awaitingButtonPress = false; // Keep buttons disabled initially
             
             if (!this.readyForAnswerStartTime) {
                 this.readyForAnswerStartTime = currentTime;
                 this.readyForAnswerTimer = setTimeout(() => {
-                    console.log(`⏰ 2 seconds elapsed - pausing slider, enabling buttons, and showing guinea pig`);
+                    console.log(`⏰ 2 seconds elapsed - pausing slider and playing select message`);
                     
                     this.sliderDisabled = true;
                     
                     // Add rainbow piece at the END of the 2-second pause when beads are disabled
                     this.rainbow.addPiece();
                     
-                    // ENABLE BUTTONS NOW - at the same time as the audio message
+                    // ENABLE BUTTONS at the EXACT START of the audio message
                     this.awaitingButtonPress = true;
                     
                     if (this.currentQuestion === 1) {
@@ -860,10 +860,10 @@ class SliderGameController {
                     
                     // NO ARROW for correct arrangement achieved (removed as per requirements)
                     this.guineaPigWave.startAnimation(70);
-                }, 2000); // Reduced from 3000 to 2000
+                }, 2000);
             }
             
-            console.log(`✅ Correct count - buttons will be enabled after 2-second delay`);
+            console.log(`✅ Correct count - buttons will be enabled when "Select..." message plays`);
         } else {
             // Wrong count - clear timer and disable buttons
             if (this.readyForAnswerTimer) {
@@ -1101,8 +1101,10 @@ class SliderGameController {
             // UPDATED TIMING: 1 second delay for first question
             setTimeout(() => {
                 this.speakText('We\'re going to count in twos. Start by sliding 2 beads to the right side');
-                // Enable slider when audio plays for first question
-                this.sliderDisabled = false;
+                // Enable slider 3 seconds AFTER this message starts
+                setTimeout(() => {
+                    this.sliderDisabled = false;
+                }, 3000);
             }, 1000);
             // Show arrow from 1-6 seconds (5-second duration starting at 1 second)
             setTimeout(() => this.showArrowBriefly(5000), 1000);
@@ -1110,7 +1112,7 @@ class SliderGameController {
             // UPDATED TIMING: 1 second delay for subsequent questions
             setTimeout(() => {
                 this.speakText('Slide 2 more beads to the right side');
-                // Enable slider when audio plays for subsequent questions
+                // Enable slider at the START of this message
                 this.sliderDisabled = false;
             }, 1000);
             // Show arrow from 1-4 seconds (3-second duration starting at 1 second)
