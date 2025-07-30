@@ -129,6 +129,12 @@ class SliderGameController {
         this.initializeEventListeners();
         this.createButtonsAsPercentages();
         
+        // Fade in slider container after preloading is complete (like sliderrandom)
+        setTimeout(() => {
+            const sliderContainer = document.getElementById('sliderContainer');
+            sliderContainer.classList.add('loaded');
+        }, 200); // 200ms delay like sliderrandom
+        
         this.startNewQuestion();
     }
     
