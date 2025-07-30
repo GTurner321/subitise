@@ -339,8 +339,8 @@ class SliderGameController {
     createArrowElement() {
         this.arrowElement = document.createElement('img');
         this.arrowElement.className = 'slider-arrow';
-        this.arrowElement.src = '../../assets/slider/leftarrow.png'; // Changed to leftarrow.png
-        this.arrowElement.alt = 'Left Arrow';
+        this.arrowElement.src = '../../assets/slider/rightarrow.png'; // Changed to rightarrow.png
+        this.arrowElement.alt = 'Right Arrow';
         
         this.arrowElement.style.cssText = `
             position: absolute;
@@ -359,7 +359,7 @@ class SliderGameController {
             // Fallback to text arrow if image fails
             this.arrowElement.style.display = 'none';
             const textArrow = document.createElement('div');
-            textArrow.innerHTML = '←';
+            textArrow.innerHTML = '→';
             textArrow.className = 'slider-arrow';
             textArrow.style.cssText = `
                 position: absolute;
