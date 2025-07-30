@@ -94,6 +94,12 @@ body {
     height: 60%;
     z-index: 2;
     touch-action: none; /* Prevent touch behaviors only on slider area */
+    opacity: 0; /* Start hidden */
+    transition: opacity 0.5s ease-in-out;
+}
+
+.slider-container.loaded {
+    opacity: 1; /* Fade in when loaded */
 }
 
 /* Slider frame background - try absolute path */
@@ -112,12 +118,20 @@ body {
 
 /* Slider bars - positioning handled by JavaScript */
 .slider-bar {
-    background: #808080;
+    background: transparent; /* Start transparent instead of gray */
     border-top: 2px solid #333;
     border-bottom: 2px solid #333;
     border-radius: 0;
     pointer-events: none; /* Bars shouldn't interfere with bead interaction */
     z-index: 5;
+    opacity: 0; /* Start hidden */
+    transition: opacity 0.3s ease;
+}
+
+/* Show bars only when slider is loaded */
+.slider-container.loaded .slider-bar {
+    background: #808080;
+    opacity: 1;
 }
 
 /* Beads with enhanced visual feedback */
