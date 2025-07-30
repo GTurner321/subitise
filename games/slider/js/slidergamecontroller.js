@@ -1102,12 +1102,12 @@ class SliderGameController {
             // Show arrow from 2-7 seconds (5-second duration starting at 2 seconds)
             setTimeout(() => this.showArrowBriefly(5000), 2000);
         } else {
-            // UPDATED TIMING: 2 seconds delay for subsequent questions (reduced gap)
+            // UPDATED TIMING: 1 second delay for subsequent questions (reduced gap further)
             setTimeout(() => {
                 this.speakText('Slide 2 more beads to the right side');
-            }, 2000);
-            // Show arrow from 2-5 seconds (3-second duration starting at 2 seconds)
-            setTimeout(() => this.showArrowBriefly(3000), 2000);
+            }, 1000);
+            // Show arrow from 1-4 seconds (3-second duration starting at 1 second)
+            setTimeout(() => this.showArrowBriefly(3000), 1000);
         }
         
         // Check game state immediately when slider becomes live again
