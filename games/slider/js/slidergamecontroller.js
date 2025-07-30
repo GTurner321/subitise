@@ -836,18 +836,21 @@ class SliderGameController {
         console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.expectedBeadsOnRight) {
-            // Correct - enable buttons immediately and start 2-second timer
-            this.awaitingButtonPress = true;
+            // Correct - but DON'T enable buttons immediately to prevent audio conflicts
+            this.awaitingButtonPress = false; // Keep buttons disabled initially
             
             if (!this.readyForAnswerStartTime) {
                 this.readyForAnswerStartTime = currentTime;
                 this.readyForAnswerTimer = setTimeout(() => {
-                    console.log(`⏰ 2 seconds elapsed - pausing slider and showing guinea pig`);
+                    console.log(`⏰ 2 seconds elapsed - pausing slider, enabling buttons, and showing guinea pig`);
                     
                     this.sliderDisabled = true;
                     
                     // Add rainbow piece at the END of the 2-second pause when beads are disabled
                     this.rainbow.addPiece();
+                    
+                    // ENABLE BUTTONS NOW - at the same time as the audio message
+                    this.awaitingButtonPress = true;
                     
                     if (this.currentQuestion === 1) {
                         this.speakText('Select the button underneath for the number of beads on the right side');
@@ -860,7 +863,7 @@ class SliderGameController {
                 }, 2000); // Reduced from 3000 to 2000
             }
             
-            console.log(`✅ Correct count - buttons enabled immediately`);
+            console.log(`✅ Correct count - buttons will be enabled after 2-second delay`);
         } else {
             // Wrong count - clear timer and disable buttons
             if (this.readyForAnswerTimer) {
@@ -1095,12 +1098,12 @@ class SliderGameController {
         this.questionStartTime = Date.now();
         
         if (this.currentQuestion === 1) {
-            // UPDATED TIMING: 2 seconds delay for first question (no extra delay needed)
+            // UPDATED TIMING: 1 second delay for first question
             setTimeout(() => {
                 this.speakText('We\'re going to count in twos. Start by sliding 2 beads to the right side');
-            }, 2000);
-            // Show arrow from 2-7 seconds (5-second duration starting at 2 seconds)
-            setTimeout(() => this.showArrowBriefly(5000), 2000);
+            }, 1000);
+            // Show arrow from 1-6 seconds (5-second duration starting at 1 second)
+            setTimeout(() => this.showArrowBriefly(5000), 1000);
         } else {
             // UPDATED TIMING: 1 second delay for subsequent questions (reduced gap further)
             setTimeout(() => {
