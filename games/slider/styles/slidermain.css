@@ -195,7 +195,6 @@ body {
     background: #f5f5f5;
     gap: 10px;
     flex-wrap: wrap;
-    min-height: 120px;
     position: relative;
     height: 8.5vw; /* 1.5vw + 6vw + 1vw = 8.5vw total height */
     opacity: 0; /* Start hidden */
