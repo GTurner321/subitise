@@ -385,8 +385,8 @@ class SliderGameController {
         const gameArea = document.querySelector('.game-area');
         const gameAreaRect = gameArea.getBoundingClientRect();
         
-        // Width = 8% of game area width, maintain aspect ratio (448x517)
-        const arrowWidth = gameAreaRect.width * 0.08;
+        // Width = 10% of game area width (increased from 8%), maintain aspect ratio (448x517)
+        const arrowWidth = gameAreaRect.width * 0.10;
         const aspectRatio = 517 / 448; // height / width
         const arrowHeight = arrowWidth * aspectRatio;
         
