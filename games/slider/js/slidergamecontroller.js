@@ -425,6 +425,8 @@ class SliderGameController {
     speakText(text) {
         if (!this.audioEnabled || !('speechSynthesis' in window)) return;
         
+        console.log('Speaking text:', text); // Debug what's being spoken
+        
         try {
             speechSynthesis.cancel();
             
