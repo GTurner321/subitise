@@ -1128,7 +1128,12 @@ class SliderGameController {
     showArrowBriefly(duration = 3000) {
         if (!this.arrowElement) return;
         
+        // Force position update with current values
         this.positionArrow();
+        
+        // Add debug logging to verify positioning
+        console.log('Arrow positioning - X:', this.arrowElement.style.left, 'Y:', this.arrowElement.style.top);
+        
         this.arrowElement.style.opacity = '1';
         
         // Pulse for the specified duration with 1-second intervals
