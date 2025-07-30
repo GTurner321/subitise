@@ -8,6 +8,7 @@ class SliderGameController {
         this.awaitingButtonPress = false;
         this.sliderDisabled = false;
         this.questionStartTime = null;
+        this.usedButtons = new Set(); // Track which button numbers have been used
         
         // Multi-touch drag state
         this.dragState = {
@@ -382,20 +383,22 @@ class SliderGameController {
     positionArrow() {
         if (!this.arrowElement) return;
         
-        const gameArea = document.querySelector('.game-area');
-        const gameAreaRect = gameArea.getBoundingClientRect();
+        // Use the same positioning logic as the slider frame (based on slider container)
+        const sliderContainer = document.getElementById('sliderContainer');
+        const sliderRect = sliderContainer.getBoundingClientRect();
         
-        // Width = 10% of game area width (increased from 8%), maintain aspect ratio (448x517)
-        const arrowWidth = gameAreaRect.width * 0.10;
+        // Width = 10% of slider container width, maintain aspect ratio (448x517)
+        const arrowWidth = sliderRect.width * 0.10;
         const aspectRatio = 517 / 448; // height / width
         const arrowHeight = arrowWidth * aspectRatio;
         
         this.arrowElement.style.width = `${arrowWidth}px`;
         this.arrowElement.style.height = `${arrowHeight}px`;
         
-        // Position at 92% from left of GAME AREA (3% further left from 95%), 37% from top (3% lower from 34%)
-        const arrowX = gameAreaRect.left + (gameAreaRect.width * 0.92);
-        const arrowY = gameAreaRect.top + (gameAreaRect.height * 0.37);
+        // Position relative to slider container (like the frame)
+        // 92% across slider width, 37% down slider height
+        const arrowX = sliderRect.left + (sliderRect.width * 0.92);
+        const arrowY = sliderRect.top + (sliderRect.height * 0.37);
         
         // Center the arrow horizontally and vertically on the calculated position
         this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`;
@@ -845,12 +848,12 @@ class SliderGameController {
                     this.rainbow.addPiece();
                     
                     if (this.currentQuestion === 1) {
-                        this.speakText('Now select the button underneath for the number of beads on the right side');
+                        this.speakText('Select the button underneath for the number of beads on the right side');
                     } else {
                         this.speakText('Select the matching button underneath');
                     }
                     
-                    this.showArrow();
+                    // Remove arrow logic here - no arrow for correct arrangement achieved
                     this.guineaPigWave.startAnimation(70);
                 }, 2000); // Reduced from 3000 to 2000
             }
@@ -903,6 +906,12 @@ class SliderGameController {
     handleNumberClick(selectedNumber, buttonElement) {
         if (!this.awaitingButtonPress) return;
         
+        // Check if this button has already been used
+        if (this.usedButtons.has(selectedNumber)) {
+            this.handleUsedButtonClick(buttonElement);
+            return;
+        }
+        
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
         
         if (selectedNumber === rightSideCount) {
@@ -912,9 +921,25 @@ class SliderGameController {
         }
     }
     
+    handleUsedButtonClick(buttonElement) {
+        // Play failure sound and jiggle animation for used button
+        this.playFailureSound();
+        
+        // Add jiggle animation
+        buttonElement.style.animation = 'buttonJiggle 0.5s ease-in-out';
+        setTimeout(() => {
+            buttonElement.style.animation = '';
+        }, 500);
+    }
+    
     handleCorrectAnswer(buttonElement) {
         this.buttonsDisabled = true;
         this.clearTimers();
+        
+        // Mark this button as used and darken it
+        const selectedNumber = parseInt(buttonElement.dataset.number);
+        this.usedButtons.add(selectedNumber);
+        buttonElement.classList.add('used');
         
         buttonElement.classList.add('correct');
         setTimeout(() => buttonElement.classList.remove('correct'), CONFIG.FLASH_DURATION);
@@ -926,7 +951,10 @@ class SliderGameController {
         if (this.audioEnabled) {
             const encouragements = ['Well done!', 'Excellent!', 'Perfect!', 'Great job!'];
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-            setTimeout(() => this.speakText(randomEncouragement), 400);
+            const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
+            setTimeout(() => {
+                this.speakText(`${randomEncouragement} There are ${rightSideCount} beads on the right side.`);
+            }, 400);
         }
         
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
@@ -1100,6 +1128,7 @@ class SliderGameController {
         this.awaitingButtonPress = false;
         this.sliderDisabled = false;
         this.lastActivityTime = null;
+        this.usedButtons.clear(); // Reset used buttons for new game
         
         this.clearTimers();
         this.resetKeyboardInput();
@@ -1130,7 +1159,7 @@ class SliderGameController {
         if (this.audioEnabled) {
             setTimeout(() => {
                 this.speakText('Well done! Play again or return to the home page.');
-            }, 1000);
+            }, 2000); // Changed from 1000 to 2000 (2 seconds)
         }
     }
     
