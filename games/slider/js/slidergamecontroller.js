@@ -60,7 +60,7 @@ class SliderGameController {
         // Preload images
         const imageAssets = [
             '../../assets/slider/sliderframe.png',
-            '../../assets/slider/leftarrow.png',
+            '../../assets/slider/rightarrow.png', // Changed from leftarrow.png
             '../../assets/raisin/guineapig2.png',
             '../../assets/raisin/guineapig3.png'
         ];
