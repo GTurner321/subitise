@@ -337,6 +337,8 @@ class SliderGameController {
     }
     
     createArrowElement() {
+        console.log('🏹 Creating arrow element...');
+        
         this.arrowElement = document.createElement('img');
         this.arrowElement.className = 'slider-arrow';
         this.arrowElement.src = '../../assets/slider/rightarrow.png'; // Changed to rightarrow.png
@@ -350,12 +352,15 @@ class SliderGameController {
             transition: opacity 0.5s ease;
         `;
         
-        this.positionArrow();
+        console.log('🏹 Arrow element created, adding to DOM...');
         document.body.appendChild(this.arrowElement);
+        
+        console.log('🏹 Calling initial positionArrow...');
+        this.positionArrow();
         
         // Add error handling for missing image
         this.arrowElement.addEventListener('error', () => {
-            console.error('Arrow image failed to load:', this.arrowElement.src);
+            console.error('❌ Arrow image failed to load:', this.arrowElement.src);
             // Fallback to text arrow if image fails
             this.arrowElement.style.display = 'none';
             const textArrow = document.createElement('div');
@@ -374,10 +379,20 @@ class SliderGameController {
             `;
             this.arrowElement.parentNode.replaceChild(textArrow, this.arrowElement);
             this.arrowElement = textArrow;
+            console.log('🏹 Switched to text arrow fallback');
             this.positionArrow();
         });
         
-        window.addEventListener('resize', () => this.positionArrow());
+        this.arrowElement.addEventListener('load', () => {
+            console.log('✅ Arrow image loaded successfully');
+        });
+        
+        window.addEventListener('resize', () => {
+            console.log('🏹 Window resized, repositioning arrow...');
+            this.positionArrow();
+        });
+        
+        console.log('🏹 Arrow element setup complete');
     }
     
     positionArrow() {
@@ -1103,18 +1118,27 @@ class SliderGameController {
     }
     
     showArrowBriefly(duration = 3000) {
-        if (!this.arrowElement) return;
+        console.log('🏹 showArrowBriefly called with duration:', duration);
         
+        if (!this.arrowElement) {
+            console.log('❌ No arrow element in showArrowBriefly');
+            return;
+        }
+        
+        console.log('🏹 Arrow element exists, calling positionArrow...');
         // Force position update with current values
         this.positionArrow();
         
+        console.log('🏹 Setting arrow opacity to 1...');
         this.arrowElement.style.opacity = '1';
         
         // Pulse for the specified duration with 1-second intervals
         this.arrowElement.style.animation = 'arrowPulse 1s ease-in-out infinite';
+        console.log('🏹 Arrow animation started');
         
         setTimeout(() => {
             if (this.arrowElement) {
+                console.log('🏹 Hiding arrow after', duration, 'ms');
                 this.arrowElement.style.animation = '';
                 this.arrowElement.style.opacity = '0';
             }
