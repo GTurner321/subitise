@@ -356,12 +356,71 @@ class SliderGameController {
         document.body.appendChild(this.arrowElement);
         
         console.log('🏹 Calling initial updateSliderArrowPosition...');
-        console.log('🔍 Method type:', typeof this.updateSliderArrowPosition);
-        if (typeof this.updateSliderArrowPosition === 'function') {
-            this.updateSliderArrowPosition();
-        } else {
-            console.error('❌ updateSliderArrowPosition is not a function:', this.updateSliderArrowPosition);
-        }
+        
+        // Define the positioning function inline to avoid conflicts
+        const positionSliderArrow = () => {
+            console.log('🏹 inline positionSliderArrow() called');
+            
+            try {
+                if (!this.arrowElement) {
+                    console.log('❌ Arrow element not found');
+                    return;
+                }
+                console.log('✅ Arrow element exists');
+                
+                const sliderContainer = document.getElementById('sliderContainer');
+                if (!sliderContainer) {
+                    console.log('❌ Slider container not found');
+                    return;
+                }
+                console.log('✅ Slider container found');
+                
+                const sliderRect = sliderContainer.getBoundingClientRect();
+                console.log('📏 Slider container rect:', sliderRect);
+                
+                // Arrow size: 12% of container width
+                const arrowWidth = sliderRect.width * 0.12;
+                const aspectRatio = 517 / 448;
+                const arrowHeight = arrowWidth * aspectRatio;
+                
+                console.log('📐 Arrow dimensions:', { arrowWidth, arrowHeight });
+                
+                // Center the arrow within the slider container
+                const arrowX = sliderRect.left + (sliderRect.width * 0.5);
+                const arrowY = sliderRect.top + (sliderRect.height * 0.5);
+                
+                console.log('📍 Arrow center point:', { arrowX, arrowY });
+                
+                const finalLeft = arrowX - (arrowWidth / 2);
+                const finalTop = arrowY - (arrowHeight / 2);
+                
+                console.log('📍 Final arrow position:', { finalLeft, finalTop });
+                
+                // Force positioning
+                this.arrowElement.style.cssText = `
+                    position: fixed !important;
+                    left: ${finalLeft}px !important;
+                    top: ${finalTop}px !important;
+                    width: ${arrowWidth}px !important;
+                    height: ${arrowHeight}px !important;
+                    z-index: 1000 !important;
+                    opacity: ${this.arrowElement.style.opacity || '0'};
+                    pointer-events: none !important;
+                    transition: opacity 0.5s ease;
+                `;
+                
+                console.log('🏹 Arrow positioned inline');
+                
+            } catch (error) {
+                console.error('💥 Error in inline positioning:', error);
+            }
+        };
+        
+        // Store the function so it can be reused
+        this.positionArrowInline = positionSliderArrow;
+        
+        // Call it immediately
+        positionSliderArrow();
         
         this.arrowElement.addEventListener('error', () => {
             console.error('❌ Arrow image failed to load:', this.arrowElement.src);
@@ -1129,18 +1188,18 @@ class SliderGameController {
             return;
         }
         
-        console.log('🏹 Arrow element exists, calling positionArrow...');
+        console.log('🏹 Arrow element exists, calling updateSliderArrowPosition...');
         
-        // Add debugging right before the call
-        console.log('🔍 About to call this.updateSliderArrowPosition()');
-        console.log('🔍 this.updateSliderArrowPosition type:', typeof this.updateSliderArrowPosition);
-        
-        // Force position update with current values
+        // Force position update using inline function
         try {
-            this.updateSliderArrowPosition();
-            console.log('✅ updateSliderArrowPosition() call completed');
+            if (this.positionArrowInline) {
+                this.positionArrowInline();
+                console.log('✅ inline positioning call completed');
+            } else {
+                console.log('❌ inline positioning function not available');
+            }
         } catch (error) {
-            console.error('💥 Error calling updateSliderArrowPosition():', error);
+            console.error('💥 Error calling inline positioning:', error);
         }
         
         console.log('🏹 Setting arrow opacity to 1...');
