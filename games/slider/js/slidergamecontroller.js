@@ -1066,6 +1066,13 @@ class SliderGameController {
             // Show arrow from 1 to 4 seconds for subsequent questions
             setTimeout(() => this.showArrowBriefly(3000), 1000); // Show for 3 seconds starting at 1 second
         }
+        
+        // Check game state immediately when slider becomes live again
+        // This catches cases where beads were moved too quickly to the correct position
+        setTimeout(() => {
+            console.log('Initial game state check for new question');
+            this.checkGameState();
+        }, 100); // Small delay to ensure everything is initialized
     }
     
     showArrowBriefly(duration = 3000) {
