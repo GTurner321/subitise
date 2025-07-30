@@ -1095,19 +1095,19 @@ class SliderGameController {
         this.questionStartTime = Date.now();
         
         if (this.currentQuestion === 1) {
-            // UPDATED TIMING: 2 seconds delay for first question + 2 seconds for audio overlap prevention
+            // UPDATED TIMING: 2 seconds delay for first question (no extra delay needed)
             setTimeout(() => {
                 this.speakText('We\'re going to count in twos. Start by sliding 2 beads to the right side');
-            }, 4000); // Was 2000, now 4000 (2+2 seconds)
-            // Show arrow from 4-9 seconds (5-second duration starting at 4 seconds)
-            setTimeout(() => this.showArrowBriefly(5000), 4000); // Was 2000, now 4000
+            }, 2000);
+            // Show arrow from 2-7 seconds (5-second duration starting at 2 seconds)
+            setTimeout(() => this.showArrowBriefly(5000), 2000);
         } else {
-            // UPDATED TIMING: 1 second delay for subsequent questions + 2 seconds for audio overlap prevention
+            // UPDATED TIMING: 2 seconds delay for subsequent questions (reduced gap)
             setTimeout(() => {
                 this.speakText('Slide 2 more beads to the right side');
-            }, 3000); // Was 1000, now 3000 (1+2 seconds)
-            // Show arrow from 3-6 seconds (3-second duration starting at 3 seconds)
-            setTimeout(() => this.showArrowBriefly(3000), 3000); // Was 1000, now 3000
+            }, 2000);
+            // Show arrow from 2-5 seconds (3-second duration starting at 2 seconds)
+            setTimeout(() => this.showArrowBriefly(3000), 2000);
         }
         
         // Check game state immediately when slider becomes live again
