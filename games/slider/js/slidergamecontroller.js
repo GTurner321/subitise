@@ -803,6 +803,13 @@ class SliderGameController {
         console.log(`Slider disabled: ${this.sliderDisabled}`);
         
         if (hasMiddleBeads) {
+            // Invalid arrangement - clear ready timer but keep slider active
+            if (this.readyForAnswerTimer) {
+                clearTimeout(this.readyForAnswerTimer);
+                this.readyForAnswerTimer = null;
+                this.readyForAnswerStartTime = null;
+            }
+            
             // Invalid arrangement - start 10-second inactivity timer
             if (!this.invalidArrangementStartTime) {
                 this.invalidArrangementStartTime = currentTime;
@@ -810,16 +817,9 @@ class SliderGameController {
                 this.scheduleInactivityCheck();
             }
             
-            // Clear ready timer
-            if (this.readyForAnswerTimer) {
-                clearTimeout(this.readyForAnswerTimer);
-                this.readyForAnswerTimer = null;
-                this.readyForAnswerStartTime = null;
-            }
-            
             this.awaitingButtonPress = false;
-            this.sliderDisabled = true; // Keep slider disabled when arrangement is invalid
-            console.log(`❌ Invalid arrangement - slider disabled`);
+            // Slider stays active - user needs to fix the arrangement
+            console.log(`❌ Invalid arrangement - slider stays active`);
             console.log(`=== END GAME STATE CHECK ===\n`);
             return;
         }
@@ -836,21 +836,20 @@ class SliderGameController {
         console.log(`Right side count: ${rightSideCount}`);
         
         if (rightSideCount === this.expectedBeadsOnRight) {
-            // Correct - but DON'T enable buttons until the "Select..." message plays
-            this.awaitingButtonPress = false; // Keep buttons disabled initially
+            // Correct count - start 2-second timer, slider stays active until button selection
+            this.awaitingButtonPress = false; // Buttons not ready yet
             
             if (!this.readyForAnswerStartTime) {
                 this.readyForAnswerStartTime = currentTime;
                 this.readyForAnswerTimer = setTimeout(() => {
-                    console.log(`⏰ 2 seconds elapsed - pausing slider and playing select message`);
+                    console.log(`⏰ 2 seconds elapsed - NOW disabling slider and enabling buttons`);
                     
+                    // ONLY NOW disable slider and enable buttons
                     this.sliderDisabled = true;
-                    
-                    // Add rainbow piece at the END of the 2-second pause when beads are disabled
-                    this.rainbow.addPiece();
-                    
-                    // ENABLE BUTTONS at the EXACT START of the audio message
                     this.awaitingButtonPress = true;
+                    
+                    // Add rainbow piece
+                    this.rainbow.addPiece();
                     
                     if (this.currentQuestion === 1) {
                         this.speakText('Select the button underneath for the number of beads on the right side');
@@ -858,14 +857,13 @@ class SliderGameController {
                         this.speakText('Select the matching button underneath');
                     }
                     
-                    // NO ARROW for correct arrangement achieved (removed as per requirements)
                     this.guineaPigWave.startAnimation(70);
                 }, 2000);
             }
             
-            console.log(`✅ Correct count - buttons will be enabled when "Select..." message plays`);
+            console.log(`✅ Correct count - slider stays active for 2 more seconds`);
         } else {
-            // Wrong count - clear timer and disable buttons
+            // Wrong count - clear timer, slider stays active
             if (this.readyForAnswerTimer) {
                 clearTimeout(this.readyForAnswerTimer);
                 this.readyForAnswerTimer = null;
@@ -873,9 +871,8 @@ class SliderGameController {
             }
             
             this.awaitingButtonPress = false;
-            this.sliderDisabled = true; // Keep slider disabled when buttons are wrong
-            
-            console.log(`⏳ Wrong count: ${rightSideCount}, need ${this.expectedBeadsOnRight}`);
+            // Slider stays active - user needs to add/remove beads
+            console.log(`⏳ Wrong count: ${rightSideCount}, need ${this.expectedBeadsOnRight} - slider stays active`);
         }
         
         console.log(`Final state: awaiting=${this.awaitingButtonPress}, disabled=${this.sliderDisabled}`);
