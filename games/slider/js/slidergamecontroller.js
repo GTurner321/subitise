@@ -855,7 +855,7 @@ class SliderGameController {
                         this.speakText('Select the matching button underneath');
                     }
                     
-                    // Remove arrow logic here - no arrow for correct arrangement achieved
+                    // NO ARROW for correct arrangement achieved (removed as per requirements)
                     this.guineaPigWave.startAnimation(70);
                 }, 2000); // Reduced from 3000 to 2000
             }
@@ -891,7 +891,13 @@ class SliderGameController {
             
             // Check if 10 seconds have passed since last activity AND beads are still in middle
             if (timeSinceActivity >= 10000 && this.sliderRenderer.hasBeadsInMiddle()) {
-                this.speakText('don\'t leave any beads in the middle');
+                // NEW ENHANCED INACTIVITY MESSAGES
+                if (this.currentQuestion === 1) {
+                    this.speakText('You need to put 2 beads on the right side in total, with no beads left in the middle');
+                } else {
+                    const previousTarget = this.expectedBeadsOnRight - 2;
+                    this.speakText(`You had ${previousTarget} beads on the right side, now you need 2 more. Make sure no beads are left in the middle`);
+                }
                 
                 // Reset activity time and schedule next check
                 this.lastActivityTime = now;
@@ -955,6 +961,7 @@ class SliderGameController {
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
             setTimeout(() => {
+                // ENHANCED AUDIO: Include bead count in encouragement
                 this.speakText(`${randomEncouragement} There are ${rightSideCount} beads on the right side.`);
             }, 400);
         }
@@ -1088,13 +1095,19 @@ class SliderGameController {
         this.questionStartTime = Date.now();
         
         if (this.currentQuestion === 1) {
-            this.speakText('We\'re going to count in twos, so start by sliding 2 beads to the right side');
-            // Show arrow from 1 to 6 seconds for first question (longer instruction)
-            setTimeout(() => this.showArrowBriefly(5000), 1000); // Show for 5 seconds starting at 1 second
+            // UPDATED TIMING: 2 seconds delay for first question
+            setTimeout(() => {
+                this.speakText('We\'re going to count in twos. Start by sliding 2 beads to the right side');
+            }, 2000);
+            // Show arrow from 2-7 seconds (5-second duration starting at 2 seconds)
+            setTimeout(() => this.showArrowBriefly(5000), 2000);
         } else {
-            this.speakText('Now slide 2 more beads to the right side');
-            // Show arrow from 1 to 4 seconds for subsequent questions
-            setTimeout(() => this.showArrowBriefly(3000), 1000); // Show for 3 seconds starting at 1 second
+            // UPDATED TIMING: 1 second delay for subsequent questions
+            setTimeout(() => {
+                this.speakText('Slide 2 more beads to the right side');
+            }, 1000);
+            // Show arrow from 1-4 seconds (3-second duration starting at 1 second)
+            setTimeout(() => this.showArrowBriefly(3000), 1000);
         }
         
         // Check game state immediately when slider becomes live again
@@ -1159,9 +1172,10 @@ class SliderGameController {
         this.modal.classList.remove('hidden');
         
         if (this.audioEnabled) {
+            // UPDATED TIMING: 2 seconds instead of 1 second
             setTimeout(() => {
                 this.speakText('Well done! Play again or return to the home page.');
-            }, 2000); // Changed from 1000 to 2000 (2 seconds)
+            }, 2000);
         }
     }
     
