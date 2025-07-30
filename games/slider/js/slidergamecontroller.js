@@ -387,8 +387,8 @@ class SliderGameController {
         const sliderContainer = document.getElementById('sliderContainer');
         const sliderRect = sliderContainer.getBoundingClientRect();
         
-        // Width = 10% of slider container width, maintain aspect ratio (448x517)
-        const arrowWidth = sliderRect.width * 0.10;
+        // Width = 12% of slider container width, maintain aspect ratio (448x517)
+        const arrowWidth = sliderRect.width * 0.12;
         const aspectRatio = 517 / 448; // height / width
         const arrowHeight = arrowWidth * aspectRatio;
         
@@ -396,9 +396,9 @@ class SliderGameController {
         this.arrowElement.style.height = `${arrowHeight}px`;
         
         // Position relative to slider container (like the frame)
-        // 92% across slider width, 37% down slider height
-        const arrowX = sliderRect.left + (sliderRect.width * 0.92);
-        const arrowY = sliderRect.top + (sliderRect.height * 0.37);
+        // 96% across slider width, 40% down slider height
+        const arrowX = sliderRect.left + (sliderRect.width * 0.96);
+        const arrowY = sliderRect.top + (sliderRect.height * 0.4);
         
         // Center the arrow horizontally and vertically on the calculated position
         this.arrowElement.style.left = `${arrowX - (arrowWidth / 2)}px`;
@@ -978,7 +978,7 @@ class SliderGameController {
         this.buttonsDisabled = false;
         this.sliderDisabled = false;
         
-        setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY);
+        setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY + 2000); // Add 2 seconds delay
     }
     
     handleIncorrectAnswer(buttonElement) {
@@ -1095,19 +1095,19 @@ class SliderGameController {
         this.questionStartTime = Date.now();
         
         if (this.currentQuestion === 1) {
-            // UPDATED TIMING: 2 seconds delay for first question
+            // UPDATED TIMING: 2 seconds delay for first question + 2 seconds for audio overlap prevention
             setTimeout(() => {
                 this.speakText('We\'re going to count in twos. Start by sliding 2 beads to the right side');
-            }, 2000);
-            // Show arrow from 2-7 seconds (5-second duration starting at 2 seconds)
-            setTimeout(() => this.showArrowBriefly(5000), 2000);
+            }, 4000); // Was 2000, now 4000 (2+2 seconds)
+            // Show arrow from 4-9 seconds (5-second duration starting at 4 seconds)
+            setTimeout(() => this.showArrowBriefly(5000), 4000); // Was 2000, now 4000
         } else {
-            // UPDATED TIMING: 1 second delay for subsequent questions
+            // UPDATED TIMING: 1 second delay for subsequent questions + 2 seconds for audio overlap prevention
             setTimeout(() => {
                 this.speakText('Slide 2 more beads to the right side');
-            }, 1000);
-            // Show arrow from 1-4 seconds (3-second duration starting at 1 second)
-            setTimeout(() => this.showArrowBriefly(3000), 1000);
+            }, 3000); // Was 1000, now 3000 (1+2 seconds)
+            // Show arrow from 3-6 seconds (3-second duration starting at 3 seconds)
+            setTimeout(() => this.showArrowBriefly(3000), 3000); // Was 1000, now 3000
         }
         
         // Check game state immediately when slider becomes live again
