@@ -979,7 +979,7 @@ class SliderGameController {
         this.expectedBeadsOnRight += 2;
         this.awaitingButtonPress = false;
         this.buttonsDisabled = false;
-        this.sliderDisabled = false;
+        // DON'T re-enable slider here - wait for the next question's audio
         
         setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY + 2000); // Add 2 seconds delay
     }
@@ -1101,13 +1101,17 @@ class SliderGameController {
             // UPDATED TIMING: 1 second delay for first question
             setTimeout(() => {
                 this.speakText('We\'re going to count in twos. Start by sliding 2 beads to the right side');
+                // Enable slider when audio plays for first question
+                this.sliderDisabled = false;
             }, 1000);
             // Show arrow from 1-6 seconds (5-second duration starting at 1 second)
             setTimeout(() => this.showArrowBriefly(5000), 1000);
         } else {
-            // UPDATED TIMING: 1 second delay for subsequent questions (reduced gap further)
+            // UPDATED TIMING: 1 second delay for subsequent questions
             setTimeout(() => {
                 this.speakText('Slide 2 more beads to the right side');
+                // Enable slider when audio plays for subsequent questions
+                this.sliderDisabled = false;
             }, 1000);
             // Show arrow from 1-4 seconds (3-second duration starting at 1 second)
             setTimeout(() => this.showArrowBriefly(3000), 1000);
