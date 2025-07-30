@@ -355,8 +355,8 @@ class SliderGameController {
         console.log('🏹 Arrow element created, adding to DOM...');
         document.body.appendChild(this.arrowElement);
         
-        console.log('🏹 Calling initial positionArrow...');
-        this.positionArrow();
+        console.log('🏹 Calling initial positionSliderArrow...');
+        this.positionSliderArrow();
         
         // Add error handling for missing image
         this.arrowElement.addEventListener('error', () => {
@@ -380,7 +380,7 @@ class SliderGameController {
             this.arrowElement.parentNode.replaceChild(textArrow, this.arrowElement);
             this.arrowElement = textArrow;
             console.log('🏹 Switched to text arrow fallback');
-            this.positionArrow();
+            this.positionSliderArrow();
         });
         
         this.arrowElement.addEventListener('load', () => {
@@ -389,7 +389,7 @@ class SliderGameController {
         
         window.addEventListener('resize', () => {
             console.log('🏹 Window resized, repositioning arrow...');
-            this.positionArrow();
+            this.positionSliderArrow();
         });
         
         console.log('🏹 Arrow element setup complete');
@@ -1126,8 +1126,19 @@ class SliderGameController {
         }
         
         console.log('🏹 Arrow element exists, calling positionArrow...');
+        
+        // Add debugging right before the call
+        console.log('🔍 About to call this.positionSliderArrow()');
+        console.log('🔍 this.positionSliderArrow type:', typeof this.positionSliderArrow);
+        console.log('🔍 this.positionSliderArrow:', this.positionSliderArrow);
+        
         // Force position update with current values
-        this.positionArrow();
+        try {
+            this.positionSliderArrow();
+            console.log('✅ positionSliderArrow() call completed');
+        } catch (error) {
+            console.error('💥 Error calling positionSliderArrow():', error);
+        }
         
         console.log('🏹 Setting arrow opacity to 1...');
         this.arrowElement.style.opacity = '1';
