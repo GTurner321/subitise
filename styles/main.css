@@ -10,6 +10,7 @@ body {
     display: flex;
     flex-direction: column;
     background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    overflow-x: hidden;
 }
 
 /* Back button - shared across all games */
@@ -26,9 +27,26 @@ body {
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     z-index: 1003;
+    
+    /* Touch support */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    pointer-events: auto;
+    cursor: pointer;
+    
+    /* Proper touch target size */
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.back-button:hover {
+.back-button:hover,
+.back-button:active,
+.back-button:focus {
     background: white;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.15);
@@ -87,34 +105,84 @@ body {
     }
 }
 
-/* Number buttons */
+/* Universal Button Bar System */
 .number-buttons {
+    /* Base container - positioned by ButtonBar.js */
     display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
+    align-items: flex-end;
+    justify-content: flex-start;
     background: #f5f5f5;
-    gap: 10px;
-    flex-wrap: wrap;
-    min-height: 120px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
 }
 
+.number-buttons.loaded {
+    opacity: 1;
+}
+
+/* Universal button styles */
 .number-btn {
-    width: 90px;
-    height: 90px;
-    border: none;
-    border-radius: 18px;
-    font-size: 3rem;
+    /* Base button styles - dimensions set by ButtonBar.js */
+    font-family: inherit;
     font-weight: bold;
     color: white;
+    border: none;
+    border-radius: 18px;
     cursor: pointer;
-    transition: all 0.2s ease;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    
+    /* Touch support */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    pointer-events: auto;
+    
+    /* Remove focus outline */
+    outline: none;
+    
+    /* Animation support */
+    transition: all 0.3s ease;
+    
+    /* Position will be set by ButtonBar.js */
+    position: absolute;
 }
 
+/* Button states */
+.number-btn:focus,
+.number-btn:focus-visible {
+    outline: none;
+    border: none;
+}
+
+.number-btn.disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
+.number-btn.used {
+    opacity: 0.6;
+    filter: brightness(0.7);
+    cursor: not-allowed;
+}
+
+.number-btn.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Button hover effects */
 .number-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.number-btn.fade-in:hover {
+    transform: translateY(-2px);
 }
 
 .number-btn:active {
@@ -122,6 +190,7 @@ body {
     transition: all 0.1s ease;
 }
 
+/* Button animations */
 .number-btn.correct {
     animation: flashGreen 0.8s ease;
 }
@@ -154,19 +223,104 @@ body {
     }
 }
 
-/* Button colors */
-.number-btn:nth-child(1) { background-color: #ff6b6b; --btn-color: #ff6b6b; }
-.number-btn:nth-child(2) { background-color: #4ecdc4; --btn-color: #4ecdc4; }
-.number-btn:nth-child(3) { background-color: #45b7d1; --btn-color: #45b7d1; }
-.number-btn:nth-child(4) { background-color: #f9ca24; --btn-color: #f9ca24; }
-.number-btn:nth-child(5) { background-color: #f0932b; --btn-color: #f0932b; }
-.number-btn:nth-child(6) { background-color: #eb4d4b; --btn-color: #eb4d4b; }
-.number-btn:nth-child(7) { background-color: #6c5ce7; --btn-color: #6c5ce7; }
-.number-btn:nth-child(8) { background-color: #a29bfe; --btn-color: #a29bfe; }
-.number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
-.number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
+@keyframes buttonJiggle {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+    20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
 
-/* Game over modal - FIXED: Allow back button to work */
+/* Button pulse animation */
+@keyframes beadPulse {
+    0% { transform: scale(1.05); }
+    100% { transform: scale(1.15); }
+}
+
+/* Arrow pulse animation */
+@keyframes arrowPulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Cross overlay for incorrect answers */
+.cross-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    pointer-events: none;
+    z-index: 10;
+    animation: crossAppear 0.3s ease-out;
+}
+
+.cross-overlay::before,
+.cross-overlay::after {
+    content: '';
+    position: absolute;
+    background-color: #dc143c;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+}
+
+.cross-overlay::before {
+    width: 60px;
+    height: 8px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cross-overlay::after {
+    width: 60px;
+    height: 8px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@keyframes crossAppear {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.3);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Star celebration animation */
+.completion-star {
+    animation: starSparkle 1.5s ease-out forwards;
+    transform-origin: center;
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes starSparkle {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8) rotate(360deg);
+    }
+}
+
+.completion-effect {
+    pointer-events: none;
+}
+
+/* Game completion modal */
 .modal {
     position: fixed;
     top: 0;
@@ -178,7 +332,11 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    pointer-events: none; /* Allow clicks to pass through */
+    pointer-events: none;
+}
+
+.modal.hidden {
+    display: none !important;
 }
 
 .modal-content {
@@ -187,7 +345,8 @@ body {
     border-radius: 20px;
     text-align: center;
     animation: modalAppear 0.5s ease;
-    pointer-events: auto; /* Re-enable clicks for modal content */
+    pointer-events: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
 
 @keyframes modalAppear {
@@ -219,6 +378,13 @@ body {
     font-weight: bold;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
+    
+    /* Touch support */
+    touch-action: manipulation;
+    pointer-events: auto;
+    
+    /* Remove focus outline */
+    outline: none;
 }
 
 .play-again-btn:hover {
@@ -226,64 +392,39 @@ body {
     transform: translateY(-2px);
 }
 
+.play-again-btn:focus {
+    outline: none;
+}
+
 .hidden {
     display: none;
 }
 
-/* Cross overlay for incorrect answers */
-.cross-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    pointer-events: none;
-    z-index: 10;
-}
-
-.cross-overlay::before,
-.cross-overlay::after {
-    content: '';
-    position: absolute;
-    background-color: #dc143c; /* Crimson color */
-    border-radius: 4px;
-    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
-}
-
-.cross-overlay::before {
-    width: 60px;
-    height: 8px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.cross-overlay::after {
-    width: 60px;
-    height: 8px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-}
-
-/* Animation for cross appearance */
-.cross-overlay {
-    animation: crossAppear 0.3s ease-out;
-}
-
-@keyframes crossAppear {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.3);
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .game-area {
+        width: 95%;
     }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
+    
+    .back-button {
+        top: 10px;
+        left: 10px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .modal h2 {
+        font-size: 2rem;
+    }
+    
+    .play-again-btn {
+        font-size: 1.2rem;
+        padding: 12px 24px;
     }
 }
 
-/* Ensure number buttons have relative positioning for the overlay */
-.number-btn {
-    position: relative;
+@media (min-width: 1024px) {
+    .game-area {
+        width: 70%;
+    }
 }
