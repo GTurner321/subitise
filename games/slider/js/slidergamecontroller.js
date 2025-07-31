@@ -139,109 +139,39 @@ class SliderGameController {
         this.startNewQuestion();
     }
     
-    createButtonsAsPercentages() {
-        // Clear the container
-        const numberButtonsContainer = document.querySelector('.number-buttons');
-        numberButtonsContainer.innerHTML = '';
-        
-        // Shuffle the button numbers at the start of each game
-        const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
-        for (let i = buttonNumbers.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
-        }
-        
-        // Button left positions: 15.5, 22.5, 29.5, 36.5, 43.5, 50.5, 57.5, 64.5, 71.5, 78.5
-        const buttonLeftPositions = [15.5, 22.5, 29.5, 36.5, 43.5, 50.5, 57.5, 64.5, 71.5, 78.5];
-        const buttonWidth = 6; // 6vw width
-        const buttonHeight = 6; // 6vw height (square buttons)
-        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'];
-        
-        // Wait 0.5 seconds before creating buttons
-        setTimeout(() => {
-            console.log('Creating buttons...');
-            
-            // Debug the container
-            const containerRect = numberButtonsContainer.getBoundingClientRect();
-            console.log('Button container rect:', containerRect);
-            console.log('Container height:', containerRect.height, 'Container bottom:', containerRect.bottom);
-            
-            // Create buttons
-            for (let i = 0; i < 10; i++) {
-                const button = document.createElement('button');
-                button.className = 'number-btn';
-                button.dataset.number = buttonNumbers[i];
-                button.textContent = buttonNumbers[i];
-                
-                // Position buttons: left edge positions and bottom edge at 1.5vw
-                const leftPosition = buttonLeftPositions[i];
-                const bottomPosition = 1.5; // Bottom edge of buttons at 1.5vw from bottom
-                
-                button.style.cssText = `
-                    position: absolute;
-                    left: ${leftPosition}vw;
-                    bottom: ${bottomPosition}vw;
-                    width: ${buttonWidth}vw;
-                    height: ${buttonHeight}vw;
-                    font-size: calc(${buttonWidth / 2}vw);
-                    border: none;
-                    border-radius: 18px;
-                    font-weight: bold;
-                    color: white;
-                    cursor: pointer;
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                    touch-action: manipulation;
-                    -webkit-touch-callout: none;
-                    -webkit-user-select: none;
-                    user-select: none;
-                    pointer-events: auto;
-                    outline: none;
-                    background-color: ${colors[i]};
-                    opacity: 1;
-                    transform: translateY(0px);
-                    transition: all 0.3s ease;
-                `;
-                
-                // Add event listeners
-                button.addEventListener('click', (e) => {
-                    if (this.buttonsDisabled) return;
-                    const selectedNumber = parseInt(e.target.dataset.number);
-                    this.handleNumberClick(selectedNumber, e.target);
-                });
-                
-                button.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    if (this.buttonsDisabled) return;
-                    const selectedNumber = parseInt(e.target.dataset.number);
-                    this.handleNumberClick(selectedNumber, e.target);
-                });
-                
-                numberButtonsContainer.appendChild(button);
-                console.log(`Button ${i} created:`, button.dataset.number, 'at position', leftPosition, bottomPosition);
-                
-                // Debug the actual button position
-                setTimeout(() => {
-                    const buttonRect = button.getBoundingClientRect();
-                    console.log(`Button ${i} actual position:`, buttonRect);
-                }, 10);
-                
-                // Fade in each button with a slight delay
-                setTimeout(() => {
-                    button.classList.add('fade-in');
-                    console.log(`Button ${i} fade-in applied`);
-                }, i * 50); // 50ms delay between each button
-            }
-            
-            // Update the buttons reference
-            this.numberButtons = document.querySelectorAll('.number-btn');
-            console.log(`Created ${this.numberButtons.length} buttons`);
-            
-            // Fade in the container
-            numberButtonsContainer.classList.add('loaded');
-            console.log('Button container loaded class added');
-            
-        }, 500); // 0.5 second initial delay
+createButtonsAsPercentages() {
+    // Shuffle the button numbers at the start of each game
+    const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
+    for (let i = buttonNumbers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
     }
+    
+    // Button colors (same as before)
+    const colors = [
+        '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+        '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'
+    ];
+    
+    // Create buttons using the universal ButtonBar system
+    // Parameters: n (number of buttons), x (width %), y (height %), colors, numbers, clickHandler
+    window.ButtonBar.create(
+        10,                    // n: 10 buttons
+        6,                     // x: 6% of button panel width per button
+        6,                     // y: 6% of button panel width for height (maintains aspect ratio)
+        colors,                // button colors
+        buttonNumbers,         // button numbers (shuffled)
+        (selectedNumber, buttonElement) => {  // click handler
+            if (this.buttonsDisabled) return;
+            this.handleNumberClick(selectedNumber, buttonElement);
+        }
+    );
+    
+    // Update the buttons reference for backward compatibility
+    this.numberButtons = document.querySelectorAll('.number-btn');
+    
+    console.log(`Universal ButtonBar created with ${this.numberButtons.length} buttons`);
+}
     
     async initializeAudio() {
         if (!this.audioEnabled) return;
@@ -521,20 +451,20 @@ class SliderGameController {
         }
     }
     
-    shuffleButtons() {
-        const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
-        
-        for (let i = buttonNumbers.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
-        }
-        
-        // Update the dynamically created buttons
-        this.numberButtons.forEach((button, index) => {
-            button.dataset.number = buttonNumbers[index];
-            button.textContent = buttonNumbers[index];
-        });
+shuffleButtons() {
+    const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
+    
+    for (let i = buttonNumbers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
     }
+    
+    // Use the ButtonBar's shuffle method
+    window.ButtonBar.shuffleNumbers(buttonNumbers);
+    
+    // Update the reference for backward compatibility
+    this.numberButtons = document.querySelectorAll('.number-btn');
+}
     
     initializeEventListeners() {
         // Keyboard input handling
@@ -988,105 +918,109 @@ class SliderGameController {
         }
     }
     
-    handleUsedButtonClick(buttonElement) {
-        // Play failure sound and jiggle animation for used button
-        this.playFailureSound();
-        
-        // Add jiggle animation
-        buttonElement.style.animation = 'buttonJiggle 0.5s ease-in-out';
-        setTimeout(() => {
-            buttonElement.style.animation = '';
-        }, 500);
-    }
+handleUsedButtonClick(buttonElement) {
+    this.playFailureSound();
     
-    handleCorrectAnswer(buttonElement) {
-        this.buttonsDisabled = true;
-        this.clearTimers();
-        
-        // Mark this button as used and darken it
-        const selectedNumber = parseInt(buttonElement.dataset.number);
-        this.usedButtons.add(selectedNumber);
-        buttonElement.classList.add('used');
-        
-        buttonElement.classList.add('correct');
-        setTimeout(() => buttonElement.classList.remove('correct'), CONFIG.FLASH_DURATION);
-        
-        this.createStarCelebration(buttonElement);
-        // Rainbow piece already added in checkGameState when correct arrangement was achieved
-        this.playCompletionSound();
-        
-        if (this.audioEnabled) {
-            const encouragements = ['Well done!', 'Excellent!', 'Perfect!', 'Great job!'];
-            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-            const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-            setTimeout(() => {
-                // ENHANCED AUDIO: Include bead count in encouragement
-                this.speakText(`${randomEncouragement} There are ${rightSideCount} beads on the right side.`);
-            }, 400);
-        }
-        
+    // Add jiggle animation
+    buttonElement.style.animation = 'buttonJiggle 0.5s ease-in-out';
+    setTimeout(() => {
+        buttonElement.style.animation = '';
+    }, 500);
+}
+    
+handleCorrectAnswer(buttonElement) {
+    this.buttonsDisabled = true;
+    this.clearTimers();
+    
+    // Mark this button as used using ButtonBar method
+    const selectedNumber = parseInt(buttonElement.dataset.number);
+    this.usedButtons.add(selectedNumber);
+    window.ButtonBar.markButtonAsUsed(buttonElement);
+    
+    // Use ButtonBar animation method
+    window.ButtonBar.animateButton(buttonElement, 'correct');
+    
+    this.createStarCelebration(buttonElement);
+    this.playCompletionSound();
+    
+    if (this.audioEnabled) {
+        const encouragements = ['Well done!', 'Excellent!', 'Perfect!', 'Great job!'];
+        const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-        if (rightSideCount === 20 && parseInt(buttonElement.dataset.number) === 20) {
-            setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
-            return;
-        }
-        
-        this.currentQuestion++;
-        this.expectedBeadsOnRight += 2;
-        this.awaitingButtonPress = false;
-        this.buttonsDisabled = false;
-        // Keep slider disabled - will be enabled in startNewQuestion at the right time
-        this.sliderDisabled = true;
-        
-        setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY + 2000); // Add 2 seconds delay
+        setTimeout(() => {
+            this.speakText(`${randomEncouragement} There are ${rightSideCount} beads on the right side.`);
+        }, 400);
     }
     
-    handleIncorrectAnswer(buttonElement) {
-        this.buttonsDisabled = true;
-        this.playFailureSound();
-        
-        buttonElement.classList.add('incorrect');
-        setTimeout(() => buttonElement.classList.remove('incorrect'), CONFIG.FLASH_DURATION);
-        
-        const crossOverlay = document.createElement('div');
-        crossOverlay.className = 'cross-overlay';
-        buttonElement.appendChild(crossOverlay);
-        
-        this.numberButtons.forEach(btn => {
-            if (btn !== buttonElement) {
-                btn.style.transition = 'opacity 700ms ease-in-out';
-                btn.style.opacity = '0.1';
-            }
-        });
-        
+    const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
+    if (rightSideCount === 20 && parseInt(buttonElement.dataset.number) === 20) {
+        setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
+        return;
+    }
+    
+    this.currentQuestion++;
+    this.expectedBeadsOnRight += 2;
+    this.awaitingButtonPress = false;
+    this.buttonsDisabled = false;
+    this.sliderDisabled = true;
+    
+    setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY + 2000);
+}
+
+// Update handleIncorrectAnswer to use ButtonBar methods
+handleIncorrectAnswer(buttonElement) {
+    this.buttonsDisabled = true;
+    this.playFailureSound();
+    
+    // Use ButtonBar animation method
+    window.ButtonBar.animateButton(buttonElement, 'incorrect');
+    
+    const crossOverlay = document.createElement('div');
+    crossOverlay.className = 'cross-overlay';
+    buttonElement.appendChild(crossOverlay);
+    
+    // Disable other buttons temporarily
+    window.ButtonBar.setButtonsEnabled(false);
+    
+    // Fade out other buttons
+    this.numberButtons.forEach(btn => {
+        if (btn !== buttonElement) {
+            btn.style.transition = 'opacity 700ms ease-in-out';
+            btn.style.opacity = '0.1';
+        }
+    });
+    
+    setTimeout(() => {
         setTimeout(() => {
+            // Restore other buttons
+            this.numberButtons.forEach(btn => {
+                if (btn !== buttonElement) {
+                    btn.style.transition = 'opacity 700ms ease-in-out';
+                    btn.style.opacity = '1';
+                }
+            });
+            
+            if (crossOverlay && crossOverlay.parentNode) {
+                crossOverlay.style.transition = 'opacity 700ms ease-out';
+                crossOverlay.style.opacity = '0';
+            }
+            
             setTimeout(() => {
-                this.numberButtons.forEach(btn => {
-                    if (btn !== buttonElement) {
-                        btn.style.transition = 'opacity 700ms ease-in-out';
-                        btn.style.opacity = '1';
-                    }
-                });
-                
                 if (crossOverlay && crossOverlay.parentNode) {
-                    crossOverlay.style.transition = 'opacity 700ms ease-out';
-                    crossOverlay.style.opacity = '0';
+                    crossOverlay.parentNode.removeChild(crossOverlay);
                 }
                 
-                setTimeout(() => {
-                    if (crossOverlay && crossOverlay.parentNode) {
-                        crossOverlay.parentNode.removeChild(crossOverlay);
-                    }
-                    
-                    this.numberButtons.forEach(btn => {
-                        btn.style.transition = '';
-                    });
-                    
-                    this.buttonsDisabled = false;
-                }, 700);
+                this.numberButtons.forEach(btn => {
+                    btn.style.transition = '';
+                });
+                
+                // Re-enable buttons
+                window.ButtonBar.setButtonsEnabled(true);
+                this.buttonsDisabled = false;
             }, 700);
         }, 700);
-    }
+    }, 700);
+}
     
     createStarCelebration(buttonElement) {
         const buttonRect = buttonElement.getBoundingClientRect();
@@ -1324,34 +1258,38 @@ class SliderGameController {
         }
     }
     
-    destroy() {
-        this.clearTimers();
-        this.resetKeyboardInput();
-        
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        if (this.audioContext) {
-            this.audioContext.close();
-        }
-        
-        if (this.muteContainer && this.muteContainer.parentNode) {
-            this.muteContainer.parentNode.removeChild(this.muteContainer);
-        }
-        
-        if (this.arrowElement && this.arrowElement.parentNode) {
-            this.arrowElement.parentNode.removeChild(this.arrowElement);
-        }
-        
-        if (this.guineaPigWave) {
-            this.guineaPigWave.destroy();
-        }
-        
-        this.rainbow.reset();
-        this.bear.reset();
-        this.sliderRenderer.reset();
+destroy() {
+    this.clearTimers();
+    this.resetKeyboardInput();
+    
+    if ('speechSynthesis' in window) {
+        speechSynthesis.cancel();
     }
+    
+    if (this.audioContext) {
+        this.audioContext.close();
+    }
+    
+    if (this.muteContainer && this.muteContainer.parentNode) {
+        this.muteContainer.parentNode.removeChild(this.muteContainer);
+    }
+    
+    if (this.arrowElement && this.arrowElement.parentNode) {
+        this.arrowElement.parentNode.removeChild(this.arrowElement);
+    }
+    
+    if (this.guineaPigWave) {
+        this.guineaPigWave.destroy();
+    }
+    
+    // Clean up ButtonBar
+    if (window.ButtonBar) {
+        window.ButtonBar.destroy();
+    }
+    
+    this.rainbow.reset();
+    this.bear.reset();
+    this.sliderRenderer.reset();
 }
 
 // Initialize game when DOM is loaded
