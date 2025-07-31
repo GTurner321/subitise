@@ -187,12 +187,7 @@ class SliderRenderer {
         if (currentIndex === -1) return 0;
         
         // Calculate bar bounds
-        const barStartX = this.frameImageRect.width * 0.07;
-        const barEndX = this.frameImageRect.width * 0.92;
-        const barLength = barEndX - barStartX;
-        const playableLength = barLength - (2 * this.beadRadius);
-        const maxPosition = playableLength / this.beadDiameter;
-        
+        const maxPosition = this.getMaxBarPosition();
         const currentPosition = bead.position;
         
         if (direction > 0) {
@@ -380,11 +375,7 @@ class SliderRenderer {
         let rightGap = 0;
         
         // Calculate bar bounds in position units
-        const barStartX = this.frameImageRect.width * 0.07;
-        const barEndX = this.frameImageRect.width * 0.92;
-        const barLength = barEndX - barStartX;
-        const playableLength = barLength - (2 * this.beadRadius);
-        const maxPosition = playableLength / this.beadDiameter;
+        const maxPosition = this.getMaxBarPosition();
         
         // Left gap
         if (currentIndex > 0) {
@@ -453,11 +444,7 @@ class SliderRenderer {
         let snapped = false;
         
         // Calculate bar bounds
-        const barStartX = this.frameImageRect.width * 0.07;
-        const barEndX = this.frameImageRect.width * 0.92;
-        const barLength = barEndX - barStartX;
-        const playableLength = barLength - (2 * this.beadRadius);
-        const maxPosition = playableLength / this.beadDiameter;
+        const maxPosition = this.getMaxBarPosition();
         
         // Check for snapping to nearby beads (1-diameter gap)
         if (currentIndex > 0) {
@@ -513,13 +500,100 @@ class SliderRenderer {
         return snapped;
     }
     
-    countBeadsOnRightSide() {
-        // Calculate the actual bar end position
+    // NEW: Helper method for consistent max position calculation
+    getMaxBarPosition() {
         const barStartX = this.frameImageRect.width * 0.07;
         const barEndX = this.frameImageRect.width * 0.92;
         const barLength = barEndX - barStartX;
         const playableLength = barLength - (2 * this.beadRadius);
-        const maxPosition = playableLength / this.beadDiameter;
+        return playableLength / this.beadDiameter;
+    }
+    
+    // NEW: Force all bead states to be reconciled and consistent
+    reconcileAllBeadStates() {
+        console.log('🔄 Reconciling all bead states...');
+        
+        // 1. Stop all momentum animations to ensure stable state
+        for (let bead of this.beads) {
+            this.stopMomentum(bead);
+        }
+        this.momentumBeads.clear();
+        
+        // 2. Snap all beads to their nearest integer positions
+        // This resolves any floating-point precision issues
+        this.beads.forEach(bead => {
+            const originalPosition = bead.position;
+            bead.position = Math.round(bead.position);
+            if (Math.abs(originalPosition - bead.position) > 0.001) {
+                console.log(`  📍 Snapped ${bead.id}: ${originalPosition.toFixed(4)} → ${bead.position}`);
+                this.positionBead(bead);
+            }
+        });
+        
+        // 3. Resolve any overlapping beads by pushing them apart
+        this.resolveBeadOverlaps();
+        
+        // 4. Update bar state with fresh data
+        this.updateBarState();
+        
+        // 5. Apply magnetic snapping for any beads that should be connected
+        this.beads.forEach(bead => {
+            this.snapToNearbyBeads(bead, 0.3); // Smaller snap radius for reconciliation
+        });
+        
+        // 6. Final bar state update
+        this.updateBarState();
+        
+        console.log('✅ Bead state reconciliation complete');
+    }
+    
+    // NEW: Resolve overlapping beads by pushing them apart
+    resolveBeadOverlaps() {
+        console.log('  🔧 Resolving bead overlaps...');
+        
+        // Process each bar separately
+        for (let barIndex = 0; barIndex < 2; barIndex++) {
+            const barBeads = this.beads.filter(bead => bead.barIndex === barIndex);
+            const sortedBeads = barBeads.sort((a, b) => a.position - b.position);
+            
+            // Check for overlaps and resolve them
+            for (let i = 0; i < sortedBeads.length - 1; i++) {
+                const currentBead = sortedBeads[i];
+                const nextBead = sortedBeads[i + 1];
+                
+                const gap = nextBead.position - currentBead.position;
+                
+                // If beads are overlapping or too close (less than 1 diameter apart)
+                if (gap < 1.0) {
+                    const correction = (1.0 - gap) / 2;
+                    
+                    console.log(`    ⚠️  Overlap detected: ${currentBead.id} and ${nextBead.id} (gap: ${gap.toFixed(4)})`);
+                    
+                    // Push beads apart equally
+                    currentBead.position -= correction;
+                    nextBead.position += correction;
+                    
+                    // Ensure positions stay within bar bounds
+                    const maxPosition = this.getMaxBarPosition();
+                    currentBead.position = Math.max(0, Math.min(maxPosition, currentBead.position));
+                    nextBead.position = Math.max(0, Math.min(maxPosition, nextBead.position));
+                    
+                    console.log(`    🔧 Corrected: ${currentBead.id} → ${currentBead.position.toFixed(4)}, ${nextBead.id} → ${nextBead.position.toFixed(4)}`);
+                    
+                    this.positionBead(currentBead);
+                    this.positionBead(nextBead);
+                }
+            }
+        }
+    }
+    
+    // UPDATED: Now uses getMaxBarPosition helper
+    countBeadsOnRightSide() {
+        // This method should NOT call reconcileAllBeadStates() - 
+        // that should be done by the caller before calling this
+        
+        // Calculate the actual bar end position
+        const maxPosition = this.getMaxBarPosition();
         
         let totalRightSideBeads = 0;
         
@@ -551,7 +625,11 @@ class SliderRenderer {
         return totalRightSideBeads;
     }
     
+    // UPDATED: Cleaner version, no logic changes
     hasBeadsInMiddle() {
+        // This method should NOT call reconcileAllBeadStates() - 
+        // that should be done by the caller before calling this
+        
         // Check using the 11-gap criteria: valid arrangement has exactly 10 zero gaps per bar
         // (10 beads can create at most 10 zero gaps, with 1 non-zero gap remaining)
         const tolerance = 0.15; // Increased tolerance - 0.1 should definitely be accepted as zero
