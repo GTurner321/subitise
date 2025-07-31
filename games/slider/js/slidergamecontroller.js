@@ -1112,8 +1112,8 @@ checkGameState() {
                     this.sliderDisabled = false;
                 }, 3000);
             }, 1000);
-            // Show arrow from 2-6 seconds (4-second duration starting at 2 seconds)
-            setTimeout(() => this.showArrowBriefly(4000), 2000);
+            // Show arrow from 3.5-6 seconds (2.5-second duration starting at 3.5 seconds)
+            setTimeout(() => this.showArrowBriefly(2500), 3500);
         } else {
             // UPDATED TIMING: 1 second delay for subsequent questions
             setTimeout(() => {
