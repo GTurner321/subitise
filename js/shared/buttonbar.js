@@ -162,8 +162,8 @@ class ButtonBar {
             // Set button color
             const buttonColor = this.config.colors[i] || defaultColors[i % defaultColors.length];
             
-            // Calculate font size based on button dimensions - made larger
-            const fontSize = this.dimensions.buttonWidth / 4; // Changed from /6 to /4 for larger font
+            // Calculate font size based on button dimensions - made even larger
+            const fontSize = this.dimensions.buttonWidth / 2; // Changed from /4 to /2 for twice as large
             
             button.style.cssText = `
                 position: absolute;
@@ -251,7 +251,7 @@ class ButtonBar {
             
             // Update button positions and sizes
             this.buttons.forEach((button, index) => {
-                const fontSize = this.dimensions.buttonWidth / 4; // Changed from /6 to /4 for larger font
+                const fontSize = this.dimensions.buttonWidth / 2; // Changed from /4 to /2 for twice as large
                 // ADD outside margin offset for resize
                 const leftPosition = this.dimensions.outsideMargin * (window.innerWidth / 100) + 
                     this.dimensions.insideMargin + 
