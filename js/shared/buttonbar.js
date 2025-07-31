@@ -109,13 +109,16 @@ class ButtonBar {
     styleContainer() {
         const container = this.container;
         
-        // Base container styles - FULL WIDTH background with button panel positioned inside
+        // Base container styles - FULL WIDTH background with proper spacing
+        // Total height: 3vh (bottom) + button height + 2vh (top)
+        const buttonHeightVw = (this.config.y * this.dimensions.buttonPanelWidth) / 100;
+        
         container.style.cssText = `
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100vw;
-            height: calc(${this.config.y}vw * ${this.dimensions.buttonPanelWidth} / 100 + 5vh);
+            height: calc(${buttonHeightVw}vw + 5vh);
             background: #f5f5f5;
             display: flex;
             align-items: flex-end;
