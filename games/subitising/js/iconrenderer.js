@@ -1,6 +1,7 @@
 /**
  * Responsive Icon Renderer
- * Renders icons using percentage-based positioning that adapts to game area dimensions
+ * Renders FontAwesome icons using percentage-based positioning that adapts to game area dimensions
+ * Uses original icon and color system
  */
 class IconRenderer {
     constructor() {
@@ -8,13 +9,97 @@ class IconRenderer {
         this.icons = [];
         this.currentCount = 0;
         
-        // Icon sets with different emoji types
-        this.iconSets = [
-            ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯'], // Animals
-            ['🍎', '🍌', '🍊', '🍇', '🍓', '🥝', '🍑', '🍒', '🥭', '🍍'], // Fruits
-            ['🚗', '🚕', '🚙', '🚌', '🚎', '🚐', '🛻', '🚚', '🚛', '🚜'], // Vehicles
-            ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🎱', '🏓'], // Sports
-            ['🌟', '⭐', '✨', '💫', '🌠', '☀️', '🌙', '🌈', '⚡', '🔥']  // Stars & Effects
+        // Original FontAwesome icon classes
+        this.availableIcons = [
+            // Animals
+            'fas fa-cat',
+            'fas fa-dog',
+            'fas fa-fish',
+            'fas fa-dove',
+            'fas fa-frog',
+            'fas fa-bug',
+            'fas fa-horse',
+            'fas fa-hippo',
+            
+            // Home & Furniture
+            'fas fa-home',
+            'fas fa-bed',
+            'fas fa-chair',
+            
+            // Vehicles & Transportation
+            'fas fa-car',
+            'fas fa-bicycle',
+            'fas fa-plane',
+            'fas fa-rocket',
+            'fas fa-tractor',
+            'fas fa-bus',
+            'fas fa-train',
+            
+            // Sports & Games
+            'fas fa-puzzle-piece',
+            
+            // Food
+            'fas fa-apple-alt',
+            'fas fa-carrot',
+            'fas fa-ice-cream',
+            'fas fa-birthday-cake',
+            'fas fa-pepper-hot',
+            
+            // Nature & Weather
+            'fas fa-tree',
+            'fas fa-leaf',
+            'fas fa-sun',
+            'fas fa-cloud',
+            'fas fa-rainbow',
+            'fas fa-star',
+            'fas fa-moon',
+            'fas fa-snowflake',
+            'fas fa-feather',
+            
+            // Shapes & Symbols
+            'fas fa-heart',
+            
+            // Objects & Tools
+            'fas fa-music',
+            'fas fa-bell',
+            'fas fa-umbrella',
+            'fas fa-anchor',
+            'fas fa-glasses',
+            'fas fa-binoculars',
+            'fas fa-tshirt',
+            
+            // Fantasy & Fun
+            'fas fa-ghost',
+            'fas fa-hat-wizard',
+            
+            // Gestures & Actions
+            'fas fa-smile',
+            'fas fa-thumbs-up',
+            'fas fa-hand-paper'
+        ];
+        
+        // Original color palette
+        this.availableColors = [
+            '#ff6b6b', // Red
+            '#4ecdc4', // Teal
+            '#45b7d1', // Blue
+            '#f9ca24', // Yellow
+            '#f0932b', // Orange
+            '#eb4d4b', // Dark Red
+            '#6c5ce7', // Purple
+            '#a29bfe', // Light Purple
+            '#fd79a8', // Pink
+            '#00b894', // Green
+            '#00cec9', // Cyan
+            '#fdcb6e', // Light Orange
+            '#e17055', // Coral
+            '#74b9ff', // Light Blue
+            '#0984e3', // Dark Blue
+            '#00a085', // Dark Green
+            '#e84393', // Magenta
+            '#fd63a3', // Hot Pink
+            '#636e72', // Gray
+            '#2d3436'  // Dark Gray
         ];
         
         // Predefined positioning patterns for different counts (as percentages of game area)
@@ -219,12 +304,13 @@ class IconRenderer {
             return;
         }
         
-        // Select random icon set
-        const iconSet = this.iconSets[Math.floor(Math.random() * this.iconSets.length)];
+        // Select ONE random icon and ONE random color for this entire question (original behavior)
+        const selectedIcon = this.availableIcons[Math.floor(Math.random() * this.availableIcons.length)];
+        const selectedColor = this.availableColors[Math.floor(Math.random() * this.availableColors.length)];
         
-        // Create icons with percentage-based positioning
+        // Create icons with percentage-based positioning - ALL THE SAME ICON AND COLOR
         for (let i = 0; i < count; i++) {
-            const icon = this.createIcon(iconSet[i % iconSet.length], positions[i], i);
+            const icon = this.createIcon(selectedIcon, selectedColor, positions[i], i);
             
             // Calculate and store the size for this icon
             const gameAreaRect = this.gameArea.getBoundingClientRect();
@@ -234,7 +320,9 @@ class IconRenderer {
                 element: icon,
                 position: positions[i],
                 index: i,
-                size: iconSize
+                size: iconSize,
+                iconClass: selectedIcon,
+                color: selectedColor
             });
         }
         
@@ -245,24 +333,29 @@ class IconRenderer {
     }
     
     /**
-     * Create a single icon element
-     * @param {string} emoji - The emoji to display
+     * Create a single FontAwesome icon element
+     * @param {string} iconClass - The FontAwesome class (e.g., 'fas fa-cat')
+     * @param {string} color - The color for this icon
      * @param {Object} position - Position as percentage {x, y}
      * @param {number} index - Icon index for animation delay
      */
-    createIcon(emoji, position, index) {
-        const icon = document.createElement('div');
-        icon.className = 'game-icon';
-        icon.textContent = emoji;
+    createIcon(iconClass, color, position, index) {
+        const iconContainer = document.createElement('div');
+        iconContainer.className = 'game-icon';
+        
+        // Create the FontAwesome icon element
+        const icon = document.createElement('i');
+        icon.className = iconClass;
         
         // Calculate initial size as 12% of game area width
         const gameAreaRect = this.gameArea.getBoundingClientRect();
         const iconSize = gameAreaRect.width * 0.12;
         
-        // Set initial styles
-        icon.style.cssText = `
+        // Set styles for the container
+        iconContainer.style.cssText = `
             position: absolute;
             font-size: ${iconSize}px;
+            color: ${color};
             z-index: 2;
             pointer-events: none;
             user-select: none;
@@ -273,10 +366,13 @@ class IconRenderer {
             transition: filter 0.3s ease;
         `;
         
-        // Add to game area
-        this.gameArea.appendChild(icon);
+        // Add the icon to the container
+        iconContainer.appendChild(icon);
         
-        return icon;
+        // Add to game area
+        this.gameArea.appendChild(iconContainer);
+        
+        return iconContainer;
     }
     
     /**
@@ -386,7 +482,7 @@ class IconRenderer {
     }
 }
 
-// Add CSS for icon jiggle animation
+// Add CSS for icon jiggle animation (keeping minimal styling)
 const style = document.createElement('style');
 style.textContent = `
     @keyframes iconJiggle {
