@@ -1,0 +1,323 @@
+/**
+ * Universal Button Bar System
+ * Handles responsive button layout across all games
+ */
+class ButtonBar {
+    constructor() {
+        this.container = null;
+        this.buttons = [];
+        this.config = {
+            n: 0,           // number of buttons
+            x: 0,           // button width as % of button panel width
+            y: 0,           // button height as % of button panel width
+            colors: [],     // button colors
+            numbers: []     // button numbers/labels
+        };
+        this.dimensions = {
+            screenWidth: 0,
+            outsideMargin: 0,
+            buttonPanelWidth: 0,
+            buttonWidth: 0,
+            buttonHeight: 0,
+            buttonGap: 0,
+            insideMargin: 0
+        };
+        
+        // Bind resize handler
+        this.handleResize = this.handleResize.bind(this);
+        window.addEventListener('resize', this.handleResize);
+    }
+    
+    /**
+     * Create button bar
+     * @param {number} n - Number of buttons
+     * @param {number} x - Button width as % of button panel width
+     * @param {number} y - Button height as % of button panel width
+     * @param {Array} colors - Array of button colors
+     * @param {Array} numbers - Array of button numbers/labels
+     * @param {Function} clickHandler - Function to handle button clicks
+     */
+    create(n, x, y, colors = [], numbers = [], clickHandler = null) {
+        this.config = { n, x, y, colors, numbers };
+        this.clickHandler = clickHandler;
+        
+        // Find or create container
+        this.container = document.querySelector('.number-buttons');
+        if (!this.container) {
+            console.error('Button bar container (.number-buttons) not found');
+            return;
+        }
+        
+        // Clear existing buttons
+        this.container.innerHTML = '';
+        this.buttons = [];
+        
+        // Calculate dimensions
+        this.calculateDimensions();
+        
+        // Style container
+        this.styleContainer();
+        
+        // Create buttons
+        this.createButtons();
+        
+        // Apply positioning
+        this.positionButtons();
+        
+        console.log('ButtonBar created:', {
+            n, x, y,
+            dimensions: this.dimensions
+        });
+    }
+    
+    calculateDimensions() {
+        const screenWidth = window.innerWidth;
+        this.dimensions.screenWidth = screenWidth;
+        
+        // Calculate outside margins based on screen width
+        if (screenWidth <= 768) {
+            this.dimensions.outsideMargin = 0;
+        } else if (screenWidth <= 1024) {
+            const progress = (screenWidth - 768) / (1024 - 768);
+            this.dimensions.outsideMargin = progress * 14; // 0% to 14% of viewport width
+        } else {
+            this.dimensions.outsideMargin = 14;
+        }
+        
+        // Calculate button panel width (in vw units)
+        this.dimensions.buttonPanelWidth = 100 - (2 * this.dimensions.outsideMargin);
+        
+        // Convert button panel width to pixels for calculations
+        const buttonPanelWidthPx = (this.dimensions.buttonPanelWidth / 100) * screenWidth;
+        
+        // Calculate button dimensions in pixels
+        this.dimensions.buttonWidth = (this.config.x / 100) * buttonPanelWidthPx;
+        this.dimensions.buttonHeight = (this.config.y / 100) * buttonPanelWidthPx;
+        
+        // Calculate gap size
+        this.dimensions.buttonGap = (1.5 / 100) * buttonPanelWidthPx;
+        
+        // Calculate inside margins
+        const totalButtonWidth = this.config.n * this.dimensions.buttonWidth;
+        const totalGapWidth = (this.config.n - 1) * this.dimensions.buttonGap;
+        const remainingWidth = buttonPanelWidthPx - totalButtonWidth - totalGapWidth;
+        this.dimensions.insideMargin = remainingWidth / 2;
+        
+        console.log('Calculated dimensions:', this.dimensions);
+    }
+    
+    styleContainer() {
+        const container = this.container;
+        
+        // Base container styles
+        container.style.cssText = `
+            position: fixed;
+            bottom: 3vh;
+            left: ${this.dimensions.outsideMargin}vw;
+            width: ${this.dimensions.buttonPanelWidth}vw;
+            height: calc(${this.config.y}vw * ${this.dimensions.buttonPanelWidth} / 100 + 2vh);
+            background: #f5f5f5;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-start;
+            padding: 0;
+            margin: 0;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        `;
+        
+        // Add loaded class after brief delay for animations
+        setTimeout(() => {
+            container.classList.add('loaded');
+            container.style.opacity = '1';
+        }, 200);
+    }
+    
+    createButtons() {
+        const defaultColors = [
+            '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+            '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'
+        ];
+        
+        for (let i = 0; i < this.config.n; i++) {
+            const button = document.createElement('button');
+            button.className = 'number-btn';
+            
+            // Set button content
+            const buttonNumber = this.config.numbers[i] || (i + 1);
+            button.dataset.number = buttonNumber;
+            button.textContent = buttonNumber;
+            
+            // Set button color
+            const buttonColor = this.config.colors[i] || defaultColors[i % defaultColors.length];
+            
+            // Calculate font size based on button dimensions
+            const fontSize = this.dimensions.buttonWidth / 6; // Your suggested formula
+            
+            button.style.cssText = `
+                position: absolute;
+                width: ${this.dimensions.buttonWidth}px;
+                height: ${this.dimensions.buttonHeight}px;
+                bottom: 2vh;
+                font-size: ${fontSize}px;
+                font-weight: bold;
+                color: white;
+                background-color: ${buttonColor};
+                border: none;
+                border-radius: 18px;
+                cursor: pointer;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                touch-action: manipulation;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+                pointer-events: auto;
+                outline: none;
+                opacity: 0;
+                transform: translateY(10px);
+                transition: all 0.3s ease;
+                --btn-color: ${buttonColor};
+            `;
+            
+            // Add event listeners
+            if (this.clickHandler) {
+                button.addEventListener('click', (e) => {
+                    const selectedNumber = parseInt(e.target.dataset.number);
+                    this.clickHandler(selectedNumber, e.target);
+                });
+                
+                button.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    const selectedNumber = parseInt(e.target.dataset.number);
+                    this.clickHandler(selectedNumber, e.target);
+                });
+            }
+            
+            // Add hover effects
+            button.addEventListener('mouseenter', () => {
+                if (!button.classList.contains('disabled')) {
+                    button.style.transform = 'translateY(-2px)';
+                    button.style.boxShadow = '0 6px 12px rgba(0,0,0,0.3)';
+                }
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                if (!button.classList.contains('disabled')) {
+                    button.style.transform = 'translateY(0)';
+                    button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                }
+            });
+            
+            this.container.appendChild(button);
+            this.buttons.push(button);
+        }
+    }
+    
+    positionButtons() {
+        this.buttons.forEach((button, index) => {
+            // Calculate left position for this button
+            const leftPosition = this.dimensions.insideMargin + 
+                (index * (this.dimensions.buttonWidth + this.dimensions.buttonGap));
+            
+            button.style.left = `${leftPosition}px`;
+            
+            // Stagger the fade-in animation
+            setTimeout(() => {
+                button.classList.add('fade-in');
+                button.style.opacity = '1';
+                button.style.transform = 'translateY(0)';
+            }, index * 50);
+        });
+    }
+    
+    handleResize() {
+        if (this.container && this.config.n > 0) {
+            // Recalculate and reposition
+            this.calculateDimensions();
+            this.styleContainer();
+            
+            // Update button positions and sizes
+            this.buttons.forEach((button, index) => {
+                const fontSize = this.dimensions.buttonWidth / 6;
+                const leftPosition = this.dimensions.insideMargin + 
+                    (index * (this.dimensions.buttonWidth + this.dimensions.buttonGap));
+                
+                button.style.width = `${this.dimensions.buttonWidth}px`;
+                button.style.height = `${this.dimensions.buttonHeight}px`;
+                button.style.fontSize = `${fontSize}px`;
+                button.style.left = `${leftPosition}px`;
+            });
+        }
+    }
+    
+    /**
+     * Add animation classes to buttons
+     */
+    animateButton(buttonElement, animationType) {
+        if (!buttonElement) return;
+        
+        buttonElement.classList.add(animationType);
+        
+        const duration = animationType === 'correct' || animationType === 'incorrect' ? 800 : 500;
+        setTimeout(() => {
+            buttonElement.classList.remove(animationType);
+        }, duration);
+    }
+    
+    /**
+     * Disable/enable all buttons
+     */
+    setButtonsEnabled(enabled) {
+        this.buttons.forEach(button => {
+            if (enabled) {
+                button.classList.remove('disabled');
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+                button.style.pointerEvents = 'auto';
+            } else {
+                button.classList.add('disabled');
+                button.style.opacity = '0.6';
+                button.style.cursor = 'not-allowed';
+                button.style.pointerEvents = 'none';
+            }
+        });
+    }
+    
+    /**
+     * Mark a button as used
+     */
+    markButtonAsUsed(buttonElement) {
+        if (!buttonElement) return;
+        
+        buttonElement.classList.add('used');
+        buttonElement.style.opacity = '0.6';
+        buttonElement.style.filter = 'brightness(0.7)';
+        buttonElement.style.cursor = 'not-allowed';
+    }
+    
+    /**
+     * Shuffle button numbers (for games that need randomization)
+     */
+    shuffleNumbers(newNumbers) {
+        this.config.numbers = [...newNumbers];
+        this.buttons.forEach((button, index) => {
+            button.dataset.number = this.config.numbers[index];
+            button.textContent = this.config.numbers[index];
+        });
+    }
+    
+    /**
+     * Destroy the button bar
+     */
+    destroy() {
+        window.removeEventListener('resize', this.handleResize);
+        if (this.container) {
+            this.container.innerHTML = '';
+        }
+        this.buttons = [];
+    }
+}
+
+// Create global instance
+window.ButtonBar = new ButtonBar();
