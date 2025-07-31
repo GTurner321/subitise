@@ -37,7 +37,6 @@ class GameController {
         this.keyboardWaitDuration = 4000; // 4 seconds to wait for second digit
         
         // DOM elements
-        this.numberButtons = document.querySelectorAll('.number-btn');
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         
@@ -49,7 +48,46 @@ class GameController {
         this.initializeAudio();
         this.createMuteButton();
         this.setupVisibilityHandling();
+        this.createButtons();
         this.startNewQuestion();
+    }
+
+    createButtons() {
+        // Safety check for ButtonBar availability
+        if (!window.ButtonBar) {
+            console.error('ButtonBar system not available');
+            return;
+        }
+
+        // Define button colors
+        const colors = [
+            '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+            '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'
+        ];
+
+        // Define button numbers (1-10)
+        const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+        // Create buttons using universal system
+        window.ButtonBar.create(
+            10,     // number of buttons
+            8,      // button width as % of button panel width
+            8,      // button height as % of button panel width
+            colors, // array of button colors
+            numbers, // array of button numbers/labels
+            (selectedNumber, buttonElement) => {  // click handler
+                // Ignore clicks if buttons are disabled
+                if (this.buttonsDisabled) {
+                    return;
+                }
+                
+                // Clear inactivity timer on user interaction
+                this.clearInactivityTimer();
+                this.startInactivityTimer();
+                
+                this.handleNumberClick(selectedNumber, buttonElement);
+            }
+        );
     }
 
     startFlashing() {
@@ -335,23 +373,6 @@ class GameController {
     }
 
     initializeEventListeners() {
-        // Number button clicks
-        this.numberButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                // Ignore clicks if buttons are disabled
-                if (this.buttonsDisabled) {
-                    return;
-                }
-                
-                // Clear inactivity timer on user interaction
-                this.clearInactivityTimer();
-                this.startInactivityTimer();
-                
-                const selectedNumber = parseInt(e.target.dataset.number);
-                this.handleNumberClick(selectedNumber, e.target);
-            });
-        });
-
         // Play again button
         this.playAgainBtn.addEventListener('click', () => {
             this.startNewGame();
@@ -382,11 +403,9 @@ class GameController {
         if (this.keyboardBuffer === '1' && digit === 0) {
             // Complete the "10" input
             this.clearKeyboardTimer();
-            const button = Array.from(this.numberButtons).find(btn => 
-                parseInt(btn.dataset.number) === 10
-            );
-            if (button) {
-                this.handleNumberClick(10, button);
+            const buttonElement = this.findButtonByNumber(10);
+            if (buttonElement) {
+                this.handleNumberClick(10, buttonElement);
             }
             return;
         }
@@ -398,11 +417,9 @@ class GameController {
         if (digit === 1) {
             // If 1 is a valid answer, process it immediately
             if (this.isDigitValidAnswer(1)) {
-                const button = Array.from(this.numberButtons).find(btn => 
-                    parseInt(btn.dataset.number) === 1
-                );
-                if (button) {
-                    this.handleNumberClick(1, button);
+                const buttonElement = this.findButtonByNumber(1);
+                if (buttonElement) {
+                    this.handleNumberClick(1, buttonElement);
                 }
                 return;
             }
@@ -413,11 +430,9 @@ class GameController {
                 this.keyboardTimer = setTimeout(() => {
                     // Timeout - treat the "1" as an incorrect answer
                     this.clearKeyboardTimer();
-                    const button = Array.from(this.numberButtons).find(btn => 
-                        parseInt(btn.dataset.number) === 1
-                    );
-                    if (button) {
-                        this.handleNumberClick(1, button);
+                    const buttonElement = this.findButtonByNumber(1);
+                    if (buttonElement) {
+                        this.handleNumberClick(1, buttonElement);
                     }
                 }, this.keyboardWaitDuration);
                 return;
@@ -425,12 +440,21 @@ class GameController {
         }
         
         // Handle normal single digit input for all other digits
-        const button = Array.from(this.numberButtons).find(btn => 
-            parseInt(btn.dataset.number) === digit
-        );
-        if (button) {
-            this.handleNumberClick(digit, button);
+        const buttonElement = this.findButtonByNumber(digit);
+        if (buttonElement) {
+            this.handleNumberClick(digit, buttonElement);
         }
+    }
+
+    // Helper method to find button element by number
+    findButtonByNumber(number) {
+        if (!window.ButtonBar || !window.ButtonBar.buttons) {
+            return null;
+        }
+        
+        return window.ButtonBar.buttons.find(btn => 
+            parseInt(btn.dataset.number) === number
+        );
     }
 
     // Check if a digit would be a valid answer
@@ -612,11 +636,16 @@ class GameController {
         // Check if this was the first attempt BEFORE any button processing
         const wasFirstAttempt = !this.hasAttemptedAnswer();
         
-        // Flash green on correct answer
-        buttonElement.classList.add('correct');
-        setTimeout(() => {
-            buttonElement.classList.remove('correct');
-        }, CONFIG.FLASH_DURATION);
+        // Use ButtonBar animation system for correct answer
+        if (window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'correct');
+        } else {
+            // Fallback animation
+            buttonElement.classList.add('correct');
+            setTimeout(() => {
+                buttonElement.classList.remove('correct');
+            }, CONFIG.FLASH_DURATION || 800);
+        }
 
         // Create star celebration around the button
         this.createStarCelebration(buttonElement);
@@ -667,14 +696,14 @@ class GameController {
         if (this.rainbow.isComplete()) {
             setTimeout(() => {
                 this.completeGame();
-            }, CONFIG.NEXT_QUESTION_DELAY + 3000);
+            }, (CONFIG.NEXT_QUESTION_DELAY || 2000) + 3000);
             return;
         }
 
         // Start next question after delay
         setTimeout(() => {
             this.startNewQuestion();
-        }, CONFIG.NEXT_QUESTION_DELAY);
+        }, CONFIG.NEXT_QUESTION_DELAY || 2000);
     }
     
     handleIncorrectAnswer(buttonElement) {
@@ -692,11 +721,16 @@ class GameController {
         // Stop flashing during error handling
         this.stopFlashing();
         
-        // Flash red on the clicked button
-        buttonElement.classList.add('incorrect');
-        setTimeout(() => {
-            buttonElement.classList.remove('incorrect');
-        }, CONFIG.FLASH_DURATION);
+        // Use ButtonBar animation system for incorrect answer
+        if (window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'incorrect');
+        } else {
+            // Fallback animation
+            buttonElement.classList.add('incorrect');
+            setTimeout(() => {
+                buttonElement.classList.remove('incorrect');
+            }, CONFIG.FLASH_DURATION || 800);
+        }
 
         // Add crimson cross overlay to the incorrect button
         const crossOverlay = document.createElement('div');
@@ -706,23 +740,32 @@ class GameController {
         // Mark that an attempt was made
         buttonElement.dataset.attempted = 'true';
         
+        // Disable all buttons during error sequence
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(false);
+        }
+        
         // Fade out all other buttons
-        this.numberButtons.forEach(btn => {
-            if (btn !== buttonElement) {
-                btn.style.transition = 'opacity 700ms ease-in-out';
-                btn.style.opacity = '0.1';
-            }
-        });
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.buttons.forEach(btn => {
+                if (btn !== buttonElement) {
+                    btn.style.transition = 'opacity 700ms ease-in-out';
+                    btn.style.opacity = '0.1';
+                }
+            });
+        }
 
         // After fade out completes, wait, then fade back in
         setTimeout(() => {
             setTimeout(() => {
-                this.numberButtons.forEach(btn => {
-                    if (btn !== buttonElement) {
-                        btn.style.transition = 'opacity 700ms ease-in-out';
-                        btn.style.opacity = '1';
-                    }
-                });
+                if (window.ButtonBar && window.ButtonBar.buttons) {
+                    window.ButtonBar.buttons.forEach(btn => {
+                        if (btn !== buttonElement) {
+                            btn.style.transition = 'opacity 700ms ease-in-out';
+                            btn.style.opacity = '1';
+                        }
+                    });
+                }
                 
                 // Start fading out the cross
                 if (crossOverlay && crossOverlay.parentNode) {
@@ -738,15 +781,20 @@ class GameController {
                     }
                     
                     // Clean up transition styles
-                    this.numberButtons.forEach(btn => {
-                        btn.style.transition = '';
-                    });
+                    if (window.ButtonBar && window.ButtonBar.buttons) {
+                        window.ButtonBar.buttons.forEach(btn => {
+                            btn.style.transition = '';
+                        });
+                    }
                 }, 700);
             }, 700);
             
             // Re-enable buttons and restart flashing and inactivity timer
             setTimeout(() => {
                 this.buttonsDisabled = false;
+                if (window.ButtonBar) {
+                    window.ButtonBar.setButtonsEnabled(true);
+                }
                 this.startFlashing();
                 this.startInactivityTimer();
             }, 1400);
@@ -754,25 +802,37 @@ class GameController {
     }
 
     hasAttemptedAnswer() {
-        return Array.from(this.numberButtons).some(btn => 
+        if (!window.ButtonBar || !window.ButtonBar.buttons) {
+            return false;
+        }
+        
+        return window.ButtonBar.buttons.some(btn => 
             btn.dataset.attempted === 'true'
         );
     }
 
     resetButtonStates() {
         this.buttonsDisabled = false;
-        this.numberButtons.forEach(btn => {
-            btn.dataset.attempted = 'false';
-            btn.classList.remove('correct', 'incorrect');
-            btn.style.opacity = '1';
-            btn.style.transition = '';
-            
-            // Remove any existing cross overlays
-            const crossOverlay = btn.querySelector('.cross-overlay');
-            if (crossOverlay) {
-                crossOverlay.remove();
-            }
-        });
+        
+        // Enable all buttons
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(true);
+        }
+        
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.buttons.forEach(btn => {
+                btn.dataset.attempted = 'false';
+                btn.classList.remove('correct', 'incorrect');
+                btn.style.opacity = '1';
+                btn.style.transition = '';
+                
+                // Remove any existing cross overlays
+                const crossOverlay = btn.querySelector('.cross-overlay');
+                if (crossOverlay) {
+                    crossOverlay.remove();
+                }
+            });
+        }
     }
 
     progressDifficulty() {
@@ -896,6 +956,11 @@ class GameController {
         // Clean up mute button
         if (this.muteContainer && this.muteContainer.parentNode) {
             this.muteContainer.parentNode.removeChild(this.muteContainer);
+        }
+        
+        // Clean up ButtonBar
+        if (window.ButtonBar) {
+            window.ButtonBar.destroy();
         }
         
         // Clean up other resources
