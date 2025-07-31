@@ -109,13 +109,13 @@ class ButtonBar {
     styleContainer() {
         const container = this.container;
         
-        // Base container styles
+        // Base container styles - FULL WIDTH background with button panel positioned inside
         container.style.cssText = `
             position: fixed;
-            bottom: 3vh;
-            left: ${this.dimensions.outsideMargin}vw;
-            width: ${this.dimensions.buttonPanelWidth}vw;
-            height: calc(${this.config.y}vw * ${this.dimensions.buttonPanelWidth} / 100 + 2vh);
+            bottom: 0;
+            left: 0;
+            width: 100vw;
+            height: calc(${this.config.y}vw * ${this.dimensions.buttonPanelWidth} / 100 + 5vh);
             background: #f5f5f5;
             display: flex;
             align-items: flex-end;
@@ -216,8 +216,9 @@ class ButtonBar {
     
     positionButtons() {
         this.buttons.forEach((button, index) => {
-            // Calculate left position for this button
-            const leftPosition = this.dimensions.insideMargin + 
+            // Calculate left position for this button - ADD outside margin offset
+            const leftPosition = this.dimensions.outsideMargin * (window.innerWidth / 100) + 
+                this.dimensions.insideMargin + 
                 (index * (this.dimensions.buttonWidth + this.dimensions.buttonGap));
             
             button.style.left = `${leftPosition}px`;
@@ -240,7 +241,9 @@ class ButtonBar {
             // Update button positions and sizes
             this.buttons.forEach((button, index) => {
                 const fontSize = this.dimensions.buttonWidth / 6;
-                const leftPosition = this.dimensions.insideMargin + 
+                // ADD outside margin offset for resize
+                const leftPosition = this.dimensions.outsideMargin * (window.innerWidth / 100) + 
+                    this.dimensions.insideMargin + 
                     (index * (this.dimensions.buttonWidth + this.dimensions.buttonGap));
                 
                 button.style.width = `${this.dimensions.buttonWidth}px`;
