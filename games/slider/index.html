@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="styles/slidermain.css">
 </head>
 <body>
-    <!-- Back to games navigation -->
+    <!-- Back to games navigation (styling handled by main.css) -->
     <a href="../../index.html" class="back-button">
         <i class="fas fa-arrow-left"></i>
         Back to Games
@@ -36,19 +36,8 @@
         </div>
     </div>
     
-    <!-- Number selection buttons -->
-    <div class="number-buttons">
-        <button class="number-btn" data-number="2">2</button>
-        <button class="number-btn" data-number="4">4</button>
-        <button class="number-btn" data-number="6">6</button>
-        <button class="number-btn" data-number="8">8</button>
-        <button class="number-btn" data-number="10">10</button>
-        <button class="number-btn" data-number="12">12</button>
-        <button class="number-btn" data-number="14">14</button>
-        <button class="number-btn" data-number="16">16</button>
-        <button class="number-btn" data-number="18">18</button>
-        <button class="number-btn" data-number="20">20</button>
-    </div>
+    <!-- Universal button container (empty - populated by ButtonBar system) -->
+    <div class="number-buttons"></div>
     
     <!-- Game completion modal -->
     <div class="modal hidden" id="gameModal">
@@ -58,13 +47,18 @@
         </div>
     </div>
     
-    <!-- JavaScript files -->
+    <!-- JavaScript files - CRITICAL LOADING ORDER -->
+    <!-- Load universal systems FIRST -->
     <script src="js/sliderconfig.js"></script>
     <script src="../../js/shared/buttonbar.js"></script>
     <script src="../../js/shared/audio.js"></script>
+    
+    <!-- Then load shared game components -->
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
     <script src="../../js/shared/guineapigwave.js"></script>
+    
+    <!-- Finally load game-specific files -->
     <script src="js/sliderrenderer.js"></script>
     <script src="js/slidergamecontroller.js"></script>
 </body>
