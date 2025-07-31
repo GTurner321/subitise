@@ -372,7 +372,9 @@ class SliderGameController {
             this.arrowElement.parentNode.replaceChild(textArrow, this.arrowElement);
             this.arrowElement = textArrow;
             console.log('🏹 Switched to text arrow fallback');
-            this.updateSliderArrowPosition();
+            if (this.positionArrowInline) {
+            this.positionArrowInline();
+            }
         });
         
         this.arrowElement.addEventListener('load', () => {
@@ -381,7 +383,9 @@ class SliderGameController {
         
         window.addEventListener('resize', () => {
             console.log('🏹 Window resized, repositioning arrow...');
-            this.updateSliderArrowPosition();
+            if (this.positionArrowInline) {
+            this.positionArrowInline();
+            }
         });
         
         console.log('🏹 Arrow element setup complete');
