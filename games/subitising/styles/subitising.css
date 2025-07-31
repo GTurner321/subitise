@@ -12,14 +12,13 @@ body {
     background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
 }
 
-/* Game area */
+/* Game area - margins and spacing handled by ButtonBar system */
 .game-area {
     flex: 1;
     position: relative;
     background: white;
     overflow: hidden;
-    width: 80%;
-    margin: 0 auto;
+    /* Width and margins set by ButtonBar system */
 }
 
 /* Rainbow background */
@@ -137,12 +136,8 @@ body {
     }
 }
 
-/* Responsive adjustments */
+/* Responsive adjustments - game area handled by ButtonBar system */
 @media (max-width: 768px) {
-    .game-area {
-        width: 95%;
-    }
-    
     .modal h2 {
         font-size: 2rem;
     }
@@ -150,11 +145,5 @@ body {
     .play-again-btn {
         font-size: 1.2rem;
         padding: 12px 24px;
-    }
-}
-
-@media (min-width: 1024px) {
-    .game-area {
-        width: 70%;
     }
 }
