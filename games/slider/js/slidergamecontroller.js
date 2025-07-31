@@ -1168,7 +1168,7 @@ class SliderGameController {
         } else {
             // UPDATED TIMING: 1 second delay for subsequent questions
             setTimeout(() => {
-                this.speakText('Slide 2 more beads to the right side');
+                this.speakText('Slide 2 more beads across');
                 // Enable slider at the START of this message
                 this.sliderDisabled = false;
             }, 1000);
