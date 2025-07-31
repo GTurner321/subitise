@@ -522,43 +522,22 @@ class SliderRenderer {
         }
         this.momentumBeads.clear();
         
-        // 2. Get max position BEFORE any modifications
-        const maxPosition = this.getMaxBarPosition();
-        
-        // 3. Snap beads to nearest integer positions, but respect max boundary
-        this.beads.forEach(bead => {
-            const originalPosition = bead.position;
-            let targetPosition = Math.round(bead.position);
-            
-            // CRITICAL: Don't let beads exceed max position
-            if (targetPosition > maxPosition) {
-                targetPosition = maxPosition;
-            }
-            
-            bead.position = targetPosition;
-            
-            if (Math.abs(originalPosition - bead.position) > 0.001) {
-                console.log(`  📍 Snapped ${bead.id}: ${originalPosition.toFixed(4)} → ${bead.position}`);
-                this.positionBead(bead);
-            }
-        });
-        
-        // 4. Resolve any overlapping beads by pushing them apart
-        this.resolveBeadOverlaps();
-        
-        // 5. Update bar state with fresh data
+        // 2. Update bar state tracking with current bead positions
+        // This refreshes the internal state without moving any beads
         this.updateBarState();
         
-        // 6. Apply magnetic snapping for any beads that should be connected
-        // BUT don't play sounds during reconciliation
-        this.beads.forEach(bead => {
-            this.snapToNearbyBeads(bead, 0.3, false); // false = no sound
-        });
+        // 3. Force a complete refresh of collision detection and position tracking
+        // This ensures all internal caches are synchronized with actual bead positions
+        for (let barIndex = 0; barIndex < 2; barIndex++) {
+            const barBeads = this.beads.filter(bead => bead.barIndex === barIndex);
+            
+            // Refresh the tracking arrays
+            this.barState[barIndex] = barBeads
+                .map(bead => ({ bead, position: bead.position }))
+                .sort((a, b) => a.position - b.position);
+        }
         
-        // 7. Final bar state update
-        this.updateBarState();
-        
-        console.log('✅ Bead state reconciliation complete');
+        console.log('✅ Bead state reconciliation complete - internal state refreshed');
     }
     
     // NEW: Resolve overlapping beads by pushing them apart
