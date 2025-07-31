@@ -1,106 +1,13 @@
 /**
  * Responsive Icon Renderer
  * Renders FontAwesome icons using percentage-based positioning that adapts to game area dimensions
- * Uses original icon and color system
+ * Uses CONFIG object for icons and colors
  */
 class IconRenderer {
     constructor() {
         this.gameArea = null;
         this.icons = [];
         this.currentCount = 0;
-        
-        // Original FontAwesome icon classes
-        this.availableIcons = [
-            // Animals
-            'fas fa-cat',
-            'fas fa-dog',
-            'fas fa-fish',
-            'fas fa-dove',
-            'fas fa-frog',
-            'fas fa-bug',
-            'fas fa-horse',
-            'fas fa-hippo',
-            
-            // Home & Furniture
-            'fas fa-home',
-            'fas fa-bed',
-            'fas fa-chair',
-            
-            // Vehicles & Transportation
-            'fas fa-car',
-            'fas fa-bicycle',
-            'fas fa-plane',
-            'fas fa-rocket',
-            'fas fa-tractor',
-            'fas fa-bus',
-            'fas fa-train',
-            
-            // Sports & Games
-            'fas fa-puzzle-piece',
-            
-            // Food
-            'fas fa-apple-alt',
-            'fas fa-carrot',
-            'fas fa-ice-cream',
-            'fas fa-birthday-cake',
-            'fas fa-pepper-hot',
-            
-            // Nature & Weather
-            'fas fa-tree',
-            'fas fa-leaf',
-            'fas fa-sun',
-            'fas fa-cloud',
-            'fas fa-rainbow',
-            'fas fa-star',
-            'fas fa-moon',
-            'fas fa-snowflake',
-            'fas fa-feather',
-            
-            // Shapes & Symbols
-            'fas fa-heart',
-            
-            // Objects & Tools
-            'fas fa-music',
-            'fas fa-bell',
-            'fas fa-umbrella',
-            'fas fa-anchor',
-            'fas fa-glasses',
-            'fas fa-binoculars',
-            'fas fa-tshirt',
-            
-            // Fantasy & Fun
-            'fas fa-ghost',
-            'fas fa-hat-wizard',
-            
-            // Gestures & Actions
-            'fas fa-smile',
-            'fas fa-thumbs-up',
-            'fas fa-hand-paper'
-        ];
-        
-        // Original color palette
-        this.availableColors = [
-            '#ff6b6b', // Red
-            '#4ecdc4', // Teal
-            '#45b7d1', // Blue
-            '#f9ca24', // Yellow
-            '#f0932b', // Orange
-            '#eb4d4b', // Dark Red
-            '#6c5ce7', // Purple
-            '#a29bfe', // Light Purple
-            '#fd79a8', // Pink
-            '#00b894', // Green
-            '#00cec9', // Cyan
-            '#fdcb6e', // Light Orange
-            '#e17055', // Coral
-            '#74b9ff', // Light Blue
-            '#0984e3', // Dark Blue
-            '#00a085', // Dark Green
-            '#e84393', // Magenta
-            '#fd63a3', // Hot Pink
-            '#636e72', // Gray
-            '#2d3436'  // Dark Gray
-        ];
         
         // Predefined positioning patterns for different counts (as percentages of game area)
         this.positionPatterns = {
@@ -297,6 +204,12 @@ class IconRenderer {
             return;
         }
         
+        // Safety check for CONFIG
+        if (!window.CONFIG || !CONFIG.ICONS || !CONFIG.COLORS) {
+            console.error('CONFIG object not available. Make sure config.js is loaded.');
+            return;
+        }
+        
         // Get positions for this count
         const positions = this.positionPatterns[count];
         if (!positions) {
@@ -305,8 +218,8 @@ class IconRenderer {
         }
         
         // Select ONE random icon and ONE random color for this entire question (original behavior)
-        const selectedIcon = this.availableIcons[Math.floor(Math.random() * this.availableIcons.length)];
-        const selectedColor = this.availableColors[Math.floor(Math.random() * this.availableColors.length)];
+        const selectedIcon = CONFIG.ICONS[Math.floor(Math.random() * CONFIG.ICONS.length)];
+        const selectedColor = CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
         
         // Create icons with percentage-based positioning - ALL THE SAME ICON AND COLOR
         for (let i = 0; i < count; i++) {
@@ -351,7 +264,7 @@ class IconRenderer {
         const gameAreaRect = this.gameArea.getBoundingClientRect();
         const iconSize = gameAreaRect.width * 0.12;
         
-        // Set styles for the container
+        // Set styles for the container using CONFIG timings
         iconContainer.style.cssText = `
             position: absolute;
             font-size: ${iconSize}px;
@@ -359,7 +272,7 @@ class IconRenderer {
             z-index: 2;
             pointer-events: none;
             user-select: none;
-            animation: fadeIn 0.5s ease-in;
+            animation: fadeIn ${(CONFIG.ICON_FADE_DURATION || 500) / 1000}s ease-in;
             animation-delay: ${index * 0.1}s;
             animation-fill-mode: both;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
