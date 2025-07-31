@@ -22,8 +22,8 @@ class SimplifiedGuineaPigWave {
         
         this.scenario2 = {
             pausePosition: { min: 0.4, max: 0.7 }, // 40-70% through path
-            pauseTime: 500,         // 0.5 seconds pause
-            frontFacingTime: 2000   // 2 seconds facing front
+            pauseTime: 250,         // 0.25 seconds pause
+            frontFacingTime: 1250   // 1.25 seconds facing front
         };
         
         this.startTime = null;
