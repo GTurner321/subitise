@@ -1257,7 +1257,7 @@ class SliderGameController {
         if (this.audioEnabled) {
             // UPDATED TIMING: 2 seconds instead of 1 second
             setTimeout(() => {
-                this.speakText('Well done! Play again or return to the home page.');
+                this.speakText('2, 4, 6, 8, who do we appreciate? Well done! Play again or return to the home page.');
             }, 2000);
         }
     }
