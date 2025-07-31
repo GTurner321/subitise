@@ -156,8 +156,8 @@ class SliderGameController {
         // Parameters: n (number of buttons), x (width %), y (height %), colors, numbers, clickHandler
         window.ButtonBar.create(
             10,                    // n: 10 buttons
-            9,                     // x: 9% of button panel width per button
-            9,                     // y: 9% of button panel width for height (maintains aspect ratio)
+            8.5,                     // x: 8.5% of button panel width per button
+            8.5,                     // y: 8.5% of button panel width for height (maintains aspect ratio)
             colors,                // button colors
             buttonNumbers,         // button numbers (shuffled)
             (selectedNumber, buttonElement) => {  // click handler
