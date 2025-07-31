@@ -18,8 +18,8 @@ body {
     position: absolute;
     top: 20px;
     left: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    color: #333;
+    background: rgba(64, 64, 64, 0.9);
+    color: white;
     text-decoration: none;
     padding: 10px 20px;
     border-radius: 25px;
@@ -47,7 +47,7 @@ body {
 .back-button:hover,
 .back-button:active,
 .back-button:focus {
-    background: white;
+    background: rgba(64, 64, 64, 1);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
@@ -56,13 +56,34 @@ body {
     margin-right: 8px;
 }
 
+/* Audio button - shared across all games */
+.audio-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+    
+    /* Touch support */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 /* Game area */
 .game-area {
     flex: 1;
     position: relative;
     background: white;
     overflow: hidden;
-    width: 80%;
+    /* Width and margins will be set by ButtonBar system */
     margin: 0 auto;
 }
 
@@ -402,15 +423,22 @@ body {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .game-area {
-        width: 95%;
-    }
-    
     .back-button {
         top: 10px;
         left: 10px;
         padding: 8px 16px;
         font-size: 0.9rem;
+    }
+    
+    .audio-button-container {
+        top: 10px;
+        right: 10px;
+        width: 50px;
+        height: 50px;
+    }
+    
+    .audio-button {
+        font-size: 20px;
     }
     
     .modal h2 {
@@ -421,10 +449,35 @@ body {
         font-size: 1.2rem;
         padding: 12px 24px;
     }
+}button-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background-color: rgba(64, 64, 64, 0.9);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    
+    /* Touch support */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    min-height: 44px;
+    min-width: 44px;
 }
 
-@media (min-width: 1024px) {
-    .game-area {
-        width: 70%;
-    }
+.audio-button-container:hover,
+.audio-button-container:focus {
+    background-color: rgba(64, 64, 64, 1);
+    transform: scale(1.1);
 }
+
+.audio-
