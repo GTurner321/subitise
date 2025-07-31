@@ -27,6 +27,8 @@ body {
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     z-index: 1003;
+    border: none;
+    outline: none;
     
     /* Touch support */
     touch-action: manipulation;
@@ -50,6 +52,14 @@ body {
     background: rgba(64, 64, 64, 1);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    outline: none;
+}
+
+/* Custom focus outline that matches the button shape */
+.back-button:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+    border-radius: 25px;
 }
 
 .back-button i {
@@ -106,13 +116,16 @@ body {
     box-sizing: border-box;
 }
 
-/* Icons */
+/* Icons - Responsive sizing */
 .game-icon {
     position: absolute;
     z-index: 2;
     font-size: 6rem;
     animation: fadeIn 0.5s ease-in;
     pointer-events: none;
+    user-select: none;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    transition: filter 0.3s ease;
 }
 
 @keyframes fadeIn {
@@ -123,6 +136,32 @@ body {
     to { 
         opacity: 1; 
         transform: scale(1); 
+    }
+}
+
+/* Icon jiggle animation for hints */
+@keyframes iconJiggle {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+    20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+/* Responsive icon sizing */
+@media (max-width: 768px) {
+    .game-icon {
+        font-size: 4rem; /* Smaller on mobile */
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .game-icon {
+        font-size: 5rem; /* Medium on tablet */
+    }
+}
+
+@media (min-width: 1025px) {
+    .game-icon {
+        font-size: 6rem; /* Large on desktop */
     }
 }
 
