@@ -797,75 +797,92 @@ class SliderGameController {
         setTimeout(() => this.checkGameState(), 300);
     }
     
-    checkGameState() {
-        const currentTime = Date.now();
-        const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
-        
-        if (hasMiddleBeads) {
-            // Invalid arrangement - clear ready timer but keep slider active
-            if (this.readyForAnswerTimer) {
-                clearTimeout(this.readyForAnswerTimer);
-                this.readyForAnswerTimer = null;
-                this.readyForAnswerStartTime = null;
-            }
-            
-            // Invalid arrangement - start 10-second inactivity timer
-            if (!this.invalidArrangementStartTime) {
-                this.invalidArrangementStartTime = currentTime;
-                this.lastActivityTime = currentTime; // Reset activity timer
-                this.scheduleInactivityCheck();
-            }
-            
-            this.awaitingButtonPress = false;
-            // Slider stays active - user needs to fix the arrangement
-            return;
+checkGameState() {
+    const currentTime = Date.now();
+    
+    // NEW: Force slider renderer to reconcile all internal state before any checks
+    console.log('🎮 Game state check - reconciling bead states first...');
+    this.sliderRenderer.reconcileAllBeadStates();
+    
+    // NOW these checks use consistent, current state
+    const hasMiddleBeads = this.sliderRenderer.hasBeadsInMiddle();
+    
+    if (hasMiddleBeads) {
+        // Invalid arrangement - clear ready timer but keep slider active
+        if (this.readyForAnswerTimer) {
+            clearTimeout(this.readyForAnswerTimer);
+            this.readyForAnswerTimer = null;
+            this.readyForAnswerStartTime = null;
         }
         
-        // Clear invalid arrangement timer
-        if (this.invalidArrangementTimer) {
-            clearTimeout(this.invalidArrangementTimer);
-            this.invalidArrangementTimer = null;
-            this.invalidArrangementStartTime = null;
+        // Invalid arrangement - start 10-second inactivity timer
+        if (!this.invalidArrangementStartTime) {
+            this.invalidArrangementStartTime = currentTime;
+            this.lastActivityTime = currentTime; // Reset activity timer
+            this.scheduleInactivityCheck();
         }
         
-        // Valid arrangement - count right side beads
-        const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-        
-        if (rightSideCount === this.expectedBeadsOnRight) {
-            // Correct count - start 2-second timer, slider stays active until button selection
-            this.awaitingButtonPress = false; // Buttons not ready yet
-            
-            if (!this.readyForAnswerStartTime) {
-                this.readyForAnswerStartTime = currentTime;
-                this.readyForAnswerTimer = setTimeout(() => {
-                    // ONLY NOW disable slider and enable buttons
-                    this.sliderDisabled = true;
-                    this.awaitingButtonPress = true;
-                    
-                    // Add rainbow piece
-                    this.rainbow.addPiece();
-                    
-                    if (this.currentQuestion === 1) {
-                        this.speakText('Select the button underneath for the number of beads on the right side');
-                    } else {
-                        this.speakText('Select the matching button underneath');
-                    }
-                    
-                    this.guineaPigWave.startAnimation(70);
-                }, 2000);
-            }
-        } else {
-            // Wrong count - clear timer, slider stays active
-            if (this.readyForAnswerTimer) {
-                clearTimeout(this.readyForAnswerTimer);
-                this.readyForAnswerTimer = null;
-                this.readyForAnswerStartTime = null;
-            }
-            
-            this.awaitingButtonPress = false;
-            // Slider stays active - user needs to add/remove beads
-        }
+        this.awaitingButtonPress = false;
+        // Slider stays active - user needs to fix the arrangement
+        return;
     }
+    
+    // Clear invalid arrangement timer
+    if (this.invalidArrangementTimer) {
+        clearTimeout(this.invalidArrangementTimer);
+        this.invalidArrangementTimer = null;
+        this.invalidArrangementStartTime = null;
+    }
+    
+    // Valid arrangement - count right side beads (state already reconciled above)
+    const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
+    
+    if (rightSideCount === this.expectedBeadsOnRight) {
+        // Correct count - start 2-second timer, slider stays active until button selection
+        this.awaitingButtonPress = false; // Buttons not ready yet
+        
+        if (!this.readyForAnswerStartTime) {
+            this.readyForAnswerStartTime = currentTime;
+            this.readyForAnswerTimer = setTimeout(() => {
+                // Recheck one more time before enabling buttons
+                console.log('🎮 Final check before enabling buttons...');
+                this.sliderRenderer.reconcileAllBeadStates();
+                const finalRightSideCount = this.sliderRenderer.countBeadsOnRightSide();
+                
+                if (finalRightSideCount !== this.expectedBeadsOnRight) {
+                    console.log('⚠️ Count changed during 2-second wait, resetting timer');
+                    this.readyForAnswerStartTime = null;
+                    return;
+                }
+                
+                // ONLY NOW disable slider and enable buttons
+                this.sliderDisabled = true;
+                this.awaitingButtonPress = true;
+                
+                // Add rainbow piece
+                this.rainbow.addPiece();
+                
+                if (this.currentQuestion === 1) {
+                    this.speakText('Select the button underneath for the number of beads on the right side');
+                } else {
+                    this.speakText('Select the matching button underneath');
+                }
+                
+                this.guineaPigWave.startAnimation(70);
+            }, 2000);
+        }
+    } else {
+        // Wrong count - clear timer, slider stays active
+        if (this.readyForAnswerTimer) {
+            clearTimeout(this.readyForAnswerTimer);
+            this.readyForAnswerTimer = null;
+            this.readyForAnswerStartTime = null;
+        }
+        
+        this.awaitingButtonPress = false;
+        // Slider stays active - user needs to add/remove beads
+    }
+}
     
     scheduleInactivityCheck() {
         // Clear existing timer
