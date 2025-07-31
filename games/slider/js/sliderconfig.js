@@ -36,7 +36,7 @@ const CONFIG = {
     BAR_RIGHT_MARGIN: 8, // 8% from right (so bar goes to 92%)
     BAR_THICKNESS: 5, // 1/20th of container height
     
-    // Audio
+    // Audio (managed by universal AudioSystem)
     AUDIO_ENABLED: true,
     
     // Timing
