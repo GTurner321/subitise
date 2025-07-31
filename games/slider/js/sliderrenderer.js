@@ -435,7 +435,7 @@ class SliderRenderer {
     }
     
     // Magnetic snapping with proper 1-diameter gap logic
-    snapToNearbyBeads(bead, snapRadius = 1.0) {
+    snapToNearbyBeads(bead, snapRadius = 1.0, playSound = true) {
         const barBeads = this.barState[bead.barIndex];
         const currentIndex = barBeads.findIndex(item => item.bead === bead);
         
@@ -494,7 +494,10 @@ class SliderRenderer {
         
         if (snapped) {
             this.updateBarState();
-            this.playSnapSound();
+            // Only play sound if requested (not during reconciliation)
+            if (playSound) {
+                this.playSnapSound();
+            }
         }
         
         return snapped;
@@ -519,29 +522,40 @@ class SliderRenderer {
         }
         this.momentumBeads.clear();
         
-        // 2. Snap all beads to their nearest integer positions
-        // This resolves any floating-point precision issues
+        // 2. Get max position BEFORE any modifications
+        const maxPosition = this.getMaxBarPosition();
+        
+        // 3. Snap beads to nearest integer positions, but respect max boundary
         this.beads.forEach(bead => {
             const originalPosition = bead.position;
-            bead.position = Math.round(bead.position);
+            let targetPosition = Math.round(bead.position);
+            
+            // CRITICAL: Don't let beads exceed max position
+            if (targetPosition > maxPosition) {
+                targetPosition = maxPosition;
+            }
+            
+            bead.position = targetPosition;
+            
             if (Math.abs(originalPosition - bead.position) > 0.001) {
                 console.log(`  📍 Snapped ${bead.id}: ${originalPosition.toFixed(4)} → ${bead.position}`);
                 this.positionBead(bead);
             }
         });
         
-        // 3. Resolve any overlapping beads by pushing them apart
+        // 4. Resolve any overlapping beads by pushing them apart
         this.resolveBeadOverlaps();
         
-        // 4. Update bar state with fresh data
+        // 5. Update bar state with fresh data
         this.updateBarState();
         
-        // 5. Apply magnetic snapping for any beads that should be connected
+        // 6. Apply magnetic snapping for any beads that should be connected
+        // BUT don't play sounds during reconciliation
         this.beads.forEach(bead => {
-            this.snapToNearbyBeads(bead, 0.3); // Smaller snap radius for reconciliation
+            this.snapToNearbyBeads(bead, 0.3, false); // false = no sound
         });
         
-        // 6. Final bar state update
+        // 7. Final bar state update
         this.updateBarState();
         
         console.log('✅ Bead state reconciliation complete');
