@@ -963,7 +963,7 @@ class SliderGameController {
         this.buttonsDisabled = false;
         this.sliderDisabled = true;
         
-        setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY + 2000);
+        setTimeout(() => this.startNewQuestion(), CONFIG.NEXT_QUESTION_DELAY + 1500);
     }
     
     handleIncorrectAnswer(buttonElement) {
@@ -1095,8 +1095,8 @@ class SliderGameController {
                     this.sliderDisabled = false;
                 }, 3000);
             }, 1000);
-            // Show arrow from 1-6 seconds (5-second duration starting at 1 second)
-            setTimeout(() => this.showArrowBriefly(5000), 1000);
+            // Show arrow from 2-6 seconds (4-second duration starting at 2 seconds)
+            setTimeout(() => this.showArrowBriefly(4000), 2000);
         } else {
             // UPDATED TIMING: 1 second delay for subsequent questions
             setTimeout(() => {
