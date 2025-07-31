@@ -1,6 +1,6 @@
 /**
  * Universal Button Bar System
- * Handles responsive button layout across all games
+ * Handles responsive button layout across all games and coordinates with game areas
  */
 class ButtonBar {
     constructor() {
@@ -20,12 +20,58 @@ class ButtonBar {
             buttonWidth: 0,
             buttonHeight: 0,
             buttonGap: 0,
-            insideMargin: 0
+            insideMargin: 0,
+            totalHeight: 0  // Total height of button bar including padding
         };
+        
+        // Game area coordination
+        this.gameAreaElement = null;
+        this.observers = []; // For notifying observers of dimension changes
         
         // Bind resize handler
         this.handleResize = this.handleResize.bind(this);
         window.addEventListener('resize', this.handleResize);
+    }
+    
+    /**
+     * Register an observer to be notified of dimension changes
+     * @param {Function} callback - Function to call with dimension updates
+     */
+    addObserver(callback) {
+        this.observers.push(callback);
+    }
+    
+    /**
+     * Remove an observer
+     * @param {Function} callback - Function to remove
+     */
+    removeObserver(callback) {
+        this.observers = this.observers.filter(obs => obs !== callback);
+    }
+    
+    /**
+     * Notify all observers of dimension changes
+     */
+    notifyObservers() {
+        const dimensionData = {
+            ...this.dimensions,
+            buttonBarHeight: this.dimensions.totalHeight
+        };
+        
+        this.observers.forEach(callback => {
+            try {
+                callback(dimensionData);
+            } catch (error) {
+                console.warn('ButtonBar observer error:', error);
+            }
+        });
+    }
+    
+    /**
+     * Get current outside margin percentage
+     */
+    getOutsideMarginPercent() {
+        return this.dimensions.outsideMargin;
     }
     
     /**
@@ -48,6 +94,9 @@ class ButtonBar {
             return;
         }
         
+        // Find game area for coordination
+        this.gameAreaElement = document.querySelector('.game-area');
+        
         // Clear existing buttons
         this.container.innerHTML = '';
         this.buttons = [];
@@ -63,6 +112,15 @@ class ButtonBar {
         
         // Apply positioning
         this.positionButtons();
+        
+        // Update game area spacing
+        this.updateGameAreaSpacing();
+        
+        // Apply outside margins to game area
+        this.updateGameAreaMargins();
+        
+        // Notify observers
+        this.notifyObservers();
         
         console.log('ButtonBar created:', {
             n, x, y,
@@ -105,6 +163,10 @@ class ButtonBar {
         const totalGapWidth = (this.config.n - 1) * this.dimensions.actualGap;
         const remainingWidth = buttonPanelWidthPx - totalButtonWidth - totalGapWidth;
         this.dimensions.insideMargin = remainingWidth / 2;
+        
+        // Calculate total button bar height (button height + 5vh total padding)
+        const buttonHeightVw = (this.config.y * this.dimensions.buttonPanelWidth) / 100;
+        this.dimensions.totalHeight = `calc(${buttonHeightVw}vw + 5vh)`;
         
         console.log('Calculated dimensions:', {
             ...this.dimensions,
@@ -243,6 +305,24 @@ class ButtonBar {
         });
     }
     
+    updateGameAreaSpacing() {
+        if (!this.gameAreaElement) return;
+        
+        // Update game area bottom margin to account for button bar
+        const buttonHeightVw = (this.config.y * this.dimensions.buttonPanelWidth) / 100;
+        this.gameAreaElement.style.marginBottom = `calc(${buttonHeightVw}vw + 5vh)`;
+    }
+    
+    updateGameAreaMargins() {
+        if (!this.gameAreaElement) return;
+        
+        // Apply responsive outside margins to game area
+        const outsideMarginVw = this.dimensions.outsideMargin;
+        this.gameAreaElement.style.marginLeft = `${outsideMarginVw}vw`;
+        this.gameAreaElement.style.marginRight = `${outsideMarginVw}vw`;
+        this.gameAreaElement.style.width = `${this.dimensions.buttonPanelWidth}vw`;
+    }
+    
     handleResize() {
         if (this.container && this.config.n > 0) {
             // Recalculate and reposition
@@ -262,6 +342,13 @@ class ButtonBar {
                 button.style.fontSize = `${fontSize}px`;
                 button.style.left = `${leftPosition}px`;
             });
+            
+            // Update game area spacing and margins
+            this.updateGameAreaSpacing();
+            this.updateGameAreaMargins();
+            
+            // Notify observers of dimension changes
+            this.notifyObservers();
         }
     }
     
@@ -326,6 +413,18 @@ class ButtonBar {
      */
     destroy() {
         window.removeEventListener('resize', this.handleResize);
+        
+        // Reset game area styles
+        if (this.gameAreaElement) {
+            this.gameAreaElement.style.marginBottom = '';
+            this.gameAreaElement.style.marginLeft = '';
+            this.gameAreaElement.style.marginRight = '';
+            this.gameAreaElement.style.width = '';
+        }
+        
+        // Clear observers
+        this.observers = [];
+        
         if (this.container) {
             this.container.innerHTML = '';
         }
