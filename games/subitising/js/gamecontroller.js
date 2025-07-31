@@ -21,15 +21,10 @@ class GameController {
         this.flashingInterval = null;
         this.flashingTimeout = null;
         
-        // Audio functionality
-        this.audioContext = null;
-        this.audioEnabled = CONFIG.AUDIO_ENABLED || true;
-        
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
         this.inactivityDuration = 20000; // 20 seconds
         this.hintGiven = false; // Track if hint has been given for current question
-        this.isTabVisible = true; // Track tab visibility
         
         // Keyboard two-digit handling for "10"
         this.keyboardBuffer = '';
@@ -40,14 +35,7 @@ class GameController {
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         
-        // Mute button references
-        this.muteButton = null;
-        this.muteContainer = null;
-        
         this.initializeEventListeners();
-        this.initializeAudio();
-        this.createMuteButton();
-        this.setupVisibilityHandling();
         this.createButtons();
         this.startNewQuestion();
     }
@@ -191,152 +179,9 @@ class GameController {
         return star;
     }
 
-    async initializeAudio() {
-        if (!this.audioEnabled) return;
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
-            this.audioEnabled = false;
-        }
-    }
-
-    createMuteButton() {
-        // Create mute button container
-        const muteContainer = document.createElement('div');
-        muteContainer.style.position = 'fixed';
-        muteContainer.style.top = '20px';
-        muteContainer.style.right = '20px';
-        muteContainer.style.zIndex = '1000';
-        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        muteContainer.style.borderRadius = '50%';
-        muteContainer.style.width = '60px';
-        muteContainer.style.height = '60px';
-        muteContainer.style.display = 'flex';
-        muteContainer.style.alignItems = 'center';
-        muteContainer.style.justifyContent = 'center';
-        muteContainer.style.cursor = 'pointer';
-        muteContainer.style.transition = 'all 0.3s ease';
-        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-        
-        // Create button
-        this.muteButton = document.createElement('button');
-        this.muteButton.style.background = 'none';
-        this.muteButton.style.border = 'none';
-        this.muteButton.style.color = 'white';
-        this.muteButton.style.fontSize = '24px';
-        this.muteButton.style.cursor = 'pointer';
-        this.muteButton.style.width = '100%';
-        this.muteButton.style.height = '100%';
-        this.muteButton.style.display = 'flex';
-        this.muteButton.style.alignItems = 'center';
-        this.muteButton.style.justifyContent = 'center';
-        
-        // Set initial icon
-        this.updateMuteButtonIcon();
-        
-        // Add event listeners
-        this.muteButton.addEventListener('click', () => this.toggleAudio());
-        this.muteButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.toggleAudio();
-        });
-        
-        // Hover effects
-        muteContainer.addEventListener('mouseenter', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-            muteContainer.style.transform = 'scale(1.1)';
-        });
-        
-        muteContainer.addEventListener('mouseleave', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            muteContainer.style.transform = 'scale(1)';
-        });
-        
-        muteContainer.appendChild(this.muteButton);
-        document.body.appendChild(muteContainer);
-        
-        this.muteContainer = muteContainer;
-    }
-
-    updateMuteButtonIcon() {
-        if (this.muteButton) {
-            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
-            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
-        }
-    }
-
-    setupVisibilityHandling() {
-        // Handle tab visibility changes
-        document.addEventListener('visibilitychange', () => {
-            this.isTabVisible = !document.hidden;
-            
-            if (!this.isTabVisible) {
-                // Tab is hidden - stop all audio and clear timers
-                this.clearInactivityTimer();
-                if ('speechSynthesis' in window) {
-                    speechSynthesis.cancel();
-                }
-            } else {
-                // Tab is visible again - restart inactivity timer if game is active
-                if (!this.gameComplete && !this.buttonsDisabled) {
-                    this.startInactivityTimer();
-                }
-            }
-        });
-    }
-
-    toggleAudio() {
-        this.audioEnabled = !this.audioEnabled;
-        this.updateMuteButtonIcon();
-        
-        // Stop any current speech
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        // Provide feedback
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText('Audio enabled');
-            }, 100);
-        }
-    }
-
-    speakText(text) {
-        if (!this.audioEnabled) return;
-        
-        try {
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.3;
-                utterance.volume = 0.8;
-                
-                const voices = speechSynthesis.getVoices();
-                let selectedVoice = voices.find(voice => 
-                    voice.name.toLowerCase().includes('male') ||
-                    voice.name.toLowerCase().includes('boy') ||
-                    voice.name.toLowerCase().includes('man') ||
-                    (!voice.name.toLowerCase().includes('female') && 
-                     !voice.name.toLowerCase().includes('woman') &&
-                     !voice.name.toLowerCase().includes('girl'))
-                );
-                
-                if (selectedVoice) utterance.voice = selectedVoice;
-                utterance.pitch = 1.3;
-                
-                speechSynthesis.speak(utterance);
-            }
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
     startInactivityTimer() {
-        // Only start timer if tab is visible and hint hasn't been given
-        if (!this.isTabVisible || this.hintGiven) {
+        // Only start timer if hint hasn't been given and AudioSystem is available
+        if (this.hintGiven || !window.AudioSystem) {
             return;
         }
         
@@ -362,12 +207,12 @@ class GameController {
     }
 
     giveInactivityHint() {
-        if (!this.audioEnabled || this.buttonsDisabled || this.gameComplete || !this.isTabVisible) return;
+        if (this.buttonsDisabled || this.gameComplete || !window.AudioSystem) return;
         
         // Mark that hint has been given for this question
         this.hintGiven = true;
         
-        this.speakText('Try counting the number of pictures.');
+        window.AudioSystem.speakText('Try counting the number of pictures.');
         
         // Don't restart the timer - hint is only given once per question
     }
@@ -606,15 +451,15 @@ class GameController {
     }
 
     giveStartingInstruction() {
-        if (!this.audioEnabled || !this.isTabVisible) return;
+        if (!window.AudioSystem) return;
         
         setTimeout(() => {
             if (this.questionsCompleted === 0) {
                 // First question
-                this.speakText('Count the number of pictures you can see');
+                window.AudioSystem.speakText('Count the number of pictures you can see');
             } else {
                 // Second and further questions
-                this.speakText('Count the number of pictures.');
+                window.AudioSystem.speakText('Count the number of pictures.');
             }
         }, 500);
     }
@@ -650,20 +495,20 @@ class GameController {
         // Create star celebration around the button
         this.createStarCelebration(buttonElement);
 
-        // Play completion sound
-        if (this.audioEnabled) {
-            this.playCompletionSound();
+        // Play completion sound using AudioSystem
+        if (window.AudioSystem) {
+            window.AudioSystem.playCompletionSound();
         }
 
         // Always add rainbow piece for any correct answer
         const pieces = this.rainbow.addPiece();
         
         // Give encouragement for correct answer
-        if (this.audioEnabled && this.isTabVisible) {
+        if (window.AudioSystem) {
             const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             setTimeout(() => {
-                this.speakText(randomEncouragement);
+                window.AudioSystem.speakText(randomEncouragement);
             }, 400);
         }
         
@@ -710,9 +555,9 @@ class GameController {
         // Clear inactivity timer and give immediate hint
         this.clearInactivityTimer();
         
-        // Play failure sound
-        if (this.audioEnabled) {
-            this.playFailureSound();
+        // Play failure sound using AudioSystem
+        if (window.AudioSystem) {
+            window.AudioSystem.playFailureSound();
         }
         
         // Disable buttons during error handling
@@ -875,53 +720,6 @@ class GameController {
         this.hasSeenHigherNumbers = false;
     }
 
-    playCompletionSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
-            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
-            
-            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.5);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
-    playFailureSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
-            
-            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.3);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
     completeGame() {
         this.gameComplete = true;
         this.clearInactivityTimer();
@@ -931,10 +729,10 @@ class GameController {
         // Start bear celebration when modal opens
         this.bear.startCelebration();
         
-        // Give completion audio message
-        if (this.audioEnabled && this.isTabVisible) {
+        // Give completion audio message using AudioSystem
+        if (window.AudioSystem) {
             setTimeout(() => {
-                this.speakText('Well done! You have correctly counted the number of pictures in all of the questions. Play again or return to the home page.');
+                window.AudioSystem.speakText('Well done! You have correctly counted the number of pictures in all of the questions. Play again or return to the home page.');
             }, 1000);
         }
     }
@@ -945,23 +743,12 @@ class GameController {
         this.clearKeyboardTimer();
         this.stopFlashing();
         
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        if (this.audioContext) {
-            this.audioContext.close();
-        }
-        
-        // Clean up mute button
-        if (this.muteContainer && this.muteContainer.parentNode) {
-            this.muteContainer.parentNode.removeChild(this.muteContainer);
-        }
-        
         // Clean up ButtonBar
         if (window.ButtonBar) {
             window.ButtonBar.destroy();
         }
+        
+        // AudioSystem cleanup is handled globally
         
         // Clean up other resources
         this.rainbow.reset();
