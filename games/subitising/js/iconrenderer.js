@@ -204,10 +204,32 @@ class IconRenderer {
             return;
         }
         
-        // Safety check for CONFIG
-        if (!window.CONFIG || !CONFIG.ICONS || !CONFIG.COLORS) {
-            console.error('CONFIG object not available. Make sure config.js is loaded.');
-            return;
+        // Debug: Check what's available
+        console.log('CONFIG check:', typeof CONFIG, CONFIG);
+        console.log('window.CONFIG check:', typeof window.CONFIG, window.CONFIG);
+        
+        // Get icons and colors from CONFIG or use fallbacks
+        let icons, colors;
+        
+        if (typeof CONFIG !== 'undefined' && CONFIG.ICONS && CONFIG.COLORS) {
+            icons = CONFIG.ICONS;
+            colors = CONFIG.COLORS;
+            console.log('Using CONFIG arrays');
+        } else if (typeof window.CONFIG !== 'undefined' && window.CONFIG.ICONS && window.CONFIG.COLORS) {
+            icons = window.CONFIG.ICONS;
+            colors = window.CONFIG.COLORS;
+            console.log('Using window.CONFIG arrays');
+        } else {
+            // Fallback arrays
+            icons = [
+                'fas fa-cat', 'fas fa-dog', 'fas fa-fish', 'fas fa-dove', 'fas fa-frog',
+                'fas fa-car', 'fas fa-bicycle', 'fas fa-plane', 'fas fa-tree', 'fas fa-star'
+            ];
+            colors = [
+                '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b',
+                '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'
+            ];
+            console.log('Using fallback arrays - CONFIG not available');
         }
         
         // Get positions for this count
@@ -218,8 +240,10 @@ class IconRenderer {
         }
         
         // Select ONE random icon and ONE random color for this entire question (original behavior)
-        const selectedIcon = CONFIG.ICONS[Math.floor(Math.random() * CONFIG.ICONS.length)];
-        const selectedColor = CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
+        const selectedIcon = icons[Math.floor(Math.random() * icons.length)];
+        const selectedColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        console.log('Selected icon:', selectedIcon, 'Selected color:', selectedColor);
         
         // Create icons with percentage-based positioning - ALL THE SAME ICON AND COLOR
         for (let i = 0; i < count; i++) {
