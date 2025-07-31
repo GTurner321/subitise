@@ -61,85 +61,6 @@ body {
     }
 }
 
-/* Number buttons */
-.number-buttons {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-    background: #f5f5f5;
-    gap: 10px;
-    flex-wrap: wrap;
-    min-height: 120px;
-}
-
-.number-btn {
-    width: 90px;
-    height: 90px;
-    border: none;
-    border-radius: 18px;
-    font-size: 3rem;
-    font-weight: bold;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.number-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-}
-
-.number-btn:active {
-    transform: translateY(0);
-    transition: all 0.1s ease;
-}
-
-.number-btn.correct {
-    animation: flashGreen 0.8s ease;
-}
-
-.number-btn.incorrect {
-    animation: flashRed 0.8s ease;
-}
-
-@keyframes flashGreen {
-    0%, 100% { 
-        background-color: var(--btn-color); 
-        transform: scale(1);
-    }
-    50% { 
-        background-color: #4caf50; 
-        transform: scale(1.2);
-        box-shadow: 0 0 20px #4caf50;
-    }
-}
-
-@keyframes flashRed {
-    0%, 100% { 
-        background-color: var(--btn-color); 
-        transform: scale(1);
-    }
-    50% { 
-        background-color: #f44336; 
-        transform: scale(1.2);
-        box-shadow: 0 0 20px #f44336;
-    }
-}
-
-/* Button colors */
-.number-btn:nth-child(1) { background-color: #ff6b6b; --btn-color: #ff6b6b; }
-.number-btn:nth-child(2) { background-color: #4ecdc4; --btn-color: #4ecdc4; }
-.number-btn:nth-child(3) { background-color: #45b7d1; --btn-color: #45b7d1; }
-.number-btn:nth-child(4) { background-color: #f9ca24; --btn-color: #f9ca24; }
-.number-btn:nth-child(5) { background-color: #f0932b; --btn-color: #f0932b; }
-.number-btn:nth-child(6) { background-color: #eb4d4b; --btn-color: #eb4d4b; }
-.number-btn:nth-child(7) { background-color: #6c5ce7; --btn-color: #6c5ce7; }
-.number-btn:nth-child(8) { background-color: #a29bfe; --btn-color: #a29bfe; }
-.number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
-.number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
-
 /* Game over modal */
 .modal {
     position: fixed;
@@ -202,90 +123,38 @@ body {
     display: none;
 }
 
-/* Cross overlay for incorrect answers */
-.cross-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    pointer-events: none;
-    z-index: 10;
+/* Game-specific visual feedback animation */
+.area-flash {
+    animation: areaFlashAnimation 1s ease-in-out;
 }
 
-.cross-overlay::before,
-.cross-overlay::after {
-    content: '';
-    position: absolute;
-    background-color: #dc143c; /* Crimson color */
-    border-radius: 4px;
-    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
-}
-
-.cross-overlay::before {
-    width: 60px;
-    height: 8px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.cross-overlay::after {
-    width: 60px;
-    height: 8px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-}
-
-/* Animation for cross appearance */
-.cross-overlay {
-    animation: crossAppear 0.3s ease-out;
-}
-
-@keyframes crossAppear {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.3);
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
-
-/* Ensure number buttons have relative positioning for the overlay */
-.number-btn {
-    position: relative;
-}
-
-/* Star celebration animation from trace game */
-.completion-star {
-    animation: starSparkle 1.5s ease-out forwards;
-    transform-origin: center;
-    position: absolute;
-    font-size: 24px;
-    pointer-events: none;
-    z-index: 1000;
-}
-
-@keyframes starSparkle {
-    0% {
-        opacity: 0;
-        transform: scale(0) rotate(0deg);
+@keyframes areaFlashAnimation {
+    0%, 100% {
+        background-color: white;
     }
     50% {
-        opacity: 1;
-        transform: scale(1.2) rotate(180deg);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(0.8) rotate(360deg);
+        background-color: #fff3cd;
     }
 }
 
-/* Enhanced completion effects */
-.completion-effect {
-    pointer-events: none;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .game-area {
+        width: 95%;
+    }
+    
+    .modal h2 {
+        font-size: 2rem;
+    }
+    
+    .play-again-btn {
+        font-size: 1.2rem;
+        padding: 12px 24px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .game-area {
+        width: 70%;
+    }
 }
