@@ -94,16 +94,23 @@ class ButtonBar {
         this.dimensions.buttonWidth = (this.config.x / 100) * buttonPanelWidthPx;
         this.dimensions.buttonHeight = (this.config.y / 100) * buttonPanelWidthPx;
         
-        // Calculate gap size
-        this.dimensions.buttonGap = (1.5 / 100) * buttonPanelWidthPx;
+        // Calculate actual gap size between buttons (1.5bpw visual gap)
+        this.dimensions.actualGap = (1.5 / 100) * buttonPanelWidthPx;
+        
+        // Calculate spacing between button left edges (button width + gap)
+        this.dimensions.buttonSpacing = this.dimensions.buttonWidth + this.dimensions.actualGap;
         
         // Calculate inside margins
         const totalButtonWidth = this.config.n * this.dimensions.buttonWidth;
-        const totalGapWidth = (this.config.n - 1) * this.dimensions.buttonGap;
+        const totalGapWidth = (this.config.n - 1) * this.dimensions.actualGap;
         const remainingWidth = buttonPanelWidthPx - totalButtonWidth - totalGapWidth;
         this.dimensions.insideMargin = remainingWidth / 2;
         
-        console.log('Calculated dimensions:', this.dimensions);
+        console.log('Calculated dimensions:', {
+            ...this.dimensions,
+            actualGap: this.dimensions.actualGap,
+            buttonSpacing: this.dimensions.buttonSpacing
+        });
     }
     
     styleContainer() {
@@ -155,14 +162,14 @@ class ButtonBar {
             // Set button color
             const buttonColor = this.config.colors[i] || defaultColors[i % defaultColors.length];
             
-            // Calculate font size based on button dimensions
-            const fontSize = this.dimensions.buttonWidth / 6; // Your suggested formula
+            // Calculate font size based on button dimensions - made larger
+            const fontSize = this.dimensions.buttonWidth / 4; // Changed from /6 to /4 for larger font
             
             button.style.cssText = `
                 position: absolute;
                 width: ${this.dimensions.buttonWidth}px;
                 height: ${this.dimensions.buttonHeight}px;
-                bottom: 2vh;
+                bottom: 3vh;
                 font-size: ${fontSize}px;
                 font-weight: bold;
                 color: white;
@@ -220,9 +227,10 @@ class ButtonBar {
     positionButtons() {
         this.buttons.forEach((button, index) => {
             // Calculate left position for this button - ADD outside margin offset
+            // Use buttonSpacing (button width + actual gap) between buttons
             const leftPosition = this.dimensions.outsideMargin * (window.innerWidth / 100) + 
                 this.dimensions.insideMargin + 
-                (index * (this.dimensions.buttonWidth + this.dimensions.buttonGap));
+                (index * this.dimensions.buttonSpacing);
             
             button.style.left = `${leftPosition}px`;
             
@@ -243,11 +251,11 @@ class ButtonBar {
             
             // Update button positions and sizes
             this.buttons.forEach((button, index) => {
-                const fontSize = this.dimensions.buttonWidth / 6;
+                const fontSize = this.dimensions.buttonWidth / 4; // Changed from /6 to /4 for larger font
                 // ADD outside margin offset for resize
                 const leftPosition = this.dimensions.outsideMargin * (window.innerWidth / 100) + 
                     this.dimensions.insideMargin + 
-                    (index * (this.dimensions.buttonWidth + this.dimensions.buttonGap));
+                    (index * this.dimensions.buttonSpacing);
                 
                 button.style.width = `${this.dimensions.buttonWidth}px`;
                 button.style.height = `${this.dimensions.buttonHeight}px`;
