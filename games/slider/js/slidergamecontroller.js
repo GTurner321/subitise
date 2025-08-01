@@ -868,7 +868,7 @@ class SliderGameController {
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
             setTimeout(() => {
-                window.AudioSystem.speakText(`${randomEncouragement} There are ${rightSideCount} beads on the right.`);
+                window.AudioSystem.speakText(`${randomEncouragement} There are ${rightSideCount} on the right.`);
             }, 400);
         }
         
