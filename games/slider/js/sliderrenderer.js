@@ -11,7 +11,7 @@ class SliderRenderer {
         
         // Preload click sound for better performance
         this.clickSound = new Audio('../../assets/slider/click.mp3');
-        this.clickSound.volume = 1.0; // Set to 100% volume (maximum)
+        this.clickSound.volume = 1.0;
         this.clickSound.preload = 'auto';
         
         // Bar state tracking - positions are continuous values along the bar
@@ -97,7 +97,7 @@ class SliderRenderer {
     initializeBeads() {
         // Clear existing beads
         this.beads.forEach(bead => {
-            if (bead.element && bead.element.parentNode) {
+            if (bead.element?.parentNode) {
                 bead.element.parentNode.removeChild(bead.element);
             }
         });
@@ -409,7 +409,7 @@ class SliderRenderer {
     
     // Enhanced touch target detection with dynamic sizing
     getBeadAtPosition(x, y) {
-        for (let bead of this.beads) {
+        for (const bead of this.beads) {
             const touchTarget = this.getDynamicTouchTarget(bead);
             
             if (x >= touchTarget.left && x <= touchTarget.right &&
@@ -428,7 +428,6 @@ class SliderRenderer {
         
         if (isTouched) {
             bead.element.classList.add('touched');
-            // No pulse animation - just maintain the larger size
         } else {
             bead.element.classList.remove('touched');
         }
@@ -503,7 +502,7 @@ class SliderRenderer {
         return snapped;
     }
     
-    // NEW: Helper method for consistent max position calculation
+    // Helper method for consistent max position calculation
     getMaxBarPosition() {
         const barStartX = this.frameImageRect.width * 0.07;
         const barEndX = this.frameImageRect.width * 0.92;
@@ -512,22 +511,20 @@ class SliderRenderer {
         return playableLength / this.beadDiameter;
     }
     
-    // NEW: Force all bead states to be reconciled and consistent
+    // Force all bead states to be reconciled and consistent
     reconcileAllBeadStates() {
         console.log('🔄 Reconciling all bead states...');
         
         // 1. Stop all momentum animations to ensure stable state
-        for (let bead of this.beads) {
+        for (const bead of this.beads) {
             this.stopMomentum(bead);
         }
         this.momentumBeads.clear();
         
         // 2. Update bar state tracking with current bead positions
-        // This refreshes the internal state without moving any beads
         this.updateBarState();
         
         // 3. Force a complete refresh of collision detection and position tracking
-        // This ensures all internal caches are synchronized with actual bead positions
         for (let barIndex = 0; barIndex < 2; barIndex++) {
             const barBeads = this.beads.filter(bead => bead.barIndex === barIndex);
             
@@ -540,7 +537,7 @@ class SliderRenderer {
         console.log('✅ Bead state reconciliation complete - internal state refreshed');
     }
     
-    // NEW: Resolve overlapping beads by pushing them apart
+    // Resolve overlapping beads by pushing them apart
     resolveBeadOverlaps() {
         console.log('  🔧 Resolving bead overlaps...');
         
@@ -580,11 +577,8 @@ class SliderRenderer {
         }
     }
     
-    // UPDATED: Now uses getMaxBarPosition helper
+    // Count beads on right side using reconciled state
     countBeadsOnRightSide() {
-        // This method should NOT call reconcileAllBeadStates() - 
-        // that should be done by the caller before calling this
-        
         // Calculate the actual bar end position
         const maxPosition = this.getMaxBarPosition();
         
@@ -618,14 +612,10 @@ class SliderRenderer {
         return totalRightSideBeads;
     }
     
-    // UPDATED: Cleaner version, no logic changes
+    // Check if beads are in middle using improved logic
     hasBeadsInMiddle() {
-        // This method should NOT call reconcileAllBeadStates() - 
-        // that should be done by the caller before calling this
-        
         // Check using the 11-gap criteria: valid arrangement has exactly 10 zero gaps per bar
-        // (10 beads can create at most 10 zero gaps, with 1 non-zero gap remaining)
-        const tolerance = 0.15; // Increased tolerance - 0.1 should definitely be accepted as zero
+        const tolerance = 0.15; // Increased tolerance for better user experience
         
         console.log(`\n=== CHECKING FOR MIDDLE BEADS ===`);
         
@@ -712,7 +702,7 @@ class SliderRenderer {
     
     reset() {
         // Stop all momentum animations
-        for (let bead of this.beads) {
+        for (const bead of this.beads) {
             this.stopMomentum(bead);
         }
         this.momentumBeads.clear();
@@ -722,17 +712,17 @@ class SliderRenderer {
     }
     
     playSnapSound() {
-        if (!CONFIG.AUDIO_ENABLED) return;
-        
-        try {
-            // Use preloaded audio and reset to beginning for rapid successive plays
-            this.clickSound.currentTime = 0;
-            this.clickSound.play().catch(error => {
-                // Silent failure if audio can't play
-                console.log('Click sound failed to play:', error);
-            });
-        } catch (error) {
-            // Silent failure
+        // Use universal audio system if available, fallback to direct audio
+        if (window.AudioSystem && window.AudioSystem.audioEnabled) {
+            try {
+                // Use preloaded audio and reset to beginning for rapid successive plays
+                this.clickSound.currentTime = 0;
+                this.clickSound.play().catch(error => {
+                    console.log('Click sound failed to play:', error);
+                });
+            } catch (error) {
+                // Silent failure
+            }
         }
     }
 }
