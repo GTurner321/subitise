@@ -157,3 +157,32 @@ body {
         padding: 12px 24px;
     }
 }
+
+/* Add this to subitising.css */
+.game-icon {
+    position: absolute;
+    z-index: 2;
+    /* font-size set dynamically by IconRenderer */
+    animation: fadeIn 0.5s ease-in;
+    pointer-events: none;
+    user-select: none;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    transition: filter 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: scale(0.5); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+}
+
+@keyframes iconJiggle {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+    20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
