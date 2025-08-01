@@ -1,6 +1,166 @@
 const CONFIG = {
-    // Game progression
-    MAX_QUESTIONS: 10,
+    // Current level tracking
+    currentLevel: 1,
+    maxLevels: 4,
+    
+    // Level definitions - each level has its own configuration
+    levels: {
+        1: { // Counting in 2s (original game)
+            name: "twos",
+            increment: 2,
+            buttonNumbers: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+            buttonCount: 10,
+            maxQuestions: 10,
+            nextLevelName: "threes"
+        },
+        2: { // Counting in 3s
+            name: "threes", 
+            increment: 3,
+            buttonNumbers: [3, 6, 9, 12, 15, 18],
+            buttonCount: 6,
+            maxQuestions: 6,
+            nextLevelName: "fours"
+        },
+        3: { // Counting in 4s
+            name: "fours",
+            increment: 4,
+            buttonNumbers: [4, 8, 12, 16, 20],
+            buttonCount: 5,
+            maxQuestions: 5,
+            nextLevelName: "fives"
+        },
+        4: { // Counting in 5s
+            name: "fives",
+            increment: 5,
+            buttonNumbers: [5, 10, 15, 20],
+            buttonCount: 4,
+            maxQuestions: 4,
+            nextLevelName: null // Last level
+        }
+    },
+    
+    // Audio message templates with placeholders
+    audioTemplates: {
+        intro: "We're going to count in {levelName}. Start by sliding {increment} beads to the right side",
+        continue: "Slide {increment} more beads across",
+        firstButton: "Select the button underneath for the number of beads on the right side",
+        subsequentButton: "Select the matching button underneath",
+        inactivityBase: "You need to put {increment} beads on the right side in total, with no beads left in the middle",
+        inactivityContinue: "You had {previous} beads on the right side, now you need {increment} more. Make sure no beads are left in the middle",
+        buttonHelp: "Carefully count the total number of beads on both of the bars on the right side of the slider, then select the matching button",
+        completionNext: "{sequence}! Well done! Play the next level, counting in {nextLevelName}, or return to the home page.",
+        completionFinal: "{sequence}! Well done! You've completed all levels! Play again or return to the home page."
+    },
+    
+    // Helper methods to get current level config
+    getCurrentLevel() {
+        return this.levels[this.currentLevel];
+    },
+    
+    isLastLevel() {
+        return this.currentLevel >= this.maxLevels;
+    },
+    
+    advanceLevel() {
+        if (this.currentLevel < this.maxLevels) {
+            this.currentLevel++;
+            return true;
+        }
+        return false;
+    },
+    
+    resetToFirstLevel() {
+        this.currentLevel = 1;
+    },
+    
+    // Get button configuration for current level
+    getButtonConfig() {
+        const level = this.getCurrentLevel();
+        return {
+            numbers: level.buttonNumbers,
+            count: level.buttonCount,
+            width: 8, // Keep consistent button sizing
+            height: 8
+        };
+    },
+    
+    // Calculate expected beads for current question
+    getExpectedBeadsForQuestion(questionNumber) {
+        const level = this.getCurrentLevel();
+        return questionNumber * level.increment;
+    },
+    
+    // Get increment for current level
+    getCurrentIncrement() {
+        return this.getCurrentLevel().increment;
+    },
+    
+    // Generate counting sequence for current level (for completion message)
+    getCurrentSequence() {
+        const level = this.getCurrentLevel();
+        const sequence = [];
+        for (let i = 1; i <= level.maxQuestions; i++) {
+            sequence.push(i * level.increment);
+        }
+        return sequence.join(', ');
+    },
+    
+    // Get adaptive audio message
+    getAudioMessage(messageType, context = {}) {
+        const level = this.getCurrentLevel();
+        const template = this.audioTemplates[messageType];
+        
+        if (!template) {
+            console.warn(`Audio template '${messageType}' not found`);
+            return '';
+        }
+        
+        // Create replacement object with level data and context
+        const replacements = {
+            levelName: level.name,
+            increment: level.increment,
+            nextLevelName: level.nextLevelName,
+            sequence: this.getCurrentSequence(),
+            ...context // Allow overriding with passed context
+        };
+        
+        // Replace all placeholders in the template
+        let message = template;
+        Object.keys(replacements).forEach(key => {
+            const placeholder = `{${key}}`;
+            if (replacements[key] !== null && replacements[key] !== undefined) {
+                message = message.replace(new RegExp(placeholder, 'g'), replacements[key]);
+            }
+        });
+        
+        return message;
+    },
+    
+    // Get completion message (handles both next level and final level)
+    getCompletionMessage() {
+        if (this.isLastLevel()) {
+            return this.getAudioMessage('completionFinal');
+        } else {
+            return this.getAudioMessage('completionNext');
+        }
+    },
+    
+    // Get modal button configuration
+    getModalConfig() {
+        if (this.isLastLevel()) {
+            return {
+                text: 'PLAY AGAIN',
+                icon: 'fas fa-redo-alt' // Refresh/retry icon
+            };
+        } else {
+            return {
+                text: 'NEXT LEVEL',
+                icon: 'fas fa-arrow-right' // Right arrow icon
+            };
+        }
+    },
+    
+    // Static game properties (unchanged from original)
     RAINBOW_PIECES: 10,
     RAINBOW_COLORS: [
         '#ff0000', // Red
@@ -24,25 +184,22 @@ const CONFIG = {
     },
     
     // Physics and interaction
-    SNAP_DISTANCE: 5, // Pixels within which beads snap together
-    DRAG_THRESHOLD: 3, // Minimum pixels to start dragging
-    SNAP_SPEED: 200, // Speed of snap animation in pixels per second
-    MAGNETIC_RANGE: 15, // Range for magnetic attraction
+    SNAP_DISTANCE: 5,
+    DRAG_THRESHOLD: 3,
+    SNAP_SPEED: 200,
+    MAGNETIC_RANGE: 15,
     
     // Layout (percentages of container)
-    TOP_BAR_POSITION: 34, // 34% down from top
-    BOTTOM_BAR_POSITION: 60, // 60% down from top
-    BAR_LEFT_MARGIN: 6, // 6% from left
-    BAR_RIGHT_MARGIN: 8, // 8% from right (so bar goes to 92%)
-    BAR_THICKNESS: 5, // 1/20th of container height
+    TOP_BAR_POSITION: 34,
+    BOTTOM_BAR_POSITION: 60,
+    BAR_LEFT_MARGIN: 6,
+    BAR_RIGHT_MARGIN: 8,
+    BAR_THICKNESS: 5,
     
-    // Audio (managed by universal AudioSystem)
+    // Audio
     AUDIO_ENABLED: true,
     
     // Timing
     FLASH_DURATION: 800,
-    NEXT_QUESTION_DELAY: 2000,
-    
-    // Button numbers (will be shuffled each game)
-    BUTTON_NUMBERS: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+    NEXT_QUESTION_DELAY: 2000
 };
