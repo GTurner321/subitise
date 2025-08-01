@@ -755,35 +755,43 @@ class SliderGameController {
         }
         this.buttonHelpStartTime = null;
     }
-        if (this.invalidArrangementTimer) {
-            clearTimeout(this.invalidArrangementTimer);
-        }
         
-        this.invalidArrangementTimer = setTimeout(() => {
-            const now = Date.now();
-            const timeSinceActivity = now - (this.lastActivityTime || now);
-            
-            if (timeSinceActivity >= 10000 && this.sliderRenderer.hasBeadsInMiddle()) {
-                if (this.currentQuestion === 1) {
-                    if (window.AudioSystem) {
-                        window.AudioSystem.speakText('You need to put 2 beads on the right side in total, with no beads left in the middle');
-                    }
-                } else {
-                    const previousTarget = this.expectedBeadsOnRight - 2;
-                    if (window.AudioSystem) {
-                        window.AudioSystem.speakText(`You had ${previousTarget} beads on the right side, now you need 2 more. Make sure no beads are left in the middle`);
-                    }
-                }
-                
-                this.lastActivityTime = now;
-                this.scheduleInactivityCheck();
-            } else if (this.sliderRenderer.hasBeadsInMiddle()) {
-                const remainingTime = Math.max(100, 10000 - timeSinceActivity);
-                this.invalidArrangementTimer = setTimeout(() => this.scheduleInactivityCheck(), remainingTime);
-            }
-        }, 10000);
+scheduleInactivityCheck() {
+    // Clear existing timer
+    if (this.invalidArrangementTimer) {
+        clearTimeout(this.invalidArrangementTimer);
     }
     
+    this.invalidArrangementTimer = setTimeout(() => {
+        const now = Date.now();
+        const timeSinceActivity = now - (this.lastActivityTime || now);
+        
+        // Check if 10 seconds have passed since last activity AND beads are still in middle
+        if (timeSinceActivity >= 10000 && this.sliderRenderer.hasBeadsInMiddle()) {
+            // NEW ENHANCED INACTIVITY MESSAGES
+            if (this.currentQuestion === 1) {
+                if (window.AudioSystem) {
+                    window.AudioSystem.speakText('You need to put 2 beads on the right side in total, with no beads left in the middle');
+                }
+            } else {
+                const previousTarget = this.expectedBeadsOnRight - 2;
+                if (window.AudioSystem) {
+                    window.AudioSystem.speakText(`You had ${previousTarget} beads on the right side, now you need 2 more. Make sure no beads are left in the middle`);
+                }
+            }
+            
+            // Reset activity time and schedule next check
+            this.lastActivityTime = now;
+            this.scheduleInactivityCheck();
+        } else if (this.sliderRenderer.hasBeadsInMiddle()) {
+            // Still has middle beads but activity was recent - check again later
+            const remainingTime = Math.max(100, 10000 - timeSinceActivity);
+            this.invalidArrangementTimer = setTimeout(() => this.scheduleInactivityCheck(), remainingTime);
+        }
+        // If no middle beads, timer will be cleared by checkGameState
+    }, 10000);
+}
+
     handleNumberClick(selectedNumber, buttonElement) {
         if (!this.awaitingButtonPress) return;
         
