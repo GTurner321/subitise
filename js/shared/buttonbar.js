@@ -122,10 +122,39 @@ class ButtonBar {
         // Notify observers
         this.notifyObservers();
         
+        // IMPORTANT: Reinitialize rainbow after game area has proper dimensions
+        setTimeout(() => {
+            this.reinitializeRainbow();
+        }, 300); // Wait for game area dimensions to settle
+        
         console.log('ButtonBar created:', {
             n, x, y,
             dimensions: this.dimensions
         });
+    }
+    
+    /**
+     * Reinitialize rainbow after game area has proper dimensions
+     */
+    reinitializeRainbow() {
+        // Check if rainbow exists and reinitialize it
+        if (window.Rainbow && typeof window.Rainbow === 'function') {
+            // If rainbow is a class, check for global instance
+            if (window.rainbow && typeof window.rainbow.initializeArcs === 'function') {
+                console.log('Reinitializing rainbow with proper game area dimensions');
+                window.rainbow.initializeArcs();
+            }
+        } else if (window.rainbow && typeof window.rainbow.initializeArcs === 'function') {
+            // Direct global rainbow instance
+            console.log('Reinitializing rainbow with proper game area dimensions');
+            window.rainbow.initializeArcs();
+        }
+        
+        // Also trigger via game controller if available
+        if (window.subitGame && window.subitGame.rainbow && typeof window.subitGame.rainbow.initializeArcs === 'function') {
+            console.log('Reinitializing rainbow via game controller');
+            window.subitGame.rainbow.initializeArcs();
+        }
     }
     
     calculateDimensions() {
@@ -349,6 +378,11 @@ class ButtonBar {
             
             // Notify observers of dimension changes
             this.notifyObservers();
+            
+            // Reinitialize rainbow on resize as well
+            setTimeout(() => {
+                this.reinitializeRainbow();
+            }, 100);
         }
     }
     
