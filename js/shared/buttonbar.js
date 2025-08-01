@@ -367,6 +367,52 @@ class ButtonBar {
     }
     
     /**
+     * Add responsive cross overlay to button
+     */
+    addCrossOverlay(buttonElement) {
+        if (!buttonElement) return;
+        
+        // Calculate cross size as 60% of button width
+        const buttonWidth = parseFloat(buttonElement.style.width) || this.dimensions.buttonWidth;
+        const crossSize = buttonWidth * 0.6;
+        const crossThickness = crossSize * 0.133; // Maintain proportions (8px / 60px = 0.133)
+        
+        const crossOverlay = document.createElement('div');
+        crossOverlay.className = 'cross-overlay';
+        crossOverlay.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: ${crossSize}px;
+            height: ${crossSize}px;
+            pointer-events: none;
+            z-index: 10;
+            animation: crossAppear 0.3s ease-out;
+        `;
+        
+        // Create the cross lines as pseudo-elements via CSS custom properties
+        crossOverlay.style.setProperty('--cross-size', `${crossSize}px`);
+        crossOverlay.style.setProperty('--cross-thickness', `${crossThickness}px`);
+        
+        buttonElement.appendChild(crossOverlay);
+        
+        return crossOverlay;
+    }
+    
+    /**
+     * Remove cross overlay from button
+     */
+    removeCrossOverlay(buttonElement) {
+        if (!buttonElement) return;
+        
+        const crossOverlay = buttonElement.querySelector('.cross-overlay');
+        if (crossOverlay) {
+            crossOverlay.remove();
+        }
+    }
+    
+    /**
      * Disable/enable all buttons
      */
     setButtonsEnabled(enabled) {
