@@ -13,6 +13,7 @@
     touch-action: none; /* Prevent touch behaviors only on slider area */
     opacity: 0; /* Start hidden */
     transition: opacity 0.5s ease-in-out;
+    border: 2px solid rgba(255, 0, 0, 0.3); /* Temporary debug border */
 }
 
 .slider-container.loaded {
@@ -26,11 +27,13 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('/assets/slider/sliderframe.png');
+    background-image: url('../../assets/slider/sliderframe.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
     pointer-events: none;
+    z-index: 1; /* Ensure frame is behind beads but visible */
+    border: 1px solid rgba(0, 255, 0, 0.5); /* Temporary debug border */
 }
 
 /* Slider bars - positioning handled by JavaScript */
