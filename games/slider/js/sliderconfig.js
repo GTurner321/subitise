@@ -48,8 +48,16 @@ const CONFIG = {
         inactivityBase: "You need to put {increment} beads on the right side in total, with no beads left in the middle",
         inactivityContinue: "You had {previous} beads on the right side, now you need {increment} more. Make sure no beads are left in the middle",
         buttonHelp: "Carefully count the total number of beads on both of the bars on the right side of the slider, then select the matching button",
-        completionNext: "{sequence}! Well done! Play the next level, counting in {nextLevelName}, or return to the home page.",
-        completionFinal: "{sequence}! Well done! You've completed all levels! Play again or return to the home page."
+        completionNext: "{celebration} Play the next level, or return to the home page.",
+        completionFinal: "{celebration} You've completed all levels! Play again or return to the home page."
+    },
+    
+    // Custom celebration messages for each level
+    celebrationMessages: {
+        1: "2, 4, 6, 8, who do we appreciate?",
+        2: "3, 6, 9, this sounds like a rhyme!",
+        3: "4, 8, 12, you worked it out yourself!",
+        4: "5, 10, 15, what a clever bean!"
     },
     
     // Helper methods to get current level config
@@ -121,6 +129,7 @@ const CONFIG = {
             increment: level.increment,
             nextLevelName: level.nextLevelName,
             sequence: this.getCurrentSequence(),
+            celebration: this.celebrationMessages[this.currentLevel] || this.getCurrentSequence(),
             ...context // Allow overriding with passed context
         };
         
