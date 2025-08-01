@@ -67,6 +67,47 @@ body {
 }
 
 /* Audio button - shared across all games */
+.audio-button-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background-color: rgba(64, 64, 64, 0.9);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: none;
+    outline: none;
+    
+    /* Touch support */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.audio-button-container:hover,
+.audio-button-container:focus {
+    background-color: rgba(64, 64, 64, 1);
+    transform: scale(1.1);
+    outline: none;
+}
+
+/* Custom focus outline that matches the circular shape */
+.audio-button-container:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+    border-radius: 50%;
+}
+
 .audio-button {
     background: none;
     border: none;
@@ -85,6 +126,10 @@ body {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+}
+
+.audio-button:focus {
+    outline: none;
 }
 
 /* Game area */
@@ -114,55 +159,6 @@ body {
     border-right: 0;
     border-bottom: 0;
     box-sizing: border-box;
-}
-
-/* Icons - Responsive sizing */
-.game-icon {
-    position: absolute;
-    z-index: 2;
-    font-size: 6rem;
-    animation: fadeIn 0.5s ease-in;
-    pointer-events: none;
-    user-select: none;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    transition: filter 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { 
-        opacity: 0; 
-        transform: scale(0.5); 
-    }
-    to { 
-        opacity: 1; 
-        transform: scale(1); 
-    }
-}
-
-/* Icon jiggle animation for hints */
-@keyframes iconJiggle {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-    20%, 40%, 60%, 80% { transform: translateX(3px); }
-}
-
-/* Responsive icon sizing */
-@media (max-width: 768px) {
-    .game-icon {
-        font-size: 4rem; /* Smaller on mobile */
-    }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-    .game-icon {
-        font-size: 5rem; /* Medium on tablet */
-    }
-}
-
-@media (min-width: 1025px) {
-    .game-icon {
-        font-size: 6rem; /* Large on desktop */
-    }
 }
 
 /* Universal Button Bar System */
@@ -488,35 +484,4 @@ body {
         font-size: 1.2rem;
         padding: 12px 24px;
     }
-}button-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    background-color: rgba(64, 64, 64, 0.9);
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    
-    /* Touch support */
-    touch-action: manipulation;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-    min-height: 44px;
-    min-width: 44px;
 }
-
-.audio-button-container:hover,
-.audio-button-container:focus {
-    background-color: rgba(64, 64, 64, 1);
-    transform: scale(1.1);
-}
-
-.audio-
