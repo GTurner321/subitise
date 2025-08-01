@@ -2,7 +2,7 @@ class SliderGameController {
     constructor() {
         // Game state
         this.currentQuestion = 1;
-        this.expectedBeadsOnRight = 2;
+        this.expectedBeadsOnRight = CONFIG.getCurrentIncrement(); // Use config for initial value
         this.gameComplete = false;
         this.buttonsDisabled = false;
         this.awaitingButtonPress = false;
@@ -138,14 +138,17 @@ class SliderGameController {
                     }
                 }, 100);
             }
-        }, 500); // Increased delay to ensure renderer is fully ready
+        }, 500);
         
         this.startNewQuestion();
     }
     
     createButtonsWithUniversalSystem() {
-        // Shuffle the button numbers at the start of each game
-        const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
+        // Get button configuration from CONFIG
+        const buttonConfig = CONFIG.getButtonConfig();
+        const buttonNumbers = [...buttonConfig.numbers];
+        
+        // Shuffle the button numbers
         for (let i = buttonNumbers.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [buttonNumbers[i], buttonNumbers[j]] = [buttonNumbers[j], buttonNumbers[i]];
@@ -157,14 +160,14 @@ class SliderGameController {
             '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'
         ];
         
-        // Create buttons using the universal ButtonBar system
+        // Create buttons using the universal ButtonBar system with dynamic config
         if (window.ButtonBar) {
             window.ButtonBar.create(
-                10,                    // n: 10 buttons
-                8,                     // x: 8% of button panel width per button
-                8,                     // y: 8% of button panel width for height
-                colors,                // button colors
-                buttonNumbers,         // button numbers (shuffled)
+                buttonConfig.count,        // n: dynamic button count per level
+                buttonConfig.width,        // x: 8% of button panel width per button
+                buttonConfig.height,       // y: 8% of button panel width for height
+                colors,                    // button colors
+                buttonNumbers,             // button numbers (shuffled)
                 (selectedNumber, buttonElement) => {  // click handler
                     if (this.buttonsDisabled) return;
                     this.handleNumberClick(selectedNumber, buttonElement);
@@ -173,10 +176,9 @@ class SliderGameController {
             
             // Update the buttons reference for backward compatibility
             this.numberButtons = document.querySelectorAll('.number-btn');
-            console.log(`Universal ButtonBar created with ${this.numberButtons.length} buttons`);
+            console.log(`Universal ButtonBar created with ${this.numberButtons.length} buttons for level ${CONFIG.currentLevel}`);
         } else {
             console.warn('ButtonBar system not available, using fallback');
-            // Fallback to manual button setup if needed
         }
     }
     
@@ -315,7 +317,8 @@ class SliderGameController {
     }
     
     shuffleButtons() {
-        const buttonNumbers = [...CONFIG.BUTTON_NUMBERS];
+        const buttonConfig = CONFIG.getButtonConfig();
+        const buttonNumbers = [...buttonConfig.numbers];
         
         for (let i = buttonNumbers.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -353,8 +356,8 @@ class SliderGameController {
             });
         });
         
-        // Play again button
-        this.playAgainBtn.addEventListener('click', () => this.startNewGame());
+        // Play again/Next level button
+        this.playAgainBtn.addEventListener('click', () => this.handleModalButton());
         
         // Drag events
         this.sliderRenderer.sliderContainer.addEventListener('mousedown', (e) => {
@@ -424,7 +427,9 @@ class SliderGameController {
         if (this.keyboardInput.currentInput.length === 1) {
             const singleDigit = parseInt(this.keyboardInput.currentInput);
             
-            if ([2, 4, 6, 8].includes(singleDigit) && singleDigit === this.expectedBeadsOnRight) {
+            // Handle single digit matches for current level
+            const buttonConfig = CONFIG.getButtonConfig();
+            if (buttonConfig.numbers.includes(singleDigit) && singleDigit === this.expectedBeadsOnRight) {
                 this.processKeyboardInput(singleDigit);
                 return;
             }
@@ -688,13 +693,14 @@ class SliderGameController {
                     
                     this.rainbow.addPiece();
                     
+                    // Use adaptive audio messages from CONFIG
                     if (this.currentQuestion === 1) {
                         if (window.AudioSystem) {
-                            window.AudioSystem.speakText('Select the button underneath for the number of beads on the right side');
+                            window.AudioSystem.speakText(CONFIG.getAudioMessage('firstButton'));
                         }
                     } else {
                         if (window.AudioSystem) {
-                            window.AudioSystem.speakText('Select the matching button underneath');
+                            window.AudioSystem.speakText(CONFIG.getAudioMessage('subsequentButton'));
                         }
                     }
                     
@@ -737,7 +743,7 @@ class SliderGameController {
                 console.log(`🔔 Button help prompt ${this.buttonHelpCount}/${this.maxButtonHelpPrompts}`);
                 
                 if (window.AudioSystem) {
-                    window.AudioSystem.speakText('Carefully count the total number of beads on both of the bars on the right side of the slider, then select the matching button');
+                    window.AudioSystem.speakText(CONFIG.getAudioMessage('buttonHelp'));
                 }
                 
                 // Schedule next prompt after 15 seconds if we haven't reached the limit
@@ -756,41 +762,43 @@ class SliderGameController {
         this.buttonHelpStartTime = null;
     }
         
-scheduleInactivityCheck() {
-    // Clear existing timer
-    if (this.invalidArrangementTimer) {
-        clearTimeout(this.invalidArrangementTimer);
-    }
-    
-    this.invalidArrangementTimer = setTimeout(() => {
-        const now = Date.now();
-        const timeSinceActivity = now - (this.lastActivityTime || now);
-        
-        // Check if 10 seconds have passed since last activity AND beads are still in middle
-        if (timeSinceActivity >= 10000 && this.sliderRenderer.hasBeadsInMiddle()) {
-            // NEW ENHANCED INACTIVITY MESSAGES
-            if (this.currentQuestion === 1) {
-                if (window.AudioSystem) {
-                    window.AudioSystem.speakText('You need to put 2 beads on the right side in total, with no beads left in the middle');
-                }
-            } else {
-                const previousTarget = this.expectedBeadsOnRight - 2;
-                if (window.AudioSystem) {
-                    window.AudioSystem.speakText(`You had ${previousTarget} beads on the right side, now you need 2 more. Make sure no beads are left in the middle`);
-                }
-            }
-            
-            // Reset activity time and schedule next check
-            this.lastActivityTime = now;
-            this.scheduleInactivityCheck();
-        } else if (this.sliderRenderer.hasBeadsInMiddle()) {
-            // Still has middle beads but activity was recent - check again later
-            const remainingTime = Math.max(100, 10000 - timeSinceActivity);
-            this.invalidArrangementTimer = setTimeout(() => this.scheduleInactivityCheck(), remainingTime);
+    scheduleInactivityCheck() {
+        // Clear existing timer
+        if (this.invalidArrangementTimer) {
+            clearTimeout(this.invalidArrangementTimer);
         }
-        // If no middle beads, timer will be cleared by checkGameState
-    }, 10000);
-}
+        
+        this.invalidArrangementTimer = setTimeout(() => {
+            const now = Date.now();
+            const timeSinceActivity = now - (this.lastActivityTime || now);
+            
+            // Check if 10 seconds have passed since last activity AND beads are still in middle
+            if (timeSinceActivity >= 10000 && this.sliderRenderer.hasBeadsInMiddle()) {
+                // Enhanced inactivity messages using CONFIG
+                if (this.currentQuestion === 1) {
+                    if (window.AudioSystem) {
+                        window.AudioSystem.speakText(CONFIG.getAudioMessage('inactivityBase'));
+                    }
+                } else {
+                    const previousTarget = this.expectedBeadsOnRight - CONFIG.getCurrentIncrement();
+                    if (window.AudioSystem) {
+                        window.AudioSystem.speakText(CONFIG.getAudioMessage('inactivityContinue', {
+                            previous: previousTarget
+                        }));
+                    }
+                }
+                
+                // Reset activity time and schedule next check
+                this.lastActivityTime = now;
+                this.scheduleInactivityCheck();
+            } else if (this.sliderRenderer.hasBeadsInMiddle()) {
+                // Still has middle beads but activity was recent - check again later
+                const remainingTime = Math.max(100, 10000 - timeSinceActivity);
+                this.invalidArrangementTimer = setTimeout(() => this.scheduleInactivityCheck(), remainingTime);
+            }
+            // If no middle beads, timer will be cleared by checkGameState
+        }, 10000);
+    }
 
     handleNumberClick(selectedNumber, buttonElement) {
         if (!this.awaitingButtonPress) return;
@@ -858,13 +866,17 @@ scheduleInactivityCheck() {
         }
         
         const rightSideCount = this.sliderRenderer.countBeadsOnRightSide();
-        if (rightSideCount === 20 && parseInt(buttonElement.dataset.number) === 20) {
-            setTimeout(() => this.completeGame(), CONFIG.NEXT_QUESTION_DELAY);
+        const currentLevel = CONFIG.getCurrentLevel();
+        
+        // Check if this level is complete
+        if (rightSideCount === currentLevel.buttonNumbers[currentLevel.buttonNumbers.length - 1] && 
+            parseInt(buttonElement.dataset.number) === currentLevel.buttonNumbers[currentLevel.buttonNumbers.length - 1]) {
+            setTimeout(() => this.completeLevel(), CONFIG.NEXT_QUESTION_DELAY);
             return;
         }
         
         this.currentQuestion++;
-        this.expectedBeadsOnRight += 2;
+        this.expectedBeadsOnRight += CONFIG.getCurrentIncrement();
         this.awaitingButtonPress = false;
         this.buttonsDisabled = false;
         this.sliderDisabled = true;
@@ -1000,10 +1012,11 @@ scheduleInactivityCheck() {
         this.resetKeyboardInput();
         this.questionStartTime = Date.now();
         
+        // Use adaptive audio messages from CONFIG
         if (this.currentQuestion === 1) {
             setTimeout(() => {
                 if (window.AudioSystem) {
-                    window.AudioSystem.speakText('We\'re going to count in twos. Start by sliding 2 beads to the right side');
+                    window.AudioSystem.speakText(CONFIG.getAudioMessage('intro'));
                 }
                 setTimeout(() => {
                     this.sliderDisabled = false;
@@ -1013,7 +1026,7 @@ scheduleInactivityCheck() {
         } else {
             setTimeout(() => {
                 if (window.AudioSystem) {
-                    window.AudioSystem.speakText('Slide 2 more beads across');
+                    window.AudioSystem.speakText(CONFIG.getAudioMessage('continue'));
                 }
                 this.sliderDisabled = false;
             }, 1000);
@@ -1059,9 +1072,25 @@ scheduleInactivityCheck() {
         }, duration);
     }
     
-    startNewGame() {
+    // New method to handle modal button (Play Again / Next Level)
+    handleModalButton() {
+        if (CONFIG.isLastLevel()) {
+            // Last level completed - restart entire game from level 1
+            this.startNewGame();
+        } else {
+            // Advance to next level
+            this.advanceToNextLevel();
+        }
+    }
+    
+    // New method to advance to next level
+    advanceToNextLevel() {
+        CONFIG.advanceLevel();
+        console.log(`🎯 Advancing to level ${CONFIG.currentLevel}: ${CONFIG.getCurrentLevel().name}`);
+        
+        // Reset game state for new level
         this.currentQuestion = 1;
-        this.expectedBeadsOnRight = 2;
+        this.expectedBeadsOnRight = CONFIG.getCurrentIncrement();
         this.gameComplete = false;
         this.buttonsDisabled = false;
         this.awaitingButtonPress = false;
@@ -1069,7 +1098,43 @@ scheduleInactivityCheck() {
         this.lastActivityTime = null;
         this.usedButtons.clear();
         
-        this.clearTimers(); // Clear all timers including button help
+        this.clearTimers();
+        this.resetKeyboardInput();
+        
+        this.dragState = {
+            activeTouches: new Map()
+        };
+        
+        this.velocityTracking.clear();
+        
+        // Reset game components
+        this.rainbow.reset();
+        this.bear.reset();
+        this.sliderRenderer.reset();
+        
+        // Create new buttons for the new level
+        this.createButtonsWithUniversalSystem();
+        
+        // Hide modal and start new level
+        this.modal.classList.add('hidden');
+        
+        setTimeout(() => this.startNewQuestion(), 500);
+    }
+    
+    startNewGame() {
+        // Reset to level 1
+        CONFIG.resetToFirstLevel();
+        
+        this.currentQuestion = 1;
+        this.expectedBeadsOnRight = CONFIG.getCurrentIncrement();
+        this.gameComplete = false;
+        this.buttonsDisabled = false;
+        this.awaitingButtonPress = false;
+        this.sliderDisabled = true;
+        this.lastActivityTime = null;
+        this.usedButtons.clear();
+        
+        this.clearTimers();
         this.resetKeyboardInput();
         
         this.dragState = {
@@ -1081,23 +1146,39 @@ scheduleInactivityCheck() {
         this.rainbow.reset();
         this.bear.reset();
         this.sliderRenderer.reset();
-        this.shuffleButtons();
+        this.createButtonsWithUniversalSystem();
         this.modal.classList.add('hidden');
         
         setTimeout(() => this.startNewQuestion(), 500);
     }
     
-    completeGame() {
-        this.gameComplete = true;
-        this.clearTimers(); // Clear all timers including button help
+    // Modified to handle level completion instead of game completion
+    completeLevel() {
+        this.clearTimers();
         this.resetKeyboardInput();
         
         this.bear.startCelebration();
+        
+        // Update modal content based on current level
+        const modalConfig = CONFIG.getModalConfig();
+        this.playAgainBtn.textContent = modalConfig.text;
+        
+        // Update button icon
+        const existingIcon = this.playAgainBtn.querySelector('i');
+        if (existingIcon) {
+            existingIcon.className = modalConfig.icon;
+        } else {
+            // Add icon if it doesn't exist
+            const icon = document.createElement('i');
+            icon.className = modalConfig.icon;
+            this.playAgainBtn.insertBefore(icon, this.playAgainBtn.firstChild);
+        }
+        
         this.modal.classList.remove('hidden');
         
         if (window.AudioSystem) {
             setTimeout(() => {
-                window.AudioSystem.speakText('2, 4, 6, 8, who do we appreciate? Well done! Play again or return to the home page.');
+                window.AudioSystem.speakText(CONFIG.getCompletionMessage());
             }, 2000);
         }
     }
@@ -1121,7 +1202,7 @@ scheduleInactivityCheck() {
     }
     
     destroy() {
-        this.clearTimers(); // This now includes button help timer
+        this.clearTimers();
         this.resetKeyboardInput();
         
         if (window.AudioSystem) {
