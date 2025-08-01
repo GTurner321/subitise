@@ -774,6 +774,24 @@ class SliderGameController {
         }
         this.buttonHelpStartTime = null;
     }
+    
+    // New method to start 15-second base inactivity timer
+    startInactivityBaseTimer() {
+        // Clear any existing base timer
+        if (this.inactivityBaseMessageTimer) {
+            clearTimeout(this.inactivityBaseMessageTimer);
+        }
+        
+        this.inactivityBaseMessageTimer = setTimeout(() => {
+            // Only play message if beads are still in middle after 15 seconds
+            if (this.sliderRenderer.hasBeadsInMiddle()) {
+                console.log('🔔 15-second base inactivity message');
+                if (window.AudioSystem) {
+                    window.AudioSystem.speakText(CONFIG.getAudioMessage('inactivityBase'));
+                }
+            }
+        }, 15000); // Always 15 seconds regardless of activity
+    }
         
     scheduleInactivityCheck() {
         // Clear existing timer
