@@ -13,17 +13,19 @@ body {
     overflow-x: hidden;
 }
 
-/* Back button - shared across all games */
+/* Back button - responsive with viewport height sizing */
 .back-button {
-    position: absolute;
-    top: 20px;
-    left: 20px;
+    position: fixed;
+    top: 2vh;
+    left: 2vh;
     background: rgba(64, 64, 64, 0.9);
     color: white;
     text-decoration: none;
-    padding: 10px 20px;
-    border-radius: 25px;
+    padding: 0 3vh;
+    height: 8vh;
+    border-radius: 4vh;
     font-weight: bold;
+    font-size: 2.4vh;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     z-index: 1003;
@@ -40,10 +42,10 @@ body {
     
     /* Proper touch target size */
     min-height: 44px;
-    min-width: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 1vh;
 }
 
 .back-button:hover,
@@ -59,23 +61,23 @@ body {
 .back-button:focus-visible {
     outline: 2px solid rgba(255, 255, 255, 0.6);
     outline-offset: 2px;
-    border-radius: 25px;
+    border-radius: 4vh;
 }
 
 .back-button i {
-    margin-right: 8px;
+    font-size: 2vh;
 }
 
-/* Audio button - shared across all games */
+/* Audio button - responsive with viewport height sizing */
 .audio-button-container {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 2vh;
+    right: 2vh;
     z-index: 1000;
     background-color: rgba(64, 64, 64, 0.9);
     border-radius: 50%;
-    width: 60px;
-    height: 60px;
+    width: 8vh;
+    height: 8vh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -112,7 +114,7 @@ body {
     background: none;
     border: none;
     color: white;
-    font-size: 24px;
+    font-size: 3vh;
     cursor: pointer;
     width: 100%;
     height: 100%;
@@ -298,9 +300,48 @@ body {
     100% { opacity: 1; transform: scale(1); }
 }
 
-/* Cross overlay for incorrect answers */
+/* Cross overlay for incorrect answers - Responsive */
 .cross-overlay {
     position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+    animation: crossAppear 0.3s ease-out;
+}
+
+.cross-overlay::before,
+.cross-overlay::after {
+    content: '';
+    position: absolute;
+    background-color: #dc143c;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+    width: var(--cross-size);
+    height: var(--cross-thickness);
+    top: 50%;
+    left: 50%;
+}
+
+.cross-overlay::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cross-overlay::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@keyframes crossAppear {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.3);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+} absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -458,22 +499,29 @@ body {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+    /* Ensure minimum sizes on mobile */
     .back-button {
-        top: 10px;
-        left: 10px;
-        padding: 8px 16px;
-        font-size: 0.9rem;
+        min-height: 44px;
+        font-size: max(2.4vh, 14px);
+        padding: 0 max(3vh, 16px);
+        height: max(8vh, 44px);
+        border-radius: max(4vh, 22px);
+        gap: max(1vh, 8px);
+    }
+    
+    .back-button i {
+        font-size: max(2vh, 12px);
     }
     
     .audio-button-container {
-        top: 10px;
-        right: 10px;
-        width: 50px;
-        height: 50px;
+        min-width: 44px;
+        min-height: 44px;
+        width: max(8vh, 44px);
+        height: max(8vh, 44px);
     }
     
     .audio-button {
-        font-size: 20px;
+        font-size: max(3vh, 18px);
     }
     
     .modal h2 {
