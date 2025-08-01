@@ -47,7 +47,7 @@ const CONFIG = {
         subsequentButton: "Select the matching button underneath",
         inactivityBase: "You need to put {increment} beads on the right side in total, with no beads left in the middle",
         inactivityContinue: "You had {previous} beads on the right side, now you need {increment} more. Make sure no beads are left in the middle",
-        buttonHelp: "Carefully count the total number of beads on both of the bars on the right side of the slider, then select the matching button",
+        buttonHelp: "Carefully count the total number of beads on the right sides of both of the bars, then select the matching button",
         completionNext: "{celebration} Play the next level, or return to the home page.",
         completionFinal: "{celebration} You've completed all levels! Play again or return to the home page."
     },
