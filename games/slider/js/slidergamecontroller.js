@@ -136,6 +136,13 @@ class SliderGameController {
                         this.sliderRenderer.updateContainerRect();
                         this.sliderRenderer.repositionAllBeads();
                     }
+                    
+                    // Reinitialize rainbow after container is fully loaded
+                    // This ensures proper dimensions for rainbow sizing
+                    if (this.rainbow) {
+                        console.log('🌈 Reinitializing rainbow after container load');
+                        this.rainbow.initializeArcs();
+                    }
                 }, 100);
             }
         }, 500);
@@ -871,6 +878,10 @@ class SliderGameController {
         // Check if this level is complete
         if (rightSideCount === currentLevel.buttonNumbers[currentLevel.buttonNumbers.length - 1] && 
             parseInt(buttonElement.dataset.number) === currentLevel.buttonNumbers[currentLevel.buttonNumbers.length - 1]) {
+            
+            // Complete any remaining rainbow pieces for shorter levels
+            this.completeRemainingRainbowPieces();
+            
             setTimeout(() => this.completeLevel(), CONFIG.NEXT_QUESTION_DELAY);
             return;
         }
@@ -1072,6 +1083,24 @@ class SliderGameController {
         }, duration);
     }
     
+    // New method to complete remaining rainbow pieces for shorter levels
+    completeRemainingRainbowPieces() {
+        const currentLevel = CONFIG.getCurrentLevel();
+        const questionsCompleted = currentLevel.maxQuestions;
+        const totalRainbowPieces = CONFIG.RAINBOW_PIECES; // Should be 10
+        
+        // Add remaining pieces quickly
+        const remainingPieces = totalRainbowPieces - questionsCompleted;
+        
+        console.log(`🌈 Level ${CONFIG.currentLevel} complete: Adding ${remainingPieces} remaining rainbow pieces`);
+        
+        for (let i = 0; i < remainingPieces; i++) {
+            setTimeout(() => {
+                this.rainbow.addPiece();
+            }, i * 100); // 100ms delay between each additional piece
+        }
+    }
+    
     // New method to handle modal button (Play Again / Next Level)
     handleModalButton() {
         if (CONFIG.isLastLevel()) {
@@ -1161,18 +1190,23 @@ class SliderGameController {
         
         // Update modal content based on current level
         const modalConfig = CONFIG.getModalConfig();
-        this.playAgainBtn.textContent = modalConfig.text;
         
-        // Update button icon
-        const existingIcon = this.playAgainBtn.querySelector('i');
-        if (existingIcon) {
-            existingIcon.className = modalConfig.icon;
-        } else {
-            // Add icon if it doesn't exist
-            const icon = document.createElement('i');
-            icon.className = modalConfig.icon;
-            this.playAgainBtn.insertBefore(icon, this.playAgainBtn.firstChild);
-        }
+        // Clear existing content and rebuild with proper order
+        this.playAgainBtn.innerHTML = '';
+        
+        // Add text first
+        const buttonText = document.createTextNode(modalConfig.text);
+        this.playAgainBtn.appendChild(buttonText);
+        
+        // Add space
+        const space = document.createTextNode(' ');
+        this.playAgainBtn.appendChild(space);
+        
+        // Add icon after text in gold color
+        const icon = document.createElement('i');
+        icon.className = modalConfig.icon;
+        icon.style.color = '#ffd700'; // Gold color
+        this.playAgainBtn.appendChild(icon);
         
         this.modal.classList.remove('hidden');
         
