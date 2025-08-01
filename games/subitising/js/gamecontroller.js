@@ -1,5 +1,8 @@
 class GameController {
     constructor() {
+    console.log('GameController constructor - about to create IconRenderer');
+    this.iconRenderer = new IconRenderer();
+    console.log('IconRenderer created:', this.iconRenderer);
         this.iconRenderer = new IconRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
