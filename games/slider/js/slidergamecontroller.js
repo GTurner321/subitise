@@ -803,14 +803,16 @@ class SliderGameController {
             const now = Date.now();
             const timeSinceActivity = now - (this.lastActivityTime || now);
             
-            // Check if 10 seconds have passed since last activity AND beads are still in middle
-            if (timeSinceActivity >= 10000 && this.sliderRenderer.hasBeadsInMiddle()) {
-                // Enhanced inactivity messages using CONFIG
+            // Check if 15 seconds have passed since last activity
+            if (timeSinceActivity >= 15000) {
+                // Play inactivity message regardless of bead positions
                 if (this.currentQuestion === 1) {
+                    console.log('🔔 15-second inactivity message (question 1)');
                     if (window.AudioSystem) {
                         window.AudioSystem.speakText(CONFIG.getAudioMessage('inactivityBase'));
                     }
                 } else {
+                    console.log('🔔 15-second inactivity message (continue)');
                     const previousTarget = this.expectedBeadsOnRight - CONFIG.getCurrentIncrement();
                     if (window.AudioSystem) {
                         window.AudioSystem.speakText(CONFIG.getAudioMessage('inactivityContinue', {
@@ -822,13 +824,12 @@ class SliderGameController {
                 // Reset activity time and schedule next check
                 this.lastActivityTime = now;
                 this.scheduleInactivityCheck();
-            } else if (this.sliderRenderer.hasBeadsInMiddle()) {
-                // Still has middle beads but activity was recent - check again later
-                const remainingTime = Math.max(100, 10000 - timeSinceActivity);
+            } else {
+                // Activity was recent - check again later
+                const remainingTime = Math.max(100, 15000 - timeSinceActivity);
                 this.invalidArrangementTimer = setTimeout(() => this.scheduleInactivityCheck(), remainingTime);
             }
-            // If no middle beads, timer will be cleared by checkGameState
-        }, 10000);
+        }, 15000);
     }
 
     handleNumberClick(selectedNumber, buttonElement) {
