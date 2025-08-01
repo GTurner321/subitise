@@ -25,6 +25,12 @@ class SliderGameController {
         this.readyForAnswerStartTime = null;
         this.lastActivityTime = null;
         
+        // Button help prompts
+        this.buttonHelpTimer = null;
+        this.buttonHelpStartTime = null;
+        this.buttonHelpCount = 0;
+        this.maxButtonHelpPrompts = 2;
+        
         // Keyboard input handling
         this.keyboardInput = {
             currentInput: '',
@@ -693,6 +699,9 @@ class SliderGameController {
                     }
                     
                     this.guineaPigWave.startAnimation(70);
+                    
+                    // Start button help timer system
+                    this.startButtonHelpTimer();
                 }, 2000);
             }
         } else {
@@ -706,7 +715,46 @@ class SliderGameController {
         }
     }
     
-    scheduleInactivityCheck() {
+    startButtonHelpTimer() {
+        // Clear any existing button help timer
+        this.clearButtonHelpTimer();
+        
+        // Reset help count for this question
+        this.buttonHelpCount = 0;
+        this.buttonHelpStartTime = Date.now();
+        
+        console.log('🕐 Starting button help timer system');
+        
+        // First prompt after 10 seconds of inactivity
+        this.scheduleButtonHelpPrompt(10000);
+    }
+    
+    scheduleButtonHelpPrompt(delay) {
+        this.buttonHelpTimer = setTimeout(() => {
+            // Only show help if still awaiting button press and haven't exceeded max prompts
+            if (this.awaitingButtonPress && this.buttonHelpCount < this.maxButtonHelpPrompts) {
+                this.buttonHelpCount++;
+                console.log(`🔔 Button help prompt ${this.buttonHelpCount}/${this.maxButtonHelpPrompts}`);
+                
+                if (window.AudioSystem) {
+                    window.AudioSystem.speakText('Carefully count the total number of beads on both of the bars on the right side of the slider, then select the matching button');
+                }
+                
+                // Schedule next prompt after 15 seconds if we haven't reached the limit
+                if (this.buttonHelpCount < this.maxButtonHelpPrompts) {
+                    this.scheduleButtonHelpPrompt(15000);
+                }
+            }
+        }, delay);
+    }
+    
+    clearButtonHelpTimer() {
+        if (this.buttonHelpTimer) {
+            clearTimeout(this.buttonHelpTimer);
+            this.buttonHelpTimer = null;
+        }
+        this.buttonHelpStartTime = null;
+    }
         if (this.invalidArrangementTimer) {
             clearTimeout(this.invalidArrangementTimer);
         }
@@ -739,8 +787,13 @@ class SliderGameController {
     handleNumberClick(selectedNumber, buttonElement) {
         if (!this.awaitingButtonPress) return;
         
+        // Clear button help timer when any button is clicked
+        this.clearButtonHelpTimer();
+        
         if (this.usedButtons.has(selectedNumber)) {
             this.handleUsedButtonClick(buttonElement);
+            // Restart button help timer for used button clicks (incorrect action)
+            this.startButtonHelpTimer();
             return;
         }
         
@@ -750,6 +803,13 @@ class SliderGameController {
             this.handleCorrectAnswer(buttonElement);
         } else {
             this.handleIncorrectAnswer(buttonElement);
+            // Restart button help timer after incorrect answer
+            // Wait a bit for the incorrect answer animation to complete
+            setTimeout(() => {
+                if (this.awaitingButtonPress) {
+                    this.startButtonHelpTimer();
+                }
+            }, 2500); // After incorrect answer animations complete
         }
     }
     
@@ -766,7 +826,7 @@ class SliderGameController {
     
     handleCorrectAnswer(buttonElement) {
         this.buttonsDisabled = true;
-        this.clearTimers();
+        this.clearTimers(); // This will also clear button help timer
         
         const selectedNumber = parseInt(buttonElement.dataset.number);
         this.usedButtons.add(selectedNumber);
@@ -928,7 +988,7 @@ class SliderGameController {
     startNewQuestion() {
         if (this.gameComplete) return;
         
-        this.clearTimers();
+        this.clearTimers(); // Clear all timers including button help
         this.resetKeyboardInput();
         this.questionStartTime = Date.now();
         
@@ -1001,7 +1061,7 @@ class SliderGameController {
         this.lastActivityTime = null;
         this.usedButtons.clear();
         
-        this.clearTimers();
+        this.clearTimers(); // Clear all timers including button help
         this.resetKeyboardInput();
         
         this.dragState = {
@@ -1021,7 +1081,7 @@ class SliderGameController {
     
     completeGame() {
         this.gameComplete = true;
-        this.clearTimers();
+        this.clearTimers(); // Clear all timers including button help
         this.resetKeyboardInput();
         
         this.bear.startCelebration();
@@ -1046,11 +1106,14 @@ class SliderGameController {
         this.invalidArrangementStartTime = null;
         this.readyForAnswerStartTime = null;
         
+        // Clear button help timer
+        this.clearButtonHelpTimer();
+        
         this.sliderDisabled = false;
     }
     
     destroy() {
-        this.clearTimers();
+        this.clearTimers(); // This now includes button help timer
         this.resetKeyboardInput();
         
         if (window.AudioSystem) {
