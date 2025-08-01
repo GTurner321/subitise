@@ -1,8 +1,5 @@
 class GameController {
     constructor() {
-    console.log('GameController constructor - about to create IconRenderer');
-    this.iconRenderer = new IconRenderer();
-    console.log('IconRenderer created:', this.iconRenderer);
         this.iconRenderer = new IconRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
@@ -339,6 +336,8 @@ class GameController {
             return;
         }
 
+        console.log('=== STARTING NEW QUESTION ==='); // Debug log
+
         // Reset hint tracking for new question
         this.hintGiven = false;
 
@@ -396,8 +395,12 @@ class GameController {
         // Set the new current answer
         this.currentAnswer = questionNumber;
         
+        console.log(`About to render ${this.currentAnswer} icons`); // Debug log
+        
         // Render the icons
         this.iconRenderer.renderIcons(this.currentAnswer);
+        
+        console.log('Icons rendered, resetting button states'); // Debug log
         
         // Reset button states
         this.resetButtonStates();
