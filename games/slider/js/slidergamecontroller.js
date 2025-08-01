@@ -117,11 +117,22 @@ class SliderGameController {
         this.initializeEventListeners();
         this.createButtonsWithUniversalSystem();
         
-        // Fade in slider container after preloading is complete
+        // Fade in slider container after preloading is complete and renderer is ready
         setTimeout(() => {
             const sliderContainer = document.getElementById('sliderContainer');
-            sliderContainer.classList.add('loaded');
-        }, 200);
+            if (sliderContainer) {
+                sliderContainer.classList.add('loaded');
+                console.log('✅ Slider container faded in');
+                
+                // Force a final positioning update after fade-in
+                setTimeout(() => {
+                    if (this.sliderRenderer) {
+                        this.sliderRenderer.updateContainerRect();
+                        this.sliderRenderer.repositionAllBeads();
+                    }
+                }, 100);
+            }
+        }, 500); // Increased delay to ensure renderer is fully ready
         
         this.startNewQuestion();
     }
