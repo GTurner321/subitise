@@ -24,6 +24,7 @@ class SliderGameController {
         this.readyForAnswerTimer = null;
         this.readyForAnswerStartTime = null;
         this.lastActivityTime = null;
+        this.inactivityBaseMessageTimer = null; // New timer for 15-second base message
         
         // Button help prompts
         this.buttonHelpTimer = null;
@@ -700,6 +701,11 @@ class SliderGameController {
                     
                     this.rainbow.addPiece();
                     
+                    // Play success sound when rainbow piece is added
+                    if (window.AudioSystem) {
+                        window.AudioSystem.playCompletionSound();
+                    }
+                    
                     // Use adaptive audio messages from CONFIG
                     if (this.currentQuestion === 1) {
                         if (window.AudioSystem) {
@@ -1023,6 +1029,9 @@ class SliderGameController {
         this.resetKeyboardInput();
         this.questionStartTime = Date.now();
         
+        // Start the 15-second base inactivity timer immediately
+        this.startInactivityBaseTimer();
+        
         // Use adaptive audio messages from CONFIG
         if (this.currentQuestion === 1) {
             setTimeout(() => {
@@ -1225,6 +1234,10 @@ class SliderGameController {
         if (this.readyForAnswerTimer) {
             clearTimeout(this.readyForAnswerTimer);
             this.readyForAnswerTimer = null;
+        }
+        if (this.inactivityBaseMessageTimer) {
+            clearTimeout(this.inactivityBaseMessageTimer);
+            this.inactivityBaseMessageTimer = null;
         }
         this.invalidArrangementStartTime = null;
         this.readyForAnswerStartTime = null;
