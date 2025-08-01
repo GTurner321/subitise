@@ -1,20 +1,61 @@
 /**
  * Universal Audio System
- * Handles audio functionality across all games including mute button and speech synthesis
+ * Handles audio functionality and responsive UI buttons across all games
  */
 class AudioSystem {
-    constructor() {
+    constructor(options = {}) {
         this.audioContext = null;
         this.audioEnabled = true;
         this.isTabVisible = true;
         
-        // Mute button references
+        // UI configuration
+        this.config = {
+            buttonsAtBottom: options.buttonsAtBottom || false,
+            customBackUrl: options.backUrl || '../../index.html',
+            ...options
+        };
+        
+        // UI button references
         this.muteButton = null;
         this.muteContainer = null;
+        this.backButton = null;
         
         this.initializeAudio();
-        this.createMuteButton();
+        this.createButtons();
         this.setupVisibilityHandling();
+    }
+    
+    /**
+     * Update button positioning (can be called after initialization)
+     * @param {Object} options - Configuration options
+     */
+    updateButtonPosition(options = {}) {
+        this.config = { ...this.config, ...options };
+        this.updateButtonStyles();
+    }
+    
+    updateButtonStyles() {
+        const topPos = this.config.buttonsAtBottom ? 'auto' : '2vh';
+        const bottomPos = this.config.buttonsAtBottom ? '2vh' : 'auto';
+        
+        // Update mute button position
+        if (this.muteContainer) {
+            this.muteContainer.style.top = topPos;
+            this.muteContainer.style.bottom = bottomPos;
+            this.muteContainer.style.right = '2vh';
+        }
+        
+        // Update back button position
+        if (this.backButton) {
+            this.backButton.style.top = topPos;
+            this.backButton.style.bottom = bottomPos;
+            this.backButton.style.left = '2vh';
+            
+            // Update back URL if provided
+            if (this.config.customBackUrl) {
+                this.backButton.href = this.config.customBackUrl;
+            }
+        }
     }
     
     async initializeAudio() {
@@ -27,19 +68,30 @@ class AudioSystem {
         }
     }
     
+    createButtons() {
+        this.createMuteButton();
+        this.createBackButton();
+        this.setupResponsiveHandling();
+    }
+    
     createMuteButton() {
         // Create mute button container
         const muteContainer = document.createElement('div');
         muteContainer.className = 'audio-button-container';
+        
+        const topPos = this.config.buttonsAtBottom ? 'auto' : '2vh';
+        const bottomPos = this.config.buttonsAtBottom ? '2vh' : 'auto';
+        
         muteContainer.style.cssText = `
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: ${topPos};
+            bottom: ${bottomPos};
+            right: 2vh;
             z-index: 1000;
             background-color: rgba(64, 64, 64, 0.9);
             border-radius: 50%;
-            width: 60px;
-            height: 60px;
+            width: 8vh;
+            height: 8vh;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -61,7 +113,7 @@ class AudioSystem {
             background: none;
             border: none;
             color: white;
-            font-size: 24px;
+            font-size: 3vh;
             cursor: pointer;
             width: 100%;
             height: 100%;
@@ -110,6 +162,116 @@ class AudioSystem {
         document.body.appendChild(muteContainer);
         
         this.muteContainer = muteContainer;
+    }
+    
+    createBackButton() {
+        // Find existing back button or create new one
+        let backButton = document.querySelector('.back-button');
+        
+        if (!backButton) {
+            // Create back button if it doesn't exist
+            backButton = document.createElement('a');
+            backButton.className = 'back-button';
+            backButton.href = this.config.customBackUrl;
+            backButton.innerHTML = '<i class="fas fa-arrow-left"></i>Back to Games';
+            document.body.appendChild(backButton);
+        }
+        
+        const topPos = this.config.buttonsAtBottom ? 'auto' : '2vh';
+        const bottomPos = this.config.buttonsAtBottom ? '2vh' : 'auto';
+        
+        // Apply responsive styling
+        backButton.style.cssText = `
+            position: fixed;
+            top: ${topPos};
+            bottom: ${bottomPos};
+            left: 2vh;
+            background: rgba(64, 64, 64, 0.9);
+            color: white;
+            text-decoration: none;
+            padding: 0 3vh;
+            height: 8vh;
+            border-radius: 4vh;
+            font-weight: bold;
+            font-size: 2.4vh;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 1003;
+            border: none;
+            outline: none;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: auto;
+            cursor: pointer;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1vh;
+        `;
+        
+        // Style the icon
+        const icon = backButton.querySelector('i');
+        if (icon) {
+            icon.style.fontSize = '2vh';
+        }
+        
+        // Add hover effects
+        backButton.addEventListener('mouseenter', () => {
+            backButton.style.background = 'rgba(64, 64, 64, 1)';
+            backButton.style.transform = 'translateY(-2px)';
+            backButton.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
+        });
+        
+        backButton.addEventListener('mouseleave', () => {
+            backButton.style.background = 'rgba(64, 64, 64, 0.9)';
+            backButton.style.transform = 'translateY(0)';
+            backButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+        });
+        
+        this.backButton = backButton;
+    }
+    
+    setupResponsiveHandling() {
+        // Handle window resize for button sizing
+        const handleResize = () => {
+            const topPos = this.config.buttonsAtBottom ? 'auto' : '2vh';
+            const bottomPos = this.config.buttonsAtBottom ? '2vh' : 'auto';
+            
+            // Update mute button
+            if (this.muteContainer && this.muteButton) {
+                this.muteContainer.style.width = '8vh';
+                this.muteContainer.style.height = '8vh';
+                this.muteContainer.style.top = topPos;
+                this.muteContainer.style.bottom = bottomPos;
+                this.muteContainer.style.right = '2vh';
+                this.muteButton.style.fontSize = '3vh';
+            }
+            
+            // Update back button
+            if (this.backButton) {
+                this.backButton.style.height = '8vh';
+                this.backButton.style.borderRadius = '4vh';
+                this.backButton.style.fontSize = '2.4vh';
+                this.backButton.style.padding = '0 3vh';
+                this.backButton.style.top = topPos;
+                this.backButton.style.bottom = bottomPos;
+                this.backButton.style.left = '2vh';
+                this.backButton.style.gap = '1vh';
+                
+                const icon = this.backButton.querySelector('i');
+                if (icon) {
+                    icon.style.fontSize = '2vh';
+                }
+            }
+        };
+        
+        window.addEventListener('resize', handleResize);
+        
+        // Initial resize call
+        setTimeout(handleResize, 100);
     }
     
     updateMuteButtonIcon() {
@@ -297,13 +459,25 @@ class AudioSystem {
             this.audioContext.close();
         }
         
-        // Remove mute button
+        // Remove UI elements
         if (this.muteContainer && this.muteContainer.parentNode) {
             this.muteContainer.parentNode.removeChild(this.muteContainer);
+        }
+        
+        if (this.backButton && this.backButton.parentNode) {
+            this.backButton.parentNode.removeChild(this.backButton);
         }
     }
 }
 
-// Create global instance and load preferences
+// Create global instance with default top positioning
 window.AudioSystem = new AudioSystem();
 window.AudioSystem.loadAudioPreference();
+
+// Expose method to override button positioning for specific games
+window.AudioSystem.setBottomPosition = function(bottomPosition = true, backUrl = '../../index.html') {
+    window.AudioSystem.updateButtonPosition({
+        buttonsAtBottom: bottomPosition,
+        customBackUrl: backUrl
+    });
+};
