@@ -38,6 +38,9 @@ class SliderRenderer {
     initializeRenderer() {
         console.log('🎮 Initializing SliderRenderer...');
         
+        // Debug: Check if slider frame image loads
+        this.debugSliderFrameImage();
+        
         // Force initial measurement
         this.updateContainerRect();
         this.initializeBeads();
@@ -48,6 +51,46 @@ class SliderRenderer {
             this.repositionAllBeads();
             console.log('✅ SliderRenderer initialization complete');
         });
+    }
+    
+    debugSliderFrameImage() {
+        const frameElement = document.querySelector('.slider-frame');
+        if (frameElement) {
+            console.log('🖼️ Slider frame element found');
+            
+            // Test different image paths based on your folder structure
+            const imagePaths = [
+                '../../../assets/slider/sliderframe.png',  // From /games/slider/styles/ to /assets/
+                '../../assets/slider/sliderframe.png',     // From /games/slider/ to /assets/
+                '../assets/slider/sliderframe.png',        // From /games/ to /assets/
+                'assets/slider/sliderframe.png',           // From root to /assets/
+                '/assets/slider/sliderframe.png'           // Absolute path
+            ];
+            
+            let imageFound = false;
+            
+            imagePaths.forEach((path, index) => {
+                const testImg = new Image();
+                testImg.onload = () => {
+                    if (!imageFound) {
+                        console.log(`✅ Found slider frame image at: ${path}`);
+                        frameElement.style.backgroundImage = `url('${path}')`;
+                        imageFound = true;
+                    }
+                };
+                testImg.onerror = () => {
+                    console.log(`❌ Slider frame image not found at: ${path}`);
+                };
+                testImg.src = path;
+            });
+            
+            // Also check computed styles
+            const computedStyle = window.getComputedStyle(frameElement);
+            console.log('🎨 Current background-image:', computedStyle.backgroundImage);
+            console.log('📁 Expected path from CSS: ../../../assets/slider/sliderframe.png');
+        } else {
+            console.error('❌ Slider frame element not found');
+        }
     }
     
     updateContainerRect() {
