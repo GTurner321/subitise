@@ -23,9 +23,10 @@ class SliderRenderer {
         // Momentum tracking for each bead
         this.momentumBeads = new Map(); // beadId -> {velocity, lastPosition, lastTime, animationId}
         
-        this.updateContainerRect();
-        this.initializeBeads();
-        this.updateBarState();
+        // Initialize after a small delay to ensure DOM is ready
+        setTimeout(() => {
+            this.initializeRenderer();
+        }, 100);
         
         // Update on window resize
         window.addEventListener('resize', () => {
@@ -34,8 +35,42 @@ class SliderRenderer {
         });
     }
     
+    initializeRenderer() {
+        console.log('🎮 Initializing SliderRenderer...');
+        
+        // Force initial measurement
+        this.updateContainerRect();
+        this.initializeBeads();
+        this.updateBarState();
+        
+        // Force a repaint to ensure everything is visible
+        requestAnimationFrame(() => {
+            this.repositionAllBeads();
+            console.log('✅ SliderRenderer initialization complete');
+        });
+    }
+    
     updateContainerRect() {
+        if (!this.sliderContainer) {
+            console.error('❌ Slider container not found');
+            return;
+        }
+        
         this.containerRect = this.sliderContainer.getBoundingClientRect();
+        console.log('📏 Container rect:', this.containerRect);
+        
+        // Ensure we have valid dimensions
+        if (this.containerRect.width === 0 || this.containerRect.height === 0) {
+            console.warn('⚠️ Container has zero dimensions, retrying...');
+            // Retry after a short delay
+            setTimeout(() => {
+                this.updateContainerRect();
+                if (this.containerRect.width > 0 && this.containerRect.height > 0) {
+                    this.repositionAllBeads();
+                }
+            }, 100);
+            return;
+        }
         
         // Calculate actual frame image dimensions (1516x475 aspect ratio)
         const containerAspectRatio = this.containerRect.width / this.containerRect.height;
@@ -62,6 +97,9 @@ class SliderRenderer {
         // Bead diameter is 12% of frame height, made 20% larger
         this.beadDiameter = this.frameImageRect.height * 0.12 * 1.2;
         this.beadRadius = this.beadDiameter / 2;
+        
+        console.log('📐 Frame rect:', this.frameImageRect);
+        console.log('🔴 Bead diameter:', this.beadDiameter);
         
         this.updateBarDimensions();
     }
