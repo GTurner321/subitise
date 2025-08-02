@@ -13,10 +13,12 @@ class Rainbow {
         this.config = {
             // Largest arc radius: 42% of game area width
             maxRadiusPercent: 42,
-            // Center horizontally, 3% from top
-            centerYPercent: 3,
+            // Center 3% of game area width from the bottom
+            centerFromBottomPercent: 3,
             // Arc thickness: 3% of game area width
             thicknessPercent: 3,
+            // Default transparency for arcs (40% opaque = 0.4 opacity)
+            defaultOpacity: 0.4,
             // Colors for the rainbow arcs
             colors: [
                 '#ff0000', // Red (outermost)
@@ -93,27 +95,50 @@ class Rainbow {
         const gameAreaWidth = gameAreaRect.width;
         const gameAreaHeight = gameAreaRect.height;
         
-        // Calculate responsive dimensions
+        // Calculate responsive dimensions based on game area width
         const maxRadius = (gameAreaWidth * this.config.maxRadiusPercent) / 100;
-        const centerY = (gameAreaHeight * this.config.centerYPercent) / 100;
         const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100;
+        const centerFromBottom = (gameAreaWidth * this.config.centerFromBottomPercent) / 100;
         
-        // Calculate radius for this arc (decreasing from outside to inside)
-        const radius = maxRadius - (index * thickness);
+        // Calculate outer and inner radius for this arc
+        const outerRadius = maxRadius - (index * thickness);
+        const innerRadius = outerRadius - thickness;
         
-        if (radius <= 0) return; // Skip if radius would be negative
+        if (outerRadius <= 0) return; // Skip if radius would be negative
         
-        // Position and size the arc - FIXED: All arcs share the same center X position
-        const centerX = gameAreaWidth / 2; // Fixed center position for all arcs
+        // Position arc center at fixed position from bottom
+        const centerX = gameAreaWidth / 2; // Horizontal center
+        const centerY = gameAreaHeight - centerFromBottom; // Fixed distance from bottom
         
-        arc.style.width = `${radius * 2}px`;
-        arc.style.height = `${radius}px`; // Height is radius for semicircle
-        arc.style.borderTopWidth = `${thickness}px`;
-        arc.style.borderRadius = `${radius}px ${radius}px 0 0`;
-        arc.style.left = `${centerX - radius}px`; // Position so center is at fixed centerX
-        arc.style.top = `${centerY}px`;
+        const outerArc = arc.querySelector('.outer-arc');
+        const innerArc = arc.querySelector('.inner-arc');
         
-        console.log(`🌈 Arc ${index}: radius=${Math.round(radius)}, thickness=${Math.round(thickness)}, centerX=${Math.round(centerX)}, left=${Math.round(centerX - radius)}`);
+        if (outerArc && innerArc) {
+            // Update outer semicircle
+            outerArc.style.width = `${outerRadius * 2}px`;
+            outerArc.style.height = `${outerRadius}px`;
+            outerArc.style.borderRadius = `${outerRadius}px ${outerRadius}px 0 0`;
+            
+            // Update inner semicircle (only if we have inner radius > 0)
+            if (innerRadius > 0) {
+                innerArc.style.width = `${innerRadius * 2}px`;
+                innerArc.style.height = `${innerRadius}px`;
+                innerArc.style.borderRadius = `${innerRadius}px ${innerRadius}px 0 0`;
+                innerArc.style.left = `${(outerRadius - innerRadius)}px`;
+                innerArc.style.top = `${(outerRadius - innerRadius)}px`;
+                innerArc.style.display = 'block';
+            } else {
+                innerArc.style.display = 'none';
+            }
+        }
+        
+        // Position the main arc container
+        arc.style.left = `${centerX - outerRadius}px`;
+        arc.style.top = `${centerY - outerRadius}px`;
+        arc.style.width = `${outerRadius * 2}px`;
+        arc.style.height = `${outerRadius}px`;
+        
+        console.log(`🌈 Arc ${index}: outerRadius=${Math.round(outerRadius)}, innerRadius=${Math.round(innerRadius)}, thickness=${Math.round(thickness)}, centerX=${Math.round(centerX)}, centerY=${Math.round(centerY)}`);
     }
     
     initializeArcs() {
@@ -132,57 +157,84 @@ class Rainbow {
         const gameAreaWidth = gameAreaRect.width;
         const gameAreaHeight = gameAreaRect.height;
         
-        // Calculate responsive dimensions
+        // Calculate responsive dimensions based on game area width
         const maxRadius = (gameAreaWidth * this.config.maxRadiusPercent) / 100;
-        const centerY = (gameAreaHeight * this.config.centerYPercent) / 100;
         const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100;
+        const centerFromBottom = (gameAreaWidth * this.config.centerFromBottomPercent) / 100;
         
-        // FIXED: Calculate fixed center position for all arcs
-        const centerX = gameAreaWidth / 2;
+        // Calculate fixed center position for all arcs
+        const centerX = gameAreaWidth / 2; // Horizontal center
+        const centerY = gameAreaHeight - centerFromBottom; // Fixed distance from bottom
         
         console.log(`🌈 Game area: ${Math.round(gameAreaWidth)} x ${Math.round(gameAreaHeight)}`);
         console.log(`🌈 Max radius: ${Math.round(maxRadius)} (${this.config.maxRadiusPercent}% of width)`);
-        console.log(`🌈 Center Y: ${Math.round(centerY)} (${this.config.centerYPercent}% of height)`);
-        console.log(`🌈 Fixed Center X: ${Math.round(centerX)}`);
+        console.log(`🌈 Center X: ${Math.round(centerX)} (horizontal center)`);
+        console.log(`🌈 Center Y: ${Math.round(centerY)} (${this.config.centerFromBottomPercent}% of width from bottom)`);
         console.log(`🌈 Arc thickness: ${Math.round(thickness)} (${this.config.thicknessPercent}% of width)`);
+        console.log(`🌈 Default opacity: ${this.config.defaultOpacity} (40% transparent)`);
         
         // Create all 10 arcs
         for (let i = 0; i < this.totalPieces; i++) {
-            const arc = document.createElement('div');
-            arc.className = 'rainbow-arc';
+            const arcContainer = document.createElement('div');
+            arcContainer.className = 'rainbow-arc';
             
-            // Calculate radius for this arc (decreasing from outside to inside)
-            const radius = maxRadius - (i * thickness);
+            // Calculate outer and inner radius for this arc
+            const outerRadius = maxRadius - (i * thickness);
+            const innerRadius = outerRadius - thickness;
             
-            if (radius <= 0) break; // Stop if radius would be negative
+            if (outerRadius <= 0) break; // Stop if radius would be negative
             
-            // Set arc properties
-            arc.style.position = 'absolute';
-            arc.style.width = `${radius * 2}px`;
-            arc.style.height = `${radius}px`; // Height is radius for semicircle
-            arc.style.borderTopWidth = `${thickness}px`;
-            arc.style.borderTopColor = 'transparent'; // Start transparent
-            arc.style.borderLeftColor = 'transparent';
-            arc.style.borderRightColor = 'transparent';
-            arc.style.borderBottomColor = 'transparent';
-            arc.style.borderStyle = 'solid';
-            arc.style.borderRadius = `${radius}px ${radius}px 0 0`;
-            arc.style.left = `${centerX - radius}px`; // FIXED: Position so center is at fixed centerX
-            arc.style.top = `${centerY}px`;
-            arc.style.background = 'transparent'; // FIXED: Ensure background is transparent
-            arc.style.opacity = '1'; // Element is visible but transparent until border color is set
-            arc.style.transform = 'scaleY(1)';
-            arc.style.transformOrigin = 'bottom center';
-            arc.style.transition = 'border-top-color 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-            arc.style.pointerEvents = 'none';
+            // Create outer semicircle (colored part)
+            const outerArc = document.createElement('div');
+            outerArc.className = 'outer-arc';
+            outerArc.style.position = 'absolute';
+            outerArc.style.top = '0';
+            outerArc.style.left = '0';
+            outerArc.style.width = `${outerRadius * 2}px`;
+            outerArc.style.height = `${outerRadius}px`;
+            outerArc.style.background = 'transparent'; // Start transparent
+            outerArc.style.borderRadius = `${outerRadius}px ${outerRadius}px 0 0`;
+            outerArc.style.transition = 'background-color 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            
+            // Create inner semicircle (transparent cutout)
+            const innerArc = document.createElement('div');
+            innerArc.className = 'inner-arc';
+            innerArc.style.position = 'absolute';
+            innerArc.style.background = 'transparent';
+            innerArc.style.transition = 'background-color 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            
+            if (innerRadius > 0) {
+                innerArc.style.width = `${innerRadius * 2}px`;
+                innerArc.style.height = `${innerRadius}px`;
+                innerArc.style.borderRadius = `${innerRadius}px ${innerRadius}px 0 0`;
+                innerArc.style.left = `${(outerRadius - innerRadius)}px`;
+                innerArc.style.top = `${(outerRadius - innerRadius)}px`;
+                innerArc.style.display = 'block';
+            } else {
+                innerArc.style.display = 'none';
+            }
+            
+            // Set up the container
+            arcContainer.style.position = 'absolute';
+            arcContainer.style.left = `${centerX - outerRadius}px`;
+            arcContainer.style.top = `${centerY - outerRadius}px`;
+            arcContainer.style.width = `${outerRadius * 2}px`;
+            arcContainer.style.height = `${outerRadius}px`;
+            arcContainer.style.opacity = `${this.config.defaultOpacity}`;
+            arcContainer.style.transform = 'scaleY(1)';
+            arcContainer.style.transformOrigin = 'bottom center';
+            arcContainer.style.pointerEvents = 'none';
             
             // Store the target color for later use
-            arc.dataset.targetColor = this.config.colors[i];
+            arcContainer.dataset.targetColor = this.config.colors[i];
             
-            this.container.appendChild(arc);
-            this.arcs.push(arc);
+            // Append elements
+            arcContainer.appendChild(outerArc);
+            arcContainer.appendChild(innerArc);
+            this.container.appendChild(arcContainer);
+            this.arcs.push(arcContainer);
             
-            console.log(`🌈 Created transparent arc ${i}: radius=${Math.round(radius)}, centerX=${Math.round(centerX)}, left=${Math.round(centerX - radius)}, color=${this.config.colors[i]}`);
+            console.log(`🌈 Created transparent arc ${i}: outerRadius=${Math.round(outerRadius)}, innerRadius=${Math.round(innerRadius)}, thickness=${Math.round(thickness)}, opacity=${this.config.defaultOpacity}, color=${this.config.colors[i]}`);
         }
         
         // Show the pieces that should already be visible
@@ -201,9 +253,20 @@ class Rainbow {
         // Show the new piece by changing from transparent to colored
         const arc = this.arcs[this.pieces - 1];
         if (arc) {
+            const outerArc = arc.querySelector('.outer-arc');
+            const innerArc = arc.querySelector('.inner-arc');
+            
             // Small delay for dramatic effect
             setTimeout(() => {
-                arc.style.borderTopColor = arc.dataset.targetColor;
+                if (outerArc) {
+                    outerArc.style.background = arc.dataset.targetColor;
+                }
+                if (innerArc) {
+                    // Get the background color of the game area or container
+                    const gameAreaStyle = window.getComputedStyle(this.gameArea);
+                    const backgroundColor = gameAreaStyle.backgroundColor || '#ffffff';
+                    innerArc.style.background = backgroundColor;
+                }
             }, 200);
         }
         
@@ -215,7 +278,18 @@ class Rainbow {
         for (let i = 0; i < this.pieces; i++) {
             const arc = this.arcs[i];
             if (arc) {
-                arc.style.borderTopColor = arc.dataset.targetColor;
+                const outerArc = arc.querySelector('.outer-arc');
+                const innerArc = arc.querySelector('.inner-arc');
+                
+                if (outerArc) {
+                    outerArc.style.background = arc.dataset.targetColor;
+                }
+                if (innerArc) {
+                    // Get the background color of the game area or container
+                    const gameAreaStyle = window.getComputedStyle(this.gameArea);
+                    const backgroundColor = gameAreaStyle.backgroundColor || '#ffffff';
+                    innerArc.style.background = backgroundColor;
+                }
             }
         }
         
@@ -223,7 +297,15 @@ class Rainbow {
         for (let i = this.pieces; i < this.arcs.length; i++) {
             const arc = this.arcs[i];
             if (arc) {
-                arc.style.borderTopColor = 'transparent';
+                const outerArc = arc.querySelector('.outer-arc');
+                const innerArc = arc.querySelector('.inner-arc');
+                
+                if (outerArc) {
+                    outerArc.style.background = 'transparent';
+                }
+                if (innerArc) {
+                    innerArc.style.background = 'transparent';
+                }
             }
         }
     }
@@ -239,49 +321,103 @@ class Rainbow {
     }
     
     startFinalCelebration() {
-        console.log('🌈 Starting final rainbow celebration');
+        console.log('🌈 Starting final rainbow celebration - rotating for 1 minute');
         let currentArc = 0;
+        let celebrationStartTime = Date.now();
+        const celebrationDuration = 60000; // 1 minute in milliseconds
+        const arcDuration = 300; // 300ms per arc
+        
+        // Store the celebration interval so we can stop it if needed
+        this.celebrationInterval = null;
         
         const celebrateNextArc = () => {
+            // Check if 1 minute has passed
+            if (Date.now() - celebrationStartTime >= celebrationDuration) {
+                this.stopCelebration();
+                return;
+            }
+            
+            // Reset all arcs to default opacity first
+            this.arcs.forEach(arc => {
+                if (arc) {
+                    arc.style.filter = '';
+                    arc.style.transform = 'scaleY(1)';
+                    arc.style.opacity = `${this.config.defaultOpacity}`; // All back to 40% opacity
+                }
+            });
+            
+            // Handle wrap-around
             if (currentArc >= this.arcs.length) {
                 currentArc = 0; // Start over for continuous celebration
             }
             
             const arc = this.arcs[currentArc];
             if (arc) {
-                // Temporarily make it extra bright/solid
+                // Make ONLY this arc fully opaque and enhanced
                 arc.style.filter = 'brightness(1.3) saturate(1.5)';
                 arc.style.transform = 'scaleY(1.1)';
+                arc.style.opacity = '1.0'; // Only this arc becomes fully opaque
                 
-                // Return to normal after 300ms
-                setTimeout(() => {
-                    arc.style.filter = '';
-                    arc.style.transform = 'scaleY(1)';
-                }, 300);
+                console.log(`🌈 Celebrating arc ${currentArc} - now fully opaque while others stay at ${this.config.defaultOpacity}`);
             }
             
             currentArc++;
             
-            // Continue celebration for a few cycles
-            if (currentArc < this.arcs.length * 3) {
-                setTimeout(celebrateNextArc, 200);
-            }
+            // Schedule next arc celebration
+            this.celebrationInterval = setTimeout(celebrateNextArc, arcDuration);
         };
         
         // Start the celebration
         setTimeout(celebrateNextArc, 500);
+        
+        console.log(`🌈 Celebration will run for ${celebrationDuration/1000} seconds with ${arcDuration}ms per arc (${this.arcs.length * arcDuration}ms per full wave = ${(this.arcs.length * arcDuration)/1000}s per wave)`);
+    }
+    
+    stopCelebration() {
+        console.log('🌈 Stopping rainbow celebration');
+        
+        // Clear any pending celebration timeout
+        if (this.celebrationInterval) {
+            clearTimeout(this.celebrationInterval);
+            this.celebrationInterval = null;
+        }
+        
+        // Reset all arcs to normal state
+        this.arcs.forEach(arc => {
+            if (arc) {
+                arc.style.filter = '';
+                arc.style.transform = 'scaleY(1)';
+                arc.style.opacity = `${this.config.defaultOpacity}`;
+            }
+        });
+        
+        console.log('🌈 Celebration stopped - all arcs back to normal opacity');
     }
     
     reset() {
         console.log('🌈 Resetting rainbow');
+        
+        // Stop any ongoing celebration
+        this.stopCelebration();
+        
         this.pieces = 0;
         
         // Make all arcs transparent again
         this.arcs.forEach(arc => {
             if (arc) {
-                arc.style.borderTopColor = 'transparent';
+                const outerArc = arc.querySelector('.outer-arc');
+                const innerArc = arc.querySelector('.inner-arc');
+                
+                if (outerArc) {
+                    outerArc.style.background = 'transparent';
+                }
+                if (innerArc) {
+                    innerArc.style.background = 'transparent';
+                }
+                
                 arc.style.filter = '';
                 arc.style.transform = 'scaleY(1)';
+                arc.style.opacity = `${this.config.defaultOpacity}`; // Reset to 40% opacity
             }
         });
     }
@@ -300,6 +436,9 @@ class Rainbow {
     
     // Destroy the rainbow and clean up resources
     destroy() {
+        // Stop any ongoing celebration
+        this.stopCelebration();
+        
         if (this.resizeTimeout) {
             clearTimeout(this.resizeTimeout);
             this.resizeTimeout = null;
