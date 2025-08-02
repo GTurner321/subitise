@@ -1,4 +1,4 @@
-/* Addition Game - Simplified Styles */
+/* Addition Game - Simplified Styles with proper layout structure */
 /* Universal styles removed - handled by main.css and universal systems */
 
 /* Game area sections layout with initial fade state */
@@ -8,15 +8,21 @@
     opacity: 0;
     transition: opacity 1s ease-in-out;
     position: relative;
+    /* ButtonBar will set width, margins, and bottom spacing */
 }
 
 .game-area.loaded {
     opacity: 1;
 }
 
-/* Left side for icons - REMOVED, icons now positioned directly in game-area */
+/* Left side - simplified, no padding, used for flashing effects */
 .left-side {
-    display: none; /* Not used anymore */
+    position: relative;
+    width: 46%;
+    height: 100%;
+    border-right: 2px dashed #ddd;
+    transition: background-color 0.2s ease;
+    /* No padding - icons positioned directly in game-area */
 }
 
 /* Middle section with plus sign - 8% of game area width */
@@ -29,8 +35,6 @@
     align-items: center;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
     z-index: 10; /* Higher than rainbow */
-    left: 46%; /* Positioned at 46% of game area */
-    position: absolute;
 }
 
 .plus-sign {
@@ -60,49 +64,21 @@
     font-weight: bold;
 }
 
-/* Right side for icons - REMOVED, icons now positioned directly in game-area */
+/* Right side - simplified, no padding, used for flashing effects */
 .right-side {
-    display: none; /* Not used anymore */
+    position: relative;
+    width: 46%;
+    height: 100%;
+    border-left: 2px dashed #ddd;
+    transition: background-color 0.2s ease;
+    /* No padding - icons positioned directly in game-area */
 }
 
-/* Area flashing styles - now target the game area zones */
-.game-area.left-flash::before {
-    content: '';
-    position: absolute;
-    left: 6%;
-    top: 21%;
-    width: 34%; /* 40% - 6% */
-    height: 73%; /* 94% - 21% */
-    background-color: rgba(144, 238, 144, 0.2);
-    z-index: 3;
-    pointer-events: none;
-    transition: opacity 1s ease-in-out;
-}
-
-.game-area.right-flash::before {
-    content: '';
-    position: absolute;
-    left: 60%;
-    top: 21%;
-    width: 34%; /* 94% - 60% */
-    height: 73%; /* 94% - 21% */
-    background-color: rgba(144, 238, 144, 0.2);
-    z-index: 3;
-    pointer-events: none;
-    transition: opacity 1s ease-in-out;
-}
-
-.game-area.both-flash::before {
-    content: '';
-    position: absolute;
-    left: 6%;
-    top: 21%;
-    width: 88%; /* 94% - 6% */
-    height: 73%; /* 94% - 21% */
-    background-color: rgba(144, 238, 144, 0.2);
-    z-index: 3;
-    pointer-events: none;
-    transition: opacity 1s ease-in-out;
+/* Area flashing styles - target the actual left/right sides */
+.left-side.area-flash,
+.right-side.area-flash {
+    background-color: rgba(144, 238, 144, 0.2) !important;
+    transition: background-color 1s ease-in-out;
 }
 
 /* Icons - Enhanced styles with responsive sizing and sophisticated animations */
