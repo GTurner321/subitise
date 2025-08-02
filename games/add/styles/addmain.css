@@ -1,32 +1,46 @@
 /* Addition Game - Specific Styles Only */
 /* Universal styles removed - handled by main.css and universal systems */
 
-/* Left side for icons */
+/* Game area sections layout */
+.game-area {
+    display: flex;
+    align-items: stretch;
+}
+
+/* Left side for icons - 46% of game area width */
 .left-side {
     position: relative;
-    width: 45%;
+    width: 46%;
     height: 100%;
     border-right: 2px dashed #ddd;
     transition: background-color 0.2s ease;
+    padding: 1% 1% 6% 1%; /* Top, Right, Bottom (6% for sum row clearance), Left padding */
+    box-sizing: border-box;
 }
 
-/* Middle section with plus sign */
+/* Middle section with plus sign - 8% of game area width */
 .middle-section {
     position: relative;
-    width: 10%;
+    width: 8%;
     height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    z-index: 10; /* Higher than rainbow */
 }
 
 .plus-sign {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 80px;
-    height: 80px;
+    /* Responsive sizing: 6.5% of game area width */
+    width: 6.5vw;
+    height: 6.5vw;
+    max-width: 80px; /* Reasonable maximum */
+    max-height: 80px;
+    min-width: 40px; /* Reasonable minimum */
+    min-height: 40px;
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
@@ -36,7 +50,10 @@
 }
 
 .plus-sign i {
-    font-size: 3rem;
+    /* Responsive font size based on container */
+    font-size: calc(6.5vw * 0.5); /* 50% of container width */
+    max-font-size: 40px;
+    min-font-size: 20px;
     color: white;
     font-weight: bold;
 }
@@ -52,13 +69,15 @@
     }
 }
 
-/* Right side for icons */
+/* Right side for icons - 46% of game area width */
 .right-side {
     position: relative;
-    width: 45%;
+    width: 46%;
     height: 100%;
     border-left: 2px dashed #ddd;
     transition: background-color 0.2s ease;
+    padding: 1% 1% 6% 1%; /* Top, Right, Bottom (6% for sum row clearance), Left padding */
+    box-sizing: border-box;
 }
 
 /* Area flashing styles - softer, longer duration, slower timing */
@@ -99,22 +118,29 @@
     20%, 40%, 60%, 80% { transform: translateX(3px); }
 }
 
-/* Sum row at bottom of game area - FIXED: Higher z-index and no fade animations */
+/* Sum row at bottom - Responsive positioning and sizing */
 .sum-row {
     position: absolute;
-    bottom: 20px;
+    bottom: 3%; /* 3% above button bar */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 2%; /* Responsive gap */
     z-index: 15; /* Higher than everything else */
-    height: 80px;
+    
+    /* Responsive sizing: 60% of game area width, height 9% of game area width */
+    width: 60%;
+    height: 9vw;
+    max-height: 100px; /* Reasonable maximum */
+    min-height: 60px; /* Reasonable minimum */
+    
     background: rgba(255, 255, 255, 0.95);
-    padding: 10px 20px;
+    padding: 1% 2%; /* Top/bottom 1% of game area height, left/right 2% */
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 2px solid #e0e0e0;
+    box-sizing: border-box;
 }
 
 /* Prevent sum row from fading */
@@ -127,18 +153,28 @@
 
 .sum-plus-sign,
 .sum-equals-sign {
-    font-size: 2.5rem;
+    /* Responsive font size based on sum row height */
+    font-size: calc(9vw * 0.3); /* 30% of sum row height */
+    max-font-size: 30px;
+    min-font-size: 18px;
     font-weight: bold;
     color: #333;
-    min-width: 40px;
+    min-width: calc(9vw * 0.4); /* 40% of sum row height */
     text-align: center;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 .left-sum-box,
 .right-sum-box,
 .total-sum-box {
-    width: 70px;
-    height: 70px;
+    /* Square boxes: 9% of game area width for both width and height */
+    width: 9vw;
+    height: 9vw;
+    max-width: 100px;
+    max-height: 100px;
+    min-width: 60px;
+    min-height: 60px;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 /* Input boxes for step-by-step addition */
@@ -149,7 +185,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
+    
+    /* Responsive font size based on box size */
+    font-size: calc(9vw * 0.25); /* 25% of box width */
+    max-font-size: 25px;
+    min-font-size: 16px;
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
@@ -185,12 +225,16 @@
 }
 
 .check-mark {
-    font-size: 2.5rem;
+    /* Responsive size based on sum row */
+    font-size: calc(9vw * 0.3); /* 30% of sum row height */
+    max-font-size: 30px;
+    min-font-size: 18px;
     color: #28a745;
     opacity: 0;
     transition: opacity 0.5s ease;
-    min-width: 50px;
+    min-width: calc(9vw * 0.5); /* 50% of sum row height */
     text-align: center;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 .check-mark.visible {
@@ -220,6 +264,112 @@
 /* Enhanced completion effects */
 .completion-effect {
     pointer-events: none;
+}
+
+/* Responsive design improvements */
+@media (max-width: 1200px) {
+    .plus-sign {
+        width: 5.5vw;
+        height: 5.5vw;
+    }
+    
+    .plus-sign i {
+        font-size: calc(5.5vw * 0.5);
+    }
+}
+
+@media (max-width: 900px) {
+    .plus-sign {
+        width: 5vw;
+        height: 5vw;
+        min-width: 35px;
+        min-height: 35px;
+    }
+    
+    .plus-sign i {
+        font-size: calc(5vw * 0.5);
+        min-font-size: 18px;
+    }
+    
+    .sum-row {
+        height: 8vw;
+        min-height: 50px;
+    }
+    
+    .left-sum-box,
+    .right-sum-box,
+    .total-sum-box {
+        width: 8vw;
+        height: 8vw;
+        min-width: 50px;
+        min-height: 50px;
+    }
+    
+    .input-box {
+        font-size: calc(8vw * 0.25);
+        min-font-size: 14px;
+    }
+    
+    .sum-plus-sign,
+    .sum-equals-sign {
+        font-size: calc(8vw * 0.3);
+        min-font-size: 16px;
+        min-width: calc(8vw * 0.4);
+    }
+    
+    .check-mark {
+        font-size: calc(8vw * 0.3);
+        min-font-size: 16px;
+        min-width: calc(8vw * 0.5);
+    }
+}
+
+@media (max-width: 600px) {
+    .plus-sign {
+        width: 4.5vw;
+        height: 4.5vw;
+        min-width: 30px;
+        min-height: 30px;
+    }
+    
+    .plus-sign i {
+        font-size: calc(4.5vw * 0.5);
+        min-font-size: 15px;
+    }
+    
+    .sum-row {
+        height: 7vw;
+        min-height: 45px;
+        gap: 1.5%;
+    }
+    
+    .left-sum-box,
+    .right-sum-box,
+    .total-sum-box {
+        width: 7vw;
+        height: 7vw;
+        min-width: 45px;
+        min-height: 45px;
+    }
+    
+    .input-box {
+        font-size: calc(7vw * 0.25);
+        min-font-size: 12px;
+        border-radius: 12px;
+    }
+    
+    .sum-plus-sign,
+    .sum-equals-sign {
+        font-size: calc(7vw * 0.3);
+        min-font-size: 14px;
+        min-width: calc(7vw * 0.4);
+    }
+    
+    .check-mark {
+        font-size: calc(7vw * 0.3);
+        min-font-size: 14px;
+        min-width: calc(7vw * 0.5);
+    }
 }
 
 /* Mobile responsiveness for game-specific elements */
