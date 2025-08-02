@@ -1,8 +1,8 @@
-console.log('🌈 LOADING RESPONSIVE RAINBOW FILE');
+console.log('🌈 LOADING RESPONSIVE RAINBOW FILE - Fixed transparency and centering');
 
 class Rainbow {
     constructor() {
-        console.log('Rainbow constructor - responsive sizing');
+        console.log('Rainbow constructor - responsive sizing with proper transparency');
         this.container = document.getElementById('rainbowContainer');
         this.gameArea = document.querySelector('.game-area');
         this.pieces = 0;
@@ -96,7 +96,7 @@ class Rainbow {
         // Calculate responsive dimensions
         const maxRadius = (gameAreaWidth * this.config.maxRadiusPercent) / 100;
         const centerY = (gameAreaHeight * this.config.centerYPercent) / 100;
-        const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100; // Use width for thickness too
+        const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100; // 3% of game area width
         
         // Calculate radius for this arc (decreasing from outside to inside)
         const radius = maxRadius - (index * thickness);
@@ -105,12 +105,12 @@ class Rainbow {
         
         // Position and size the arc - SAME center position for all arcs
         arc.style.width = `${radius * 2}px`;
-        arc.style.height = `${radius}px`; // Height is radius, not diameter
+        arc.style.height = `${radius}px`; // Height is radius for semicircle
         arc.style.borderTopWidth = `${thickness}px`;
         arc.style.borderRadius = `${radius}px ${radius}px 0 0`;
         arc.style.left = `50%`;
         arc.style.top = `${centerY}px`;
-        arc.style.marginLeft = `-${radius}px`; // Center horizontally based on THIS arc's radius
+        arc.style.marginLeft = `-${radius}px`; // Each arc centers itself based on its own radius
         
         console.log(`🌈 Arc ${index}: radius=${Math.round(radius)}, thickness=${Math.round(thickness)}, centerY=${Math.round(centerY)}, marginLeft=${Math.round(-radius)}`);
     }
@@ -121,7 +121,7 @@ class Rainbow {
             return;
         }
         
-        console.log('🌈 Initializing responsive rainbow arcs');
+        console.log('🌈 Initializing responsive rainbow arcs with transparency');
         
         // Clear existing arcs
         this.container.innerHTML = '';
@@ -134,7 +134,7 @@ class Rainbow {
         // Calculate responsive dimensions
         const maxRadius = (gameAreaWidth * this.config.maxRadiusPercent) / 100;
         const centerY = (gameAreaHeight * this.config.centerYPercent) / 100;
-        const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100; // Use width for thickness too
+        const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100; // 3% of game area width
         
         console.log(`🌈 Game area: ${Math.round(gameAreaWidth)} x ${Math.round(gameAreaHeight)}`);
         console.log(`🌈 Max radius: ${Math.round(maxRadius)} (${this.config.maxRadiusPercent}% of width)`);
@@ -154,7 +154,7 @@ class Rainbow {
             // Set arc properties
             arc.style.position = 'absolute';
             arc.style.width = `${radius * 2}px`;
-            arc.style.height = `${radius}px`; // Height is radius, not diameter
+            arc.style.height = `${radius}px`; // Height is radius for semicircle
             arc.style.borderTopWidth = `${thickness}px`;
             arc.style.borderTopColor = 'transparent'; // Start transparent
             arc.style.borderRadius = `${radius}px ${radius}px 0 0`;
