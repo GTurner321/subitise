@@ -13,13 +13,9 @@ class AddGameController {
         // Track used sums for level 6 avoidance
         this.usedSumsInSession = new Set(); // Stores canonical addition strings
         
-        // Audio functionality
-        this.audioContext = null;
-        this.audioEnabled = CONFIG.AUDIO_ENABLED || true;
-        
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
-        this.inactivityDuration = 20000; // 20 seconds (changed from 10 seconds)
+        this.inactivityDuration = 20000; // 20 seconds
         this.hintGiven = false; // Track if hint has been given for current question
         this.isTabVisible = true; // Track tab visibility
         
@@ -44,7 +40,6 @@ class AddGameController {
         this.flashingTimeout = null;
         
         // DOM elements
-        this.numberButtons = document.querySelectorAll('.number-btn');
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         this.leftInputBox = document.getElementById('leftInputBox');
@@ -54,10 +49,6 @@ class AddGameController {
         this.checkMark = document.getElementById('checkMark');
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
-        
-        // Mute button references
-        this.muteButton = null;
-        this.muteContainer = null;
         
         // Level definitions
         this.levels = {
@@ -70,83 +61,52 @@ class AddGameController {
         };
         
         this.initializeEventListeners();
-        this.initializeAudio();
-        this.createMuteButton();
+        this.createButtons();
         this.setupVisibilityHandling();
         this.startNewQuestion();
     }
 
-    async initializeAudio() {
-        if (!this.audioEnabled) return;
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
-            this.audioEnabled = false;
-        }
-    }
-
-    createMuteButton() {
-        // Create mute button container
-        const muteContainer = document.createElement('div');
-        muteContainer.style.position = 'fixed';
-        muteContainer.style.top = '20px';
-        muteContainer.style.right = '20px';
-        muteContainer.style.zIndex = '1000';
-        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        muteContainer.style.borderRadius = '50%';
-        muteContainer.style.width = '60px';
-        muteContainer.style.height = '60px';
-        muteContainer.style.display = 'flex';
-        muteContainer.style.alignItems = 'center';
-        muteContainer.style.justifyContent = 'center';
-        muteContainer.style.cursor = 'pointer';
-        muteContainer.style.transition = 'all 0.3s ease';
-        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+    createButtons() {
+        // Create button colors and numbers arrays
+        const colors = [
+            '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+            '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'
+        ];
+        const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         
-        // Create button
-        this.muteButton = document.createElement('button');
-        this.muteButton.style.background = 'none';
-        this.muteButton.style.border = 'none';
-        this.muteButton.style.color = 'white';
-        this.muteButton.style.fontSize = '24px';
-        this.muteButton.style.cursor = 'pointer';
-        this.muteButton.style.width = '100%';
-        this.muteButton.style.height = '100%';
-        this.muteButton.style.display = 'flex';
-        this.muteButton.style.alignItems = 'center';
-        this.muteButton.style.justifyContent = 'center';
-        
-        // Set initial icon
-        this.updateMuteButtonIcon();
-        
-        // Add event listeners
-        this.muteButton.addEventListener('click', () => this.toggleAudio());
-        this.muteButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.toggleAudio();
-        });
-        
-        // Hover effects
-        muteContainer.addEventListener('mouseenter', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-            muteContainer.style.transform = 'scale(1.1)';
-        });
-        
-        muteContainer.addEventListener('mouseleave', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            muteContainer.style.transform = 'scale(1)';
-        });
-        
-        muteContainer.appendChild(this.muteButton);
-        document.body.appendChild(muteContainer);
-        
-        this.muteContainer = muteContainer;
-    }
-
-    updateMuteButtonIcon() {
-        if (this.muteButton) {
-            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
-            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
+        // Use the universal button bar system
+        if (window.ButtonBar) {
+            window.ButtonBar.create(
+                10,                    // number of buttons
+                8,                     // button width as % of button panel width
+                8,                     // button height as % of button panel width
+                colors,                // array of button colors
+                numbers,               // array of button numbers/labels
+                (selectedNumber, buttonElement) => {  // click handler
+                    if (this.buttonsDisabled) return;
+                    
+                    // Clear inactivity timer on user interaction
+                    this.clearInactivityTimer();
+                    this.startInactivityTimer();
+                    
+                    this.handleNumberClick(selectedNumber, buttonElement);
+                }
+            );
+        } else {
+            console.warn('ButtonBar not available - using fallback');
+            // Fallback: get existing buttons
+            this.numberButtons = document.querySelectorAll('.number-btn');
+            this.numberButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if (this.buttonsDisabled) return;
+                    
+                    this.clearInactivityTimer();
+                    this.startInactivityTimer();
+                    
+                    const selectedNumber = parseInt(e.target.dataset.number);
+                    this.handleNumberClick(selectedNumber, e.target);
+                });
+            });
         }
     }
 
@@ -158,8 +118,8 @@ class AddGameController {
             if (!this.isTabVisible) {
                 // Tab is hidden - stop all audio and clear timers
                 this.clearInactivityTimer();
-                if ('speechSynthesis' in window) {
-                    speechSynthesis.cancel();
+                if (window.AudioSystem) {
+                    window.AudioSystem.stopAllAudio();
                 }
             } else {
                 // Tab is visible again - restart inactivity timer if game is active
@@ -170,52 +130,21 @@ class AddGameController {
         });
     }
 
-    toggleAudio() {
-        this.audioEnabled = !this.audioEnabled;
-        this.updateMuteButtonIcon();
-        
-        // Stop any current speech
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        // Provide feedback
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText('Sound on'); // Changed from "Audio enabled"
-            }, 100);
+    speakText(text, options = {}) {
+        if (window.AudioSystem) {
+            window.AudioSystem.speakText(text, options);
         }
     }
 
-    speakText(text) {
-        if (!this.audioEnabled) return;
-        
-        try {
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.3;
-                utterance.volume = 0.8;
-                
-                const voices = speechSynthesis.getVoices();
-                let selectedVoice = voices.find(voice => 
-                    voice.name.toLowerCase().includes('male') ||
-                    voice.name.toLowerCase().includes('boy') ||
-                    voice.name.toLowerCase().includes('man') ||
-                    (!voice.name.toLowerCase().includes('female') && 
-                     !voice.name.toLowerCase().includes('woman') &&
-                     !voice.name.toLowerCase().includes('girl'))
-                );
-                
-                if (selectedVoice) utterance.voice = selectedVoice;
-                utterance.pitch = 1.3;
-                
-                speechSynthesis.speak(utterance);
-            }
-        } catch (error) {
-            // Silent failure
+    playCompletionSound() {
+        if (window.AudioSystem) {
+            window.AudioSystem.playCompletionSound();
+        }
+    }
+
+    playFailureSound() {
+        if (window.AudioSystem) {
+            window.AudioSystem.playFailureSound();
         }
     }
 
@@ -247,7 +176,7 @@ class AddGameController {
     }
 
     giveInactivityHint() {
-        if (!this.audioEnabled || this.buttonsDisabled || this.gameComplete || !this.isTabVisible) return;
+        if (this.buttonsDisabled || this.gameComplete || !this.isTabVisible) return;
         
         // Mark that hint has been given for this question
         this.hintGiven = true;
@@ -255,11 +184,11 @@ class AddGameController {
         // Determine which hint to give based on current flashing box
         let hintText = '';
         if (!this.leftFilled) {
-            hintText = 'Count the number of pictures on the left side'; // Changed from "Try counting..."
+            hintText = 'Count the number of pictures on the left side';
         } else if (!this.rightFilled) {
-            hintText = 'Count the number of pictures on the right side'; // Changed from "Try counting..."
+            hintText = 'Count the number of pictures on the right side';
         } else if (!this.totalFilled) {
-            hintText = 'Count the number of pictures in total'; // Changed from "Try counting..."
+            hintText = 'Count the number of pictures in total';
         }
         
         if (hintText) {
@@ -270,21 +199,6 @@ class AddGameController {
     }
 
     initializeEventListeners() {
-        this.numberButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                if (this.buttonsDisabled) {
-                    return;
-                }
-                
-                // Clear inactivity timer on user interaction
-                this.clearInactivityTimer();
-                this.startInactivityTimer();
-                
-                const selectedNumber = parseInt(e.target.dataset.number);
-                this.handleNumberClick(selectedNumber, e.target);
-            });
-        });
-
         this.playAgainBtn.addEventListener('click', () => {
             this.startNewGame();
         });
@@ -314,12 +228,7 @@ class AddGameController {
         if (this.keyboardBuffer === '1' && digit === 0) {
             // Complete the "10" input
             this.clearKeyboardTimer();
-            const button = Array.from(this.numberButtons).find(btn => 
-                parseInt(btn.dataset.number) === 10
-            );
-            if (button) {
-                this.handleNumberClick(10, button);
-            }
+            this.handleNumberClick(10, null);
             return;
         }
         
@@ -330,12 +239,7 @@ class AddGameController {
         if (digit === 1) {
             // If 1 is a valid answer, process it immediately
             if (this.isDigitValidAnswer(1)) {
-                const button = Array.from(this.numberButtons).find(btn => 
-                    parseInt(btn.dataset.number) === 1
-                );
-                if (button) {
-                    this.handleNumberClick(1, button);
-                }
+                this.handleNumberClick(1, null);
                 return;
             }
             
@@ -345,24 +249,14 @@ class AddGameController {
                 this.keyboardTimer = setTimeout(() => {
                     // Timeout - treat the "1" as an incorrect answer
                     this.clearKeyboardTimer();
-                    const button = Array.from(this.numberButtons).find(btn => 
-                        parseInt(btn.dataset.number) === 1
-                    );
-                    if (button) {
-                        this.handleNumberClick(1, button);
-                    }
+                    this.handleNumberClick(1, null);
                 }, this.keyboardWaitDuration);
                 return;
             }
         }
         
         // Handle normal single digit input for all other digits
-        const button = Array.from(this.numberButtons).find(btn => 
-            parseInt(btn.dataset.number) === digit
-        );
-        if (button) {
-            this.handleNumberClick(digit, button);
-        }
+        this.handleNumberClick(digit, null);
     }
 
     // Check if a digit would be a valid answer for any current empty box
@@ -541,18 +435,18 @@ class AddGameController {
     }
 
     giveStartingSumInstruction() {
-        if (!this.audioEnabled || !this.isTabVisible) return;
+        if (!this.isTabVisible) return;
         
         setTimeout(() => {
             if (this.sumsCompleted === 0) {
                 // First sum
-                this.speakText('Complete the three numbers in the addition sum.'); // Simplified message
+                this.speakText('Complete the three numbers in the addition sum.');
             } else if (this.sumsCompleted === 1) {
                 // Second sum
                 this.speakText('Try again and complete the sum');
             } else {
                 // Third sum onwards
-                this.speakText('Complete the sum'); // New message for 3rd+ sums
+                this.speakText('Complete the sum');
             }
         }, 500);
     }
@@ -610,18 +504,17 @@ class AddGameController {
 
     fillBox(boxType, selectedNumber, buttonElement) {
         // Flash green on correct answer
-        buttonElement.classList.add('correct');
-        setTimeout(() => {
-            buttonElement.classList.remove('correct');
-        }, CONFIG.FLASH_DURATION);
-
-        // Play completion sound
-        if (this.audioEnabled) {
-            this.playCompletionSound();
+        if (buttonElement && window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'correct');
         }
 
+        // Play completion sound
+        this.playCompletionSound();
+
         // Create celebration stars around the button
-        this.createCelebrationStars(buttonElement);
+        if (buttonElement) {
+            this.createCelebrationStars(buttonElement);
+        }
 
         // Fill the appropriate box
         switch (boxType) {
@@ -688,7 +581,7 @@ class AddGameController {
             console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}, new level: ${this.currentLevel}`);
             
             // Give completion audio feedback
-            if (this.audioEnabled && wasFirstAttempt) {
+            if (wasFirstAttempt) {
                 const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
                 const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
                 this.speakText(randomEncouragement);
@@ -751,54 +644,47 @@ class AddGameController {
         this.clearInactivityTimer();
         
         // Play failure sound
-        if (this.audioEnabled) {
-            this.playFailureSound();
-        }
+        this.playFailureSound();
         
         // Give immediate "Try again" message for wrong answer
-        if (this.audioEnabled && this.isTabVisible) {
+        if (this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Try again'); // Simple "Try again" message
+                this.speakText('Try again');
             }, 800); // Give hint after error animation
         }
         
         // Disable buttons during error handling
         this.buttonsDisabled = true;
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(false);
+        }
         
         // Stop flashing during error handling
         this.stopFlashing();
         
         // Flash red on the clicked button
-        buttonElement.classList.add('incorrect');
-        setTimeout(() => {
-            buttonElement.classList.remove('incorrect');
-        }, CONFIG.FLASH_DURATION);
+        if (buttonElement && window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'incorrect');
+        }
 
         // Add crimson cross overlay to the incorrect button
-        const crossOverlay = document.createElement('div');
-        crossOverlay.className = 'cross-overlay';
-        buttonElement.appendChild(crossOverlay);
+        let crossOverlay = null;
+        if (buttonElement && window.ButtonBar) {
+            crossOverlay = window.ButtonBar.addCrossOverlay(buttonElement);
+        }
 
         // Mark that an attempt was made
-        buttonElement.dataset.attempted = 'true';
+        if (buttonElement) {
+            buttonElement.dataset.attempted = 'true';
+        }
         
         // Fade out all other buttons
-        this.numberButtons.forEach(btn => {
-            if (btn !== buttonElement) {
-                btn.style.transition = 'opacity 700ms ease-in-out';
-                btn.style.opacity = '0.1';
-            }
-        });
+        this.fadeOtherButtons(buttonElement);
 
         // After fade out completes, wait, then fade back in
         setTimeout(() => {
             setTimeout(() => {
-                this.numberButtons.forEach(btn => {
-                    if (btn !== buttonElement) {
-                        btn.style.transition = 'opacity 700ms ease-in-out';
-                        btn.style.opacity = '1';
-                    }
-                });
+                this.fadeInAllButtons();
                 
                 // Start fading out the cross
                 if (crossOverlay && crossOverlay.parentNode) {
@@ -809,24 +695,49 @@ class AddGameController {
                 // Clean up after fade in completes
                 setTimeout(() => {
                     // Remove the cross overlay
-                    if (crossOverlay && crossOverlay.parentNode) {
-                        crossOverlay.parentNode.removeChild(crossOverlay);
+                    if (buttonElement && window.ButtonBar) {
+                        window.ButtonBar.removeCrossOverlay(buttonElement);
                     }
-                    
-                    // Clean up transition styles
-                    this.numberButtons.forEach(btn => {
-                        btn.style.transition = '';
-                    });
                 }, 700);
             }, 700);
             
             // Re-enable buttons and restart inactivity timer
             setTimeout(() => {
                 this.buttonsDisabled = false;
+                if (window.ButtonBar) {
+                    window.ButtonBar.setButtonsEnabled(true);
+                }
                 this.startFlashing();
                 this.startInactivityTimer();
             }, 1400);
         }, 700);
+    }
+
+    fadeOtherButtons(excludeButton) {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.buttons.forEach(btn => {
+                if (btn !== excludeButton) {
+                    btn.style.transition = 'opacity 700ms ease-in-out';
+                    btn.style.opacity = '0.1';
+                }
+            });
+        }
+    }
+
+    fadeInAllButtons() {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.buttons.forEach(btn => {
+                btn.style.transition = 'opacity 700ms ease-in-out';
+                btn.style.opacity = '1';
+            });
+            
+            // Clean up transition styles after animation
+            setTimeout(() => {
+                window.ButtonBar.buttons.forEach(btn => {
+                    btn.style.transition = '';
+                });
+            }, 700);
+        }
     }
 
     fadeOutQuestion() {
@@ -867,25 +778,29 @@ class AddGameController {
     }
 
     hasAttemptedAnswer() {
-        return Array.from(this.numberButtons).some(btn => 
-            btn.dataset.attempted === 'true'
-        );
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            return window.ButtonBar.buttons.some(btn => 
+                btn.dataset.attempted === 'true'
+            );
+        }
+        return false;
     }
 
     resetButtonStates() {
         this.buttonsDisabled = false;
-        this.numberButtons.forEach(btn => {
-            btn.dataset.attempted = 'false';
-            btn.classList.remove('correct', 'incorrect');
-            btn.style.opacity = '1';
-            btn.style.transition = '';
-            
-            // Remove any existing cross overlays
-            const crossOverlay = btn.querySelector('.cross-overlay');
-            if (crossOverlay) {
-                crossOverlay.remove();
-            }
-        });
+        
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.setButtonsEnabled(true);
+            window.ButtonBar.buttons.forEach(btn => {
+                btn.dataset.attempted = 'false';
+                btn.classList.remove('correct', 'incorrect');
+                btn.style.opacity = '1';
+                btn.style.transition = '';
+                
+                // Remove any existing cross overlays
+                window.ButtonBar.removeCrossOverlay(btn);
+            });
+        }
     }
 
     completeGame() {
@@ -899,61 +814,16 @@ class AddGameController {
         this.bear.startCelebration();
         
         // Give completion audio message
-        if (this.audioEnabled && this.isTabVisible) {
+        if (this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Well done! You have completed all ten sums! Try again or return to the home page.'); // Simplified message
+                this.speakText('Well done! You have completed all ten sums! Try again or return to the home page.');
             }, 1000);
         }
     }
 
-    playCompletionSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
-            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
-            
-            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.5);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
-    playFailureSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
-            
-            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.3);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
     createCelebrationStars(buttonElement) {
+        if (!buttonElement) return;
+        
         const buttonRect = buttonElement.getBoundingClientRect();
         const centerX = buttonRect.left + buttonRect.width / 2;
         const centerY = buttonRect.top + buttonRect.height / 2;
@@ -994,23 +864,19 @@ class AddGameController {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        if (this.audioContext) {
-            this.audioContext.close();
-        }
-        
-        // Clean up mute button
-        if (this.muteContainer && this.muteContainer.parentNode) {
-            this.muteContainer.parentNode.removeChild(this.muteContainer);
+        if (window.AudioSystem) {
+            window.AudioSystem.stopAllAudio();
         }
         
         // Clean up other resources
         this.rainbow.reset();
         this.bear.reset();
         this.iconRenderer.reset();
+        
+        // Clean up button bar
+        if (window.ButtonBar) {
+            window.ButtonBar.destroy();
+        }
     }
 }
 
