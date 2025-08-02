@@ -96,23 +96,24 @@ class Rainbow {
         // Calculate responsive dimensions
         const maxRadius = (gameAreaWidth * this.config.maxRadiusPercent) / 100;
         const centerY = (gameAreaHeight * this.config.centerYPercent) / 100;
-        const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100; // 3% of game area width
+        const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100;
         
         // Calculate radius for this arc (decreasing from outside to inside)
         const radius = maxRadius - (index * thickness);
         
         if (radius <= 0) return; // Skip if radius would be negative
         
-        // Position and size the arc - SAME center position for all arcs
+        // Position and size the arc - FIXED: All arcs share the same center X position
+        const centerX = gameAreaWidth / 2; // Fixed center position for all arcs
+        
         arc.style.width = `${radius * 2}px`;
         arc.style.height = `${radius}px`; // Height is radius for semicircle
         arc.style.borderTopWidth = `${thickness}px`;
         arc.style.borderRadius = `${radius}px ${radius}px 0 0`;
-        arc.style.left = `50%`;
+        arc.style.left = `${centerX - radius}px`; // Position so center is at fixed centerX
         arc.style.top = `${centerY}px`;
-        arc.style.marginLeft = `-${radius}px`; // Each arc centers itself based on its own radius
         
-        console.log(`🌈 Arc ${index}: radius=${Math.round(radius)}, thickness=${Math.round(thickness)}, centerY=${Math.round(centerY)}, marginLeft=${Math.round(-radius)}`);
+        console.log(`🌈 Arc ${index}: radius=${Math.round(radius)}, thickness=${Math.round(thickness)}, centerX=${Math.round(centerX)}, left=${Math.round(centerX - radius)}`);
     }
     
     initializeArcs() {
@@ -134,11 +135,15 @@ class Rainbow {
         // Calculate responsive dimensions
         const maxRadius = (gameAreaWidth * this.config.maxRadiusPercent) / 100;
         const centerY = (gameAreaHeight * this.config.centerYPercent) / 100;
-        const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100; // 3% of game area width
+        const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100;
+        
+        // FIXED: Calculate fixed center position for all arcs
+        const centerX = gameAreaWidth / 2;
         
         console.log(`🌈 Game area: ${Math.round(gameAreaWidth)} x ${Math.round(gameAreaHeight)}`);
         console.log(`🌈 Max radius: ${Math.round(maxRadius)} (${this.config.maxRadiusPercent}% of width)`);
         console.log(`🌈 Center Y: ${Math.round(centerY)} (${this.config.centerYPercent}% of height)`);
+        console.log(`🌈 Fixed Center X: ${Math.round(centerX)}`);
         console.log(`🌈 Arc thickness: ${Math.round(thickness)} (${this.config.thicknessPercent}% of width)`);
         
         // Create all 10 arcs
@@ -157,15 +162,19 @@ class Rainbow {
             arc.style.height = `${radius}px`; // Height is radius for semicircle
             arc.style.borderTopWidth = `${thickness}px`;
             arc.style.borderTopColor = 'transparent'; // Start transparent
+            arc.style.borderLeftColor = 'transparent';
+            arc.style.borderRightColor = 'transparent';
+            arc.style.borderBottomColor = 'transparent';
+            arc.style.borderStyle = 'solid';
             arc.style.borderRadius = `${radius}px ${radius}px 0 0`;
-            arc.style.left = `50%`;
+            arc.style.left = `${centerX - radius}px`; // FIXED: Position so center is at fixed centerX
             arc.style.top = `${centerY}px`;
-            arc.style.marginLeft = `-${radius}px`; // Each arc centers itself based on its own radius
-            arc.style.opacity = '1'; // Arc is visible but border is transparent
-            arc.style.transform = 'scaleY(1)'; // No scale animation
+            arc.style.background = 'transparent'; // FIXED: Ensure background is transparent
+            arc.style.opacity = '1'; // Element is visible but transparent until border color is set
+            arc.style.transform = 'scaleY(1)';
             arc.style.transformOrigin = 'bottom center';
             arc.style.transition = 'border-top-color 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-            arc.style.pointerEvents = 'none'; // Ensure no interference
+            arc.style.pointerEvents = 'none';
             
             // Store the target color for later use
             arc.dataset.targetColor = this.config.colors[i];
@@ -173,7 +182,7 @@ class Rainbow {
             this.container.appendChild(arc);
             this.arcs.push(arc);
             
-            console.log(`🌈 Created transparent arc ${i}: radius=${Math.round(radius)}, centerPos=${Math.round(-radius)}, color=${this.config.colors[i]}`);
+            console.log(`🌈 Created transparent arc ${i}: radius=${Math.round(radius)}, centerX=${Math.round(centerX)}, left=${Math.round(centerX - radius)}, color=${this.config.colors[i]}`);
         }
         
         // Show the pieces that should already be visible
