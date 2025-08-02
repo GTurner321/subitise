@@ -152,27 +152,38 @@ class AddIconRenderer {
         const positions = [];
         const containerRect = container.getBoundingClientRect();
         
-        // Use CONFIG values if available, otherwise use responsive fallbacks
-        const baseMargin = 40; // Base margin for mobile
-        const margin = Math.max(baseMargin, containerRect.width * 0.08); // 8% of container width, min 40px
+        // Account for container padding (1% on all sides, 6% bottom for sum row)
+        const paddingPercent = 0.01; // 1% padding
+        const bottomPaddingPercent = 0.06; // 6% bottom padding for sum row clearance
         
-        // Calculate adaptive minimum distance: 1.2x icon width (slightly closer for addition game)
+        const horizontalPadding = containerRect.width * paddingPercent;
+        const topPadding = containerRect.height * paddingPercent;
+        const bottomPadding = containerRect.height * bottomPaddingPercent;
+        
+        // Additional responsive margin based on container size
+        const baseMargin = Math.max(20, containerRect.width * 0.04); // 4% of container width, min 20px
+        
+        // Calculate adaptive minimum distance: 1.2x icon width
         const iconSize = containerRect.width * 0.12; // 12% of container width
         const minDistance = iconSize * 1.2; // 1.2x icon width as minimum distance
         
-        console.log(`📏 Using margin: ${Math.round(margin)}, adaptive minDistance: ${Math.round(minDistance)} (1.2x icon size of ${Math.round(iconSize)})`);
-        console.log(`📐 Container size: ${containerRect.width} x ${containerRect.height}`);
+        console.log(`📏 Container padding: H:${Math.round(horizontalPadding)}, T:${Math.round(topPadding)}, B:${Math.round(bottomPadding)}`);
+        console.log(`📏 Using margin: ${Math.round(baseMargin)}, adaptive minDistance: ${Math.round(minDistance)} (1.2x icon size of ${Math.round(iconSize)})`);
+        console.log(`📐 Container size: ${Math.round(containerRect.width)} x ${Math.round(containerRect.height)}`);
         
-        // Calculate usable area for positioning (reduced width for better distribution)
-        const widthReduction = 0.85; // Use 85% of available width
-        const fullUsableWidth = containerRect.width - 2 * margin;
-        const reducedUsableWidth = fullUsableWidth * widthReduction;
-        const horizontalOffset = (fullUsableWidth - reducedUsableWidth) / 2;
+        // Calculate usable area accounting for both padding and margins
+        const totalHorizontalReduction = horizontalPadding * 2 + baseMargin * 2;
+        const totalVerticalReduction = topPadding + bottomPadding + baseMargin * 2;
         
-        const usableWidth = reducedUsableWidth;
-        const usableHeight = containerRect.height - 2 * margin - 120; // Account for sum row
+        const usableWidth = containerRect.width - totalHorizontalReduction;
+        const usableHeight = containerRect.height - totalVerticalReduction;
+        
+        // Starting position accounts for left padding and margin
+        const startX = horizontalPadding + baseMargin;
+        const startY = topPadding + baseMargin;
         
         console.log(`📊 Usable area: ${Math.round(usableWidth)} x ${Math.round(usableHeight)}`);
+        console.log(`📍 Start position: (${Math.round(startX)}, ${Math.round(startY)})`);
         
         const maxAttempts = 200;
         let totalRandomSuccess = 0;
@@ -186,9 +197,9 @@ class AddIconRenderer {
             console.log(`\n🎯 Finding position for icon ${i} in ${container.id}`);
             
             while (!validPosition && attempts < maxAttempts) {
-                // Generate RANDOM position within reduced usable bounds
-                x = margin + horizontalOffset + Math.random() * usableWidth;
-                y = margin + Math.random() * usableHeight;
+                // Generate RANDOM position within usable bounds
+                x = startX + Math.random() * usableWidth;
+                y = startY + Math.random() * usableHeight;
                 
                 // Check if position is far enough from existing positions using ADAPTIVE distance
                 validPosition = true;
@@ -211,7 +222,7 @@ class AddIconRenderer {
             
             if (!validPosition) {
                 console.log(`❌ FALLBACK: Using grid position for icon ${i} after ${attempts} attempts`);
-                const fallbackPos = this.getFallbackPosition(i, count, containerRect, margin, horizontalOffset, usableWidth, usableHeight);
+                const fallbackPos = this.getFallbackPosition(i, count, containerRect, startX, startY, usableWidth, usableHeight);
                 x = fallbackPos.x;
                 y = fallbackPos.y;
                 totalFallbackUsed++;
@@ -232,7 +243,7 @@ class AddIconRenderer {
     }
 
     // Grid-based fallback positioning when random fails
-    getFallbackPosition(index, totalCount, containerRect, margin, horizontalOffset, usableWidth, usableHeight) {
+    getFallbackPosition(index, totalCount, containerRect, startX, startY, usableWidth, usableHeight) {
         // Create a simple grid based on the number of icons
         const cols = Math.ceil(Math.sqrt(totalCount));
         const rows = Math.ceil(totalCount / cols);
@@ -244,8 +255,8 @@ class AddIconRenderer {
         const col = index % cols;
         
         // Position icon in center of its grid cell with some randomness
-        const cellCenterX = margin + horizontalOffset + col * cellWidth + cellWidth / 2;
-        const cellCenterY = margin + row * cellHeight + cellHeight / 2;
+        const cellCenterX = startX + col * cellWidth + cellWidth / 2;
+        const cellCenterY = startY + row * cellHeight + cellHeight / 2;
         
         // Add small random offset within the cell (but not too close to edges)
         const offsetRange = Math.min(cellWidth, cellHeight) * 0.3;
