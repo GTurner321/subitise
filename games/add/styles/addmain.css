@@ -1,10 +1,16 @@
 /* Addition Game - Specific Styles Only */
 /* Universal styles removed - handled by main.css and universal systems */
 
-/* Game area sections layout */
+/* Game area sections layout with initial fade state */
 .game-area {
     display: flex;
     align-items: stretch;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+}
+
+.game-area.loaded {
+    opacity: 1;
 }
 
 /* Left side for icons - 46% of game area width */
@@ -14,7 +20,7 @@
     height: 100%;
     border-right: 2px dashed #ddd;
     transition: background-color 0.2s ease;
-    padding: 1% 1% 6% 1%; /* Top, Right, Bottom (6% for sum row clearance), Left padding */
+    padding: 1% 1% 0 1%; /* Top, Right, Bottom (0 - calculated dynamically), Left padding */
     box-sizing: border-box;
 }
 
@@ -34,30 +40,31 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Responsive sizing: 6.5% of game area width */
+    /* Red circle: 6.5% of game area width */
     width: 6.5vw;
     height: 6.5vw;
-    max-width: 80px; /* Reasonable maximum */
-    max-height: 80px;
-    min-width: 40px; /* Reasonable minimum */
-    min-height: 40px;
+    max-width: 70px; /* Reasonable maximum */
+    max-height: 70px;
+    min-width: 35px; /* Reasonable minimum */
+    min-height: 35px;
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    animation: pulse 2s ease-in-out infinite;
+    /* Remove pulse animation */
     z-index: 10; /* Higher than rainbow */
     position: relative;
 }
 
 .plus-sign i {
-    /* Responsive font size based on container */
-    font-size: calc(6.5vw * 0.5); /* 50% of container width */
-    max-font-size: 40px;
-    min-font-size: 20px;
+    /* Smaller plus symbol: 40% of container width */
+    font-size: calc(6.5vw * 0.4);
+    max-font-size: 28px;
+    min-font-size: 14px;
     color: white;
     font-weight: bold;
 }
 
+/* Remove pulse animation */
 @keyframes pulse {
     0%, 100% {
         transform: scale(1);
@@ -76,7 +83,7 @@
     height: 100%;
     border-left: 2px dashed #ddd;
     transition: background-color 0.2s ease;
-    padding: 1% 1% 6% 1%; /* Top, Right, Bottom (6% for sum row clearance), Left padding */
+    padding: 1% 1% 0 1%; /* Top, Right, Bottom (0 - calculated dynamically), Left padding */
     box-sizing: border-box;
 }
 
@@ -129,18 +136,24 @@
     gap: 2%; /* Responsive gap */
     z-index: 15; /* Higher than everything else */
     
-    /* Responsive sizing: 60% of game area width, height 9% of game area width */
-    width: 60%;
-    height: 9vw;
-    max-height: 100px; /* Reasonable maximum */
-    min-height: 60px; /* Reasonable minimum */
+    /* Responsive sizing: 54% of game area width, height based on 6% boxes */
+    width: 54%;
+    height: calc(6vw + 2vh); /* Box height + internal padding */
+    max-height: 80px; /* Reasonable maximum */
+    min-height: 50px; /* Reasonable minimum */
     
     background: rgba(255, 255, 255, 0.95);
-    padding: 1% 2%; /* Top/bottom 1% of game area height, left/right 2% */
+    padding: 1vh 2%; /* 1% of game area height top/bottom, 2% left/right */
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 2px solid #e0e0e0;
     box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+}
+
+.sum-row.loaded {
+    opacity: 1;
 }
 
 /* Prevent sum row from fading */
@@ -154,12 +167,12 @@
 .sum-plus-sign,
 .sum-equals-sign {
     /* Responsive font size based on sum row height */
-    font-size: calc(9vw * 0.3); /* 30% of sum row height */
-    max-font-size: 30px;
-    min-font-size: 18px;
+    font-size: calc(6vw * 0.3); /* 30% of box height */
+    max-font-size: 24px;
+    min-font-size: 15px;
     font-weight: bold;
     color: #333;
-    min-width: calc(9vw * 0.4); /* 40% of sum row height */
+    min-width: calc(6vw * 0.4); /* 40% of box height */
     text-align: center;
     flex-shrink: 0; /* Prevent shrinking */
 }
@@ -167,13 +180,13 @@
 .left-sum-box,
 .right-sum-box,
 .total-sum-box {
-    /* Square boxes: 9% of game area width for both width and height */
-    width: 9vw;
-    height: 9vw;
-    max-width: 100px;
-    max-height: 100px;
-    min-width: 60px;
-    min-height: 60px;
+    /* Square boxes: 6% of game area width for both width and height */
+    width: 6vw;
+    height: 6vw;
+    max-width: 70px;
+    max-height: 70px;
+    min-width: 45px;
+    min-height: 45px;
     flex-shrink: 0; /* Prevent shrinking */
 }
 
@@ -187,9 +200,9 @@
     justify-content: center;
     
     /* Responsive font size based on box size */
-    font-size: calc(9vw * 0.25); /* 25% of box width */
-    max-font-size: 25px;
-    min-font-size: 16px;
+    font-size: calc(6vw * 0.25); /* 25% of box width */
+    max-font-size: 18px;
+    min-font-size: 12px;
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
@@ -215,6 +228,56 @@
 
 @keyframes flashingBox {
     0%, 100% {
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 12px 35px rgba(0, 123, 255, 0.6);
+        transform: scale(1.05);
+    }
+}
+
+.check-mark {
+    /* Responsive size based on sum row */
+    font-size: calc(6vw * 0.3); /* 30% of box height */
+    max-font-size: 24px;
+    min-font-size: 15px;
+    color: #28a745;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    min-width: calc(6vw * 0.5); /* 50% of box height */
+    text-align: center;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.check-mark.visible {
+    opacity: 1;
+}%, 100% {
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 12px 35px rgba(0, 123, 255, 0.6);
+        transform: scale(1.05);
+    }
+}
+
+.check-mark {
+    /* Responsive size based on sum row */
+    font-size: calc(6vw * 0.3); /* 30% of box height */
+    max-font-size: 24px;
+    min-font-size: 15px;
+    color: #28a745;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    min-width: calc(6vw * 0.5); /* 50% of box height */
+    text-align: center;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.check-mark.visible {
+    opacity: 1;
+}%, 100% {
         box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
         transform: scale(1);
     }
