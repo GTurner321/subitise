@@ -39,6 +39,9 @@ class AddGameController {
         this.flashingInterval = null;
         this.flashingTimeout = null;
         
+        // Loading state
+        this.isLoading = true;
+        
         // DOM elements
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
@@ -49,6 +52,7 @@ class AddGameController {
         this.checkMark = document.getElementById('checkMark');
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
+        this.gameArea = document.querySelector('.game-area');
         
         // Level definitions
         this.levels = {
@@ -63,7 +67,62 @@ class AddGameController {
         this.initializeEventListeners();
         this.createButtons();
         this.setupVisibilityHandling();
-        this.startNewQuestion();
+        
+        // Start the loading sequence
+        this.initializeGame();
+    }
+
+    initializeGame() {
+        console.log('🎮 Starting game initialization with loading sequence');
+        
+        // Hide all elements initially
+        this.hideAllElements();
+        
+        // Wait 1 second for calculations, then start fade-in
+        setTimeout(() => {
+            console.log('🎮 Starting fade-in sequence');
+            this.showAllElements();
+            this.isLoading = false;
+            
+            // Start the first question after fade-in completes
+            setTimeout(() => {
+                this.startNewQuestion();
+            }, 1000); // Wait for fade-in to complete
+            
+        }, 1000); // 1 second loading delay
+    }
+
+    hideAllElements() {
+        // Set initial opacity to 0 for all major elements
+        if (this.gameArea) this.gameArea.classList.remove('loaded');
+        if (this.sumRow) this.sumRow.classList.remove('loaded');
+        
+        // Hide button bar
+        const buttonBar = document.querySelector('.number-buttons');
+        if (buttonBar) {
+            buttonBar.style.opacity = '0';
+        }
+    }
+
+    showAllElements() {
+        // Fade in game area
+        if (this.gameArea) {
+            this.gameArea.classList.add('loaded');
+        }
+        
+        // Fade in sum row
+        if (this.sumRow) {
+            this.sumRow.classList.add('loaded');
+        }
+        
+        // Fade in button bar
+        const buttonBar = document.querySelector('.number-buttons');
+        if (buttonBar) {
+            buttonBar.style.transition = 'opacity 1s ease-in-out';
+            buttonBar.style.opacity = '1';
+        }
+        
+        console.log('🎮 All elements faded in');
     }
 
     createButtons() {
@@ -435,7 +494,8 @@ class AddGameController {
     }
 
     giveStartingSumInstruction() {
-        if (!this.isTabVisible) return;
+        // Don't give audio during loading
+        if (this.isLoading || !this.isTabVisible) return;
         
         setTimeout(() => {
             if (this.sumsCompleted === 0) {
@@ -448,7 +508,7 @@ class AddGameController {
                 // Third sum onwards
                 this.speakText('Complete the sum');
             }
-        }, 500);
+        }, 1500); // Extra delay to ensure fade-in is complete
     }
 
     hideAllInputBoxes() {
