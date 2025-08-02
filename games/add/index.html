@@ -7,6 +7,19 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="styles/addmain.css">
+    <style>
+        /* Override any main.css rainbow styles that might interfere */
+        .rainbow-arc {
+            border-style: solid !important;
+            border-left: 0 !important;
+            border-right: 0 !important;
+            border-bottom: 0 !important;
+            box-sizing: border-box !important;
+            pointer-events: none !important;
+            /* Remove any default colors or opacity from main.css */
+            border-top-color: transparent !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Back to games navigation - styling handled by universal audio system -->
