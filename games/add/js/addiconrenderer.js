@@ -1,12 +1,16 @@
-console.log('🔍 LOADING SIMPLIFIED ADD ICONRENDERER - Fixed positioning system');
+console.log('🔍 LOADING SIMPLIFIED ADD ICONRENDERER - Fixed positioning with ButtonBar coordination');
 
 class AddIconRenderer {
     constructor() {
-        console.log('AddIconRenderer constructor - using simplified positioning system');
+        console.log('AddIconRenderer constructor - using simplified positioning system with ButtonBar coordination');
         this.gameArea = document.querySelector('.game-area');
         this.currentIcons = [];
         this.previousIcon = null;
         this.previousColor = null;
+        
+        // ButtonBar coordination
+        this.buttonBarReady = false;
+        this.pendingRender = null;
         
         // Game area boundaries (as percentages of full game area)
         this.boundaries = {
@@ -23,7 +27,39 @@ class AddIconRenderer {
         // Minimum distance between icon centers (12% of game area width)
         this.minDistancePercent = 12;
         
+        this.setupButtonBarCoordination();
         this.setupResizeHandling();
+    }
+
+    setupButtonBarCoordination() {
+        // Register with ButtonBar to be notified of dimension changes
+        if (window.ButtonBar) {
+            window.ButtonBar.addObserver((dimensionData) => {
+                console.log('🎯 ButtonBar dimensions updated, marking as ready');
+                this.buttonBarReady = true;
+                
+                // If we have a pending render, execute it now
+                if (this.pendingRender) {
+                    console.log('🎮 Executing pending render with proper game area dimensions');
+                    const { leftCount, rightCount } = this.pendingRender;
+                    this.pendingRender = null;
+                    this.renderIcons(leftCount, rightCount);
+                } else if (this.currentIcons.length > 0) {
+                    // Update existing icon positions
+                    this.updateIconSizesAndPositions();
+                }
+            });
+        } else {
+            // ButtonBar not ready yet, wait for it
+            const checkButtonBar = () => {
+                if (window.ButtonBar) {
+                    this.setupButtonBarCoordination();
+                } else {
+                    setTimeout(checkButtonBar, 100);
+                }
+            };
+            setTimeout(checkButtonBar, 100);
+        }
     }
 
     setupResizeHandling() {
@@ -33,7 +69,9 @@ class AddIconRenderer {
                 clearTimeout(this.resizeTimeout);
             }
             this.resizeTimeout = setTimeout(() => {
-                this.updateIconSizesAndPositions();
+                if (this.buttonBarReady) {
+                    this.updateIconSizesAndPositions();
+                }
             }, 100);
         });
     }
@@ -234,6 +272,13 @@ class AddIconRenderer {
     renderIcons(leftCount, rightCount) {
         console.log(`🎮 === RENDERING ${leftCount} + ${rightCount} ICONS ===`);
         
+        // Check if ButtonBar is ready with proper dimensions
+        if (!this.buttonBarReady) {
+            console.log('⏳ ButtonBar not ready - storing render request for later');
+            this.pendingRender = { leftCount, rightCount };
+            return;
+        }
+        
         this.clearIcons();
         
         if (!this.gameArea) {
@@ -241,6 +286,13 @@ class AddIconRenderer {
             return;
         }
         
+        // Wait a small amount for any layout changes to settle
+        setTimeout(() => {
+            this.doActualRender(leftCount, rightCount);
+        }, 50);
+    }
+
+    doActualRender(leftCount, rightCount) {
         // Choose one icon type and color for all icons
         const iconClass = this.getRandomIcon();
         const iconColor = this.getRandomColor();
@@ -312,6 +364,8 @@ class AddIconRenderer {
     reset() {
         this.previousIcon = null;
         this.previousColor = null;
+        this.buttonBarReady = false;
+        this.pendingRender = null;
         this.clearIcons();
     }
     
@@ -347,6 +401,11 @@ class AddIconRenderer {
         if (this.resizeTimeout) {
             clearTimeout(this.resizeTimeout);
             this.resizeTimeout = null;
+        }
+        
+        // Remove from ButtonBar observers
+        if (window.ButtonBar) {
+            window.ButtonBar.removeObserver(this.updateIconSizesAndPositions);
         }
         
         window.removeEventListener('resize', this.handleResize);
