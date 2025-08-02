@@ -20,7 +20,8 @@
     height: 100%;
     border-right: 2px dashed #ddd;
     transition: background-color 0.2s ease;
-    padding: 1% 1% 0 1%; /* Top, Right, Bottom (0 - calculated dynamically), Left padding */
+    /* Updated padding: Add bottom clearance for sum bar + button bar */
+    padding: 1% 1% calc(7vw + 2vh + 8vh) 1%; /* Top, Right, Bottom (sum bar + extra clearance), Left */
     box-sizing: border-box;
 }
 
@@ -83,7 +84,8 @@
     height: 100%;
     border-left: 2px dashed #ddd;
     transition: background-color 0.2s ease;
-    padding: 1% 1% 0 1%; /* Top, Right, Bottom (0 - calculated dynamically), Left padding */
+    /* Updated padding: Add bottom clearance for sum bar + button bar */
+    padding: 1% 1% calc(7vw + 2vh + 8vh) 1%; /* Top, Right, Bottom (sum bar + extra clearance), Left */
     box-sizing: border-box;
 }
 
@@ -136,8 +138,8 @@
     gap: 2%; /* Responsive gap */
     z-index: 15; /* Higher than everything else */
     
-    /* Responsive sizing: 52% of game area width, height based on 7% boxes */
-    width: 52%;
+    /* Updated: Reduced width from 52% to 50% */
+    width: 50%;
     height: calc(7vw + 2vh); /* Box height + internal padding */
     max-height: 90px; /* Reasonable maximum */
     min-height: 55px; /* Reasonable minimum */
@@ -166,10 +168,10 @@
 
 .sum-plus-sign,
 .sum-equals-sign {
-    /* Responsive font size: doubled from 30% to 60% of box height */
-    font-size: calc(7vw * 0.6); /* 60% of box height */
-    max-font-size: 48px;
-    min-font-size: 30px;
+    /* Updated: Reduced font size by 20% from 60% to 48% of box height */
+    font-size: calc(7vw * 0.48); /* 48% of box height (was 60%) */
+    max-font-size: 38px; /* Reduced from 48px */
+    min-font-size: 24px; /* Reduced from 30px */
     font-weight: bold;
     color: #333;
     min-width: calc(7vw * 0.4); /* 40% of box height */
@@ -199,10 +201,10 @@
     align-items: center;
     justify-content: center;
     
-    /* Responsive font size: doubled from 25% to 50% of box width */
-    font-size: calc(7vw * 0.5); /* 50% of box width */
-    max-font-size: 40px;
-    min-font-size: 25px;
+    /* Updated: Reduced font size by 20% from 50% to 40% of box width */
+    font-size: calc(7vw * 0.4); /* 40% of box width (was 50%) */
+    max-font-size: 32px; /* Reduced from 40px */
+    min-font-size: 20px; /* Reduced from 25px */
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
@@ -238,64 +240,14 @@
 }
 
 .check-mark {
-    /* Responsive size: doubled from 30% to 60% of box height */
-    font-size: calc(7vw * 0.6); /* 60% of box height */
-    max-font-size: 48px;
-    min-font-size: 30px;
+    /* Updated: Reduced font size by 20% from 60% to 48% of box height */
+    font-size: calc(7vw * 0.48); /* 48% of box height (was 60%) */
+    max-font-size: 38px; /* Reduced from 48px */
+    min-font-size: 24px; /* Reduced from 30px */
     color: #28a745;
     opacity: 0;
     transition: opacity 0.5s ease;
     min-width: calc(7vw * 0.5); /* 50% of box height */
-    text-align: center;
-    flex-shrink: 0; /* Prevent shrinking */
-}
-
-.check-mark.visible {
-    opacity: 1;
-}%, 100% {
-        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
-        transform: scale(1);
-    }
-    50% {
-        box-shadow: 0 12px 35px rgba(0, 123, 255, 0.6);
-        transform: scale(1.05);
-    }
-}
-
-.check-mark {
-    /* Responsive size based on sum row */
-    font-size: calc(6vw * 0.3); /* 30% of box height */
-    max-font-size: 24px;
-    min-font-size: 15px;
-    color: #28a745;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-    min-width: calc(6vw * 0.5); /* 50% of box height */
-    text-align: center;
-    flex-shrink: 0; /* Prevent shrinking */
-}
-
-.check-mark.visible {
-    opacity: 1;
-}%, 100% {
-        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
-        transform: scale(1);
-    }
-    50% {
-        box-shadow: 0 12px 35px rgba(0, 123, 255, 0.6);
-        transform: scale(1.05);
-    }
-}
-
-.check-mark {
-    /* Responsive size based on sum row */
-    font-size: calc(9vw * 0.3); /* 30% of sum row height */
-    max-font-size: 30px;
-    min-font-size: 18px;
-    color: #28a745;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-    min-width: calc(9vw * 0.5); /* 50% of sum row height */
     text-align: center;
     flex-shrink: 0; /* Prevent shrinking */
 }
@@ -369,20 +321,23 @@
     }
     
     .input-box {
-        font-size: calc(8vw * 0.25);
-        min-font-size: 14px;
+        /* Updated: Reduced by 20% */
+        font-size: calc(8vw * 0.2); /* Was 0.25 */
+        min-font-size: 11px; /* Reduced from 14px */
     }
     
     .sum-plus-sign,
     .sum-equals-sign {
-        font-size: calc(8vw * 0.3);
-        min-font-size: 16px;
+        /* Updated: Reduced by 20% */
+        font-size: calc(8vw * 0.24); /* Was 0.3 */
+        min-font-size: 13px; /* Reduced from 16px */
         min-width: calc(8vw * 0.4);
     }
     
     .check-mark {
-        font-size: calc(8vw * 0.3);
-        min-font-size: 16px;
+        /* Updated: Reduced by 20% */
+        font-size: calc(8vw * 0.24); /* Was 0.3 */
+        min-font-size: 13px; /* Reduced from 16px */
         min-width: calc(8vw * 0.5);
     }
 }
@@ -416,21 +371,24 @@
     }
     
     .input-box {
-        font-size: calc(7vw * 0.25);
-        min-font-size: 12px;
+        /* Updated: Reduced by 20% */
+        font-size: calc(7vw * 0.2); /* Was 0.25 */
+        min-font-size: 10px; /* Reduced from 12px */
         border-radius: 12px;
     }
     
     .sum-plus-sign,
     .sum-equals-sign {
-        font-size: calc(7vw * 0.3);
-        min-font-size: 14px;
+        /* Updated: Reduced by 20% */
+        font-size: calc(7vw * 0.24); /* Was 0.3 */
+        min-font-size: 11px; /* Reduced from 14px */
         min-width: calc(7vw * 0.4);
     }
     
     .check-mark {
-        font-size: calc(7vw * 0.3);
-        min-font-size: 14px;
+        /* Updated: Reduced by 20% */
+        font-size: calc(7vw * 0.24); /* Was 0.3 */
+        min-font-size: 11px; /* Reduced from 14px */
         min-width: calc(7vw * 0.5);
     }
 }
@@ -464,17 +422,20 @@
     }
     
     .input-box {
-        font-size: 2rem;
+        /* Updated: Reduced by 20% */
+        font-size: 1.6rem; /* Was 2rem */
     }
     
     .sum-plus-sign,
     .sum-equals-sign {
-        font-size: 2rem;
+        /* Updated: Reduced by 20% */
+        font-size: 1.6rem; /* Was 2rem */
         min-width: 30px;
     }
     
     .check-mark {
-        font-size: 2rem;
+        /* Updated: Reduced by 20% */
+        font-size: 1.6rem; /* Was 2rem */
         min-width: 40px;
     }
 }
@@ -507,18 +468,21 @@
     }
     
     .input-box {
-        font-size: 1.8rem;
+        /* Updated: Reduced by 20% */
+        font-size: 1.44rem; /* Was 1.8rem */
         border-radius: 12px;
     }
     
     .sum-plus-sign,
     .sum-equals-sign {
-        font-size: 1.8rem;
+        /* Updated: Reduced by 20% */
+        font-size: 1.44rem; /* Was 1.8rem */
         min-width: 25px;
     }
     
     .check-mark {
-        font-size: 1.8rem;
+        /* Updated: Reduced by 20% */
+        font-size: 1.44rem; /* Was 1.8rem */
         min-width: 35px;
     }
 }
