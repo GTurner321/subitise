@@ -1,4 +1,4 @@
-console.log('🔍 LOADING ADD ICONRENDERER FILE - Enhanced version with adaptive distance and responsive sizing');
+console.log('🔍 LOADING ADD ICONRENDERER FILE - Enhanced version with proper bottom clearance and icon padding');
 
 class AddIconRenderer {
     constructor() {
@@ -72,7 +72,7 @@ class AddIconRenderer {
             this.rightSide.contains(icon)
         );
         
-        // Regenerate positions for each side
+        // Regenerate positions for each side with proper sum row clearance
         if (leftIcons.length > 0) {
             const leftPositions = this.generateNonOverlappingPositions(leftIcons.length, this.leftSide);
             leftIcons.forEach((icon, index) => {
@@ -151,39 +151,43 @@ class AddIconRenderer {
         
         const positions = [];
         const containerRect = container.getBoundingClientRect();
+        const gameAreaRect = this.leftSide.parentElement.getBoundingClientRect();
         
-        // Account for container padding (1% on all sides, 6% bottom for sum row)
-        const paddingPercent = 0.01; // 1% padding
-        const bottomPaddingPercent = 0.06; // 6% bottom padding for sum row clearance
+        // Calculate sum row height dynamically (7vw boxes + 2vh padding + borders + clearance)
+        const sumRowHeight = (gameAreaRect.width * 0.07) + (window.innerHeight * 0.02) + 20; // 7vw boxes
+        const sumRowClearance = gameAreaRect.height * 0.03; // 3% clearance above sum row
+        const totalBottomReduction = sumRowHeight + sumRowClearance;
         
-        const horizontalPadding = containerRect.width * paddingPercent;
-        const topPadding = containerRect.height * paddingPercent;
-        const bottomPadding = containerRect.height * bottomPaddingPercent;
+        // Icon size for padding calculation (12% of container width)
+        const iconSize = containerRect.width * 0.12;
         
-        // Additional responsive margin based on container size
-        const baseMargin = Math.max(20, containerRect.width * 0.04); // 4% of container width, min 20px
+        // Padding: 100% of icon size on all sides
+        const iconPadding = iconSize;
         
-        // Calculate adaptive minimum distance: 1.2x icon width
-        const iconSize = containerRect.width * 0.12; // 12% of container width
-        const minDistance = iconSize * 1.2; // 1.2x icon width as minimum distance
-        
-        console.log(`📏 Container padding: H:${Math.round(horizontalPadding)}, T:${Math.round(topPadding)}, B:${Math.round(bottomPadding)}`);
-        console.log(`📏 Using margin: ${Math.round(baseMargin)}, adaptive minDistance: ${Math.round(minDistance)} (1.2x icon size of ${Math.round(iconSize)})`);
+        console.log(`📏 Icon size: ${Math.round(iconSize)}, padding: ${Math.round(iconPadding)} (100% of icon size)`);
+        console.log(`📏 Sum row height: ${Math.round(sumRowHeight)}, clearance: ${Math.round(sumRowClearance)}`);
+        console.log(`📏 Total bottom reduction: ${Math.round(totalBottomReduction)}`);
         console.log(`📐 Container size: ${Math.round(containerRect.width)} x ${Math.round(containerRect.height)}`);
         
-        // Calculate usable area accounting for both padding and margins
-        const totalHorizontalReduction = horizontalPadding * 2 + baseMargin * 2;
-        const totalVerticalReduction = topPadding + bottomPadding + baseMargin * 2;
+        // Calculate usable area with icon padding and bottom clearance
+        const usableWidth = containerRect.width - (iconPadding * 2); // Left + right padding
+        const usableHeight = containerRect.height - iconPadding - totalBottomReduction; // Top padding + bottom clearance
         
-        const usableWidth = containerRect.width - totalHorizontalReduction;
-        const usableHeight = containerRect.height - totalVerticalReduction;
+        // Starting position accounts for icon padding
+        const startX = iconPadding;
+        const startY = iconPadding;
         
-        // Starting position accounts for left padding and margin
-        const startX = horizontalPadding + baseMargin;
-        const startY = topPadding + baseMargin;
+        // Calculate adaptive minimum distance: 1.2x icon width
+        const minDistance = iconSize * 1.2;
         
+        console.log(`📏 Adaptive minDistance: ${Math.round(minDistance)} (1.2x icon size)`);
         console.log(`📊 Usable area: ${Math.round(usableWidth)} x ${Math.round(usableHeight)}`);
         console.log(`📍 Start position: (${Math.round(startX)}, ${Math.round(startY)})`);
+        
+        if (usableHeight <= 0 || usableWidth <= 0) {
+            console.warn(`⚠️ Invalid usable area: ${Math.round(usableWidth)} x ${Math.round(usableHeight)}`);
+            return [];
+        }
         
         const maxAttempts = 200;
         let totalRandomSuccess = 0;
@@ -201,15 +205,13 @@ class AddIconRenderer {
                 x = startX + Math.random() * usableWidth;
                 y = startY + Math.random() * usableHeight;
                 
-                // Check if position is far enough from existing positions using ADAPTIVE distance
+                // Check if position is far enough from existing positions
                 validPosition = true;
-                let closestDistance = Infinity;
                 
                 for (let pos of positions) {
                     const distance = Math.sqrt(
                         Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2)
                     );
-                    closestDistance = Math.min(closestDistance, distance);
                     
                     if (distance < minDistance) {
                         validPosition = false;
@@ -222,7 +224,7 @@ class AddIconRenderer {
             
             if (!validPosition) {
                 console.log(`❌ FALLBACK: Using grid position for icon ${i} after ${attempts} attempts`);
-                const fallbackPos = this.getFallbackPosition(i, count, containerRect, startX, startY, usableWidth, usableHeight);
+                const fallbackPos = this.getFallbackPosition(i, count, startX, startY, usableWidth, usableHeight);
                 x = fallbackPos.x;
                 y = fallbackPos.y;
                 totalFallbackUsed++;
@@ -243,7 +245,7 @@ class AddIconRenderer {
     }
 
     // Grid-based fallback positioning when random fails
-    getFallbackPosition(index, totalCount, containerRect, startX, startY, usableWidth, usableHeight) {
+    getFallbackPosition(index, totalCount, startX, startY, usableWidth, usableHeight) {
         // Create a simple grid based on the number of icons
         const cols = Math.ceil(Math.sqrt(totalCount));
         const rows = Math.ceil(totalCount / cols);
@@ -254,11 +256,11 @@ class AddIconRenderer {
         const row = Math.floor(index / cols);
         const col = index % cols;
         
-        // Position icon in center of its grid cell with some randomness
+        // Position icon in center of its grid cell with random offset
         const cellCenterX = startX + col * cellWidth + cellWidth / 2;
         const cellCenterY = startY + row * cellHeight + cellHeight / 2;
         
-        // Add small random offset within the cell (but not too close to edges)
+        // Add small random offset within the cell (30% of cell size)
         const offsetRange = Math.min(cellWidth, cellHeight) * 0.3;
         const offsetX = (Math.random() - 0.5) * offsetRange;
         const offsetY = (Math.random() - 0.5) * offsetRange;
@@ -280,7 +282,7 @@ class AddIconRenderer {
             return;
         }
         
-        // Choose one icon type and color for all icons in this round (avoiding consecutive repeats)
+        // Choose one icon type and color for all icons in this round
         const iconClass = this.getRandomIcon();
         const iconColor = this.getRandomColor();
         
@@ -369,12 +371,12 @@ class AddIconRenderer {
         return { left: leftCount, right: rightCount, total: leftCount + rightCount };
     }
 
-    // Helper method to get current icon count (for verification)
+    // Helper method to get current icon count
     getCurrentCount() {
         return this.currentIcons.length;
     }
 
-    // Reset method to clear previous choices (useful for new games)
+    // Reset method to clear previous choices
     reset() {
         this.previousIcon = null;
         this.previousColor = null;
@@ -386,7 +388,6 @@ class AddIconRenderer {
         this.currentIcons.forEach(icon => {
             icon.style.animation = 'iconJiggle 0.5s ease-in-out';
             
-            // Remove animation class after animation completes
             setTimeout(() => {
                 icon.style.animation = '';
             }, 500);
@@ -399,11 +400,10 @@ class AddIconRenderer {
             setTimeout(() => {
                 icon.style.filter = 'drop-shadow(0 0 10px #ffd700)';
                 
-                // Remove highlight after 2 seconds
                 setTimeout(() => {
                     icon.style.filter = '';
                 }, 2000);
-            }, index * 100); // Stagger the highlighting
+            }, index * 100);
         });
     }
     
