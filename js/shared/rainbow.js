@@ -1,8 +1,8 @@
-console.log('🌈 LOADING RESPONSIVE RAINBOW FILE - Fixed transparency and centering');
+console.log('🌈 LOADING RESPONSIVE RAINBOW FILE - Simple SVG arc approach');
 
 class Rainbow {
     constructor() {
-        console.log('Rainbow constructor - responsive sizing with proper transparency');
+        console.log('Rainbow constructor - simple SVG arcs with stroke thickness');
         this.container = document.getElementById('rainbowContainer');
         this.gameArea = document.querySelector('.game-area');
         this.pieces = 0;
@@ -15,7 +15,7 @@ class Rainbow {
             maxRadiusPercent: 42,
             // Center 3% of game area width from the bottom
             centerFromBottomPercent: 3,
-            // Arc thickness: 2% of game area width (reduced from 3%)
+            // Arc thickness: 2% of game area width
             thicknessPercent: 2,
             // Default transparency for arcs (30% opaque = 0.3 opacity)
             defaultOpacity: 0.3,
@@ -86,50 +86,25 @@ class Rainbow {
         
         console.log('🌈 Updating rainbow dimensions for responsive behavior');
         
-        // Recalculate all arc dimensions
-        this.arcs.forEach((arc, index) => {
-            if (arc) {
-                this.updateSingleArcDimensions(arc, index);
-            }
-        });
+        // Clear and recreate all arcs with new dimensions
+        this.initializeArcs();
     }
     
-    updateSingleArcDimensions(arc, index) {
-        const gameAreaRect = this.gameArea.getBoundingClientRect();
-        const gameAreaWidth = gameAreaRect.width;
-        const gameAreaHeight = gameAreaRect.height;
+    createArcPath(centerX, centerY, radius, startAngle, endAngle) {
+        // Convert angles to radians
+        const startRad = (startAngle * Math.PI) / 180;
+        const endRad = (endAngle * Math.PI) / 180;
         
-        // Calculate responsive dimensions based on game area width
-        const maxRadius = (gameAreaWidth * this.config.maxRadiusPercent) / 100;
-        const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100;
-        const centerFromBottom = (gameAreaWidth * this.config.centerFromBottomPercent) / 100;
+        // Calculate start and end points
+        const startX = centerX + radius * Math.cos(startRad);
+        const startY = centerY + radius * Math.sin(startRad);
+        const endX = centerX + radius * Math.cos(endRad);
+        const endY = centerY + radius * Math.sin(endRad);
         
-        // Calculate outer and inner radius for this arc
-        const outerRadius = maxRadius - (index * thickness);
-        const innerRadius = outerRadius - thickness;
+        // Create arc path
+        const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
         
-        if (outerRadius <= 0) return; // Skip if radius would be negative
-        
-        // Position arc center at fixed position from bottom
-        const centerX = gameAreaWidth / 2; // Horizontal center
-        const centerY = gameAreaHeight - centerFromBottom; // Fixed distance from bottom
-        
-        // Calculate the mask for 150-degree arc
-        const startAngle = 15; // 15 degrees from left (105 degrees from north)
-        const endAngle = 165; // 165 degrees from left (75 degrees from north)
-        
-        // Position the main arc container
-        arc.style.left = `${centerX - outerRadius}px`;
-        arc.style.top = `${centerY - outerRadius}px`;
-        arc.style.width = `${outerRadius * 2}px`;
-        arc.style.height = `${outerRadius}px`;
-        
-        // Create conic gradient mask for 150-degree arc
-        const maskImage = `conic-gradient(from ${startAngle}deg at 50% 100%, transparent 0deg, black ${endAngle - startAngle}deg, transparent ${endAngle - startAngle}deg)`;
-        arc.style.maskImage = maskImage;
-        arc.style.webkitMaskImage = maskImage;
-        
-        console.log(`🌈 Arc ${index}: outerRadius=${Math.round(outerRadius)}, innerRadius=${Math.round(innerRadius)}, thickness=${Math.round(thickness)}, centerX=${Math.round(centerX)}, centerY=${Math.round(centerY)}`);
+        return `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
     }
     
     initializeArcs() {
@@ -138,7 +113,7 @@ class Rainbow {
             return;
         }
         
-        console.log('🌈 Initializing responsive rainbow arcs with transparency');
+        console.log('🌈 Initializing responsive rainbow arcs with SVG');
         
         // Clear existing arcs
         this.container.innerHTML = '';
@@ -157,92 +132,59 @@ class Rainbow {
         const centerX = gameAreaWidth / 2; // Horizontal center
         const centerY = gameAreaHeight - centerFromBottom; // Fixed distance from bottom
         
+        // Create SVG container
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.style.position = 'absolute';
+        svg.style.top = '0';
+        svg.style.left = '0';
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+        svg.style.pointerEvents = 'none';
+        svg.style.overflow = 'visible';
+        
+        // Arc parameters for 150 degrees (75 degrees each side of north)
+        const startAngle = 15;  // Start 15 degrees from horizontal left
+        const endAngle = 165;   // End 165 degrees from horizontal left
+        
         console.log(`🌈 Game area: ${Math.round(gameAreaWidth)} x ${Math.round(gameAreaHeight)}`);
         console.log(`🌈 Max radius: ${Math.round(maxRadius)} (${this.config.maxRadiusPercent}% of width)`);
         console.log(`🌈 Center X: ${Math.round(centerX)} (horizontal center)`);
         console.log(`🌈 Center Y: ${Math.round(centerY)} (${this.config.centerFromBottomPercent}% of width from bottom)`);
         console.log(`🌈 Arc thickness: ${Math.round(thickness)} (${this.config.thicknessPercent}% of width)`);
         console.log(`🌈 Default opacity: ${this.config.defaultOpacity} (70% transparent)`);
-        console.log(`🌈 Arc coverage: ${this.config.arcDegrees} degrees`);
-        
-        // Calculate the mask for 150-degree arc
-        const startAngle = 15; // 15 degrees from left (105 degrees from north)
-        const endAngle = 165; // 165 degrees from left (75 degrees from north)
+        console.log(`🌈 Arc coverage: ${this.config.arcDegrees} degrees (${startAngle}° to ${endAngle}°)`);
         
         // Create all 10 arcs
         for (let i = 0; i < this.totalPieces; i++) {
-            const arcContainer = document.createElement('div');
-            arcContainer.className = 'rainbow-arc';
+            // Calculate radius for this arc (decreasing from outside to inside)
+            const radius = maxRadius - (i * thickness) - (thickness / 2); // Center the stroke on the ring
             
-            // Calculate outer and inner radius for this arc
-            const outerRadius = maxRadius - (i * thickness);
-            const innerRadius = outerRadius - thickness;
+            if (radius <= thickness / 2) break; // Stop if radius would be too small
             
-            if (outerRadius <= 0) break; // Stop if radius would be negative
+            // Create SVG path element
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const pathData = this.createArcPath(centerX, centerY, radius, startAngle, endAngle);
             
-            // Create outer semicircle (colored part)
-            const outerArc = document.createElement('div');
-            outerArc.className = 'outer-arc';
-            outerArc.style.position = 'absolute';
-            outerArc.style.top = '0';
-            outerArc.style.left = '0';
-            outerArc.style.width = `${outerRadius * 2}px`;
-            outerArc.style.height = `${outerRadius}px`;
-            outerArc.style.background = 'transparent'; // Start transparent
-            outerArc.style.borderRadius = `${outerRadius}px ${outerRadius}px 0 0`;
-            outerArc.style.transition = 'background-color 1.5s ease-in-out'; // 1.5 second fade-in
-            outerArc.style.border = 'none'; // Remove any borders to prevent black lines
-            outerArc.style.outline = 'none'; // Remove any outlines
-            
-            // Create inner semicircle (transparent cutout)
-            const innerArc = document.createElement('div');
-            innerArc.className = 'inner-arc';
-            innerArc.style.position = 'absolute';
-            innerArc.style.background = 'transparent';
-            innerArc.style.transition = 'background-color 1.5s ease-in-out'; // 1.5 second fade-in
-            innerArc.style.border = 'none'; // Remove any borders to prevent black lines
-            innerArc.style.outline = 'none'; // Remove any outlines
-            
-            if (innerRadius > 0) {
-                innerArc.style.width = `${innerRadius * 2}px`;
-                innerArc.style.height = `${innerRadius}px`;
-                innerArc.style.borderRadius = `${innerRadius}px ${innerRadius}px 0 0`;
-                innerArc.style.left = `${(outerRadius - innerRadius)}px`;
-                innerArc.style.top = `${(outerRadius - innerRadius)}px`;
-                innerArc.style.display = 'block';
-            } else {
-                innerArc.style.display = 'none';
-            }
-            
-            // Set up the container
-            arcContainer.style.position = 'absolute';
-            arcContainer.style.left = `${centerX - outerRadius}px`;
-            arcContainer.style.top = `${centerY - outerRadius}px`;
-            arcContainer.style.width = `${outerRadius * 2}px`;
-            arcContainer.style.height = `${outerRadius}px`;
-            arcContainer.style.opacity = `${this.config.defaultOpacity}`;
-            arcContainer.style.transform = 'scaleY(1)';
-            arcContainer.style.transformOrigin = 'bottom center';
-            arcContainer.style.pointerEvents = 'none';
-            arcContainer.style.border = 'none'; // Remove any borders to prevent black lines
-            arcContainer.style.outline = 'none'; // Remove any outlines
-            
-            // Create conic gradient mask for 150-degree arc
-            const maskImage = `conic-gradient(from ${startAngle}deg at 50% 100%, transparent 0deg, black ${endAngle - startAngle}deg, transparent ${endAngle - startAngle}deg)`;
-            arcContainer.style.maskImage = maskImage;
-            arcContainer.style.webkitMaskImage = maskImage;
+            path.setAttribute('d', pathData);
+            path.setAttribute('stroke', 'transparent'); // Start transparent
+            path.setAttribute('stroke-width', thickness);
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('fill', 'none');
+            path.style.opacity = this.config.defaultOpacity;
+            path.style.transition = 'stroke 1.5s ease-in-out'; // 1.5 second fade-in
+            path.style.pointerEvents = 'none';
             
             // Store the target color for later use
-            arcContainer.dataset.targetColor = this.config.colors[i];
+            path.dataset.targetColor = this.config.colors[i];
+            path.dataset.arcIndex = i;
             
-            // Append elements
-            arcContainer.appendChild(outerArc);
-            arcContainer.appendChild(innerArc);
-            this.container.appendChild(arcContainer);
-            this.arcs.push(arcContainer);
+            svg.appendChild(path);
+            this.arcs.push(path);
             
-            console.log(`🌈 Created transparent arc ${i}: outerRadius=${Math.round(outerRadius)}, innerRadius=${Math.round(innerRadius)}, thickness=${Math.round(thickness)}, opacity=${this.config.defaultOpacity}, color=${this.config.colors[i]}`);
+            console.log(`🌈 Created SVG arc ${i}: radius=${Math.round(radius)}, thickness=${Math.round(thickness)}, opacity=${this.config.defaultOpacity}, color=${this.config.colors[i]}`);
         }
+        
+        this.container.appendChild(svg);
         
         // Show the pieces that should already be visible
         this.updateVisiblePieces();
@@ -260,19 +202,11 @@ class Rainbow {
         // Show the new piece by fading in over 1.5 seconds
         const arc = this.arcs[this.pieces - 1];
         if (arc) {
-            const outerArc = arc.querySelector('.outer-arc');
-            const innerArc = arc.querySelector('.inner-arc');
+            console.log(`🌈 Setting stroke color for arc ${this.pieces - 1}:`, arc.dataset.targetColor);
             
             // Start the fade-in immediately (no delay)
-            if (outerArc) {
-                outerArc.style.background = arc.dataset.targetColor;
-            }
-            if (innerArc) {
-                // Get the background color of the game area or container
-                const gameAreaStyle = window.getComputedStyle(this.gameArea);
-                const backgroundColor = gameAreaStyle.backgroundColor || '#ffffff';
-                innerArc.style.background = backgroundColor;
-            }
+            arc.setAttribute('stroke', arc.dataset.targetColor);
+            console.log(`🌈 Arc stroke set to:`, arc.getAttribute('stroke'));
         }
         
         return this.pieces;
@@ -283,18 +217,7 @@ class Rainbow {
         for (let i = 0; i < this.pieces; i++) {
             const arc = this.arcs[i];
             if (arc) {
-                const outerArc = arc.querySelector('.outer-arc');
-                const innerArc = arc.querySelector('.inner-arc');
-                
-                if (outerArc) {
-                    outerArc.style.background = arc.dataset.targetColor;
-                }
-                if (innerArc) {
-                    // Get the background color of the game area or container
-                    const gameAreaStyle = window.getComputedStyle(this.gameArea);
-                    const backgroundColor = gameAreaStyle.backgroundColor || '#ffffff';
-                    innerArc.style.background = backgroundColor;
-                }
+                arc.setAttribute('stroke', arc.dataset.targetColor);
             }
         }
         
@@ -302,15 +225,7 @@ class Rainbow {
         for (let i = this.pieces; i < this.arcs.length; i++) {
             const arc = this.arcs[i];
             if (arc) {
-                const outerArc = arc.querySelector('.outer-arc');
-                const innerArc = arc.querySelector('.inner-arc');
-                
-                if (outerArc) {
-                    outerArc.style.background = 'transparent';
-                }
-                if (innerArc) {
-                    innerArc.style.background = 'transparent';
-                }
+                arc.setAttribute('stroke', 'transparent');
             }
         }
     }
@@ -356,13 +271,12 @@ class Rainbow {
                 currentArc = 0; // Start over for continuous celebration
             }
             
-            // FIXED: Use the actual arc at the current index (outermost first)
+            // Use the actual arc at the current index (outermost first)
             const arcIndex = currentArc; // Arc 0 = outermost (red), Arc 9 = innermost (purple)
             const arc = this.arcs[arcIndex];
             if (arc) {
                 // Make ONLY this arc enhanced with celebration opacity
                 arc.style.filter = 'brightness(1.3) saturate(1.5)';
-                arc.style.transform = 'scaleY(1.1)';
                 arc.style.opacity = `${this.config.celebrationOpacity}`; // 75% opaque during celebration
                 
                 console.log(`🌈 Celebrating arc ${arcIndex} (${this.config.colors[arcIndex]}) - now at ${this.config.celebrationOpacity} opacity while others stay at ${this.config.defaultOpacity}`);
@@ -393,7 +307,6 @@ class Rainbow {
         this.arcs.forEach(arc => {
             if (arc) {
                 arc.style.filter = '';
-                arc.style.transform = 'scaleY(1)';
                 arc.style.opacity = `${this.config.defaultOpacity}`;
             }
         });
@@ -412,18 +325,8 @@ class Rainbow {
         // Make all arcs transparent again
         this.arcs.forEach(arc => {
             if (arc) {
-                const outerArc = arc.querySelector('.outer-arc');
-                const innerArc = arc.querySelector('.inner-arc');
-                
-                if (outerArc) {
-                    outerArc.style.background = 'transparent';
-                }
-                if (innerArc) {
-                    innerArc.style.background = 'transparent';
-                }
-                
+                arc.setAttribute('stroke', 'transparent');
                 arc.style.filter = '';
-                arc.style.transform = 'scaleY(1)';
                 arc.style.opacity = `${this.config.defaultOpacity}`; // Reset to 30% opacity
             }
         });
