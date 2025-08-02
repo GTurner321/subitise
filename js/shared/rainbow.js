@@ -103,16 +103,16 @@ class Rainbow {
         
         if (radius <= 0) return; // Skip if radius would be negative
         
-        // Position and size the arc
+        // Position and size the arc - SAME center position for all arcs
         arc.style.width = `${radius * 2}px`;
         arc.style.height = `${radius}px`; // Height is radius, not diameter
         arc.style.borderTopWidth = `${thickness}px`;
         arc.style.borderRadius = `${radius}px ${radius}px 0 0`;
         arc.style.left = `50%`;
         arc.style.top = `${centerY}px`;
-        arc.style.marginLeft = `-${radius}px`;
+        arc.style.marginLeft = `-${radius}px`; // Center horizontally based on THIS arc's radius
         
-        console.log(`🌈 Arc ${index}: radius=${Math.round(radius)}, thickness=${Math.round(thickness)}, centerY=${Math.round(centerY)}`);
+        console.log(`🌈 Arc ${index}: radius=${Math.round(radius)}, thickness=${Math.round(thickness)}, centerY=${Math.round(centerY)}, marginLeft=${Math.round(-radius)}`);
     }
     
     initializeArcs() {
@@ -160,11 +160,12 @@ class Rainbow {
             arc.style.borderRadius = `${radius}px ${radius}px 0 0`;
             arc.style.left = `50%`;
             arc.style.top = `${centerY}px`;
-            arc.style.marginLeft = `-${radius}px`;
-            arc.style.opacity = '1'; // Always visible, but transparent
+            arc.style.marginLeft = `-${radius}px`; // Each arc centers itself based on its own radius
+            arc.style.opacity = '1'; // Arc is visible but border is transparent
             arc.style.transform = 'scaleY(1)'; // No scale animation
             arc.style.transformOrigin = 'bottom center';
             arc.style.transition = 'border-top-color 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            arc.style.pointerEvents = 'none'; // Ensure no interference
             
             // Store the target color for later use
             arc.dataset.targetColor = this.config.colors[i];
@@ -172,7 +173,7 @@ class Rainbow {
             this.container.appendChild(arc);
             this.arcs.push(arc);
             
-            console.log(`🌈 Created transparent arc ${i}: radius=${Math.round(radius)}, color=${this.config.colors[i]}`);
+            console.log(`🌈 Created transparent arc ${i}: radius=${Math.round(radius)}, centerPos=${Math.round(-radius)}, color=${this.config.colors[i]}`);
         }
         
         // Show the pieces that should already be visible
