@@ -1,4 +1,4 @@
-/* Addition Game - Specific Styles Only */
+/* Addition Game - Simplified Styles */
 /* Universal styles removed - handled by main.css and universal systems */
 
 /* Game area sections layout with initial fade state */
@@ -7,22 +7,16 @@
     align-items: stretch;
     opacity: 0;
     transition: opacity 1s ease-in-out;
+    position: relative;
 }
 
 .game-area.loaded {
     opacity: 1;
 }
 
-/* Left side for icons - 46% of game area width */
+/* Left side for icons - REMOVED, icons now positioned directly in game-area */
 .left-side {
-    position: relative;
-    width: 46%;
-    height: 100%;
-    border-right: 2px dashed #ddd;
-    transition: background-color 0.2s ease;
-    /* Updated padding: Add bottom clearance for sum bar + button bar */
-    padding: 1% 1% calc(7vw + 2vh + 8vh) 1%; /* Top, Right, Bottom (sum bar + extra clearance), Left */
-    box-sizing: border-box;
+    display: none; /* Not used anymore */
 }
 
 /* Middle section with plus sign - 8% of game area width */
@@ -35,6 +29,8 @@
     align-items: center;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
     z-index: 10; /* Higher than rainbow */
+    left: 46%; /* Positioned at 46% of game area */
+    position: absolute;
 }
 
 .plus-sign {
@@ -51,7 +47,6 @@
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    /* Remove pulse animation */
     z-index: 10; /* Higher than rainbow */
     position: relative;
 }
@@ -65,35 +60,49 @@
     font-weight: bold;
 }
 
-/* Remove pulse animation */
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    }
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 12px 35px rgba(220, 53, 69, 0.5);
-    }
-}
-
-/* Right side for icons - 46% of game area width */
+/* Right side for icons - REMOVED, icons now positioned directly in game-area */
 .right-side {
-    position: relative;
-    width: 46%;
-    height: 100%;
-    border-left: 2px dashed #ddd;
-    transition: background-color 0.2s ease;
-    /* Updated padding: Add bottom clearance for sum bar + button bar */
-    padding: 1% 1% calc(7vw + 2vh + 8vh) 1%; /* Top, Right, Bottom (sum bar + extra clearance), Left */
-    box-sizing: border-box;
+    display: none; /* Not used anymore */
 }
 
-/* Area flashing styles - softer, longer duration, slower timing */
-.left-side.area-flash,
-.right-side.area-flash {
-    background-color: rgba(144, 238, 144, 0.2) !important;
-    transition: background-color 1s ease-in-out; /* Longer transition to match slower timing */
+/* Area flashing styles - now target the game area zones */
+.game-area.left-flash::before {
+    content: '';
+    position: absolute;
+    left: 6%;
+    top: 21%;
+    width: 34%; /* 40% - 6% */
+    height: 73%; /* 94% - 21% */
+    background-color: rgba(144, 238, 144, 0.2);
+    z-index: 3;
+    pointer-events: none;
+    transition: opacity 1s ease-in-out;
+}
+
+.game-area.right-flash::before {
+    content: '';
+    position: absolute;
+    left: 60%;
+    top: 21%;
+    width: 34%; /* 94% - 60% */
+    height: 73%; /* 94% - 21% */
+    background-color: rgba(144, 238, 144, 0.2);
+    z-index: 3;
+    pointer-events: none;
+    transition: opacity 1s ease-in-out;
+}
+
+.game-area.both-flash::before {
+    content: '';
+    position: absolute;
+    left: 6%;
+    top: 21%;
+    width: 88%; /* 94% - 6% */
+    height: 73%; /* 94% - 21% */
+    background-color: rgba(144, 238, 144, 0.2);
+    z-index: 3;
+    pointer-events: none;
+    transition: opacity 1s ease-in-out;
 }
 
 /* Icons - Enhanced styles with responsive sizing and sophisticated animations */
@@ -107,24 +116,26 @@
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     transition: filter 0.3s ease;
     animation-fill-mode: both; /* Ensures icons start invisible and fade in smoothly */
+    /* Icons are centered on their position using transform */
+    transform: translate(-50%, -50%);
 }
 
 @keyframes fadeIn {
     from { 
         opacity: 0; 
-        transform: scale(0.5); 
+        transform: translate(-50%, -50%) scale(0.5); 
     }
     to { 
         opacity: 1; 
-        transform: scale(1); 
+        transform: translate(-50%, -50%) scale(1); 
     }
 }
 
 /* Icon jiggle animation for hints */
 @keyframes iconJiggle {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-    20%, 40%, 60%, 80% { transform: translateX(3px); }
+    0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translate(-50%, -50%) translateX(-3px); }
+    20%, 40%, 60%, 80% { transform: translate(-50%, -50%) translateX(3px); }
 }
 
 /* Sum row at bottom - Responsive positioning and sizing */
@@ -138,7 +149,7 @@
     gap: 2%; /* Responsive gap */
     z-index: 15; /* Higher than everything else */
     
-    /* Updated: Reduced width from 52% to 50% */
+    /* Updated: Width set to 50% */
     width: 50%;
     height: calc(7vw + 2vh); /* Box height + internal padding */
     max-height: 90px; /* Reasonable maximum */
@@ -168,10 +179,10 @@
 
 .sum-plus-sign,
 .sum-equals-sign {
-    /* Updated: Reduced font size by 20% from 60% to 48% of box height */
-    font-size: calc(7vw * 0.48); /* 48% of box height (was 60%) */
-    max-font-size: 38px; /* Reduced from 48px */
-    min-font-size: 24px; /* Reduced from 30px */
+    /* Updated: Font size reduced by 20% from 60% to 48% of box height */
+    font-size: calc(7vw * 0.48); /* 48% of box height */
+    max-font-size: 38px;
+    min-font-size: 24px;
     font-weight: bold;
     color: #333;
     min-width: calc(7vw * 0.4); /* 40% of box height */
@@ -201,10 +212,10 @@
     align-items: center;
     justify-content: center;
     
-    /* Updated: Reduced font size by 20% from 50% to 40% of box width */
-    font-size: calc(7vw * 0.4); /* 40% of box width (was 50%) */
-    max-font-size: 32px; /* Reduced from 40px */
-    min-font-size: 20px; /* Reduced from 25px */
+    /* Updated: Font size reduced by 20% from 50% to 40% of box width */
+    font-size: calc(7vw * 0.4); /* 40% of box width */
+    max-font-size: 32px;
+    min-font-size: 20px;
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
@@ -240,10 +251,10 @@
 }
 
 .check-mark {
-    /* Updated: Reduced font size by 20% from 60% to 48% of box height */
-    font-size: calc(7vw * 0.48); /* 48% of box height (was 60%) */
-    max-font-size: 38px; /* Reduced from 48px */
-    min-font-size: 24px; /* Reduced from 30px */
+    /* Updated: Font size reduced by 20% from 60% to 48% of box height */
+    font-size: calc(7vw * 0.48); /* 48% of box height */
+    max-font-size: 38px;
+    min-font-size: 24px;
     color: #28a745;
     opacity: 0;
     transition: opacity 0.5s ease;
@@ -268,11 +279,11 @@
 @keyframes fadeOut {
     from {
         opacity: 1;
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1);
     }
     to {
         opacity: 0;
-        transform: scale(0.9);
+        transform: translate(-50%, -50%) scale(0.9);
     }
 }
 
@@ -392,6 +403,3 @@
         min-width: calc(7vw * 0.5);
     }
 }
-
-/* Removed mobile-specific breakpoints - using pure % responsive system only */
-/* The % system handles all screen sizes elegantly without fixed pixel overrides */
