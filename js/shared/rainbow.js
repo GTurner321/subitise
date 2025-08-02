@@ -15,10 +15,14 @@ class Rainbow {
             maxRadiusPercent: 42,
             // Center 3% of game area width from the bottom
             centerFromBottomPercent: 3,
-            // Arc thickness: 3% of game area width
-            thicknessPercent: 3,
-            // Default transparency for arcs (40% opaque = 0.4 opacity)
-            defaultOpacity: 0.4,
+            // Arc thickness: 2% of game area width (reduced from 3%)
+            thicknessPercent: 2,
+            // Default transparency for arcs (30% opaque = 0.3 opacity)
+            defaultOpacity: 0.3,
+            // Celebration opacity (75% opaque = 0.75 opacity)
+            celebrationOpacity: 0.75,
+            // Arc coverage: 150 degrees (75 degrees each side of north)
+            arcDegrees: 150,
             // Colors for the rainbow arcs
             colors: [
                 '#ff0000', // Red (outermost)
@@ -110,33 +114,20 @@ class Rainbow {
         const centerX = gameAreaWidth / 2; // Horizontal center
         const centerY = gameAreaHeight - centerFromBottom; // Fixed distance from bottom
         
-        const outerArc = arc.querySelector('.outer-arc');
-        const innerArc = arc.querySelector('.inner-arc');
-        
-        if (outerArc && innerArc) {
-            // Update outer semicircle
-            outerArc.style.width = `${outerRadius * 2}px`;
-            outerArc.style.height = `${outerRadius}px`;
-            outerArc.style.borderRadius = `${outerRadius}px ${outerRadius}px 0 0`;
-            
-            // Update inner semicircle (only if we have inner radius > 0)
-            if (innerRadius > 0) {
-                innerArc.style.width = `${innerRadius * 2}px`;
-                innerArc.style.height = `${innerRadius}px`;
-                innerArc.style.borderRadius = `${innerRadius}px ${innerRadius}px 0 0`;
-                innerArc.style.left = `${(outerRadius - innerRadius)}px`;
-                innerArc.style.top = `${(outerRadius - innerRadius)}px`;
-                innerArc.style.display = 'block';
-            } else {
-                innerArc.style.display = 'none';
-            }
-        }
+        // Calculate the mask for 150-degree arc
+        const startAngle = 15; // 15 degrees from left (105 degrees from north)
+        const endAngle = 165; // 165 degrees from left (75 degrees from north)
         
         // Position the main arc container
         arc.style.left = `${centerX - outerRadius}px`;
         arc.style.top = `${centerY - outerRadius}px`;
         arc.style.width = `${outerRadius * 2}px`;
         arc.style.height = `${outerRadius}px`;
+        
+        // Create conic gradient mask for 150-degree arc
+        const maskImage = `conic-gradient(from ${startAngle}deg at 50% 100%, transparent 0deg, black ${endAngle - startAngle}deg, transparent ${endAngle - startAngle}deg)`;
+        arc.style.maskImage = maskImage;
+        arc.style.webkitMaskImage = maskImage;
         
         console.log(`🌈 Arc ${index}: outerRadius=${Math.round(outerRadius)}, innerRadius=${Math.round(innerRadius)}, thickness=${Math.round(thickness)}, centerX=${Math.round(centerX)}, centerY=${Math.round(centerY)}`);
     }
@@ -171,7 +162,12 @@ class Rainbow {
         console.log(`🌈 Center X: ${Math.round(centerX)} (horizontal center)`);
         console.log(`🌈 Center Y: ${Math.round(centerY)} (${this.config.centerFromBottomPercent}% of width from bottom)`);
         console.log(`🌈 Arc thickness: ${Math.round(thickness)} (${this.config.thicknessPercent}% of width)`);
-        console.log(`🌈 Default opacity: ${this.config.defaultOpacity} (40% transparent)`);
+        console.log(`🌈 Default opacity: ${this.config.defaultOpacity} (70% transparent)`);
+        console.log(`🌈 Arc coverage: ${this.config.arcDegrees} degrees`);
+        
+        // Calculate the mask for 150-degree arc
+        const startAngle = 15; // 15 degrees from left (105 degrees from north)
+        const endAngle = 165; // 165 degrees from left (75 degrees from north)
         
         // Create all 10 arcs
         for (let i = 0; i < this.totalPieces; i++) {
@@ -194,14 +190,18 @@ class Rainbow {
             outerArc.style.height = `${outerRadius}px`;
             outerArc.style.background = 'transparent'; // Start transparent
             outerArc.style.borderRadius = `${outerRadius}px ${outerRadius}px 0 0`;
-            outerArc.style.transition = 'background-color 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            outerArc.style.transition = 'background-color 1.5s ease-in-out'; // 1.5 second fade-in
+            outerArc.style.border = 'none'; // Remove any borders to prevent black lines
+            outerArc.style.outline = 'none'; // Remove any outlines
             
             // Create inner semicircle (transparent cutout)
             const innerArc = document.createElement('div');
             innerArc.className = 'inner-arc';
             innerArc.style.position = 'absolute';
             innerArc.style.background = 'transparent';
-            innerArc.style.transition = 'background-color 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            innerArc.style.transition = 'background-color 1.5s ease-in-out'; // 1.5 second fade-in
+            innerArc.style.border = 'none'; // Remove any borders to prevent black lines
+            innerArc.style.outline = 'none'; // Remove any outlines
             
             if (innerRadius > 0) {
                 innerArc.style.width = `${innerRadius * 2}px`;
@@ -224,6 +224,13 @@ class Rainbow {
             arcContainer.style.transform = 'scaleY(1)';
             arcContainer.style.transformOrigin = 'bottom center';
             arcContainer.style.pointerEvents = 'none';
+            arcContainer.style.border = 'none'; // Remove any borders to prevent black lines
+            arcContainer.style.outline = 'none'; // Remove any outlines
+            
+            // Create conic gradient mask for 150-degree arc
+            const maskImage = `conic-gradient(from ${startAngle}deg at 50% 100%, transparent 0deg, black ${endAngle - startAngle}deg, transparent ${endAngle - startAngle}deg)`;
+            arcContainer.style.maskImage = maskImage;
+            arcContainer.style.webkitMaskImage = maskImage;
             
             // Store the target color for later use
             arcContainer.dataset.targetColor = this.config.colors[i];
@@ -250,24 +257,22 @@ class Rainbow {
         this.pieces++;
         console.log(`🌈 Adding rainbow piece ${this.pieces}/${this.totalPieces}`);
         
-        // Show the new piece by changing from transparent to colored
+        // Show the new piece by fading in over 1.5 seconds
         const arc = this.arcs[this.pieces - 1];
         if (arc) {
             const outerArc = arc.querySelector('.outer-arc');
             const innerArc = arc.querySelector('.inner-arc');
             
-            // Small delay for dramatic effect
-            setTimeout(() => {
-                if (outerArc) {
-                    outerArc.style.background = arc.dataset.targetColor;
-                }
-                if (innerArc) {
-                    // Get the background color of the game area or container
-                    const gameAreaStyle = window.getComputedStyle(this.gameArea);
-                    const backgroundColor = gameAreaStyle.backgroundColor || '#ffffff';
-                    innerArc.style.background = backgroundColor;
-                }
-            }, 200);
+            // Start the fade-in immediately (no delay)
+            if (outerArc) {
+                outerArc.style.background = arc.dataset.targetColor;
+            }
+            if (innerArc) {
+                // Get the background color of the game area or container
+                const gameAreaStyle = window.getComputedStyle(this.gameArea);
+                const backgroundColor = gameAreaStyle.backgroundColor || '#ffffff';
+                innerArc.style.background = backgroundColor;
+            }
         }
         
         return this.pieces;
@@ -342,7 +347,7 @@ class Rainbow {
                 if (arc) {
                     arc.style.filter = '';
                     arc.style.transform = 'scaleY(1)';
-                    arc.style.opacity = `${this.config.defaultOpacity}`; // All back to 40% opacity
+                    arc.style.opacity = `${this.config.defaultOpacity}`; // All back to 30% opacity
                 }
             });
             
@@ -351,14 +356,16 @@ class Rainbow {
                 currentArc = 0; // Start over for continuous celebration
             }
             
-            const arc = this.arcs[currentArc];
+            // FIXED: Use the actual arc at the current index (outermost first)
+            const arcIndex = currentArc; // Arc 0 = outermost (red), Arc 9 = innermost (purple)
+            const arc = this.arcs[arcIndex];
             if (arc) {
-                // Make ONLY this arc fully opaque and enhanced
+                // Make ONLY this arc enhanced with celebration opacity
                 arc.style.filter = 'brightness(1.3) saturate(1.5)';
                 arc.style.transform = 'scaleY(1.1)';
-                arc.style.opacity = '1.0'; // Only this arc becomes fully opaque
+                arc.style.opacity = `${this.config.celebrationOpacity}`; // 75% opaque during celebration
                 
-                console.log(`🌈 Celebrating arc ${currentArc} - now fully opaque while others stay at ${this.config.defaultOpacity}`);
+                console.log(`🌈 Celebrating arc ${arcIndex} (${this.config.colors[arcIndex]}) - now at ${this.config.celebrationOpacity} opacity while others stay at ${this.config.defaultOpacity}`);
             }
             
             currentArc++;
@@ -417,7 +424,7 @@ class Rainbow {
                 
                 arc.style.filter = '';
                 arc.style.transform = 'scaleY(1)';
-                arc.style.opacity = `${this.config.defaultOpacity}`; // Reset to 40% opacity
+                arc.style.opacity = `${this.config.defaultOpacity}`; // Reset to 30% opacity
             }
         });
     }
