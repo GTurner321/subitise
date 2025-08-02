@@ -136,11 +136,11 @@
     gap: 2%; /* Responsive gap */
     z-index: 15; /* Higher than everything else */
     
-    /* Responsive sizing: 54% of game area width, height based on 6% boxes */
-    width: 54%;
-    height: calc(6vw + 2vh); /* Box height + internal padding */
-    max-height: 80px; /* Reasonable maximum */
-    min-height: 50px; /* Reasonable minimum */
+    /* Responsive sizing: 52% of game area width, height based on 7% boxes */
+    width: 52%;
+    height: calc(7vw + 2vh); /* Box height + internal padding */
+    max-height: 90px; /* Reasonable maximum */
+    min-height: 55px; /* Reasonable minimum */
     
     background: rgba(255, 255, 255, 0.95);
     padding: 1vh 2%; /* 1% of game area height top/bottom, 2% left/right */
@@ -166,13 +166,13 @@
 
 .sum-plus-sign,
 .sum-equals-sign {
-    /* Responsive font size based on sum row height */
-    font-size: calc(6vw * 0.3); /* 30% of box height */
-    max-font-size: 24px;
-    min-font-size: 15px;
+    /* Responsive font size: doubled from 30% to 60% of box height */
+    font-size: calc(7vw * 0.6); /* 60% of box height */
+    max-font-size: 48px;
+    min-font-size: 30px;
     font-weight: bold;
     color: #333;
-    min-width: calc(6vw * 0.4); /* 40% of box height */
+    min-width: calc(7vw * 0.4); /* 40% of box height */
     text-align: center;
     flex-shrink: 0; /* Prevent shrinking */
 }
@@ -180,13 +180,13 @@
 .left-sum-box,
 .right-sum-box,
 .total-sum-box {
-    /* Square boxes: 6% of game area width for both width and height */
-    width: 6vw;
-    height: 6vw;
-    max-width: 70px;
-    max-height: 70px;
-    min-width: 45px;
-    min-height: 45px;
+    /* Square boxes: 7% of game area width for both width and height */
+    width: 7vw;
+    height: 7vw;
+    max-width: 80px;
+    max-height: 80px;
+    min-width: 50px;
+    min-height: 50px;
     flex-shrink: 0; /* Prevent shrinking */
 }
 
@@ -199,10 +199,10 @@
     align-items: center;
     justify-content: center;
     
-    /* Responsive font size based on box size */
-    font-size: calc(6vw * 0.25); /* 25% of box width */
-    max-font-size: 18px;
-    min-font-size: 12px;
+    /* Responsive font size: doubled from 25% to 50% of box width */
+    font-size: calc(7vw * 0.5); /* 50% of box width */
+    max-font-size: 40px;
+    min-font-size: 25px;
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
@@ -238,14 +238,14 @@
 }
 
 .check-mark {
-    /* Responsive size based on sum row */
-    font-size: calc(6vw * 0.3); /* 30% of box height */
-    max-font-size: 24px;
-    min-font-size: 15px;
+    /* Responsive size: doubled from 30% to 60% of box height */
+    font-size: calc(7vw * 0.6); /* 60% of box height */
+    max-font-size: 48px;
+    min-font-size: 30px;
     color: #28a745;
     opacity: 0;
     transition: opacity 0.5s ease;
-    min-width: calc(6vw * 0.5); /* 50% of box height */
+    min-width: calc(7vw * 0.5); /* 50% of box height */
     text-align: center;
     flex-shrink: 0; /* Prevent shrinking */
 }
