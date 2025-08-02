@@ -91,9 +91,10 @@ class Rainbow {
     }
     
     createArcPath(centerX, centerY, radius, startAngle, endAngle) {
-        // Convert angles to radians
-        const startRad = (startAngle * Math.PI) / 180;
-        const endRad = (endAngle * Math.PI) / 180;
+        // Convert angles to radians - adjusting for SVG coordinate system
+        // In SVG, 0° is at 3 o'clock, we want our arc from about 10:30 to 1:30
+        const startRad = ((startAngle - 90) * Math.PI) / 180; // Subtract 90 to start from top
+        const endRad = ((endAngle - 90) * Math.PI) / 180;
         
         // Calculate start and end points
         const startX = centerX + radius * Math.cos(startRad);
@@ -101,10 +102,15 @@ class Rainbow {
         const endX = centerX + radius * Math.cos(endRad);
         const endY = centerY + radius * Math.sin(endRad);
         
-        // Create arc path
+        // Create arc path - use sweep flag for clockwise direction
         const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
         
-        return `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
+        const pathData = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
+        
+        console.log(`🌈 Arc path: start(${Math.round(startX)},${Math.round(startY)}) end(${Math.round(endX)},${Math.round(endY)}) radius=${radius}`);
+        console.log(`🌈 Path data: ${pathData}`);
+        
+        return pathData;
     }
     
     initializeArcs() {
@@ -141,10 +147,16 @@ class Rainbow {
         svg.style.height = '100%';
         svg.style.pointerEvents = 'none';
         svg.style.overflow = 'visible';
+        svg.style.zIndex = '1'; // Same as rainbow container, below icons (z-index: 2)
+        svg.style.border = '2px solid red'; // DEBUG: Add visible border to SVG
+        svg.style.background = 'rgba(0,255,0,0.1)'; // DEBUG: Add slight green background
         
-        // Arc parameters for 150 degrees (75 degrees each side of north)
-        const startAngle = 15;  // Start 15 degrees from horizontal left
-        const endAngle = 165;   // End 165 degrees from horizontal left
+        console.log(`🌈 SVG container created with dimensions: ${svg.style.width} x ${svg.style.height}, z-index: ${svg.style.zIndex}`);
+        
+        // Arc parameters for 150 degrees centered on vertical
+        // Starting from -75° from vertical (top) to +75° from vertical
+        const startAngle = -75;  // 75 degrees counterclockwise from top
+        const endAngle = 75;     // 75 degrees clockwise from top
         
         console.log(`🌈 Game area: ${Math.round(gameAreaWidth)} x ${Math.round(gameAreaHeight)}`);
         console.log(`🌈 Max radius: ${Math.round(maxRadius)} (${this.config.maxRadiusPercent}% of width)`);
@@ -166,13 +178,16 @@ class Rainbow {
             const pathData = this.createArcPath(centerX, centerY, radius, startAngle, endAngle);
             
             path.setAttribute('d', pathData);
-            path.setAttribute('stroke', 'transparent'); // Start transparent
+            path.setAttribute('stroke', '#ff0000'); // Test with visible color first
             path.setAttribute('stroke-width', thickness);
             path.setAttribute('stroke-linecap', 'round');
             path.setAttribute('fill', 'none');
             path.style.opacity = this.config.defaultOpacity;
             path.style.transition = 'stroke 1.5s ease-in-out'; // 1.5 second fade-in
             path.style.pointerEvents = 'none';
+            
+            console.log(`🌈 SVG path created with stroke: ${path.getAttribute('stroke')}, width: ${path.getAttribute('stroke-width')}`);
+            console.log(`🌈 Path element:`, path);
             
             // Store the target color for later use
             path.dataset.targetColor = this.config.colors[i];
@@ -182,9 +197,23 @@ class Rainbow {
             this.arcs.push(path);
             
             console.log(`🌈 Created SVG arc ${i}: radius=${Math.round(radius)}, thickness=${Math.round(thickness)}, opacity=${this.config.defaultOpacity}, color=${this.config.colors[i]}`);
+            console.log(`🌈 Path added to SVG, total arcs in SVG: ${svg.children.length}`);
         }
         
         this.container.appendChild(svg);
+        console.log(`🌈 SVG appended to container. Container:`, this.container);
+        console.log(`🌈 Container dimensions:`, this.container.getBoundingClientRect());
+        
+        // DEBUG: Add a simple test circle to verify SVG is working
+        const testCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        testCircle.setAttribute('cx', centerX);
+        testCircle.setAttribute('cy', centerY);
+        testCircle.setAttribute('r', '20');
+        testCircle.setAttribute('fill', 'blue');
+        testCircle.setAttribute('stroke', 'yellow');
+        testCircle.setAttribute('stroke-width', '3');
+        svg.appendChild(testCircle);
+        console.log(`🌈 Added test circle at center (${centerX}, ${centerY})`);
         
         // Show the pieces that should already be visible
         this.updateVisiblePieces();
