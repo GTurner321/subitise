@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="styles/addmain.css">
 </head>
 <body>
-    <!-- Back to games navigation -->
+    <!-- Back to games navigation - styling handled by universal audio system -->
     <a href="../../index.html" class="back-button">
         <i class="fas fa-arrow-left"></i>
         Back to Games
@@ -51,19 +51,8 @@
         </div>
     </div>
     
-    <!-- Number selection buttons - UPDATED: Only 1-10 -->
-    <div class="number-buttons">
-        <button class="number-btn" data-number="1">1</button>
-        <button class="number-btn" data-number="2">2</button>
-        <button class="number-btn" data-number="3">3</button>
-        <button class="number-btn" data-number="4">4</button>
-        <button class="number-btn" data-number="5">5</button>
-        <button class="number-btn" data-number="6">6</button>
-        <button class="number-btn" data-number="7">7</button>
-        <button class="number-btn" data-number="8">8</button>
-        <button class="number-btn" data-number="9">9</button>
-        <button class="number-btn" data-number="10">10</button>
-    </div>
+    <!-- Empty container for universal button system -->
+    <div class="number-buttons"></div>
     
     <!-- Game completion modal -->
     <div class="modal hidden" id="gameModal">
@@ -73,12 +62,13 @@
         </div>
     </div>
     
-    <!-- JavaScript files -->
+    <!-- JavaScript files - CRITICAL: Load universal systems FIRST -->
     <script src="js/addconfig.js"></script>
     <script src="../../js/shared/buttonbar.js"></script>
     <script src="../../js/shared/audio.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
+    <!-- Then game-specific files -->
     <script src="js/addiconrenderer.js"></script>
     <script src="js/addgamecontroller.js"></script>
 </body>
