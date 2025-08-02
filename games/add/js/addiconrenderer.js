@@ -1,4 +1,4 @@
-console.log('🔍 LOADING ADD ICONRENDERER FILE - Enhanced version with proper bottom clearance and icon padding');
+console.log('🔍 LOADING ADD ICONRENDERER FILE - Enhanced version with ButtonBar coordination and proper timing');
 
 class AddIconRenderer {
     constructor() {
@@ -11,7 +11,44 @@ class AddIconRenderer {
         
         // Track resize observer for responsive behavior
         this.resizeObserver = null;
+        
+        // ButtonBar coordination
+        this.buttonBarReady = false;
+        this.pendingRender = null; // Store pending render data
+        
+        this.setupButtonBarCoordination();
         this.setupResizeHandling();
+    }
+
+    setupButtonBarCoordination() {
+        // Register with ButtonBar to be notified of dimension changes
+        if (window.ButtonBar) {
+            window.ButtonBar.addObserver((dimensionData) => {
+                console.log('🎯 ButtonBar dimensions updated, recalculating icon positions');
+                this.buttonBarReady = true;
+                
+                // If we have a pending render, execute it now
+                if (this.pendingRender) {
+                    console.log('🎮 Executing pending render with proper dimensions');
+                    const { leftCount, rightCount } = this.pendingRender;
+                    this.pendingRender = null;
+                    this.renderIcons(leftCount, rightCount);
+                } else if (this.currentIcons.length > 0) {
+                    // Update existing icon positions
+                    this.updateIconSizesAndPositions();
+                }
+            });
+        } else {
+            // ButtonBar not ready yet, wait for it
+            const checkButtonBar = () => {
+                if (window.ButtonBar) {
+                    this.setupButtonBarCoordination();
+                } else {
+                    setTimeout(checkButtonBar, 100);
+                }
+            };
+            setTimeout(checkButtonBar, 100);
+        }
     }
 
     setupResizeHandling() {
@@ -33,13 +70,6 @@ class AddIconRenderer {
                 this.handleResize();
             });
         }
-        
-        // Also listen for ButtonBar dimension changes
-        if (window.ButtonBar) {
-            window.ButtonBar.addObserver(() => {
-                this.handleResize();
-            });
-        }
     }
     
     handleResize() {
@@ -49,7 +79,9 @@ class AddIconRenderer {
         }
         
         this.resizeTimeout = setTimeout(() => {
-            this.updateIconSizesAndPositions();
+            if (this.buttonBarReady) {
+                this.updateIconSizesAndPositions();
+            }
         }, 100);
     }
     
@@ -151,25 +183,29 @@ class AddIconRenderer {
         
         const positions = [];
         const containerRect = container.getBoundingClientRect();
-        const gameAreaRect = this.leftSide.parentElement.getBoundingClientRect();
         
-        // Calculate sum row height dynamically (7vw boxes + 2vh padding + borders + clearance)
-        const sumRowHeight = (gameAreaRect.width * 0.07) + (window.innerHeight * 0.02) + 20; // 7vw boxes
-        const sumRowClearance = gameAreaRect.height * 0.03; // 3% clearance above sum row
+        // Get current game area rect for calculations
+        const gameAreaRect = container.closest('.game-area').getBoundingClientRect();
+        
+        // Calculate sum row height more precisely
+        // Sum row uses: width: 50%, height: calc(7vw + 2vh)
+        const gameAreaWidth = gameAreaRect.width;
+        const sumRowHeight = (gameAreaWidth * 0.07) + (window.innerHeight * 0.02); // 7vw + 2vh
+        const sumRowClearance = gameAreaRect.height * 0.05; // 5% clearance above sum row
         const totalBottomReduction = sumRowHeight + sumRowClearance;
         
         // Icon size for padding calculation (12% of container width)
         const iconSize = containerRect.width * 0.12;
         
-        // Padding: 100% of icon size on all sides
-        const iconPadding = iconSize;
+        // Padding: 150% of icon size for better spacing from edges
+        const iconPadding = iconSize * 1.5;
         
-        console.log(`📏 Icon size: ${Math.round(iconSize)}, padding: ${Math.round(iconPadding)} (100% of icon size)`);
+        console.log(`📏 Icon size: ${Math.round(iconSize)}, padding: ${Math.round(iconPadding)} (150% of icon size)`);
         console.log(`📏 Sum row height: ${Math.round(sumRowHeight)}, clearance: ${Math.round(sumRowClearance)}`);
         console.log(`📏 Total bottom reduction: ${Math.round(totalBottomReduction)}`);
         console.log(`📐 Container size: ${Math.round(containerRect.width)} x ${Math.round(containerRect.height)}`);
         
-        // Calculate usable area with icon padding and bottom clearance
+        // Calculate usable area with proper padding and bottom clearance
         const usableWidth = containerRect.width - (iconPadding * 2); // Left + right padding
         const usableHeight = containerRect.height - iconPadding - totalBottomReduction; // Top padding + bottom clearance
         
@@ -177,16 +213,16 @@ class AddIconRenderer {
         const startX = iconPadding;
         const startY = iconPadding;
         
-        // Calculate adaptive minimum distance: 1.2x icon width
-        const minDistance = iconSize * 1.2;
+        // Calculate adaptive minimum distance: 1.4x icon width for better spacing
+        const minDistance = iconSize * 1.4;
         
-        console.log(`📏 Adaptive minDistance: ${Math.round(minDistance)} (1.2x icon size)`);
+        console.log(`📏 Adaptive minDistance: ${Math.round(minDistance)} (1.4x icon size)`);
         console.log(`📊 Usable area: ${Math.round(usableWidth)} x ${Math.round(usableHeight)}`);
         console.log(`📍 Start position: (${Math.round(startX)}, ${Math.round(startY)})`);
         
         if (usableHeight <= 0 || usableWidth <= 0) {
-            console.warn(`⚠️ Invalid usable area: ${Math.round(usableWidth)} x ${Math.round(usableHeight)}`);
-            return [];
+            console.warn(`⚠️ Invalid usable area: ${Math.round(usableWidth)} x ${Math.round(usableHeight)} - using fallback positioning`);
+            return this.getFallbackPositions(count, containerRect.width, containerRect.height);
         }
         
         const maxAttempts = 200;
@@ -244,6 +280,25 @@ class AddIconRenderer {
         return positions;
     }
 
+    // Fallback for when container dimensions are invalid
+    getFallbackPositions(count, containerWidth, containerHeight) {
+        const positions = [];
+        const cols = Math.ceil(Math.sqrt(count));
+        const cellWidth = containerWidth / cols;
+        const cellHeight = containerHeight / Math.ceil(count / cols);
+        
+        for (let i = 0; i < count; i++) {
+            const row = Math.floor(i / cols);
+            const col = i % cols;
+            positions.push({
+                x: col * cellWidth + cellWidth / 2,
+                y: row * cellHeight + cellHeight / 2
+            });
+        }
+        
+        return positions;
+    }
+
     // Grid-based fallback positioning when random fails
     getFallbackPosition(index, totalCount, startX, startY, usableWidth, usableHeight) {
         // Create a simple grid based on the number of icons
@@ -273,6 +328,14 @@ class AddIconRenderer {
 
     renderIcons(leftCount, rightCount) {
         console.log('🎯 ACTUAL renderIcons() called with leftCount:', leftCount, 'rightCount:', rightCount);
+        
+        // Check if ButtonBar is ready with proper dimensions
+        if (!this.buttonBarReady) {
+            console.log('⏳ ButtonBar not ready - storing render request for later');
+            this.pendingRender = { leftCount, rightCount };
+            return;
+        }
+        
         console.log(`🎮 === RENDERING ${leftCount} + ${rightCount} ICONS WITH RANDOM POSITIONING ===`);
         
         this.clearIcons();
@@ -282,6 +345,13 @@ class AddIconRenderer {
             return;
         }
         
+        // Wait a small amount for any layout changes to settle
+        setTimeout(() => {
+            this.doActualRender(leftCount, rightCount);
+        }, 50);
+    }
+
+    doActualRender(leftCount, rightCount) {
         // Choose one icon type and color for all icons in this round
         const iconClass = this.getRandomIcon();
         const iconColor = this.getRandomColor();
@@ -380,6 +450,8 @@ class AddIconRenderer {
     reset() {
         this.previousIcon = null;
         this.previousColor = null;
+        this.buttonBarReady = false;
+        this.pendingRender = null;
         this.clearIcons();
     }
     
