@@ -14,13 +14,13 @@
     opacity: 1;
 }
 
-/* CORRECTED: Left side - positioned absolutely within game area */
+/* REVERTED: Left side - back to icon positioning area (6%-40% horizontal, 6%-79% vertical) */
 .left-side {
     position: absolute;
-    left: 0; /* FIXED: Full left area from 0% */
-    width: 46%; /* FIXED: Full left area to 46% */
-    top: 0; /* FIXED: Full height */
-    height: 100%; /* FIXED: Full height */
+    left: 6%; /* 6% of game area width */
+    width: 34%; /* 40% - 6% = 34% width */
+    top: 6%; /* 6% from top (100% - 94% = 6%) */
+    height: 73%; /* 79% - 6% = 73% height (94% - 21% from bottom) */
     border-right: 2px dashed #ddd;
     transition: background-color 0.2s ease;
     z-index: 1; /* Same as game area background */
@@ -37,7 +37,7 @@
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    z-index: 0; /* FIXED: Below game area background and rainbow */
+    z-index: 0; /* Below game area background and rainbow */
 }
 
 .plus-sign {
@@ -66,24 +66,50 @@
     font-weight: bold;
 }
 
-/* CORRECTED: Right side - positioned absolutely within game area */
+/* REVERTED: Right side - back to icon positioning area (60%-94% horizontal, 6%-79% vertical) */
 .right-side {
     position: absolute;
-    left: 54%; /* FIXED: Full right area from 54% */
-    width: 46%; /* FIXED: Full right area to 100% */
-    top: 0; /* FIXED: Full height */
-    height: 100%; /* FIXED: Full height */
+    left: 60%; /* 60% of game area width */
+    width: 34%; /* 94% - 60% = 34% width */
+    top: 6%; /* 6% from top (100% - 94% = 6%) */
+    height: 73%; /* 79% - 6% = 73% height (94% - 21% from bottom) */
     border-left: 2px dashed #ddd;
     transition: background-color 0.2s ease;
     z-index: 1; /* Same as game area background */
 }
 
-/* Area flashing styles */
-.left-side.area-flash,
-.right-side.area-flash {
+/* NEW: Separate pulse areas for green flashing */
+.left-pulse-area {
+    position: absolute;
+    left: 0; /* Full left area from 0% */
+    width: 46%; /* Full left area to 46% */
+    top: 0; /* Full height */
+    height: 100%; /* Full height of game area */
+    pointer-events: none; /* Don't interfere with interactions */
+    transition: background-color 0.2s ease;
+    z-index: 2; /* Above game areas but below icons */
+}
+
+.right-pulse-area {
+    position: absolute;
+    left: 54%; /* Full right area from 54% */
+    width: 46%; /* Full right area to 100% */
+    top: 0; /* Full height */
+    height: 100%; /* Full height of game area */
+    pointer-events: none; /* Don't interfere with interactions */
+    transition: background-color 0.2s ease;
+    z-index: 2; /* Above game areas but below icons */
+}
+
+/* Area flashing styles - now target the pulse areas */
+.left-pulse-area.area-flash,
+.right-pulse-area.area-flash {
     background-color: rgba(144, 238, 144, 0.2) !important;
     transition: background-color 1s ease-in-out;
 }
+
+/* Area flashing styles - REMOVED old styles targeting left-side and right-side */
+/* Now handled by separate pulse areas */
 
 /* Icons - positioned within their containers */
 .game-icon {
