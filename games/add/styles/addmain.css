@@ -1,5 +1,4 @@
-/* Addition Game - Simplified Styles with proper layout structure */
-/* Universal styles removed - handled by main.css and universal systems */
+/* Addition Game - Fixed Styles with proper ButtonBar coordination */
 
 /* Game area sections layout with initial fade state */
 .game-area {
@@ -8,7 +7,8 @@
     opacity: 0;
     transition: opacity 1s ease-in-out;
     position: relative;
-    /* ButtonBar will set width, margins, and bottom spacing */
+    /* Width, margins, and bottom spacing set by ButtonBar system */
+    /* DO NOT override these - they are calculated by the universal system */
 }
 
 .game-area.loaded {
@@ -268,6 +268,10 @@
     pointer-events: none;
 }
 
+/* CRITICAL: DO NOT override universal button styles */
+/* The following button styles are handled by main.css and buttonbar.js */
+/* DO NOT add any .number-btn, .number-buttons overrides here */
+
 /* Responsive design improvements */
 @media (max-width: 1200px) {
     .plus-sign {
@@ -309,22 +313,22 @@
     
     .input-box {
         /* Updated: Reduced by 20% */
-        font-size: calc(8vw * 0.2); /* Was 0.25 */
-        min-font-size: 11px; /* Reduced from 14px */
+        font-size: calc(8vw * 0.32); /* Was 0.4 */
+        min-font-size: 16px; /* Reasonable minimum */
     }
     
     .sum-plus-sign,
     .sum-equals-sign {
         /* Updated: Reduced by 20% */
-        font-size: calc(8vw * 0.24); /* Was 0.3 */
-        min-font-size: 13px; /* Reduced from 16px */
+        font-size: calc(8vw * 0.38); /* Was 0.48 */
+        min-font-size: 19px; /* Reasonable minimum */
         min-width: calc(8vw * 0.4);
     }
     
     .check-mark {
         /* Updated: Reduced by 20% */
-        font-size: calc(8vw * 0.24); /* Was 0.3 */
-        min-font-size: 13px; /* Reduced from 16px */
+        font-size: calc(8vw * 0.38); /* Was 0.48 */
+        min-font-size: 19px; /* Reasonable minimum */
         min-width: calc(8vw * 0.5);
     }
 }
@@ -359,23 +363,23 @@
     
     .input-box {
         /* Updated: Reduced by 20% */
-        font-size: calc(7vw * 0.2); /* Was 0.25 */
-        min-font-size: 10px; /* Reduced from 12px */
+        font-size: calc(7vw * 0.32); /* Was 0.4 */
+        min-font-size: 14px; /* Reasonable minimum */
         border-radius: 12px;
     }
     
     .sum-plus-sign,
     .sum-equals-sign {
         /* Updated: Reduced by 20% */
-        font-size: calc(7vw * 0.24); /* Was 0.3 */
-        min-font-size: 11px; /* Reduced from 14px */
+        font-size: calc(7vw * 0.38); /* Was 0.48 */
+        min-font-size: 17px; /* Reasonable minimum */
         min-width: calc(7vw * 0.4);
     }
     
     .check-mark {
         /* Updated: Reduced by 20% */
-        font-size: calc(7vw * 0.24); /* Was 0.3 */
-        min-font-size: 11px; /* Reduced from 14px */
+        font-size: calc(7vw * 0.38); /* Was 0.48 */
+        min-font-size: 17px; /* Reasonable minimum */
         min-width: calc(7vw * 0.5);
     }
 }
