@@ -1,5 +1,6 @@
 class AddGameController {
     constructor() {
+        // Initialize components in proper order
         this.iconRenderer = new AddIconRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
@@ -41,6 +42,7 @@ class AddGameController {
         
         // Loading state
         this.isLoading = true;
+        this.initializationComplete = false;
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
@@ -64,12 +66,29 @@ class AddGameController {
             6: [[2,3], [3,2], [3,3], [1,4], [1,5], [2,4], [3,4], [2,5], [1,6], [1,7], [1,8], [1,9], [4,4], [2,6], [2,7], [3,5], [2,8], [3,6], [4,5], [4,6], [3,7], [5,5], [4,1], [5,1], [4,2], [4,3], [5,2], [6,1], [7,1], [8,1], [9,1], [6,2], [7,2], [5,3], [8,2], [6,3], [5,4], [6,4], [7,3]]
         };
         
+        // Initialize in proper order
         this.initializeEventListeners();
-        this.createButtons();
         this.setupVisibilityHandling();
-        
-        // Start the loading sequence
-        this.initializeGame();
+        this.waitForButtonBarThenInitialize();
+    }
+
+    /**
+     * Wait for ButtonBar to be ready, then create buttons and initialize game
+     */
+    waitForButtonBarThenInitialize() {
+        if (window.ButtonBar) {
+            console.log('🎮 ButtonBar available, creating buttons');
+            this.createButtons();
+            // Wait a bit more for ButtonBar to fully set up game area
+            setTimeout(() => {
+                this.initializeGame();
+            }, 200);
+        } else {
+            console.log('⏳ Waiting for ButtonBar...');
+            setTimeout(() => {
+                this.waitForButtonBarThenInitialize();
+            }, 100);
+        }
     }
 
     initializeGame() {
@@ -83,6 +102,7 @@ class AddGameController {
             console.log('🎮 Starting fade-in sequence');
             this.showAllElements();
             this.isLoading = false;
+            this.initializationComplete = true;
             
             // Start the first question after fade-in completes
             setTimeout(() => {
@@ -142,7 +162,7 @@ class AddGameController {
                 colors,                // array of button colors
                 numbers,               // array of button numbers/labels
                 (selectedNumber, buttonElement) => {  // click handler
-                    if (this.buttonsDisabled) return;
+                    if (this.buttonsDisabled || !this.initializationComplete) return;
                     
                     // Clear inactivity timer on user interaction
                     this.clearInactivityTimer();
@@ -151,13 +171,14 @@ class AddGameController {
                     this.handleNumberClick(selectedNumber, buttonElement);
                 }
             );
+            console.log('✅ Button bar created successfully');
         } else {
             console.warn('ButtonBar not available - using fallback');
             // Fallback: get existing buttons
             this.numberButtons = document.querySelectorAll('.number-btn');
             this.numberButtons.forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    if (this.buttonsDisabled) return;
+                    if (this.buttonsDisabled || !this.initializationComplete) return;
                     
                     this.clearInactivityTimer();
                     this.startInactivityTimer();
@@ -182,7 +203,7 @@ class AddGameController {
                 }
             } else {
                 // Tab is visible again - restart inactivity timer if game is active
-                if (!this.gameComplete && !this.buttonsDisabled) {
+                if (!this.gameComplete && !this.buttonsDisabled && this.initializationComplete) {
                     this.startInactivityTimer();
                 }
             }
@@ -208,8 +229,8 @@ class AddGameController {
     }
 
     startInactivityTimer() {
-        // Only start timer if tab is visible and hint hasn't been given
-        if (!this.isTabVisible || this.hintGiven) {
+        // Only start timer if tab is visible, game is initialized, and hint hasn't been given
+        if (!this.isTabVisible || this.hintGiven || !this.initializationComplete) {
             return;
         }
         
@@ -235,7 +256,7 @@ class AddGameController {
     }
 
     giveInactivityHint() {
-        if (this.buttonsDisabled || this.gameComplete || !this.isTabVisible) return;
+        if (this.buttonsDisabled || this.gameComplete || !this.isTabVisible || !this.initializationComplete) return;
         
         // Mark that hint has been given for this question
         this.hintGiven = true;
@@ -264,7 +285,7 @@ class AddGameController {
 
         // Add keyboard event listener
         document.addEventListener('keydown', (e) => {
-            if (this.buttonsDisabled || this.gameComplete) {
+            if (this.buttonsDisabled || this.gameComplete || !this.initializationComplete) {
                 return;
             }
             
@@ -414,7 +435,7 @@ class AddGameController {
     }
 
     startNewQuestion() {
-        if (this.gameComplete) {
+        if (this.gameComplete || !this.initializationComplete) {
             return;
         }
 
@@ -494,8 +515,8 @@ class AddGameController {
     }
 
     giveStartingSumInstruction() {
-        // Don't give audio during loading
-        if (this.isLoading || !this.isTabVisible) return;
+        // Don't give audio during loading or if not initialized
+        if (this.isLoading || !this.isTabVisible || !this.initializationComplete) return;
         
         setTimeout(() => {
             if (this.sumsCompleted === 0) {
@@ -942,6 +963,7 @@ class AddGameController {
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎮 DOM loaded, creating AddGameController');
     window.addGame = new AddGameController();
 });
 
