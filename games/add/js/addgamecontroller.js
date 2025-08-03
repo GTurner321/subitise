@@ -54,8 +54,10 @@ class AddGameController {
         this.sumRow = document.getElementById('sumRow');
         this.totalInputBox = document.getElementById('totalInputBox');
         this.checkMark = document.getElementById('checkMark');
-        this.leftSide = document.getElementById('leftSide');
-        this.rightSide = document.getElementById('rightSide');
+        this.leftSide = document.getElementById('leftSide'); // Icon placement area
+        this.rightSide = document.getElementById('rightSide'); // Icon placement area
+        this.leftPulseArea = document.getElementById('leftPulseArea'); // NEW: Pulse area
+        this.rightPulseArea = document.getElementById('rightPulseArea'); // NEW: Pulse area
         this.gameArea = document.querySelector('.game-area');
         
         // Level definitions
@@ -400,22 +402,22 @@ class AddGameController {
         const flashElements = () => {
             // Flash only the first uncompleted box from left to right
             if (!this.leftFilled) {
-                this.leftSide.classList.add('area-flash');
+                this.leftPulseArea.classList.add('area-flash'); // Use pulse area
                 this.leftInputBox.classList.add('box-flash');
             } else if (!this.rightFilled) {
-                this.rightSide.classList.add('area-flash');
+                this.rightPulseArea.classList.add('area-flash'); // Use pulse area
                 this.rightInputBox.classList.add('box-flash');
             } else if (!this.totalFilled) {
                 // Flash both areas when total is the only remaining box
-                this.leftSide.classList.add('area-flash');
-                this.rightSide.classList.add('area-flash');
+                this.leftPulseArea.classList.add('area-flash'); // Use pulse areas
+                this.rightPulseArea.classList.add('area-flash');
                 this.totalInputBox.classList.add('box-flash');
             }
             
             // Remove flash classes after flash duration
             setTimeout(() => {
-                this.leftSide.classList.remove('area-flash');
-                this.rightSide.classList.remove('area-flash');
+                this.leftPulseArea.classList.remove('area-flash'); // Use pulse areas
+                this.rightPulseArea.classList.remove('area-flash');
                 this.leftInputBox.classList.remove('box-flash');
                 this.rightInputBox.classList.remove('box-flash');
                 this.totalInputBox.classList.remove('box-flash');
@@ -442,9 +444,9 @@ class AddGameController {
             this.flashingTimeout = null;
         }
         
-        // Remove any existing flash classes
-        this.leftSide.classList.remove('area-flash');
-        this.rightSide.classList.remove('area-flash');
+        // Remove any existing flash classes from pulse areas
+        this.leftPulseArea.classList.remove('area-flash');
+        this.rightPulseArea.classList.remove('area-flash');
         this.leftInputBox.classList.remove('box-flash');
         this.rightInputBox.classList.remove('box-flash');
         this.totalInputBox.classList.remove('box-flash');
