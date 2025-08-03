@@ -39,18 +39,22 @@ class AddIconRenderer {
             window.ButtonBar.addObserver((dimensionData) => {
                 console.log('🎯 ButtonBar dimensions updated:', dimensionData);
                 this.buttonBarReady = true;
-                this.updateGameAreaDimensions();
                 
-                // If we have a pending render, execute it now
-                if (this.pendingRender) {
-                    console.log('🎮 Executing pending render with proper game area dimensions');
-                    const { leftCount, rightCount } = this.pendingRender;
-                    this.pendingRender = null;
-                    this.renderIcons(leftCount, rightCount);
-                } else if (this.currentIcons.length > 0) {
-                    // Update existing icon positions
-                    this.updateIconSizesAndPositions();
-                }
+                // CRITICAL: Wait for game area to stabilize after ButtonBar sets its margins
+                setTimeout(() => {
+                    this.updateGameAreaDimensions();
+                    
+                    // If we have a pending render, execute it now
+                    if (this.pendingRender) {
+                        console.log('🎮 Executing pending render with stable game area dimensions');
+                        const { leftCount, rightCount } = this.pendingRender;
+                        this.pendingRender = null;
+                        this.renderIcons(leftCount, rightCount);
+                    } else if (this.currentIcons.length > 0) {
+                        // Update existing icon positions
+                        this.updateIconSizesAndPositions();
+                    }
+                }, 300); // Wait for CSS transitions and layout to stabilize
             });
         } else {
             // ButtonBar not ready yet, wait for it
@@ -66,10 +70,26 @@ class AddIconRenderer {
     }
 
     updateGameAreaDimensions() {
-        if (!this.gameArea) return;
+        if (!this.gameArea) {
+            console.error('❌ Game area not found when trying to update dimensions');
+            return;
+        }
+        
+        // Force a reflow to ensure we get accurate dimensions
+        this.gameArea.offsetHeight;
         
         // Get the actual game area dimensions after ButtonBar has set them
         const gameAreaRect = this.gameArea.getBoundingClientRect();
+        
+        // Validate that we have reasonable dimensions
+        if (gameAreaRect.width < 100 || gameAreaRect.height < 100) {
+            console.warn('⚠️ Game area dimensions seem too small, retrying...', gameAreaRect);
+            setTimeout(() => {
+                this.updateGameAreaDimensions();
+            }, 100);
+            return;
+        }
+        
         this.gameAreaDimensions = {
             width: gameAreaRect.width,
             height: gameAreaRect.height,
@@ -77,7 +97,7 @@ class AddIconRenderer {
             top: gameAreaRect.top
         };
         
-        console.log('📏 Game area dimensions updated:', this.gameAreaDimensions);
+        console.log('📏 Game area dimensions updated and validated:', this.gameAreaDimensions);
     }
 
     setupResizeHandling() {
@@ -292,12 +312,29 @@ class AddIconRenderer {
         console.log(`🎮 === RENDERING ${leftCount} + ${rightCount} ICONS ===`);
         
         // Check if ButtonBar is ready with proper dimensions
-        if (!this.buttonBarReady || !this.gameAreaDimensions) {
-            console.log('⏳ ButtonBar not ready or game area dimensions not available - storing render request for later');
+        if (!this.buttonBarReady) {
+            console.log('⏳ ButtonBar not ready - storing render request for later');
+            this.pendingRender = { leftCount, rightCount };
+            return;
+        }
+        
+        // Update dimensions to ensure we have the latest measurements
+        this.updateGameAreaDimensions();
+        
+        // Check if we have valid game area dimensions
+        if (!this.gameAreaDimensions || this.gameAreaDimensions.width < 100 || this.gameAreaDimensions.height < 100) {
+            console.log('⏳ Game area dimensions not ready - storing render request for later');
             this.pendingRender = { leftCount, rightCount };
             
-            // Try to update game area dimensions in case ButtonBar is ready but we missed the signal
-            this.updateGameAreaDimensions();
+            // Retry after a short delay
+            setTimeout(() => {
+                if (this.pendingRender) {
+                    console.log('🔄 Retrying icon render with updated dimensions');
+                    const { leftCount: retryLeft, rightCount: retryRight } = this.pendingRender;
+                    this.pendingRender = null;
+                    this.renderIcons(retryLeft, retryRight);
+                }
+            }, 200);
             return;
         }
         
@@ -307,6 +344,8 @@ class AddIconRenderer {
             console.error('❌ Game area not found!');
             return;
         }
+        
+        console.log('✅ Game area ready, proceeding with icon render');
         
         // Wait a small amount for any layout changes to settle
         setTimeout(() => {
