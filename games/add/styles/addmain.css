@@ -19,25 +19,25 @@
     position: absolute;
     left: 6%; /* 6% of game area width */
     width: 34%; /* 40% - 6% = 34% width */
-    top: 21%; /* 21% of game area height */
-    height: 73%; /* 94% - 21% = 73% height */
+    top: 6%; /* FIXED: 6% from top (100% - 94% = 6%) */
+    height: 73%; /* FIXED: 79% - 6% = 73% height (94% - 21% from bottom) */
     border-right: 2px dashed #ddd;
     transition: background-color 0.2s ease;
     z-index: 1; /* Same as game area background */
 }
 
-/* CORRECTED: Middle section - positioned absolutely within game area */
+/* CORRECTED: Middle section - 8% wide, centered at 46%-54% */
 .middle-section {
     position: absolute;
-    left: 40%; /* Start where left side ends */
-    width: 20%; /* 60% - 40% = 20% width for middle */
+    left: 46%; /* FIXED: Center section 46%-54% */
+    width: 8%; /* FIXED: 8% width as specified */
     top: 0;
     height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    z-index: 1; /* FIXED: Same as game area background */
+    z-index: 1; /* FIXED: Same z-index as game area background (below rainbow) */
 }
 
 .plus-sign {
@@ -71,8 +71,8 @@
     position: absolute;
     left: 60%; /* 60% of game area width */
     width: 34%; /* 94% - 60% = 34% width */
-    top: 21%; /* 21% of game area height */
-    height: 73%; /* 94% - 21% = 73% height */
+    top: 6%; /* FIXED: 6% from top (100% - 94% = 6%) */
+    height: 73%; /* FIXED: 79% - 6% = 73% height (94% - 21% from bottom) */
     border-left: 2px dashed #ddd;
     transition: background-color 0.2s ease;
     z-index: 1; /* Same as game area background */
