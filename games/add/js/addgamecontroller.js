@@ -40,9 +40,11 @@ class AddGameController {
         this.flashingInterval = null;
         this.flashingTimeout = null;
         
-        // Loading state
+        // Loading state and initialization tracking
         this.isLoading = true;
         this.initializationComplete = false;
+        this.buttonBarReady = false;
+        this.gameAreaReady = false;
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
@@ -66,28 +68,41 @@ class AddGameController {
             6: [[2,3], [3,2], [3,3], [1,4], [1,5], [2,4], [3,4], [2,5], [1,6], [1,7], [1,8], [1,9], [4,4], [2,6], [2,7], [3,5], [2,8], [3,6], [4,5], [4,6], [3,7], [5,5], [4,1], [5,1], [4,2], [4,3], [5,2], [6,1], [7,1], [8,1], [9,1], [6,2], [7,2], [5,3], [8,2], [6,3], [5,4], [6,4], [7,3]]
         };
         
-        // Initialize in proper order
+        // Initialize in proper order - FIXED: Better coordination
         this.initializeEventListeners();
         this.setupVisibilityHandling();
-        this.waitForButtonBarThenInitialize();
+        this.waitForSystemsAndInitialize();
     }
 
     /**
-     * Wait for ButtonBar to be ready, then create buttons and initialize game
+     * FIXED: Wait for both ButtonBar AND proper game area setup
      */
-    waitForButtonBarThenInitialize() {
-        if (window.ButtonBar) {
-            console.log('🎮 ButtonBar available, creating buttons');
+    waitForSystemsAndInitialize() {
+        console.log('🎮 Checking system readiness...');
+        
+        // Check if ButtonBar is available and functional
+        const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
+        
+        // Check if game area containers exist
+        const gameAreaReady = this.gameArea && this.leftSide && this.rightSide && this.sumRow;
+        
+        if (buttonBarReady && gameAreaReady) {
+            console.log('🎮 All systems ready, proceeding with initialization');
+            this.buttonBarReady = true;
+            this.gameAreaReady = true;
+            
+            // Create buttons first
             this.createButtons();
-            // Wait longer for ButtonBar to fully set up game area dimensions
+            
+            // Wait for ButtonBar to coordinate with game area, then initialize
             setTimeout(() => {
-                console.log('🎮 ButtonBar should have set game area dimensions, initializing game');
+                console.log('🎮 ButtonBar coordination complete, initializing game');
                 this.initializeGame();
-            }, 500); // Increased delay to ensure proper coordination
+            }, 600); // Increased delay for proper coordination
         } else {
-            console.log('⏳ Waiting for ButtonBar...');
+            console.log(`⏳ Waiting for systems... ButtonBar: ${buttonBarReady}, GameArea: ${gameAreaReady}`);
             setTimeout(() => {
-                this.waitForButtonBarThenInitialize();
+                this.waitForSystemsAndInitialize();
             }, 100);
         }
     }
@@ -98,7 +113,7 @@ class AddGameController {
         // Hide all elements initially
         this.hideAllElements();
         
-        // Wait 1 second for calculations, then start fade-in
+        // Wait for elements to be hidden, then start fade-in
         setTimeout(() => {
             console.log('🎮 Starting fade-in sequence');
             this.showAllElements();
@@ -155,7 +170,7 @@ class AddGameController {
         const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         
         // Use the universal button bar system
-        if (window.ButtonBar) {
+        if (window.ButtonBar && this.buttonBarReady) {
             window.ButtonBar.create(
                 10,                    // number of buttons
                 8,                     // button width as % of button panel width
@@ -456,8 +471,13 @@ class AddGameController {
         
         console.log(`Question: ${addition.left} + ${addition.right} = ${addition.sum}, Level: ${this.currentLevel}`);
         
-        // Render the icons
-        this.iconRenderer.renderIcons(addition.left, addition.right);
+        // FIXED: Only render icons if systems are ready
+        if (this.buttonBarReady && this.gameAreaReady) {
+            // Render the icons
+            this.iconRenderer.renderIcons(addition.left, addition.right);
+        } else {
+            console.warn('⚠️ Systems not ready for icon rendering');
+        }
         
         // Reset button states and show input boxes
         this.resetButtonStates();
