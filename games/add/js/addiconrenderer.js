@@ -1,8 +1,8 @@
-console.log('🔍 LOADING SIMPLIFIED ADD ICONRENDERER - Fixed positioning with ButtonBar coordination');
+console.log('🔍 LOADING FIXED ADD ICONRENDERER - Proper game area coordination');
 
 class AddIconRenderer {
     constructor() {
-        console.log('AddIconRenderer constructor - using simplified positioning system with ButtonBar coordination');
+        console.log('AddIconRenderer constructor - using proper game area coordination');
         this.gameArea = document.querySelector('.game-area');
         this.currentIcons = [];
         this.previousIcon = null;
@@ -11,8 +11,10 @@ class AddIconRenderer {
         // ButtonBar coordination
         this.buttonBarReady = false;
         this.pendingRender = null;
+        this.gameAreaDimensions = null;
         
-        // Game area boundaries (as percentages of full game area)
+        // Game area boundaries (as percentages of ACTUAL game area)
+        // These are the left and right zones within the game area
         this.boundaries = {
             left: {
                 horizontal: { start: 6, end: 40 },   // 6%-40% of game area width
@@ -35,8 +37,9 @@ class AddIconRenderer {
         // Register with ButtonBar to be notified of dimension changes
         if (window.ButtonBar) {
             window.ButtonBar.addObserver((dimensionData) => {
-                console.log('🎯 ButtonBar dimensions updated, marking as ready');
+                console.log('🎯 ButtonBar dimensions updated:', dimensionData);
                 this.buttonBarReady = true;
+                this.updateGameAreaDimensions();
                 
                 // If we have a pending render, execute it now
                 if (this.pendingRender) {
@@ -62,6 +65,21 @@ class AddIconRenderer {
         }
     }
 
+    updateGameAreaDimensions() {
+        if (!this.gameArea) return;
+        
+        // Get the actual game area dimensions after ButtonBar has set them
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+        this.gameAreaDimensions = {
+            width: gameAreaRect.width,
+            height: gameAreaRect.height,
+            left: gameAreaRect.left,
+            top: gameAreaRect.top
+        };
+        
+        console.log('📏 Game area dimensions updated:', this.gameAreaDimensions);
+    }
+
     setupResizeHandling() {
         // Simple resize handler
         window.addEventListener('resize', () => {
@@ -70,6 +88,7 @@ class AddIconRenderer {
             }
             this.resizeTimeout = setTimeout(() => {
                 if (this.buttonBarReady) {
+                    this.updateGameAreaDimensions();
                     this.updateIconSizesAndPositions();
                 }
             }, 100);
@@ -77,10 +96,10 @@ class AddIconRenderer {
     }
     
     updateIconSizesAndPositions() {
-        if (!this.gameArea || this.currentIcons.length === 0) return;
+        if (!this.gameArea || this.currentIcons.length === 0 || !this.gameAreaDimensions) return;
         
-        const gameAreaRect = this.gameArea.getBoundingClientRect();
-        const iconSize = gameAreaRect.width * 0.06; // 6% of game area width
+        // Calculate icon size (6% of game area width)
+        const iconSize = this.gameAreaDimensions.width * 0.06;
         
         // Update size for all current icons
         this.currentIcons.forEach(icon => {
@@ -92,7 +111,7 @@ class AddIconRenderer {
     }
 
     repositionExistingIcons() {
-        if (this.currentIcons.length === 0) return;
+        if (this.currentIcons.length === 0 || !this.gameAreaDimensions) return;
         
         // Count left and right icons
         const leftIcons = this.currentIcons.filter(icon => icon.dataset.side === 'left');
@@ -188,7 +207,7 @@ class AddIconRenderer {
                 y = boundary.vertical.start + 
                     Math.random() * (boundary.vertical.end - boundary.vertical.start);
                 
-                // Check distance from all existing positions (both sides)
+                // Check distance from all existing positions (both current and all existing icons)
                 validPosition = this.isPositionValid(x, y, positions);
                 attempts++;
             }
@@ -273,9 +292,12 @@ class AddIconRenderer {
         console.log(`🎮 === RENDERING ${leftCount} + ${rightCount} ICONS ===`);
         
         // Check if ButtonBar is ready with proper dimensions
-        if (!this.buttonBarReady) {
-            console.log('⏳ ButtonBar not ready - storing render request for later');
+        if (!this.buttonBarReady || !this.gameAreaDimensions) {
+            console.log('⏳ ButtonBar not ready or game area dimensions not available - storing render request for later');
             this.pendingRender = { leftCount, rightCount };
+            
+            // Try to update game area dimensions in case ButtonBar is ready but we missed the signal
+            this.updateGameAreaDimensions();
             return;
         }
         
@@ -298,14 +320,14 @@ class AddIconRenderer {
         const iconColor = this.getRandomColor();
         
         console.log(`🎨 Selected: ${iconClass} in color ${iconColor}`);
+        console.log(`📐 Game area dimensions:`, this.gameAreaDimensions);
         
         // Generate positions for both sides
         const leftPositions = this.generatePositions(leftCount, 'left');
         const rightPositions = this.generatePositions(rightCount, 'right');
         
         // Calculate icon size (6% of game area width)
-        const gameAreaRect = this.gameArea.getBoundingClientRect();
-        const iconSize = gameAreaRect.width * 0.06;
+        const iconSize = this.gameAreaDimensions.width * 0.06;
         
         console.log(`📏 Icon size: ${Math.round(iconSize)}px`);
         
@@ -323,7 +345,7 @@ class AddIconRenderer {
             this.currentIcons.push(icon);
         });
         
-        console.log(`🎉 Created ${this.currentIcons.length} icons with simplified positioning`);
+        console.log(`🎉 Created ${this.currentIcons.length} icons with proper game area coordination`);
         
         return { left: leftCount, right: rightCount, total: leftCount + rightCount };
     }
@@ -350,7 +372,7 @@ class AddIconRenderer {
             transform: translate(-50%, -50%);
         `;
         
-        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}%)`);
+        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}%) within game area`);
         
         return icon;
     }
@@ -366,6 +388,7 @@ class AddIconRenderer {
         this.previousColor = null;
         this.buttonBarReady = false;
         this.pendingRender = null;
+        this.gameAreaDimensions = null;
         this.clearIcons();
     }
     
@@ -405,7 +428,7 @@ class AddIconRenderer {
         
         // Remove from ButtonBar observers
         if (window.ButtonBar) {
-            window.ButtonBar.removeObserver(this.updateIconSizesAndPositions);
+            window.ButtonBar.removeObserver(this.updateGameAreaDimensions);
         }
         
         window.removeEventListener('resize', this.handleResize);
