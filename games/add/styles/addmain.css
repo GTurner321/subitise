@@ -1,9 +1,8 @@
-/* Addition Game - Fixed Styles with proper ButtonBar coordination */
+/* Addition Game - Corrected Styles with proper game area coordination */
 
 /* Game area sections layout with initial fade state */
 .game-area {
-    display: flex;
-    align-items: stretch;
+    display: block; /* CHANGED: from flex to block for absolute positioning */
     opacity: 0;
     transition: opacity 1s ease-in-out;
     position: relative;
@@ -15,27 +14,30 @@
     opacity: 1;
 }
 
-/* Left side - FIXED: Now acts as proper container for icons */
+/* CORRECTED: Left side - positioned absolutely within game area */
 .left-side {
-    position: relative;
-    width: 46%;
-    height: 100%;
+    position: absolute;
+    left: 6%; /* 6% of game area width */
+    width: 34%; /* 40% - 6% = 34% width */
+    top: 21%; /* 21% of game area height */
+    height: 73%; /* 94% - 21% = 73% height */
     border-right: 2px dashed #ddd;
     transition: background-color 0.2s ease;
-    /* No z-index conflict with plus sign */
+    z-index: 1; /* Same as game area background */
 }
 
-/* Middle section with plus sign - 8% of game area width */
+/* CORRECTED: Middle section - positioned absolutely within game area */
 .middle-section {
-    position: relative;
-    width: 8%;
+    position: absolute;
+    left: 40%; /* Start where left side ends */
+    width: 20%; /* 60% - 40% = 20% width for middle */
+    top: 0;
     height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    /* FIXED: Same z-index as game area, plus sign gets higher z-index */
-    z-index: 1;
+    z-index: 1; /* FIXED: Same as game area background */
 }
 
 .plus-sign {
@@ -45,20 +47,18 @@
     /* Red circle: 6.5% of game area width */
     width: 6.5vw;
     height: 6.5vw;
-    max-width: 70px; /* Reasonable maximum */
+    max-width: 70px;
     max-height: 70px;
-    min-width: 35px; /* Reasonable minimum */
+    min-width: 35px;
     min-height: 35px;
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    /* FIXED: Higher z-index than middle section */
-    z-index: 10;
+    z-index: 10; /* FIXED: Higher z-index as button furniture */
     position: relative;
 }
 
 .plus-sign i {
-    /* Smaller plus symbol: 40% of container width */
     font-size: calc(6.5vw * 0.4);
     max-font-size: 28px;
     min-font-size: 14px;
@@ -66,35 +66,35 @@
     font-weight: bold;
 }
 
-/* Right side - FIXED: Now acts as proper container for icons */
+/* CORRECTED: Right side - positioned absolutely within game area */
 .right-side {
-    position: relative;
-    width: 46%;
-    height: 100%;
+    position: absolute;
+    left: 60%; /* 60% of game area width */
+    width: 34%; /* 94% - 60% = 34% width */
+    top: 21%; /* 21% of game area height */
+    height: 73%; /* 94% - 21% = 73% height */
     border-left: 2px dashed #ddd;
     transition: background-color 0.2s ease;
-    /* No z-index conflict with plus sign */
+    z-index: 1; /* Same as game area background */
 }
 
-/* Area flashing styles - target the actual left/right sides */
+/* Area flashing styles */
 .left-side.area-flash,
 .right-side.area-flash {
     background-color: rgba(144, 238, 144, 0.2) !important;
     transition: background-color 1s ease-in-out;
 }
 
-/* Icons - Enhanced styles with responsive sizing and sophisticated animations */
+/* Icons - positioned within their containers */
 .game-icon {
     position: absolute;
-    z-index: 5; /* Above rainbow, below plus and sum */
-    /* font-size set dynamically by AddIconRenderer for responsiveness */
+    z-index: 5; /* Above rainbow and game areas, below plus and sum */
     animation: fadeIn 0.5s ease-in;
     pointer-events: none;
     user-select: none;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     transition: filter 0.3s ease;
-    animation-fill-mode: both; /* Ensures icons start invisible and fade in smoothly */
-    /* Icons are centered on their position using transform */
+    animation-fill-mode: both;
     transform: translate(-50%, -50%);
 }
 
@@ -116,7 +116,7 @@
     20%, 40%, 60%, 80% { transform: translate(-50%, -50%) translateX(3px); }
 }
 
-/* Sum row at bottom - FIXED: Responsive positioning without overriding button sizes */
+/* Sum row at bottom - Responsive positioning */
 .sum-row {
     position: absolute;
     bottom: 3%; /* 3% above button bar */
@@ -124,17 +124,16 @@
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 2%; /* Responsive gap */
+    gap: 2%;
     z-index: 15; /* Higher than everything else */
     
-    /* Updated: Width set to 50% */
     width: 50%;
-    height: calc(7vw + 2vh); /* Box height + internal padding */
-    max-height: 90px; /* Reasonable maximum */
-    min-height: 55px; /* Reasonable minimum */
+    height: calc(7vw + 2vh);
+    max-height: 90px;
+    min-height: 55px;
     
     background: rgba(255, 255, 255, 0.95);
-    padding: 1vh 2%; /* 1% of game area height top/bottom, 2% left/right */
+    padding: 1vh 2%;
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 2px solid #e0e0e0;
@@ -155,7 +154,6 @@
     transform: translateX(-50%) !important;
 }
 
-/* FIXED: Use relative sizing for sum elements, not absolute overrides */
 .sum-plus-sign,
 .sum-equals-sign {
     font-size: clamp(16px, 4vw, 32px);
@@ -163,23 +161,22 @@
     color: #333;
     min-width: clamp(20px, 3vw, 40px);
     text-align: center;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0;
 }
 
 .left-sum-box,
 .right-sum-box,
 .total-sum-box {
-    /* Square boxes: 7% of game area width for both width and height */
     width: 7vw;
     height: 7vw;
     max-width: 80px;
     max-height: 80px;
     min-width: 50px;
     min-height: 50px;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0;
 }
 
-/* Input boxes for addition game sum bar - these are game-specific, not universal buttons */
+/* Input boxes for addition game sum bar - GAME SPECIFIC, not universal buttons */
 .input-box {
     background: white;
     border: 4px solid #007bff;
@@ -187,8 +184,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    
-    /* Game-specific responsive font sizing for sum input boxes */
     font-size: clamp(14px, calc(7vw * 0.4), 32px);
     font-weight: bold;
     color: #333;
@@ -206,11 +201,10 @@
     animation: none;
 }
 
-/* Box flashing for hints - softer, longer duration, slower timing */
 .input-box.box-flash {
     background: rgba(144, 238, 144, 0.3) !important;
     border-color: #28a745 !important;
-    transition: all 1s ease-in-out; /* Longer transition to match slower timing */
+    transition: all 1s ease-in-out;
 }
 
 @keyframes flashingBox {
@@ -231,7 +225,7 @@
     transition: opacity 0.5s ease;
     min-width: clamp(20px, 4vw, 40px);
     text-align: center;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0;
 }
 
 .check-mark.visible {
@@ -263,10 +257,10 @@
     pointer-events: none;
 }
 
-/* REMOVED: All button style overrides that conflict with ButtonBar system */
-/* The universal ButtonBar system handles ALL button sizing automatically */
+/* REMOVED: All media query overrides that conflict with universal button system */
+/* The ButtonBar system handles ALL responsive button sizing automatically */
 
-/* Responsive design improvements - REMOVED conflicting font-size overrides */
+/* Responsive design improvements - ONLY for game-specific elements */
 @media (max-width: 1200px) {
     .plus-sign {
         width: 5.5vw;
