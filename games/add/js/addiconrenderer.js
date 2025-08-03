@@ -1,9 +1,11 @@
-console.log('🔍 LOADING FIXED ADD ICONRENDERER - Proper game area coordination');
+console.log('🔍 LOADING FIXED ADD ICONRENDERER - Proper container-based positioning');
 
 class AddIconRenderer {
     constructor() {
-        console.log('AddIconRenderer constructor - using proper game area coordination');
+        console.log('AddIconRenderer constructor - using container-based positioning');
         this.gameArea = document.querySelector('.game-area');
+        this.leftContainer = document.querySelector('.left-side');
+        this.rightContainer = document.querySelector('.right-side');
         this.currentIcons = [];
         this.previousIcon = null;
         this.previousColor = null;
@@ -13,21 +15,15 @@ class AddIconRenderer {
         this.pendingRender = null;
         this.gameAreaDimensions = null;
         
-        // Game area boundaries (as percentages of ACTUAL game area)
-        // These are the left and right zones within the game area
-        this.boundaries = {
-            left: {
-                horizontal: { start: 6, end: 40 },   // 6%-40% of game area width
-                vertical: { start: 21, end: 94 }     // 21%-94% of game area height
-            },
-            right: {
-                horizontal: { start: 60, end: 94 },  // 60%-94% of game area width  
-                vertical: { start: 21, end: 94 }     // 21%-94% of game area height
-            }
+        // Icon positioning within containers (as percentages of container dimensions)
+        this.containerBoundaries = {
+            // Icons positioned within 15%-85% of container width and 25%-90% of container height
+            horizontal: { start: 15, end: 85 },
+            vertical: { start: 25, end: 90 }
         };
         
-        // Minimum distance between icon centers (12% of game area width)
-        this.minDistancePercent = 12;
+        // Minimum distance between icon centers (15% of container width)
+        this.minDistancePercent = 15;
         
         this.setupButtonBarCoordination();
         this.setupResizeHandling();
@@ -70,16 +66,18 @@ class AddIconRenderer {
     }
 
     updateGameAreaDimensions() {
-        if (!this.gameArea) {
-            console.error('❌ Game area not found when trying to update dimensions');
+        if (!this.gameArea || !this.leftContainer || !this.rightContainer) {
+            console.error('❌ Game area or containers not found when trying to update dimensions');
             return;
         }
         
         // Force a reflow to ensure we get accurate dimensions
         this.gameArea.offsetHeight;
         
-        // Get the actual game area dimensions after ButtonBar has set them
+        // Get the actual game area and container dimensions
         const gameAreaRect = this.gameArea.getBoundingClientRect();
+        const leftRect = this.leftContainer.getBoundingClientRect();
+        const rightRect = this.rightContainer.getBoundingClientRect();
         
         // Validate that we have reasonable dimensions
         if (gameAreaRect.width < 100 || gameAreaRect.height < 100) {
@@ -91,13 +89,27 @@ class AddIconRenderer {
         }
         
         this.gameAreaDimensions = {
-            width: gameAreaRect.width,
-            height: gameAreaRect.height,
-            left: gameAreaRect.left,
-            top: gameAreaRect.top
+            gameArea: {
+                width: gameAreaRect.width,
+                height: gameAreaRect.height,
+                left: gameAreaRect.left,
+                top: gameAreaRect.top
+            },
+            leftContainer: {
+                width: leftRect.width,
+                height: leftRect.height,
+                left: leftRect.left,
+                top: leftRect.top
+            },
+            rightContainer: {
+                width: rightRect.width,
+                height: rightRect.height,
+                left: rightRect.left,
+                top: rightRect.top
+            }
         };
         
-        console.log('📏 Game area dimensions updated and validated:', this.gameAreaDimensions);
+        console.log('📏 Game area and container dimensions updated:', this.gameAreaDimensions);
     }
 
     setupResizeHandling() {
@@ -116,10 +128,10 @@ class AddIconRenderer {
     }
     
     updateIconSizesAndPositions() {
-        if (!this.gameArea || this.currentIcons.length === 0 || !this.gameAreaDimensions) return;
+        if (!this.gameAreaDimensions || this.currentIcons.length === 0) return;
         
         // Calculate icon size (6% of game area width)
-        const iconSize = this.gameAreaDimensions.width * 0.06;
+        const iconSize = this.gameAreaDimensions.gameArea.width * 0.06;
         
         // Update size for all current icons
         this.currentIcons.forEach(icon => {
@@ -138,10 +150,10 @@ class AddIconRenderer {
         const rightIcons = this.currentIcons.filter(icon => icon.dataset.side === 'right');
         
         // Generate new positions
-        const leftPositions = this.generatePositions(leftIcons.length, 'left');
-        const rightPositions = this.generatePositions(rightIcons.length, 'right');
+        const leftPositions = this.generateContainerPositions(leftIcons.length, 'left');
+        const rightPositions = this.generateContainerPositions(rightIcons.length, 'right');
         
-        // Apply new positions
+        // Apply new positions (relative to their containers)
         leftIcons.forEach((icon, index) => {
             if (leftPositions[index]) {
                 icon.style.left = leftPositions[index].x + '%';
@@ -204,13 +216,13 @@ class AddIconRenderer {
         return selectedColor;
     }
 
-    generatePositions(count, side) {
-        console.log(`🎲 Generating positions for ${count} icons on ${side} side`);
+    generateContainerPositions(count, side) {
+        console.log(`🎲 Generating ${count} positions for ${side} container`);
         
         if (count === 0) return [];
         
         const positions = [];
-        const boundary = this.boundaries[side];
+        const boundary = this.containerBoundaries;
         const maxAttempts = 100;
         let totalFallbacks = 0;
         
@@ -221,20 +233,20 @@ class AddIconRenderer {
             
             // Try random positioning first
             while (!validPosition && attempts < maxAttempts) {
-                // Generate random position within boundary
+                // Generate random position within boundary (relative to container)
                 x = boundary.horizontal.start + 
                     Math.random() * (boundary.horizontal.end - boundary.horizontal.start);
                 y = boundary.vertical.start + 
                     Math.random() * (boundary.vertical.end - boundary.vertical.start);
                 
-                // Check distance from all existing positions (both current and all existing icons)
-                validPosition = this.isPositionValid(x, y, positions);
+                // Check distance from all existing positions in this batch
+                validPosition = this.isContainerPositionValid(x, y, positions);
                 attempts++;
             }
             
             if (!validPosition) {
                 console.log(`❌ Using fallback grid position for ${side} icon ${i}`);
-                const fallbackPos = this.getFallbackPosition(i, count, side);
+                const fallbackPos = this.getFallbackContainerPosition(i, count);
                 x = fallbackPos.x;
                 y = fallbackPos.y;
                 totalFallbacks++;
@@ -245,32 +257,18 @@ class AddIconRenderer {
             positions.push({ x, y });
         }
         
-        console.log(`📊 ${side} side: ${count - totalFallbacks} random, ${totalFallbacks} fallback positions`);
+        console.log(`📊 ${side} container: ${count - totalFallbacks} random, ${totalFallbacks} fallback positions`);
         return positions;
     }
 
-    isPositionValid(x, y, existingPositions) {
+    isContainerPositionValid(x, y, existingPositions) {
         // Check against all existing positions in this render
         for (let pos of existingPositions) {
             const distance = Math.sqrt(
                 Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2)
             );
             
-            // Distance is in percentage units, so 12% minimum
-            if (distance < this.minDistancePercent) {
-                return false;
-            }
-        }
-        
-        // Also check against all currently placed icons from both sides
-        for (let icon of this.currentIcons) {
-            const iconX = parseFloat(icon.style.left);
-            const iconY = parseFloat(icon.style.top);
-            
-            const distance = Math.sqrt(
-                Math.pow(x - iconX, 2) + Math.pow(y - iconY, 2)
-            );
-            
+            // Distance is in percentage units relative to container
             if (distance < this.minDistancePercent) {
                 return false;
             }
@@ -279,12 +277,12 @@ class AddIconRenderer {
         return true;
     }
 
-    getFallbackPosition(index, totalCount, side) {
-        const boundary = this.boundaries[side];
+    getFallbackContainerPosition(index, totalCount) {
+        const boundary = this.containerBoundaries;
         
-        // Create 4x4 grid within the boundary
-        const cols = 4;
-        const rows = 4;
+        // Create 3x3 grid within the boundary
+        const cols = 3;
+        const rows = 3;
         
         // Calculate grid cell size
         const cellWidth = (boundary.horizontal.end - boundary.horizontal.start) / cols;
@@ -321,8 +319,10 @@ class AddIconRenderer {
         // Update dimensions to ensure we have the latest measurements
         this.updateGameAreaDimensions();
         
-        // Check if we have valid game area dimensions
-        if (!this.gameAreaDimensions || this.gameAreaDimensions.width < 100 || this.gameAreaDimensions.height < 100) {
+        // Check if we have valid dimensions
+        if (!this.gameAreaDimensions || 
+            !this.gameAreaDimensions.gameArea || 
+            this.gameAreaDimensions.gameArea.width < 100) {
             console.log('⏳ Game area dimensions not ready - storing render request for later');
             this.pendingRender = { leftCount, rightCount };
             
@@ -340,12 +340,12 @@ class AddIconRenderer {
         
         this.clearIcons();
         
-        if (!this.gameArea) {
-            console.error('❌ Game area not found!');
+        if (!this.leftContainer || !this.rightContainer) {
+            console.error('❌ Left or right containers not found!');
             return;
         }
         
-        console.log('✅ Game area ready, proceeding with icon render');
+        console.log('✅ Containers ready, proceeding with icon render');
         
         // Wait a small amount for any layout changes to settle
         setTimeout(() => {
@@ -359,32 +359,32 @@ class AddIconRenderer {
         const iconColor = this.getRandomColor();
         
         console.log(`🎨 Selected: ${iconClass} in color ${iconColor}`);
-        console.log(`📐 Game area dimensions:`, this.gameAreaDimensions);
+        console.log(`📐 Container dimensions:`, this.gameAreaDimensions);
         
-        // Generate positions for both sides
-        const leftPositions = this.generatePositions(leftCount, 'left');
-        const rightPositions = this.generatePositions(rightCount, 'right');
+        // Generate positions for both sides (relative to their containers)
+        const leftPositions = this.generateContainerPositions(leftCount, 'left');
+        const rightPositions = this.generateContainerPositions(rightCount, 'right');
         
         // Calculate icon size (6% of game area width)
-        const iconSize = this.gameAreaDimensions.width * 0.06;
+        const iconSize = this.gameAreaDimensions.gameArea.width * 0.06;
         
         console.log(`📏 Icon size: ${Math.round(iconSize)}px`);
         
-        // Create left side icons
+        // Create left side icons (positioned relative to left container)
         leftPositions.forEach((pos, index) => {
             const icon = this.createIcon(iconClass, iconColor, iconSize, pos.x, pos.y, 'left', index);
-            this.gameArea.appendChild(icon);
+            this.leftContainer.appendChild(icon);
             this.currentIcons.push(icon);
         });
         
-        // Create right side icons  
+        // Create right side icons (positioned relative to right container)
         rightPositions.forEach((pos, index) => {
             const icon = this.createIcon(iconClass, iconColor, iconSize, pos.x, pos.y, 'right', leftCount + index);
-            this.gameArea.appendChild(icon);
+            this.rightContainer.appendChild(icon);
             this.currentIcons.push(icon);
         });
         
-        console.log(`🎉 Created ${this.currentIcons.length} icons with proper game area coordination`);
+        console.log(`🎉 Created ${this.currentIcons.length} icons in their respective containers`);
         
         return { left: leftCount, right: rightCount, total: leftCount + rightCount };
     }
@@ -394,6 +394,7 @@ class AddIconRenderer {
         icon.className = `game-icon ${iconClass}`;
         icon.dataset.side = side;
         
+        // Position relative to the container (not the game area)
         icon.style.cssText = `
             color: ${iconColor};
             left: ${x}%;
@@ -411,7 +412,7 @@ class AddIconRenderer {
             transform: translate(-50%, -50%);
         `;
         
-        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}%) within game area`);
+        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}%) within ${side} container`);
         
         return icon;
     }
