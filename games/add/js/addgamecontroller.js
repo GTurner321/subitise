@@ -79,10 +79,11 @@ class AddGameController {
         if (window.ButtonBar) {
             console.log('🎮 ButtonBar available, creating buttons');
             this.createButtons();
-            // Wait a bit more for ButtonBar to fully set up game area
+            // Wait longer for ButtonBar to fully set up game area dimensions
             setTimeout(() => {
+                console.log('🎮 ButtonBar should have set game area dimensions, initializing game');
                 this.initializeGame();
-            }, 200);
+            }, 500); // Increased delay to ensure proper coordination
         } else {
             console.log('⏳ Waiting for ButtonBar...');
             setTimeout(() => {
