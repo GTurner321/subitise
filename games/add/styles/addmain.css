@@ -272,6 +272,9 @@
 /* The following button styles are handled by main.css and buttonbar.js */
 /* DO NOT add any .number-btn, .number-buttons overrides here */
 
+/* REMOVED: All media query button overrides that were conflicting with universal styles */
+/* The universal ButtonBar system handles ALL button sizing automatically */
+
 /* Responsive design improvements */
 @media (max-width: 1200px) {
     .plus-sign {
