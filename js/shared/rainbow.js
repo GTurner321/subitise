@@ -11,18 +11,18 @@ class Rainbow {
         
         // Responsive configuration
         this.config = {
-            // Largest arc radius: 42% of game area width
-            maxRadiusPercent: 42,
-            // Center 3% of game area width from the bottom
-            centerFromBottomPercent: 3,
-            // Arc thickness: 2% of game area width
-            thicknessPercent: 2,
-            // Default transparency for arcs (30% opaque = 0.3 opacity)
-            defaultOpacity: 0.3,
-            // Celebration opacity (75% opaque = 0.75 opacity)
-            celebrationOpacity: 0.75,
-            // Arc coverage: 150 degrees (75 degrees each side of north)
-            arcDegrees: 150,
+            // Largest arc radius: 40% of game area width (reduced from 42%)
+            maxRadiusPercent: 40,
+            // Center 5% of game area width from the bottom (raised from 3%)
+            centerFromBottomPercent: 5,
+            // Arc thickness: 1.5% of game area width (reduced from 2%)
+            thicknessPercent: 1.5,
+            // Default transparency for arcs (25% opaque = 0.25 opacity)
+            defaultOpacity: 0.25,
+            // Celebration opacity (65% opaque = 0.65 opacity)
+            celebrationOpacity: 0.65,
+            // Arc coverage: 160 degrees (80 degrees each side of north)
+            arcDegrees: 160,
             // Colors for the rainbow arcs
             colors: [
                 '#ff0000', // Red (outermost)
@@ -84,15 +84,13 @@ class Rainbow {
     updateArcDimensions() {
         if (!this.gameArea || !this.container) return;
         
-        console.log('🌈 Updating rainbow dimensions for responsive behavior');
-        
         // Clear and recreate all arcs with new dimensions
         this.initializeArcs();
     }
     
     createArcPath(centerX, centerY, radius, startAngle, endAngle) {
         // Convert angles to radians - adjusting for SVG coordinate system
-        // In SVG, 0° is at 3 o'clock, we want our arc from about 10:30 to 1:30
+        // In SVG, 0° is at 3 o'clock, we want our arc from about 10 o'clock to 2 o'clock
         const startRad = ((startAngle - 90) * Math.PI) / 180; // Subtract 90 to start from top
         const endRad = ((endAngle - 90) * Math.PI) / 180;
         
@@ -107,9 +105,6 @@ class Rainbow {
         
         const pathData = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
         
-        console.log(`🌈 Arc path: start(${Math.round(startX)},${Math.round(startY)}) end(${Math.round(endX)},${Math.round(endY)}) radius=${radius}`);
-        console.log(`🌈 Path data: ${pathData}`);
-        
         return pathData;
     }
     
@@ -118,8 +113,6 @@ class Rainbow {
             console.warn('🌈 Rainbow container or game area not found');
             return;
         }
-        
-        console.log('🌈 Initializing responsive rainbow arcs with SVG');
         
         // Clear existing arcs
         this.container.innerHTML = '';
@@ -148,23 +141,10 @@ class Rainbow {
         svg.style.pointerEvents = 'none';
         svg.style.overflow = 'visible';
         svg.style.zIndex = '1'; // Same as rainbow container, below icons (z-index: 2)
-        svg.style.border = '2px solid red'; // DEBUG: Add visible border to SVG
-        svg.style.background = 'rgba(0,255,0,0.1)'; // DEBUG: Add slight green background
         
-        console.log(`🌈 SVG container created with dimensions: ${svg.style.width} x ${svg.style.height}, z-index: ${svg.style.zIndex}`);
-        
-        // Arc parameters for 150 degrees centered on vertical
-        // Starting from -75° from vertical (top) to +75° from vertical
-        const startAngle = -75;  // 75 degrees counterclockwise from top
-        const endAngle = 75;     // 75 degrees clockwise from top
-        
-        console.log(`🌈 Game area: ${Math.round(gameAreaWidth)} x ${Math.round(gameAreaHeight)}`);
-        console.log(`🌈 Max radius: ${Math.round(maxRadius)} (${this.config.maxRadiusPercent}% of width)`);
-        console.log(`🌈 Center X: ${Math.round(centerX)} (horizontal center)`);
-        console.log(`🌈 Center Y: ${Math.round(centerY)} (${this.config.centerFromBottomPercent}% of width from bottom)`);
-        console.log(`🌈 Arc thickness: ${Math.round(thickness)} (${this.config.thicknessPercent}% of width)`);
-        console.log(`🌈 Default opacity: ${this.config.defaultOpacity} (70% transparent)`);
-        console.log(`🌈 Arc coverage: ${this.config.arcDegrees} degrees (${startAngle}° to ${endAngle}°)`);
+        // Arc parameters for 160 degrees centered on vertical (80 degrees each side of north)
+        const startAngle = -80;  // 80 degrees counterclockwise from top
+        const endAngle = 80;     // 80 degrees clockwise from top
         
         // Create all 10 arcs
         for (let i = 0; i < this.totalPieces; i++) {
@@ -178,7 +158,7 @@ class Rainbow {
             const pathData = this.createArcPath(centerX, centerY, radius, startAngle, endAngle);
             
             path.setAttribute('d', pathData);
-            path.setAttribute('stroke', '#ff0000'); // Test with visible color first
+            path.setAttribute('stroke', 'transparent'); // Start transparent
             path.setAttribute('stroke-width', thickness);
             path.setAttribute('stroke-linecap', 'round');
             path.setAttribute('fill', 'none');
@@ -186,34 +166,15 @@ class Rainbow {
             path.style.transition = 'stroke 1.5s ease-in-out'; // 1.5 second fade-in
             path.style.pointerEvents = 'none';
             
-            console.log(`🌈 SVG path created with stroke: ${path.getAttribute('stroke')}, width: ${path.getAttribute('stroke-width')}`);
-            console.log(`🌈 Path element:`, path);
-            
             // Store the target color for later use
             path.dataset.targetColor = this.config.colors[i];
             path.dataset.arcIndex = i;
             
             svg.appendChild(path);
             this.arcs.push(path);
-            
-            console.log(`🌈 Created SVG arc ${i}: radius=${Math.round(radius)}, thickness=${Math.round(thickness)}, opacity=${this.config.defaultOpacity}, color=${this.config.colors[i]}`);
-            console.log(`🌈 Path added to SVG, total arcs in SVG: ${svg.children.length}`);
         }
         
         this.container.appendChild(svg);
-        console.log(`🌈 SVG appended to container. Container:`, this.container);
-        console.log(`🌈 Container dimensions:`, this.container.getBoundingClientRect());
-        
-        // DEBUG: Add a simple test circle to verify SVG is working
-        const testCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        testCircle.setAttribute('cx', centerX);
-        testCircle.setAttribute('cy', centerY);
-        testCircle.setAttribute('r', '20');
-        testCircle.setAttribute('fill', 'blue');
-        testCircle.setAttribute('stroke', 'yellow');
-        testCircle.setAttribute('stroke-width', '3');
-        svg.appendChild(testCircle);
-        console.log(`🌈 Added test circle at center (${centerX}, ${centerY})`);
         
         // Show the pieces that should already be visible
         this.updateVisiblePieces();
@@ -231,11 +192,8 @@ class Rainbow {
         // Show the new piece by fading in over 1.5 seconds
         const arc = this.arcs[this.pieces - 1];
         if (arc) {
-            console.log(`🌈 Setting stroke color for arc ${this.pieces - 1}:`, arc.dataset.targetColor);
-            
             // Start the fade-in immediately (no delay)
             arc.setAttribute('stroke', arc.dataset.targetColor);
-            console.log(`🌈 Arc stroke set to:`, arc.getAttribute('stroke'));
         }
         
         return this.pieces;
@@ -290,8 +248,7 @@ class Rainbow {
             this.arcs.forEach(arc => {
                 if (arc) {
                     arc.style.filter = '';
-                    arc.style.transform = 'scaleY(1)';
-                    arc.style.opacity = `${this.config.defaultOpacity}`; // All back to 30% opacity
+                    arc.style.opacity = `${this.config.defaultOpacity}`; // All back to 25% opacity
                 }
             });
             
@@ -306,9 +263,7 @@ class Rainbow {
             if (arc) {
                 // Make ONLY this arc enhanced with celebration opacity
                 arc.style.filter = 'brightness(1.3) saturate(1.5)';
-                arc.style.opacity = `${this.config.celebrationOpacity}`; // 75% opaque during celebration
-                
-                console.log(`🌈 Celebrating arc ${arcIndex} (${this.config.colors[arcIndex]}) - now at ${this.config.celebrationOpacity} opacity while others stay at ${this.config.defaultOpacity}`);
+                arc.style.opacity = `${this.config.celebrationOpacity}`; // 65% opaque during celebration
             }
             
             currentArc++;
@@ -319,8 +274,6 @@ class Rainbow {
         
         // Start the celebration
         setTimeout(celebrateNextArc, 500);
-        
-        console.log(`🌈 Celebration will run for ${celebrationDuration/1000} seconds with ${arcDuration}ms per arc (${this.arcs.length * arcDuration}ms per full wave = ${(this.arcs.length * arcDuration)/1000}s per wave)`);
     }
     
     stopCelebration() {
@@ -356,7 +309,7 @@ class Rainbow {
             if (arc) {
                 arc.setAttribute('stroke', 'transparent');
                 arc.style.filter = '';
-                arc.style.opacity = `${this.config.defaultOpacity}`; // Reset to 30% opacity
+                arc.style.opacity = `${this.config.defaultOpacity}`; // Reset to 25% opacity
             }
         });
     }
