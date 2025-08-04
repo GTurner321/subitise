@@ -13,15 +13,15 @@ class AddIconRenderer {
         this.pendingRender = null;
         this.gameAreaDimensions = null;
         
-        // FIXED: Icon boundaries should be relative to game areas, not absolute viewport positions
+        // CORRECTED: Icon boundaries should use viewport units matching game area positioning
         this.boundaries = {
             left: {
                 horizontal: { start: 6, end: 40 },   // 6%-40% of game area width
-                vertical: { start: 0, end: 100 }     // FIXED: 0%-100% of game area height (not viewport)
+                vertical: { start: 35, end: 90 }     // 35vh-90vh from bottom (matching left-side CSS)
             },
             right: {
                 horizontal: { start: 60, end: 94 },  // 60%-94% of game area width  
-                vertical: { start: 0, end: 100 }     // FIXED: 0%-100% of game area height (not viewport)
+                vertical: { start: 35, end: 90 }     // 35vh-90vh from bottom (matching right-side CSS)
             }
         };
         
@@ -396,11 +396,11 @@ class AddIconRenderer {
         const horizontalOffset = 0; // Was -50% for centering
         const verticalOffset = 0;   // Was -50% for centering
         
-        // FIXED: Use percentage positioning relative to game area, not absolute viewport units
+        // REVERTED: Back to viewport units since icons are positioned in game area, not containers
         icon.style.cssText = `
             color: ${iconColor};
             left: ${x}%;
-            top: ${y}%;
+            bottom: ${y}vh;
             font-size: ${iconSize}px;
             position: absolute;
             z-index: 5;
@@ -414,7 +414,7 @@ class AddIconRenderer {
             transform: translate(${horizontalOffset}%, ${verticalOffset}%);
         `;
         
-        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}%) within game area - no transforms`);
+        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}vh from bottom) within game area`);
         
         return icon;
     }
