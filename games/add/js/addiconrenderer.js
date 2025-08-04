@@ -392,7 +392,7 @@ class AddIconRenderer {
         icon.className = `game-icon ${iconClass}`;
         icon.dataset.side = side;
         
-        // FIXED: Apply centering transform directly to each icon to avoid affecting buttons
+        // FIXED: Correct transform for bottom positioning - move UP and center horizontally
         icon.style.cssText = `
             color: ${iconColor};
             left: ${x}%;
@@ -407,10 +407,10 @@ class AddIconRenderer {
             animation-fill-mode: both;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             transition: filter 0.3s ease;
-            transform: translate(-50%, 50%);
+            transform: translate(-50%, -50%);
         `;
         
-        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}vh from bottom) - centered with transform`);
+        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}vh from bottom) - centered upward`);
         
         return icon;
     }
