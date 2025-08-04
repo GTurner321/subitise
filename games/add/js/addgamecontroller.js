@@ -153,14 +153,10 @@ class AddGameController {
             this.sumRow.classList.add('loaded');
         }
         
-        // Fade in button bar
-        const buttonBar = document.querySelector('.number-buttons');
-        if (buttonBar) {
-            buttonBar.style.transition = 'opacity 1s ease-in-out';
-            buttonBar.style.opacity = '1';
-        }
+        // REMOVED: Button bar fade-in - ButtonBar handles its own fade-in timing
+        // Don't interfere with ButtonBar's own fade-in logic
         
-        console.log('🎮 All elements faded in');
+        console.log('🎮 Game elements faded in (ButtonBar handles its own timing)');
     }
 
     createButtons() {
