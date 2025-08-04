@@ -386,6 +386,12 @@ class AddGameController {
         this.iconRenderer.reset();
         this.modal.classList.add('hidden');
         this.hideAllInputBoxes();
+        
+        // FIXED: Reset initialization flags to ensure proper timing
+        this.buttonBarReady = true; // Assume ButtonBar is still ready
+        this.gameAreaReady = true;  // Assume game area is still ready
+        this.initializationComplete = true; // Keep initialization complete
+        
         this.startNewQuestion();
     }
 
