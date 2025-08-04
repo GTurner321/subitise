@@ -214,7 +214,7 @@ class AddIconRenderer {
         
         const positions = [];
         const boundary = this.boundaries[side];
-        const maxAttempts = 100;
+        const maxAttempts = 120; // Increased to 120 for new system
         let totalFallbacks = 0;
         
         for (let i = 0; i < count; i++) {
@@ -222,13 +222,20 @@ class AddIconRenderer {
             let attempts = 0;
             let x, y;
             
-            // Try positioning with progressive spacing relaxation
+            // Try positioning with progressive spacing relaxation and smart spacing
             while (!validPosition && attempts < maxAttempts) {
-                // Generate random position within boundary (as % of game area)
-                x = boundary.horizontal.start + 
-                    Math.random() * (boundary.horizontal.end - boundary.horizontal.start);
-                y = boundary.vertical.start + 
-                    Math.random() * (boundary.vertical.end - boundary.vertical.start);
+                // Generate position using smart spacing if attempts > 50
+                if (attempts > 50) {
+                    const smartPos = this.generateSmartPosition(boundary, positions, side);
+                    x = smartPos.x;
+                    y = smartPos.y;
+                } else {
+                    // Normal random position within boundary
+                    x = boundary.horizontal.start + 
+                        Math.random() * (boundary.horizontal.end - boundary.horizontal.start);
+                    y = boundary.vertical.start + 
+                        Math.random() * (boundary.vertical.end - boundary.vertical.start);
+                }
                 
                 // Check distance with progressive relaxation
                 validPosition = this.isPositionValid(x, y, positions, attempts);
@@ -236,8 +243,11 @@ class AddIconRenderer {
             }
             
             if (!validPosition) {
-                console.log(`⚠️ Could not find valid position for ${side} icon ${i} after ${maxAttempts} attempts - using last attempt`);
-                // After maxAttempts, accept any position (emergency fallback)
+                console.log(`⚠️ Could not find valid position for ${side} icon ${i} after ${maxAttempts} attempts - using emergency placement`);
+                // After maxAttempts, use smart spacing with no distance restrictions
+                const emergencyPos = this.generateSmartPosition(boundary, positions, side);
+                x = emergencyPos.x;
+                y = emergencyPos.y;
                 totalFallbacks++;
             } else {
                 console.log(`✅ Found position for ${side} icon ${i} at (${x.toFixed(1)}%, ${y.toFixed(1)}%) after ${attempts} attempts`);
