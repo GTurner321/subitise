@@ -588,11 +588,16 @@ class AddGameController {
         if (correctAnswer) {
             this.checkQuestionCompletion();
         } else {
-            this.handleIncorrectAnswer(buttonElement);
+            this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
 
     fillBox(boxType, selectedNumber, buttonElement) {
+        // Find button element if not provided (for keyboard input)
+        if (!buttonElement && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
+        }
+        
         // Flash green on correct answer
         if (buttonElement && window.ButtonBar) {
             window.ButtonBar.animateButton(buttonElement, 'correct');
@@ -601,7 +606,7 @@ class AddGameController {
         // Play completion sound
         this.playCompletionSound();
 
-        // Create celebration stars around the button
+        // Create celebration stars around the button (works for keyboard too now)
         if (buttonElement) {
             this.createCelebrationStars(buttonElement);
         }
@@ -729,7 +734,13 @@ class AddGameController {
         }
     }
 
-    handleIncorrectAnswer(buttonElement) {
+    handleIncorrectAnswer(buttonElement, selectedNumber) {
+        // Find button element if not provided (for keyboard input)
+        if (!buttonElement && selectedNumber && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
+            console.log(`🎯 Found button for keyboard input: ${selectedNumber}`, buttonElement);
+        }
+        
         // Clear inactivity timer and give immediate hint
         this.clearInactivityTimer();
         
