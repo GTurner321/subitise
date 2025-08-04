@@ -3,7 +3,7 @@
 /* CSS Custom Properties for sum bar dimensions */
 :root {
     --sum-box-size: 7vw; /* Base box width/height parameter */
-    --sum-bar-width-multiplier: 6; /* How many box widths for sum bar */
+    --sum-bar-width-multiplier: 6.2; /* How many box widths for sum bar */
 }
 
 /* Prevent scrolling - game always fits on screen */
@@ -69,10 +69,10 @@ body {
     /* Red circle: 6.5% of game area width */
     width: 6.5vw;
     height: 6.5vw;
-    max-width: 70px;
-    max-height: 70px;
-    min-width: 35px;
-    min-height: 35px;
+    /* max-width: 70px; */ /* COMMENTED OUT: keeping for potential future use */
+    /* max-height: 70px; */ /* COMMENTED OUT: keeping for potential future use */
+    /* min-width: 35px; */ /* COMMENTED OUT: keeping for potential future use */
+    /* min-height: 35px; */ /* COMMENTED OUT: keeping for potential future use */
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
@@ -82,8 +82,8 @@ body {
 
 .plus-sign i {
     font-size: calc(6.5vw * 0.4);
-    max-font-size: 28px;
-    min-font-size: 14px;
+    /* max-font-size: 28px; */ /* COMMENTED OUT: keeping for potential future use */
+    /* min-font-size: 14px; */ /* COMMENTED OUT: keeping for potential future use */
     color: white;
     font-weight: bold;
 }
@@ -175,8 +175,8 @@ body {
     
     width: calc(var(--sum-box-size) * var(--sum-bar-width-multiplier)); /* DYNAMIC: 7vw * 7 = 49vw */
     height: calc(var(--sum-box-size) + 2vh); /* DYNAMIC: box height + padding */
-    /* max-height: 90px; */
-    /* min-height: 55px; */
+    max-height: 90px;
+    min-height: 55px;
     
     background: rgba(255, 255, 255, 0.95);
     padding: 1vh 2%;
@@ -215,10 +215,10 @@ body {
 .total-sum-box {
     width: var(--sum-box-size); /* DYNAMIC: Uses CSS parameter */
     height: var(--sum-box-size); /* DYNAMIC: Square boxes using same parameter */
-    max-width: 80px;
-    max-height: 80px;
-    min-width: 50px;
-    min-height: 50px;
+    /* max-width: 80px; */ /* COMMENTED OUT: keeping for potential future use */
+    /* max-height: 80px; */ /* COMMENTED OUT: keeping for potential future use */
+    /* min-width: 50px; */ /* COMMENTED OUT: keeping for potential future use */
+    /* min-height: 50px; */ /* COMMENTED OUT: keeping for potential future use */
     flex-shrink: 0;
 }
 
