@@ -542,8 +542,14 @@ class AddGameController {
                 // Second sum
                 this.speakText('Try again and complete the sum');
             } else {
-                // Third sum onwards
-                this.speakText('Complete the sum');
+                // Third sum onwards - randomize from 3 options
+                const randomPrompts = [
+                    'Complete the sum',
+                    'Have a go at this one',
+                    'Here\'s another'
+                ];
+                const randomPrompt = randomPrompts[Math.floor(Math.random() * randomPrompts.length)];
+                this.speakText(randomPrompt);
             }
         }, 1500); // Extra delay to ensure fade-in is complete
     }
