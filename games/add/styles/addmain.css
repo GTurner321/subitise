@@ -14,68 +14,63 @@
     opacity: 1;
 }
 
-/* REVERTED: Left side - back to icon positioning area (6%-40% horizontal, 6%-79% vertical) */
+/* REVERTED: Left side - icon positioning area with simplified height calculation */
 .left-side {
     position: absolute;
     left: 6%; /* 6% of game area width */
     width: 34%; /* 40% - 6% = 34% width */
-    top: 6%; /* 6% from top (100% - 94% = 6%) */
-    height: 73%; /* 79% - 6% = 73% height (94% - 21% from bottom) */
-    border-right: 2px dashed #ddd;
+    top: 30vh; /* SIMPLIFIED: 30% of viewport height from top */
+    height: 60vh; /* SIMPLIFIED: 60% of viewport height (90vh - 30vh) */
+    /* Remove border - will be added separately at 46% */
     transition: background-color 0.2s ease;
     z-index: 1; /* Same as game area background */
 }
 
-/* CORRECTED: Middle section - 8% wide, centered at 46%-54% */
-.middle-section {
-    position: absolute;
-    left: 46%; /* Center section 46%-54% */
-    width: 8%; /* 8% width as specified */
-    top: 0;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    z-index: 0; /* Below game area background and rainbow */
-}
-
-.plus-sign {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    /* Red circle: 6.5% of game area width */
-    width: 6.5vw;
-    height: 6.5vw;
-    max-width: 70px;
-    max-height: 70px;
-    min-width: 35px;
-    min-height: 35px;
-    background: #dc3545;
-    border-radius: 50%;
-    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    z-index: 10; /* Higher z-index as button furniture */
-    position: relative;
-}
-
-.plus-sign i {
-    font-size: calc(6.5vw * 0.4);
-    max-font-size: 28px;
-    min-font-size: 14px;
-    color: white;
-    font-weight: bold;
-}
-
-/* REVERTED: Right side - back to icon positioning area (60%-94% horizontal, 6%-79% vertical) */
+/* REVERTED: Right side - icon positioning area with simplified height calculation */
 .right-side {
     position: absolute;
     left: 60%; /* 60% of game area width */
     width: 34%; /* 94% - 60% = 34% width */
-    top: 6%; /* 6% from top (100% - 94% = 6%) */
-    height: 73%; /* 79% - 6% = 73% height (94% - 21% from bottom) */
-    border-left: 2px dashed #ddd;
+    top: 30vh; /* SIMPLIFIED: 30% of viewport height from top */
+    height: 60vh; /* SIMPLIFIED: 60% of viewport height (90vh - 30vh) */
+    /* Remove border - will be added separately at 54% */
     transition: background-color 0.2s ease;
     z-index: 1; /* Same as game area background */
+}
+
+/* NEW: Dotted lines positioned exactly at 46% and 54% of game area */
+.game-area::before {
+    content: '';
+    position: absolute;
+    left: 46%; /* Left border at 46% */
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: repeating-linear-gradient(
+        to bottom,
+        #ddd 0px,
+        #ddd 8px,
+        transparent 8px,
+        transparent 16px
+    );
+    z-index: 3; /* Above pulse areas, below icons */
+}
+
+.game-area::after {
+    content: '';
+    position: absolute;
+    left: 54%; /* Right border at 54% */
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: repeating-linear-gradient(
+        to bottom,
+        #ddd 0px,
+        #ddd 8px,
+        transparent 8px,
+        transparent 16px
+    );
+    z-index: 3; /* Above pulse areas, below icons */
 }
 
 /* NEW: Separate pulse areas for green flashing */
