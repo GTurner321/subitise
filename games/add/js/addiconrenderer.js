@@ -1,9 +1,11 @@
-console.log('🔍 LOADING CORRECTED ADD ICONRENDERER - Direct game area positioning');
+console.log('🔍 LOADING FIXED ADD ICONRENDERER - Game area relative positioning');
 
 class AddIconRenderer {
     constructor() {
-        console.log('AddIconRenderer constructor - using direct game area positioning');
+        console.log('AddIconRenderer constructor - using game area relative positioning');
         this.gameArea = document.querySelector('.game-area');
+        this.leftSide = document.getElementById('leftSide');
+        this.rightSide = document.getElementById('rightSide');
         this.currentIcons = [];
         this.previousIcon = null;
         this.previousColor = null;
@@ -13,20 +15,20 @@ class AddIconRenderer {
         this.pendingRender = null;
         this.gameAreaDimensions = null;
         
-        // CORRECTED: Icon boundaries should use viewport units matching game area positioning
+        // Icon boundaries relative to game area (percentages)
         this.boundaries = {
             left: {
                 horizontal: { start: 6, end: 40 },   // 6%-40% of game area width
-                vertical: { start: 35, end: 90 }     // 35vh-90vh from bottom (matching left-side CSS)
+                vertical: { start: 20, end: 90 }     // 20%-90% of game area height (from bottom)
             },
             right: {
                 horizontal: { start: 60, end: 94 },  // 60%-94% of game area width  
-                vertical: { start: 35, end: 90 }     // 35vh-90vh from bottom (matching right-side CSS)
+                vertical: { start: 20, end: 90 }     // 20%-90% of game area height (from bottom)
             }
         };
         
-        // Minimum distance between icon centers (12% of game area width)
-        this.minDistancePercent = 12;
+        // Minimum distance between icon centers (8% of game area width)
+        this.minDistancePercent = 8;
         
         this.setupButtonBarCoordination();
         this.setupResizeHandling();
@@ -39,7 +41,7 @@ class AddIconRenderer {
                 console.log('🎯 ButtonBar dimensions updated:', dimensionData);
                 this.buttonBarReady = true;
                 
-                // CRITICAL: Wait for game area to stabilize after ButtonBar sets its margins
+                // Wait for game area to stabilize after ButtonBar sets its margins
                 setTimeout(() => {
                     this.updateGameAreaDimensions();
                     
@@ -53,7 +55,7 @@ class AddIconRenderer {
                         // Update existing icon positions
                         this.updateIconSizesAndPositions();
                     }
-                }, 300); // Wait for CSS transitions and layout to stabilize
+                }, 400); // Wait for CSS transitions and layout to stabilize
             });
         } else {
             // ButtonBar not ready yet, wait for it
@@ -143,14 +145,14 @@ class AddIconRenderer {
         leftIcons.forEach((icon, index) => {
             if (leftPositions[index]) {
                 icon.style.left = leftPositions[index].x + '%';
-                icon.style.top = leftPositions[index].y + '%';
+                icon.style.bottom = leftPositions[index].y + '%';
             }
         });
         
         rightIcons.forEach((icon, index) => {
             if (rightPositions[index]) {
                 icon.style.left = rightPositions[index].x + '%';
-                icon.style.top = rightPositions[index].y + '%';
+                icon.style.bottom = rightPositions[index].y + '%';
             }
         });
     }
@@ -254,7 +256,7 @@ class AddIconRenderer {
                 Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2)
             );
             
-            // Distance is in percentage units, so 12% minimum
+            // Distance is in percentage units, so use minDistancePercent
             if (distance < this.minDistancePercent) {
                 return false;
             }
@@ -263,7 +265,7 @@ class AddIconRenderer {
         // Also check against all currently placed icons from both sides
         for (let icon of this.currentIcons) {
             const iconX = parseFloat(icon.style.left);
-            const iconY = parseFloat(icon.style.top);
+            const iconY = parseFloat(icon.style.bottom);
             
             const distance = Math.sqrt(
                 Math.pow(x - iconX, 2) + Math.pow(y - iconY, 2)
@@ -368,21 +370,21 @@ class AddIconRenderer {
         
         console.log(`📏 Icon size: ${Math.round(iconSize)}px`);
         
-        // Create left side icons (positioned directly in game area)
+        // Create left side icons (positioned relative to game area)
         leftPositions.forEach((pos, index) => {
             const icon = this.createIcon(iconClass, iconColor, iconSize, pos.x, pos.y, 'left', index);
             this.gameArea.appendChild(icon);
             this.currentIcons.push(icon);
         });
         
-        // Create right side icons (positioned directly in game area)
+        // Create right side icons (positioned relative to game area)
         rightPositions.forEach((pos, index) => {
             const icon = this.createIcon(iconClass, iconColor, iconSize, pos.x, pos.y, 'right', leftCount + index);
             this.gameArea.appendChild(icon);
             this.currentIcons.push(icon);
         });
         
-        console.log(`🎉 Created ${this.currentIcons.length} icons positioned directly in game area`);
+        console.log(`🎉 Created ${this.currentIcons.length} icons positioned relative to game area`);
         
         return { left: leftCount, right: rightCount, total: leftCount + rightCount };
     }
@@ -392,15 +394,11 @@ class AddIconRenderer {
         icon.className = `game-icon ${iconClass}`;
         icon.dataset.side = side;
         
-        // ADJUSTED: Set transforms to 0% (no centering) but keep logic for future adjustments
-        const horizontalOffset = 0; // Was -50% for centering
-        const verticalOffset = 0;   // Was -50% for centering
-        
-        // REVERTED: Back to viewport units since icons are positioned in game area, not containers
+        // Position relative to game area using percentages and transform for centering
         icon.style.cssText = `
             color: ${iconColor};
             left: ${x}%;
-            bottom: ${y}vh;
+            bottom: ${y}%;
             font-size: ${iconSize}px;
             position: absolute;
             z-index: 5;
@@ -411,10 +409,10 @@ class AddIconRenderer {
             animation-fill-mode: both;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             transition: filter 0.3s ease;
-            transform: translate(${horizontalOffset}%, ${verticalOffset}%);
+            transform: translate(-50%, 50%);
         `;
         
-        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}vh from bottom) within game area`);
+        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}% from bottom) within game area`);
         
         return icon;
     }
@@ -428,11 +426,8 @@ class AddIconRenderer {
     reset() {
         this.previousIcon = null;
         this.previousColor = null;
-        // FIXED: Don't reset buttonBarReady on game reset - it should stay ready
-        // this.buttonBarReady = false; // REMOVED
+        // Keep buttonBarReady and gameAreaDimensions for subsequent renders
         this.pendingRender = null;
-        // Keep gameAreaDimensions for subsequent renders
-        // this.gameAreaDimensions = null; // REMOVED
         this.clearIcons();
     }
     
