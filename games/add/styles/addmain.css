@@ -1,5 +1,11 @@
 /* Addition Game - Fixed Styles with game area relative positioning */
 
+/* CSS Custom Properties for sum bar dimensions */
+:root {
+    --sum-box-size: 7vw; /* Base box width/height parameter */
+    --sum-bar-width-multiplier: 7; /* How many box widths for sum bar */
+}
+
 /* Game area sections layout with initial fade state */
 .game-area {
     display: block;
@@ -141,7 +147,7 @@
     20%, 40%, 60%, 80% { transform: translateX(3px); }
 }
 
-/* Sum row at bottom - width increased back by 3% (45% total) */
+/* Sum row at bottom - width and height based on box parameter */
 .sum-row {
     position: absolute;
     bottom: 3%; /* 3% above button bar */
@@ -152,8 +158,8 @@
     gap: 2%;
     z-index: 15; /* Higher than everything else */
     
-    width: 45%; /* INCREASED: Was 42%, now back to 45% (3% increase for larger symbols) */
-    height: calc(7vw + 2vh);
+    width: calc(var(--sum-box-size) * var(--sum-bar-width-multiplier)); /* DYNAMIC: 7vw * 7 = 49vw */
+    height: calc(var(--sum-box-size) + 2vh); /* DYNAMIC: box height + padding */
     max-height: 90px;
     min-height: 55px;
     
@@ -192,8 +198,8 @@
 .left-sum-box,
 .right-sum-box,
 .total-sum-box {
-    width: 7vw;
-    height: 7vw;
+    width: var(--sum-box-size); /* DYNAMIC: Uses CSS parameter */
+    height: var(--sum-box-size); /* DYNAMIC: Square boxes using same parameter */
     max-width: 80px;
     max-height: 80px;
     min-width: 50px;
@@ -209,7 +215,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(18px, calc(7vw * 0.52), 42px); /* INCREASED: Was clamp(14px, calc(7vw * 0.4), 32px) - 30% larger */
+    font-size: clamp(18px, calc(var(--sum-box-size) * 0.52), 42px); /* DYNAMIC: Based on box size parameter */
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
@@ -308,15 +314,15 @@
     }
     
     .sum-row {
-        height: 8vw;
+        height: calc(var(--sum-box-size) + 1vh); /* DYNAMIC: Adjust height for smaller screens */
         min-height: 50px;
     }
     
     .left-sum-box,
     .right-sum-box,
     .total-sum-box {
-        width: 8vw;
-        height: 8vw;
+        width: var(--sum-box-size); /* DYNAMIC: Still uses parameter */
+        height: var(--sum-box-size); /* DYNAMIC: Still uses parameter */
         min-width: 50px;
         min-height: 50px;
     }
@@ -336,7 +342,7 @@
     }
     
     .sum-row {
-        height: 7vw;
+        height: calc(var(--sum-box-size) + 0.5vh); /* DYNAMIC: Smaller height adjustment */
         min-height: 45px;
         gap: 1.5%;
     }
@@ -344,8 +350,8 @@
     .left-sum-box,
     .right-sum-box,
     .total-sum-box {
-        width: 7vw;
-        height: 7vw;
+        width: var(--sum-box-size); /* DYNAMIC: Still uses parameter */
+        height: var(--sum-box-size); /* DYNAMIC: Still uses parameter */
         min-width: 45px;
         min-height: 45px;
     }
