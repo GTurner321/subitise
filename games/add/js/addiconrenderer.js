@@ -216,7 +216,6 @@ class AddIconRenderer {
         if (count === 0) return [];
         
         const positions = [];
-        const boundary = this.boundaries[side];
         const maxAttempts = 120;
         let totalFallbacks = 0;
         
@@ -228,7 +227,7 @@ class AddIconRenderer {
             // Try positioning with smart placement from attempt 1 and progressive spacing relaxation
             while (!validPosition && attempts < maxAttempts) {
                 // Use smart spacing for ALL attempts (not just after 50)
-                const smartPos = this.generateSmartPosition(boundary, positions, side);
+                const smartPos = this.generateSmartPosition(positions, side);
                 x = smartPos.x;
                 y = smartPos.y;
                 
@@ -240,7 +239,7 @@ class AddIconRenderer {
             if (!validPosition) {
                 console.log(`⚠️ Could not find valid position for ${side} icon ${i} after ${maxAttempts} attempts - using emergency smart placement`);
                 // Emergency: use smart placement with no distance restrictions
-                const emergencyPos = this.generateSmartPosition(boundary, positions, side);
+                const emergencyPos = this.generateSmartPosition(positions, side);
                 x = emergencyPos.x;
                 y = emergencyPos.y;
                 totalFallbacks++;
