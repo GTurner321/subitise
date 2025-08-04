@@ -37,9 +37,6 @@ class AddIconRenderer {
             }
         };
         
-        // Minimum distance between icon centers (removed fixed value)
-        // Will be calculated dynamically based on iconSizePercent and attempt count
-        
         this.setupButtonBarCoordination();
         this.setupResizeHandling();
     }
@@ -128,21 +125,6 @@ class AddIconRenderer {
     updateIconSizesAndPositions() {
         if (!this.gameArea || this.currentIcons.length === 0 || !this.gameAreaDimensions) return;
         
-        // Calculate icon size (use the iconSizePercent parameter)
-        const iconSize = this.gameAreaDimensions.width * (this.iconSizePercent / 100);
-        
-        // Update size for all current icons
-        this.currentIcons.forEach(icon => {
-            icon.style.fontSize = `${iconSize}px`;
-        });
-        
-        // Regenerate all positions to maintain proper spacing
-        this.repositionExistingIcons();
-    }
-
-    repositionExistingIcons() {
-        if (this.currentIcons.length === 0 || !this.gameAreaDimensions) return;
-        
         // Use stored positions instead of regenerating random ones
         const iconSize = this.gameAreaDimensions.width * (this.iconSizePercent / 100);
         
@@ -210,54 +192,7 @@ class AddIconRenderer {
         return selectedColor;
     }
 
-    generatePositions(count, side) {
-        console.log(`🎲 Generating positions for ${count} icons on ${side} side`);
-        
-        if (count === 0) return [];
-        
-        const positions = [];
-        const maxAttempts = 120;
-        let totalFallbacks = 0;
-        
-        for (let i = 0; i < count; i++) {
-            let validPosition = false;
-            let attempts = 0;
-            let x, y;
-            
-            // Try positioning with smart placement from attempt 1 and progressive spacing relaxation
-            while (!validPosition && attempts < maxAttempts) {
-                // Use smart spacing for ALL attempts
-                const smartPos = this.generateSmartPositionForSide(positions, side);
-                x = smartPos.x;
-                y = smartPos.y;
-                
-                // Check distance with progressive relaxation using Manhattan distance
-                validPosition = this.isPositionValidManhattan(x, y, positions, attempts);
-                attempts++;
-            }
-            
-            if (!validPosition) {
-                console.log(`⚠️ Could not find valid position for ${side} icon ${i} after ${maxAttempts} attempts - using emergency smart placement`);
-                // Emergency: use smart placement with no distance restrictions
-                const emergencyPos = this.generateSmartPositionForSide(positions, side);
-                x = emergencyPos.x;
-                y = emergencyPos.y;
-                totalFallbacks++;
-            } else {
-                console.log(`✅ Found position for ${side} icon ${i} at (${x.toFixed(1)}%, ${y.toFixed(1)}%) after ${attempts} attempts`);
-            }
-            
-            positions.push({ x, y });
-        }
-        
-        console.log(`📊 ${side} side: ${count - totalFallbacks} valid positions, ${totalFallbacks} emergency placements`);
-        return positions;
-    }
-
-    generateSmartPositionForSide(existingPositions, side) {
-        // Calculate averages of existing positions in this SIDE AREA using game area coordinates
-        const sidePositions = existingPositions.length > 0 ? existingPositions : [];
-        
+    generateSmartPosition(existingPositions, side) {
         // Define midpoints for each side in game area coordinates
         let xMidpoint, yMidpoint;
         
@@ -272,10 +207,10 @@ class AddIconRenderer {
         let avgX = xMidpoint; // Default to midpoint if no existing positions
         let avgY = yMidpoint; // Default to midpoint if no existing positions
         
-        if (sidePositions.length > 0) {
+        if (existingPositions.length > 0) {
             // Calculate actual averages using game area coordinates
-            avgX = sidePositions.reduce((sum, pos) => sum + pos.x, 0) / sidePositions.length;
-            avgY = sidePositions.reduce((sum, pos) => sum + pos.y, 0) / sidePositions.length;
+            avgX = existingPositions.reduce((sum, pos) => sum + pos.x, 0) / existingPositions.length;
+            avgY = existingPositions.reduce((sum, pos) => sum + pos.y, 0) / existingPositions.length;
         }
         
         // Smart positioning based on side-specific logic
@@ -319,63 +254,102 @@ class AddIconRenderer {
         return { x, y };
     }
 
-    isPositionValid(x, y, existingPositions) {
-        // Check against all existing positions in this render
-        for (let pos of existingPositions) {
-            const distance = Math.sqrt(
-                Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2)
-            );
+    generatePositions(count, side) {
+        console.log(`🎲 Generating positions for ${count} icons on ${side} side`);
+        
+        if (count === 0) return [];
+        
+        const positions = [];
+        const maxAttempts = 120;
+        let totalFallbacks = 0;
+        
+        for (let i = 0; i < count; i++) {
+            let validPosition = false;
+            let attempts = 0;
+            let x, y;
             
-            // Distance is in percentage units, so use minDistancePercent
-            if (distance < this.minDistancePercent) {
+            // Try positioning with smart placement from attempt 1 and progressive spacing relaxation
+            while (!validPosition && attempts < maxAttempts) {
+                // Use smart spacing for ALL attempts
+                const smartPos = this.generateSmartPosition(positions, side);
+                x = smartPos.x;
+                y = smartPos.y;
+                
+                // Check distance with progressive relaxation using Manhattan distance
+                validPosition = this.checkManhattanDistance(x, y, positions, attempts);
+                attempts++;
+            }
+            
+            if (!validPosition) {
+                console.log(`⚠️ Could not find valid position for ${side} icon ${i} after ${maxAttempts} attempts - using emergency smart placement`);
+                // Emergency: use smart placement with no distance restrictions
+                const emergencyPos = this.generateSmartPosition(positions, side);
+                x = emergencyPos.x;
+                y = emergencyPos.y;
+                totalFallbacks++;
+            } else {
+                console.log(`✅ Found position for ${side} icon ${i} at (${x.toFixed(1)}%, ${y.toFixed(1)}%) after ${attempts} attempts`);
+            }
+            
+            positions.push({ x, y });
+        }
+        
+        console.log(`📊 ${side} side: ${count - totalFallbacks} valid positions, ${totalFallbacks} emergency placements`);
+        return positions;
+    }
+
+    checkManhattanDistance(x, y, existingPositions, attempts = 0) {
+        // Calculate minimum distance based on attempt count (progressive relaxation)
+        let minDistance;
+        
+        if (attempts <= 50) {
+            // Attempts 1-50: 1.5 icon width spacing
+            minDistance = this.iconSizePercent * 1.5; // 9% = 1.5 icon widths
+        } else if (attempts <= 100) {
+            // Attempts 51-100: 1 icon width spacing
+            minDistance = this.iconSizePercent; // 6% = 1 icon width
+        } else if (attempts <= 120) {
+            // Attempts 101-120: 0.5 icon width spacing  
+            minDistance = this.iconSizePercent * 0.5; // 3% = 0.5 icon width
+        } else {
+            // Attempts 121+: Emergency placement (no restrictions)
+            return true;
+        }
+        
+        // DEBUG: Log what we're checking
+        console.log(`🔍 Manhattan check (${x.toFixed(1)}%, ${y.toFixed(1)}%) - minDistance: ${minDistance.toFixed(1)}%, attempts: ${attempts}`);
+        
+        // Check against all existing positions using Manhattan distance
+        for (let i = 0; i < existingPositions.length; i++) {
+            const pos = existingPositions[i];
+            const manhattanDistance = Math.abs(x - pos.x) + Math.abs(y - pos.y);
+            
+            console.log(`  📐 Manhattan distance to position ${i} (${pos.x.toFixed(1)}%, ${pos.y.toFixed(1)}%): ${manhattanDistance.toFixed(2)}%`);
+            
+            if (manhattanDistance < minDistance) {
+                console.log(`  ❌ TOO CLOSE! ${manhattanDistance.toFixed(2)}% < ${minDistance.toFixed(1)}%`);
                 return false;
             }
         }
         
-        // Also check against all currently placed icons from both sides
-        for (let icon of this.currentIcons) {
+        // Also check against all currently placed icons from both sides using Manhattan distance
+        for (let i = 0; i < this.currentIcons.length; i++) {
+            const icon = this.currentIcons[i];
             const iconX = parseFloat(icon.style.left);
             const iconY = parseFloat(icon.style.bottom);
             
-            const distance = Math.sqrt(
-                Math.pow(x - iconX, 2) + Math.pow(y - iconY, 2)
-            );
+            const manhattanDistance = Math.abs(x - iconX) + Math.abs(y - iconY);
             
-            if (distance < this.minDistancePercent) {
+            console.log(`  📐 Manhattan distance to current icon ${i} (${iconX.toFixed(1)}%, ${iconY.toFixed(1)}%): ${manhattanDistance.toFixed(2)}%`);
+            
+            if (manhattanDistance < minDistance) {
+                console.log(`  ❌ TOO CLOSE to current icon! ${manhattanDistance.toFixed(2)}% < ${minDistance.toFixed(1)}%`);
                 return false;
             }
         }
         
+        console.log(`  ✅ Position valid - all Manhattan distances >= ${minDistance.toFixed(1)}%`);
         return true;
-    }
-
-    getFallbackPosition(index, totalCount, side) {
-        const boundary = this.boundaries[side];
-        
-        // Create 4x4 grid within the boundary
-        const cols = 4;
-        const rows = 4;
-        
-        // Calculate grid cell size
-        const cellWidth = (boundary.horizontal.end - boundary.horizontal.start) / cols;
-        const cellHeight = (boundary.vertical.end - boundary.vertical.start) / rows;
-        
-        // Get grid position for this index
-        const row = Math.floor(index / cols) % rows;
-        const col = index % cols;
-        
-        // Calculate center of grid cell
-        const cellCenterX = boundary.horizontal.start + (col * cellWidth) + (cellWidth / 2);
-        const cellCenterY = boundary.vertical.start + (row * cellHeight) + (cellHeight / 2);
-        
-        // Add random offset within cell (±25% of cell size)
-        const offsetX = (Math.random() - 0.5) * cellWidth * 0.5;
-        const offsetY = (Math.random() - 0.5) * cellHeight * 0.5;
-        
-        return {
-            x: Math.max(boundary.horizontal.start, Math.min(boundary.horizontal.end, cellCenterX + offsetX)),
-            y: Math.max(boundary.vertical.start, Math.min(boundary.vertical.end, cellCenterY + offsetY))
-        };
     }
 
     renderIcons(leftCount, rightCount) {
@@ -473,7 +447,7 @@ class AddIconRenderer {
         icon.className = `game-icon ${iconClass}`;
         icon.dataset.side = side;
         
-        // Position relative to game area using percentages and transform for centering
+        // Position relative to game area using percentages with centering transform for game area icons ONLY
         icon.style.cssText = `
             color: ${iconColor};
             left: ${x}%;
