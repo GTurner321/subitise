@@ -1,8 +1,8 @@
-/* Addition Game - Corrected Styles with proper game area coordination */
+/* Addition Game - Fixed Styles with game area relative positioning */
 
 /* Game area sections layout with initial fade state */
 .game-area {
-    display: block; /* CHANGED: from flex to block for absolute positioning */
+    display: block;
     opacity: 0;
     transition: opacity 1s ease-in-out;
     position: relative;
@@ -14,19 +14,20 @@
     opacity: 1;
 }
 
-/* REVERTED: Left side - icon positioning area with simplified height calculation */
+/* Left side - icon placement area relative to game area */
 .left-side {
     position: absolute;
     left: 6%; /* 6% of game area width */
     width: 34%; /* 40% - 6% = 34% width */
-    bottom: 30vh; /* FIXED: 30% of viewport height from bottom */
-    height: 60vh; /* SIMPLIFIED: 60% of viewport height (90vh - 30vh) */
-    /* Remove border - will be added separately at 46% */
+    bottom: 20%; /* 20% of game area height from bottom */
+    height: 70%; /* 90% - 20% = 70% height */
+    /* Visual debugging - remove in production */
+    /* border: 1px dashed rgba(255, 0, 0, 0.3); */
     transition: background-color 0.2s ease;
-    z-index: 1; /* Same as game area background */
+    z-index: 1;
 }
 
-/* FIXED: Middle section - restored grey background and positioning */
+/* Middle section - central bar with plus sign */
 .middle-section {
     position: absolute;
     left: 46%; /* Center section 46%-54% */
@@ -66,19 +67,20 @@
     font-weight: bold;
 }
 
-/* REVERTED: Right side - icon positioning area with simplified height calculation */
+/* Right side - icon placement area relative to game area */
 .right-side {
     position: absolute;
     left: 60%; /* 60% of game area width */
     width: 34%; /* 94% - 60% = 34% width */
-    bottom: 30vh; /* FIXED: 30% of viewport height from bottom */
-    height: 60vh; /* SIMPLIFIED: 60% of viewport height (90vh - 30vh) */
-    /* Remove border - will be added separately at 54% */
+    bottom: 20%; /* 20% of game area height from bottom */
+    height: 70%; /* 90% - 20% = 70% height */
+    /* Visual debugging - remove in production */
+    /* border: 1px dashed rgba(0, 255, 0, 0.3); */
     transition: background-color 0.2s ease;
-    z-index: 1; /* Same as game area background */
+    z-index: 1;
 }
 
-/* NEW: Separate pulse areas for green flashing */
+/* Separate pulse areas for green flashing */
 .left-pulse-area {
     position: absolute;
     left: 0; /* Full left area from 0% */
@@ -101,17 +103,14 @@
     z-index: 2; /* Above game areas but below icons */
 }
 
-/* Area flashing styles - now target the pulse areas */
+/* Area flashing styles - target the pulse areas */
 .left-pulse-area.area-flash,
 .right-pulse-area.area-flash {
     background-color: rgba(144, 238, 144, 0.2) !important;
     transition: background-color 1s ease-in-out;
 }
 
-/* Area flashing styles - REMOVED old styles targeting left-side and right-side */
-/* Now handled by separate pulse areas */
-
-/* Icons - positioned without transforms to avoid interference */
+/* Icons - positioned relative to game area with centering transforms */
 .game-icon {
     position: absolute;
     z-index: 5; /* Above rainbow and game areas, below plus and sum */
@@ -121,28 +120,29 @@
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     transition: filter 0.3s ease;
     animation-fill-mode: both;
-    /* REMOVED: transform that may interfere with button positioning */
+    /* Transform centers the icon on the specified position */
+    transform: translate(-50%, 50%);
 }
 
 @keyframes fadeIn {
     from { 
         opacity: 0; 
-        /* REMOVED: transform scale that may interfere */
+        transform: translate(-50%, 50%) scale(0.5);
     }
     to { 
         opacity: 1; 
-        /* REMOVED: transform scale that may interfere */
+        transform: translate(-50%, 50%) scale(1);
     }
 }
 
-/* Icon jiggle animation for hints - removed transforms */
+/* Icon jiggle animation for hints */
 @keyframes iconJiggle {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-    20%, 40%, 60%, 80% { transform: translateX(3px); }
+    0%, 100% { transform: translate(-50%, 50%) translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translate(-50%, 50%) translateX(-3px); }
+    20%, 40%, 60%, 80% { transform: translate(-50%, 50%) translateX(3px); }
 }
 
-/* Sum row at bottom - REDUCED width by 5% */
+/* Sum row at bottom - width reduced by 5% */
 .sum-row {
     position: absolute;
     bottom: 3%; /* 3% above button bar */
@@ -270,11 +270,11 @@
 @keyframes fadeOut {
     from {
         opacity: 1;
-        /* REMOVED: transform that may interfere */
+        transform: translate(-50%, 50%) scale(1);
     }
     to {
         opacity: 0;
-        /* REMOVED: transform that may interfere */
+        transform: translate(-50%, 50%) scale(0.5);
     }
 }
 
@@ -282,9 +282,6 @@
 .completion-effect {
     pointer-events: none;
 }
-
-/* REMOVED: All media query overrides that conflict with universal button system */
-/* The ButtonBar system handles ALL responsive button sizing automatically */
 
 /* Responsive design improvements - ONLY for game-specific elements */
 @media (max-width: 1200px) {
