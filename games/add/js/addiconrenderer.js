@@ -420,13 +420,15 @@ class AddIconRenderer {
         return this.currentIcons.length;
     }
 
-    // Reset method to clear previous choices
+    // Reset method to clear previous choices but preserve readiness state
     reset() {
         this.previousIcon = null;
         this.previousColor = null;
-        this.buttonBarReady = false;
+        // FIXED: Don't reset buttonBarReady on game reset - it should stay ready
+        // this.buttonBarReady = false; // REMOVED
         this.pendingRender = null;
-        this.gameAreaDimensions = null;
+        // Keep gameAreaDimensions for subsequent renders
+        // this.gameAreaDimensions = null; // REMOVED
         this.clearIcons();
     }
     
