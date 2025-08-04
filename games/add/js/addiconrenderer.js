@@ -19,11 +19,11 @@ class AddIconRenderer {
         this.boundaries = {
             left: {
                 horizontal: { start: 6, end: 40 },   // 6%-40% of game area width
-                vertical: { start: 20, end: 90 }     // 20%-90% of game area height (from bottom)
+                vertical: { start: 25, end: 90 }     // 25%-90% of game area height (from bottom)
             },
             right: {
                 horizontal: { start: 60, end: 94 },  // 60%-94% of game area width  
-                vertical: { start: 20, end: 90 }     // 20%-90% of game area height (from bottom)
+                vertical: { start: 25, end: 90 }     // 25%-90% of game area height (from bottom)
             }
         };
         
