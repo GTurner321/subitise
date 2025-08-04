@@ -13,15 +13,15 @@ class AddIconRenderer {
         this.pendingRender = null;
         this.gameAreaDimensions = null;
         
-        // ADJUSTED: Icon positioning boundaries (35vh-90vh from bottom)
+        // FIXED: Icon positioning boundaries should match game areas exactly
         this.boundaries = {
             left: {
                 horizontal: { start: 6, end: 40 },   // 6%-40% of game area width
-                vertical: { start: 10, end: 55 }     // ADJUSTED: 10vh-55vh from bottom (35vh + 55vh range)
+                vertical: { start: 35, end: 90 }     // FIXED: 35vh-90vh from bottom (matches game area)
             },
             right: {
-                horizontal: { start: 60, end: 94 },  // 60%-94% of game area width
-                vertical: { start: 10, end: 55 }     // ADJUSTED: 10vh-55vh from bottom (35vh + 55vh range)
+                horizontal: { start: 60, end: 94 },  // 60%-94% of game area width  
+                vertical: { start: 35, end: 90 }     // FIXED: 35vh-90vh from bottom (matches game area)
             }
         };
         
