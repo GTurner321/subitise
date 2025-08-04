@@ -19,8 +19,8 @@
     position: absolute;
     left: 6%; /* 6% of game area width */
     width: 34%; /* 40% - 6% = 34% width */
-    bottom: 25%; /* 25% of game area height from bottom */
-    height: 65%; /* 90% - 25% = 65% height */
+    bottom: 30%; /* 30% of game area height from bottom */
+    height: 60%; /* 90% - 30% = 60% height */
     /* Visual debugging - remove in production */
     /* border: 1px dashed rgba(255, 0, 0, 0.3); */
     transition: background-color 0.2s ease;
@@ -72,8 +72,8 @@
     position: absolute;
     left: 60%; /* 60% of game area width */
     width: 34%; /* 94% - 60% = 34% width */
-    bottom: 25%; /* 25% of game area height from bottom */
-    height: 65%; /* 90% - 25% = 65% height */
+    bottom: 30%; /* 30% of game area height from bottom */
+    height: 60%; /* 90% - 30% = 60% height */
     /* Visual debugging - remove in production */
     /* border: 1px dashed rgba(0, 255, 0, 0.3); */
     transition: background-color 0.2s ease;
@@ -141,7 +141,7 @@
     20%, 40%, 60%, 80% { transform: translateX(3px); }
 }
 
-/* Sum row at bottom - width reduced by 5% */
+/* Sum row at bottom - width reduced by 3% more (42% total) */
 .sum-row {
     position: absolute;
     bottom: 3%; /* 3% above button bar */
@@ -152,7 +152,7 @@
     gap: 2%;
     z-index: 15; /* Higher than everything else */
     
-    width: 45%; /* REDUCED: Was 50%, now 45% */
+    width: 42%; /* REDUCED: Was 45%, now 42% (3% reduction) */
     height: calc(7vw + 2vh);
     max-height: 90px;
     min-height: 55px;
@@ -181,10 +181,10 @@
 
 .sum-plus-sign,
 .sum-equals-sign {
-    font-size: clamp(16px, 4vw, 32px);
+    font-size: clamp(21px, 5.2vw, 42px); /* INCREASED: Was clamp(16px, 4vw, 32px) - 30% larger */
     font-weight: bold;
     color: #333;
-    min-width: clamp(20px, 3vw, 40px);
+    min-width: clamp(26px, 3.9vw, 52px); /* INCREASED: Was clamp(20px, 3vw, 40px) - 30% larger */
     text-align: center;
     flex-shrink: 0;
 }
@@ -209,7 +209,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(14px, calc(7vw * 0.4), 32px);
+    font-size: clamp(18px, calc(7vw * 0.52), 42px); /* INCREASED: Was clamp(14px, calc(7vw * 0.4), 32px) - 30% larger */
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
@@ -244,11 +244,11 @@
 }
 
 .check-mark {
-    font-size: clamp(16px, 4vw, 32px);
+    font-size: clamp(21px, 5.2vw, 42px); /* INCREASED: Was clamp(16px, 4vw, 32px) - 30% larger */
     color: #28a745;
     opacity: 0;
     transition: opacity 0.5s ease;
-    min-width: clamp(20px, 4vw, 40px);
+    min-width: clamp(26px, 5.2vw, 52px); /* INCREASED: Was clamp(20px, 4vw, 40px) - 30% larger */
     text-align: center;
     flex-shrink: 0;
 }
