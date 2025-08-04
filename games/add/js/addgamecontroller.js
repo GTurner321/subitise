@@ -454,6 +454,13 @@ class AddGameController {
         // Reset hint tracking for new question
         this.hintGiven = false;
 
+        // IMPORTANT: Re-enable buttons FIRST before generating question
+        this.buttonsDisabled = false;
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(true);
+        }
+        console.log('🔓 Buttons re-enabled for new question');
+
         // Generate a sum based on current level
         const addition = this.generateAdditionForCurrentLevel();
         
@@ -470,12 +477,6 @@ class AddGameController {
         // Reset button states and show input boxes
         this.resetButtonStates();
         this.showInputBoxes();
-        
-        // IMPORTANT: Re-enable buttons for new question (they were disabled on completion)
-        this.buttonsDisabled = false;
-        if (window.ButtonBar) {
-            window.ButtonBar.setButtonsEnabled(true);
-        }
         
         // Give audio instruction based on sum number
         this.giveStartingSumInstruction();
