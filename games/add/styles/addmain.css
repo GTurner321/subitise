@@ -141,7 +141,7 @@
     20%, 40%, 60%, 80% { transform: translateX(3px); }
 }
 
-/* Sum row at bottom - width reduced by 3% more (42% total) */
+/* Sum row at bottom - width increased back by 3% (45% total) */
 .sum-row {
     position: absolute;
     bottom: 3%; /* 3% above button bar */
@@ -152,7 +152,7 @@
     gap: 2%;
     z-index: 15; /* Higher than everything else */
     
-    width: 42%; /* REDUCED: Was 45%, now 42% (3% reduction) */
+    width: 45%; /* INCREASED: Was 42%, now back to 45% (3% increase for larger symbols) */
     height: calc(7vw + 2vh);
     max-height: 90px;
     min-height: 55px;
