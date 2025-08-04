@@ -3,7 +3,7 @@
 /* CSS Custom Properties for sum bar dimensions */
 :root {
     --sum-box-size: 7vw; /* Base box width/height parameter */
-    --sum-bar-width-multiplier: 6.2; /* How many box widths for sum bar */
+    --sum-bar-width-multiplier: 6; /* How many box widths for sum bar */
 }
 
 /* Prevent scrolling - game always fits on screen */
