@@ -56,8 +56,8 @@ class AddGameController {
         this.checkMark = document.getElementById('checkMark');
         this.leftSide = document.getElementById('leftSide'); // Icon placement area
         this.rightSide = document.getElementById('rightSide'); // Icon placement area
-        this.leftPulseArea = document.getElementById('leftPulseArea'); // NEW: Pulse area
-        this.rightPulseArea = document.getElementById('rightPulseArea'); // NEW: Pulse area
+        this.leftPulseArea = document.getElementById('leftPulseArea'); // Pulse area
+        this.rightPulseArea = document.getElementById('rightPulseArea'); // Pulse area
         this.gameArea = document.querySelector('.game-area');
         
         // Level definitions
@@ -70,14 +70,14 @@ class AddGameController {
             6: [[2,3], [3,2], [3,3], [1,4], [1,5], [2,4], [3,4], [2,5], [1,6], [1,7], [1,8], [1,9], [4,4], [2,6], [2,7], [3,5], [2,8], [3,6], [4,5], [4,6], [3,7], [5,5], [4,1], [5,1], [4,2], [4,3], [5,2], [6,1], [7,1], [8,1], [9,1], [6,2], [7,2], [5,3], [8,2], [6,3], [5,4], [6,4], [7,3]]
         };
         
-        // Initialize in proper order - FIXED: Better coordination
+        // Initialize in proper order
         this.initializeEventListeners();
         this.setupVisibilityHandling();
         this.waitForSystemsAndInitialize();
     }
 
     /**
-     * FIXED: Wait for both ButtonBar AND proper game area setup
+     * Wait for both ButtonBar AND proper game area setup
      */
     waitForSystemsAndInitialize() {
         console.log('🎮 Checking system readiness...');
@@ -93,14 +93,14 @@ class AddGameController {
             this.buttonBarReady = true;
             this.gameAreaReady = true;
             
-            // Create buttons first
+            // Create buttons first - this will trigger game area margin/sizing changes
             this.createButtons();
             
-            // Wait for ButtonBar to coordinate with game area, then initialize
+            // Wait longer for ButtonBar to fully coordinate with game area
             setTimeout(() => {
                 console.log('🎮 ButtonBar coordination complete, initializing game');
                 this.initializeGame();
-            }, 600); // Increased delay for proper coordination
+            }, 800); // Increased delay for complete coordination
         } else {
             console.log(`⏳ Waiting for systems... ButtonBar: ${buttonBarReady}, GameArea: ${gameAreaReady}`);
             setTimeout(() => {
@@ -112,13 +112,13 @@ class AddGameController {
     initializeGame() {
         console.log('🎮 Starting game initialization with loading sequence');
         
-        // Hide all elements initially
-        this.hideAllElements();
+        // Hide all elements initially (except ButtonBar - it handles its own timing)
+        this.hideGameElements();
         
         // Wait for elements to be hidden, then start fade-in
         setTimeout(() => {
             console.log('🎮 Starting fade-in sequence');
-            this.showAllElements();
+            this.showGameElements();
             this.isLoading = false;
             this.initializationComplete = true;
             
@@ -127,34 +127,24 @@ class AddGameController {
                 this.startNewQuestion();
             }, 1000); // Wait for fade-in to complete
             
-        }, 1000); // 1 second loading delay
+        }, 500); // Shorter loading delay since ButtonBar is already visible
     }
 
-    hideAllElements() {
-        // Set initial opacity to 0 for all major elements
+    hideGameElements() {
+        // Hide game area and sum row (but NOT button bar)
         if (this.gameArea) this.gameArea.classList.remove('loaded');
         if (this.sumRow) this.sumRow.classList.remove('loaded');
-        
-        // Hide button bar
-        const buttonBar = document.querySelector('.number-buttons');
-        if (buttonBar) {
-            buttonBar.style.opacity = '0';
-        }
     }
 
-    showAllElements() {
-        // Fade in game area
+    showGameElements() {
+        // Fade in game area and sum row (ButtonBar handles its own timing)
         if (this.gameArea) {
             this.gameArea.classList.add('loaded');
         }
         
-        // Fade in sum row
         if (this.sumRow) {
             this.sumRow.classList.add('loaded');
         }
-        
-        // REMOVED: Button bar fade-in - ButtonBar handles its own fade-in timing
-        // Don't interfere with ButtonBar's own fade-in logic
         
         console.log('🎮 Game elements faded in (ButtonBar handles its own timing)');
     }
@@ -383,10 +373,9 @@ class AddGameController {
         this.modal.classList.add('hidden');
         this.hideAllInputBoxes();
         
-        // FIXED: Reset initialization flags to ensure proper timing
-        this.buttonBarReady = true; // Assume ButtonBar is still ready
-        this.gameAreaReady = true;  // Assume game area is still ready
-        this.initializationComplete = true; // Keep initialization complete
+        // Keep initialization flags - systems should stay ready
+        // Don't reset these flags on new game
+        this.initializationComplete = true;
         
         this.startNewQuestion();
     }
@@ -404,21 +393,21 @@ class AddGameController {
         const flashElements = () => {
             // Flash only the first uncompleted box from left to right
             if (!this.leftFilled) {
-                this.leftPulseArea.classList.add('area-flash'); // Use pulse area
+                this.leftPulseArea.classList.add('area-flash');
                 this.leftInputBox.classList.add('box-flash');
             } else if (!this.rightFilled) {
-                this.rightPulseArea.classList.add('area-flash'); // Use pulse area
+                this.rightPulseArea.classList.add('area-flash');
                 this.rightInputBox.classList.add('box-flash');
             } else if (!this.totalFilled) {
                 // Flash both areas when total is the only remaining box
-                this.leftPulseArea.classList.add('area-flash'); // Use pulse areas
+                this.leftPulseArea.classList.add('area-flash');
                 this.rightPulseArea.classList.add('area-flash');
                 this.totalInputBox.classList.add('box-flash');
             }
             
             // Remove flash classes after flash duration
             setTimeout(() => {
-                this.leftPulseArea.classList.remove('area-flash'); // Use pulse areas
+                this.leftPulseArea.classList.remove('area-flash');
                 this.rightPulseArea.classList.remove('area-flash');
                 this.leftInputBox.classList.remove('box-flash');
                 this.rightInputBox.classList.remove('box-flash');
@@ -446,7 +435,7 @@ class AddGameController {
             this.flashingTimeout = null;
         }
         
-        // Remove any existing flash classes from pulse areas
+        // Remove any existing flash classes
         this.leftPulseArea.classList.remove('area-flash');
         this.rightPulseArea.classList.remove('area-flash');
         this.leftInputBox.classList.remove('box-flash');
@@ -475,13 +464,8 @@ class AddGameController {
         
         console.log(`Question: ${addition.left} + ${addition.right} = ${addition.sum}, Level: ${this.currentLevel}`);
         
-        // FIXED: Only render icons if systems are ready
-        if (this.buttonBarReady && this.gameAreaReady) {
-            // Render the icons
-            this.iconRenderer.renderIcons(addition.left, addition.right);
-        } else {
-            console.warn('⚠️ Systems not ready for icon rendering');
-        }
+        // Render the icons - renderer will handle timing coordination
+        this.iconRenderer.renderIcons(addition.left, addition.right);
         
         // Reset button states and show input boxes
         this.resetButtonStates();
