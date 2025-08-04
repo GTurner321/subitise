@@ -226,8 +226,8 @@ class AddIconRenderer {
             
             // Try positioning with smart placement from attempt 1 and progressive spacing relaxation
             while (!validPosition && attempts < maxAttempts) {
-                // Use smart spacing for ALL attempts (not just after 50)
-                const smartPos = this.generateSmartPosition(positions, side);
+                // Use smart spacing for ALL attempts
+                const smartPos = this.generateSmartPositionForSide(positions, side);
                 x = smartPos.x;
                 y = smartPos.y;
                 
@@ -239,7 +239,7 @@ class AddIconRenderer {
             if (!validPosition) {
                 console.log(`⚠️ Could not find valid position for ${side} icon ${i} after ${maxAttempts} attempts - using emergency smart placement`);
                 // Emergency: use smart placement with no distance restrictions
-                const emergencyPos = this.generateSmartPosition(positions, side);
+                const emergencyPos = this.generateSmartPositionForSide(positions, side);
                 x = emergencyPos.x;
                 y = emergencyPos.y;
                 totalFallbacks++;
@@ -252,6 +252,71 @@ class AddIconRenderer {
         
         console.log(`📊 ${side} side: ${count - totalFallbacks} valid positions, ${totalFallbacks} emergency placements`);
         return positions;
+    }
+
+    generateSmartPositionForSide(existingPositions, side) {
+        // Calculate averages of existing positions in this SIDE AREA using game area coordinates
+        const sidePositions = existingPositions.length > 0 ? existingPositions : [];
+        
+        // Define midpoints for each side in game area coordinates
+        let xMidpoint, yMidpoint;
+        
+        if (side === 'left') {
+            xMidpoint = 23; // 23% - midpoint of left area (6%-40%)
+            yMidpoint = 60; // 60% - midpoint of vertical area (30%-90%)
+        } else { // right side
+            xMidpoint = 77; // 77% - midpoint of right area (60%-94%)
+            yMidpoint = 60; // 60% - same vertical midpoint as left
+        }
+        
+        let avgX = xMidpoint; // Default to midpoint if no existing positions
+        let avgY = yMidpoint; // Default to midpoint if no existing positions
+        
+        if (sidePositions.length > 0) {
+            // Calculate actual averages using game area coordinates
+            avgX = sidePositions.reduce((sum, pos) => sum + pos.x, 0) / sidePositions.length;
+            avgY = sidePositions.reduce((sum, pos) => sum + pos.y, 0) / sidePositions.length;
+        }
+        
+        // Smart positioning based on side-specific logic
+        let xRange, yRange;
+        
+        if (side === 'left') {
+            // Left side logic: 6%-40% horizontal range
+            if (avgX >= 23) {
+                // Crowded right half of left area, place in left half
+                xRange = { start: 6, end: 23 };
+            } else {
+                // Crowded left half of left area, place in right half
+                xRange = { start: 23, end: 40 };
+            }
+        } else {
+            // Right side logic: 60%-94% horizontal range
+            if (avgX >= 77) {
+                // Crowded right half of right area, place in left half
+                xRange = { start: 60, end: 77 };
+            } else {
+                // Crowded left half of right area, place in right half
+                xRange = { start: 77, end: 94 };
+            }
+        }
+        
+        // Vertical logic (same for both sides): 30%-90% range
+        if (avgY >= 60) {
+            // Crowded upper half, place in lower half
+            yRange = { start: 30, end: 60 };
+        } else {
+            // Crowded lower half, place in upper half
+            yRange = { start: 60, end: 90 };
+        }
+        
+        // Generate random position within the smart ranges
+        const x = xRange.start + Math.random() * (xRange.end - xRange.start);
+        const y = yRange.start + Math.random() * (yRange.end - yRange.start);
+        
+        console.log(`🧠 Smart positioning for ${side}: avgX=${avgX.toFixed(1)}%, avgY=${avgY.toFixed(1)}% → targeting (${x.toFixed(1)}%, ${y.toFixed(1)}%)`);
+        
+        return { x, y };
     }
 
     isPositionValid(x, y, existingPositions) {
