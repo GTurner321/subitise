@@ -387,6 +387,154 @@ class ButtonBar {
     }
     
     /**
+     * Show correct answer feedback (works for both clicks and keyboard input)
+     * @param {number} selectedNumber - The number that was selected
+     * @param {HTMLElement} buttonElement - The button element (can be null for keyboard)
+     */
+    showCorrectFeedback(selectedNumber, buttonElement) {
+        // Find the button element if not provided (for keyboard input)
+        if (!buttonElement) {
+            buttonElement = this.findButtonByNumber(selectedNumber);
+        }
+        
+        if (buttonElement) {
+            // Flash green animation
+            this.animateButton(buttonElement, 'correct');
+            
+            // Create celebration stars
+            this.createCelebrationStars(buttonElement);
+        }
+    }
+
+    /**
+     * Show incorrect answer feedback (works for both clicks and keyboard input)  
+     * @param {number} selectedNumber - The number that was selected
+     * @param {HTMLElement} buttonElement - The button element (can be null for keyboard)
+     */
+    showIncorrectFeedback(selectedNumber, buttonElement) {
+        // Find the button element if not provided (for keyboard input)
+        if (!buttonElement) {
+            buttonElement = this.findButtonByNumber(selectedNumber);
+        }
+        
+        if (buttonElement) {
+            // Flash red animation
+            this.animateButton(buttonElement, 'incorrect');
+            
+            // Add cross overlay
+            const crossOverlay = this.addCrossOverlay(buttonElement);
+            
+            // Mark as attempted
+            buttonElement.dataset.attempted = 'true';
+            
+            // Fade other buttons
+            this.fadeOtherButtons(buttonElement);
+            
+            // Restore after delay
+            setTimeout(() => {
+                this.fadeInAllButtons();
+                
+                // Fade out cross
+                if (crossOverlay && crossOverlay.parentNode) {
+                    crossOverlay.style.transition = 'opacity 700ms ease-out';
+                    crossOverlay.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        this.removeCrossOverlay(buttonElement);
+                    }, 700);
+                }
+            }, 1300);
+        }
+    }
+
+    /**
+     * Find button element by number (for keyboard input)
+     * @param {number} number - The button number to find
+     * @returns {HTMLElement|null} The button element or null
+     */
+    findButtonByNumber(number) {
+        if (!this.buttons) return null;
+        
+        return this.buttons.find(btn => 
+            parseInt(btn.dataset.number) === number
+        ) || null;
+    }
+
+    /**
+     * Create celebration stars around a button
+     * @param {HTMLElement} buttonElement - The button to create stars around
+     */
+    createCelebrationStars(buttonElement) {
+        if (!buttonElement) return;
+        
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const centerX = buttonRect.left + buttonRect.width / 2;
+        const centerY = buttonRect.top + buttonRect.height / 2;
+        
+        const starCount = 5;
+        const radius = 60;
+        
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            star.innerHTML = '⭐';
+            star.className = 'completion-star';
+            star.style.fontSize = '20px';
+            
+            // Calculate position around the button
+            const angle = (i / starCount) * 2 * Math.PI;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            
+            star.style.left = x + 'px';
+            star.style.top = y + 'px';
+            star.style.animationDelay = (i * 0.1) + 's';
+            
+            document.body.appendChild(star);
+            
+            // Remove after animation
+            setTimeout(() => {
+                if (star.parentNode) {
+                    star.parentNode.removeChild(star);
+                }
+            }, 1500 + (i * 100));
+        }
+    }
+
+    /**
+     * Fade out other buttons (keeping the selected one visible)
+     * @param {HTMLElement} excludeButton - Button to keep visible
+     */
+    fadeOtherButtons(excludeButton) {
+        if (!this.buttons) return;
+        
+        this.buttons.forEach(btn => {
+            if (btn !== excludeButton) {
+                btn.style.transition = 'opacity 700ms ease-in-out';
+                btn.style.opacity = '0.1';
+            }
+        });
+    }
+
+    /**
+     * Fade all buttons back in
+     */
+    fadeInAllButtons() {
+        if (!this.buttons) return;
+        
+        this.buttons.forEach(btn => {
+            btn.style.transition = 'opacity 700ms ease-in-out';
+            btn.style.opacity = '1';
+        });
+        
+        // Clean up transition styles
+        setTimeout(() => {
+            this.buttons.forEach(btn => {
+                btn.style.transition = '';
+            });
+        }, 700);
+    }
+    
+    /**
      * Add animation classes to buttons
      */
     animateButton(buttonElement, animationType) {
