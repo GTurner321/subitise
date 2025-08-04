@@ -13,15 +13,15 @@ class AddIconRenderer {
         this.pendingRender = null;
         this.gameAreaDimensions = null;
         
-        // SIMPLIFIED: Icon positioning within viewport boundaries to avoid timing issues
+        // ADJUSTED: Icon positioning boundaries (35vh-90vh from bottom)
         this.boundaries = {
             left: {
                 horizontal: { start: 6, end: 40 },   // 6%-40% of game area width
-                vertical: { start: 10, end: 70 }     // FIXED: 10vh-70vh from bottom (30vh + 60vh range)
+                vertical: { start: 10, end: 55 }     // ADJUSTED: 10vh-55vh from bottom (35vh + 55vh range)
             },
             right: {
                 horizontal: { start: 60, end: 94 },  // 60%-94% of game area width
-                vertical: { start: 10, end: 70 }     // FIXED: 10vh-70vh from bottom (30vh + 60vh range)
+                vertical: { start: 10, end: 55 }     // ADJUSTED: 10vh-55vh from bottom (35vh + 55vh range)
             }
         };
         
@@ -392,7 +392,10 @@ class AddIconRenderer {
         icon.className = `game-icon ${iconClass}`;
         icon.dataset.side = side;
         
-        // FIXED: Correct transform for bottom positioning - move UP and center horizontally
+        // ADJUSTED: Set transforms to 0% (no centering) but keep logic for future adjustments
+        const horizontalOffset = 0; // Was -50% for centering
+        const verticalOffset = 0;   // Was -50% for centering
+        
         icon.style.cssText = `
             color: ${iconColor};
             left: ${x}%;
@@ -407,10 +410,10 @@ class AddIconRenderer {
             animation-fill-mode: both;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             transition: filter 0.3s ease;
-            transform: translate(-50%, -50%);
+            transform: translate(${horizontalOffset}%, ${verticalOffset}%);
         `;
         
-        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}vh from bottom) - centered upward`);
+        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}vh from bottom) - no centering transform`);
         
         return icon;
     }
