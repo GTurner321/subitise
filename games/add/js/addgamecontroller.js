@@ -471,6 +471,12 @@ class AddGameController {
         this.resetButtonStates();
         this.showInputBoxes();
         
+        // IMPORTANT: Re-enable buttons for new question (they were disabled on completion)
+        this.buttonsDisabled = false;
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(true);
+        }
+        
         // Give audio instruction based on sum number
         this.giveStartingSumInstruction();
         
@@ -633,8 +639,23 @@ class AddGameController {
                 break;
         }
 
-        // Update flashing to show next priority box
-        this.updateFlashingBoxes();
+        // Check if this was the final box (only 1 box left unfilled before this fill)
+        const boxesFilledBefore = [this.leftFilled, this.rightFilled, this.totalFilled].filter(Boolean).length - 1; // -1 because we just filled one
+        const wasLastBox = boxesFilledBefore === 2; // 2 boxes were already filled, this was the 3rd (final)
+        
+        if (wasLastBox) {
+            // This was the final box - immediately disable buttons to prevent duplicate input
+            this.buttonsDisabled = true;
+            if (window.ButtonBar) {
+                window.ButtonBar.setButtonsEnabled(false);
+            }
+            console.log('🔒 Final box filled - buttons disabled to prevent duplicate input');
+        }
+
+        // Update flashing to show next priority box (only if not the final box)
+        if (!wasLastBox) {
+            this.updateFlashingBoxes();
+        }
     }
 
     updateFlashingBoxes() {
@@ -658,7 +679,8 @@ class AddGameController {
 
     checkQuestionCompletion() {
         if (this.leftFilled && this.rightFilled && this.totalFilled) {
-            // All boxes completed - clear inactivity timer
+            // All boxes completed - buttons should already be disabled from fillBox()
+            // Clear inactivity timer and stop flashing
             this.clearInactivityTimer();
             this.stopFlashing();
             
@@ -693,6 +715,7 @@ class AddGameController {
             }
 
             // Start fade out after 2 seconds, then new question
+            // Buttons will be re-enabled when the new question starts
             setTimeout(() => {
                 this.fadeOutQuestion();
             }, 2000);
