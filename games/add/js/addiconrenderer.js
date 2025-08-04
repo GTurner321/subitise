@@ -17,11 +17,11 @@ class AddIconRenderer {
         this.boundaries = {
             left: {
                 horizontal: { start: 6, end: 40 },   // 6%-40% of game area width
-                vertical: { start: 30, end: 90 }     // SIMPLIFIED: 30vh-90vh (30%-90% of viewport height)
+                vertical: { start: 10, end: 70 }     // FIXED: 10vh-70vh from bottom (30vh + 60vh range)
             },
             right: {
                 horizontal: { start: 60, end: 94 },  // 60%-94% of game area width
-                vertical: { start: 30, end: 90 }     // SIMPLIFIED: 30vh-90vh (30%-90% of viewport height)
+                vertical: { start: 10, end: 70 }     // FIXED: 10vh-70vh from bottom (30vh + 60vh range)
             }
         };
         
@@ -392,11 +392,11 @@ class AddIconRenderer {
         icon.className = `game-icon ${iconClass}`;
         icon.dataset.side = side;
         
-        // FIXED: Use viewport units for vertical positioning to avoid button bar timing issues
+        // FIXED: Apply centering transform directly to each icon to avoid affecting buttons
         icon.style.cssText = `
             color: ${iconColor};
             left: ${x}%;
-            top: ${y}vh;
+            bottom: ${y}vh;
             font-size: ${iconSize}px;
             position: absolute;
             z-index: 5;
@@ -407,10 +407,10 @@ class AddIconRenderer {
             animation-fill-mode: both;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             transition: filter 0.3s ease;
-            transform: translate(-50%, -50%);
+            transform: translate(-50%, 50%);
         `;
         
-        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}vh) within game area`);
+        console.log(`✅ Created ${side} icon at (${x.toFixed(1)}%, ${y.toFixed(1)}vh from bottom) - centered with transform`);
         
         return icon;
     }
