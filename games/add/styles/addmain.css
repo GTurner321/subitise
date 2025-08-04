@@ -6,6 +6,21 @@
     --sum-bar-width-multiplier: 7; /* How many box widths for sum bar */
 }
 
+/* Prevent scrolling - game always fits on screen */
+html, body {
+    overflow: hidden !important;
+    height: 100vh;
+    max-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* Ensure game fits perfectly */
+body {
+    display: flex;
+    flex-direction: column;
+}
+
 /* Game area sections layout with initial fade state */
 .game-area {
     display: block;
