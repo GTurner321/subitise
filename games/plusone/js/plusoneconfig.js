@@ -26,7 +26,7 @@ const CONFIG = {
         }
     },
     
-    // Font Awesome icons suitable for nursery age children (levels 1-2 only)
+    // Font Awesome icons suitable for nursery age children (levels 1-2 and 5 only)
     ICONS: [
         // Animals
         'fas fa-cat',
@@ -158,11 +158,47 @@ const CONFIG = {
         // For numbers above 100, we'll generate them dynamically
     },
     
+    // Audio messages for consistent speech
+    AUDIO: {
+        // Starting instructions
+        FIRST_QUESTION: 'Complete the plus one sum',
+        SECOND_QUESTION: 'Try again and complete the sum',
+        LATER_QUESTIONS: 'Complete the sum',
+        
+        // Number format specific instructions
+        NUMBER_FORMAT_QUESTION: (n) => `What number is one more than ${n}?`,
+        
+        // Hints for picture format
+        HINTS: {
+            COUNT_LEFT: 'Count the number of pictures on the left side',
+            COUNT_RIGHT: 'Count the number of pictures on the right side',
+            WHAT_IS_PLUS_ONE: (n) => `What is ${n} plus one?`
+        },
+        
+        // Hints for number format
+        NUMBER_HINTS: {
+            WHAT_COMES_AFTER: (n) => `What number comes after ${n}?`
+        },
+        
+        // Feedback
+        ENCOURAGEMENTS: ['Well done!', 'Excellent!', 'Perfect!'],
+        TRY_AGAIN: 'Try again',
+        
+        // Completion feedback for picture format
+        SUM_REPETITION: (n, answer) => `One more than ${n} is ${answer}`,
+        
+        // Final completion
+        GAME_COMPLETE: 'Well done! You have completed all ten plus one sums! Try again or return to the home page.',
+        
+        // Audio controls
+        AUDIO_ON: 'Audio enabled'
+    },
+    
     // Game mechanics
     TOTAL_QUESTIONS: 10,
     RAINBOW_PIECES: 10,
     
-    // Icon positioning for split areas (levels 1-2)
+    // Icon positioning for split areas (levels 1-2 and 5)
     ICON_MARGIN: 60,
     MIN_ICON_DISTANCE: 100,
     MIDDLE_SECTION_WIDTH: 0.1,
@@ -173,13 +209,32 @@ const CONFIG = {
     ICON_FADE_DURATION: 500,
     NEXT_QUESTION_DELAY: 1500,
     
-    // Audio settings
-    AUDIO_ENABLED: true
+    // Inactivity settings
+    INACTIVITY_DURATION: 20000, // 20 seconds
+    KEYBOARD_WAIT_DURATION: 4000, // 4 seconds for multi-digit input
+    
+    // Level progression settings
+    REDEMPTION_SYSTEM: true, // Use redemption system for failures
+    
+    // Button configurations
+    BUTTON_CONFIGS: {
+        PICTURE_FORMAT: {
+            count: 10,
+            width: 8,  // 8% of button panel width
+            height: 8, // 8% of button panel width
+            numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        },
+        NUMBER_FORMAT: {
+            count: 4,
+            width: 14, // 14% of button panel width
+            height: 8, // 8% of button panel width (same height, font based on height)
+            // numbers generated dynamically based on correct answer
+        }
+    }
 };
 
-// Generate number to word conversions for larger numbers - FIXED TO PREVENT EXPONENTIAL NOTATION
+// Generate number to word conversions for larger numbers
 function generateNumberToWord(num) {
-    // Ensure we're working with a proper integer, not exponential notation
     const number = parseInt(num, 10);
     
     if (CONFIG.NUMBER_TO_WORD[number]) {
@@ -214,7 +269,6 @@ function generateNumberToWord(num) {
         return result || number.toString();
     }
     
-    // For very large numbers, just return the number as string
     return number.toString();
 }
 
