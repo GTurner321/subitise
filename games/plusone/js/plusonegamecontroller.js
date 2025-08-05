@@ -176,7 +176,7 @@ class PlusOneGameController {
                 this.sumRow.classList.add('sum-bar-ready');
                 console.log('🎯 Sum bar marked as ready for normal opacity control');
             }
-        }, 2000); // 1s delay + 1s animation = 2s total
+        }, 1000); // 0.5s delay + 0.5s animation = 1s total
         
         // Wait for elements to be hidden, then start fade-in
         setTimeout(() => {
@@ -483,6 +483,7 @@ class PlusOneGameController {
         });
         
         console.log('🚫 Touch protection enabled for game areas');
+    }
     }
 
     handleKeyboardDigit(digit) {
