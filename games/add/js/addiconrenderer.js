@@ -105,7 +105,11 @@ class AddIconRenderer {
             top: gameAreaRect.top
         };
         
+        // Update CSS custom property with actual game area width
+        document.documentElement.style.setProperty('--game-area-width', `${gameAreaRect.width}px`);
+        
         console.log('📏 Game area dimensions updated and validated:', this.gameAreaDimensions);
+        console.log('🎯 CSS custom property --game-area-width set to:', `${gameAreaRect.width}px`);
     }
 
     setupResizeHandling() {
