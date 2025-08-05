@@ -1,9 +1,7 @@
 class PlusOneGameController {
     constructor() {
-        // Make config available globally for shared Rainbow and Bear classes
-        window.CONFIG = CONFIG;
-        
-        this.iconRenderer = new PlusOneIconRenderer();
+        // Initialize components in proper order
+        this.contentRenderer = new PlusOneContentRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
         
@@ -19,37 +17,36 @@ class PlusOneGameController {
         // Level progression tracking for redemption system
         this.failedAtCurrentLevel = false; // Track if user has failed once at current level
         
-        // Audio functionality
-        this.audioContext = null;
-        this.audioEnabled = CONFIG.AUDIO_ENABLED || true;
-        
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
-        this.inactivityDuration = 20000; // 20 seconds
-        this.hintGiven = false;
-        this.isTabVisible = true;
+        this.hintGiven = false; // Track if hint has been given for current question
+        this.isTabVisible = true; // Track tab visibility
         
         // Keyboard handling for two-digit numbers
         this.keyboardBuffer = '';
         this.keyboardTimer = null;
-        this.keyboardWaitDuration = 4000; // 4 seconds
         
         // Game state
         this.currentNumber = 0; // The 'n' in n+1
         this.currentAnswer = 0; // n+1
         this.buttonsDisabled = false;
         
-        // Box state tracking - all boxes start empty for levels 1-2
+        // Box state tracking - all boxes start empty for levels 1-2 and 5
         this.leftFilled = false;
-        this.rightFilled = false; // Right box should also be fillable in levels 1-2
+        this.rightFilled = false; // Right box fillable in picture format
         this.totalFilled = false;
         
         // Flashing intervals
         this.flashingInterval = null;
         this.flashingTimeout = null;
         
+        // Loading state and initialization tracking
+        this.isLoading = true;
+        this.initializationComplete = false;
+        this.buttonBarReady = false;
+        this.gameAreaReady = false;
+        
         // DOM elements
-        this.numberButtons = document.getElementById('numberButtons');
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         this.leftInputBox = document.getElementById('leftInputBox');
@@ -59,16 +56,14 @@ class PlusOneGameController {
         this.checkMark = document.getElementById('checkMark');
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
+        this.leftPulseArea = document.getElementById('leftPulseArea');
+        this.rightPulseArea = document.getElementById('rightPulseArea');
+        this.gameArea = document.querySelector('.game-area');
         
-        // Mute button references
-        this.muteButton = null;
-        this.muteContainer = null;
-        
+        // Initialize in proper order
         this.initializeEventListeners();
-        this.initializeAudio();
-        this.createMuteButton();
         this.setupVisibilityHandling();
-        this.startNewQuestion();
+        this.waitForSystemsAndInitialize();
     }
 
     // Helper function to determine if current level should use picture/icon format
@@ -81,161 +76,218 @@ class PlusOneGameController {
         return this.currentLevel >= 3 && this.currentLevel !== 5;
     }
 
-    async initializeAudio() {
-        if (!this.audioEnabled) return;
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
-            this.audioEnabled = false;
-        }
-    }
-
-    createMuteButton() {
-        const muteContainer = document.createElement('div');
-        muteContainer.style.position = 'fixed';
-        muteContainer.style.top = '20px';
-        muteContainer.style.right = '20px';
-        muteContainer.style.zIndex = '1000';
-        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        muteContainer.style.borderRadius = '50%';
-        muteContainer.style.width = '60px';
-        muteContainer.style.height = '60px';
-        muteContainer.style.display = 'flex';
-        muteContainer.style.alignItems = 'center';
-        muteContainer.style.justifyContent = 'center';
-        muteContainer.style.cursor = 'pointer';
-        muteContainer.style.transition = 'all 0.3s ease';
-        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+    /**
+     * Wait for both ButtonBar AND proper game area setup
+     */
+    waitForSystemsAndInitialize() {
+        console.log('🎮 Checking system readiness...');
         
-        this.muteButton = document.createElement('button');
-        this.muteButton.style.background = 'none';
-        this.muteButton.style.border = 'none';
-        this.muteButton.style.color = 'white';
-        this.muteButton.style.fontSize = '24px';
-        this.muteButton.style.cursor = 'pointer';
-        this.muteButton.style.width = '100%';
-        this.muteButton.style.height = '100%';
-        this.muteButton.style.display = 'flex';
-        this.muteButton.style.alignItems = 'center';
-        this.muteButton.style.justifyContent = 'center';
+        // Check if ButtonBar is available and functional
+        const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
         
-        this.updateMuteButtonIcon();
+        // Check if game area containers exist
+        const gameAreaReady = this.gameArea && this.leftSide && this.rightSide && this.sumRow;
         
-        this.muteButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.toggleAudio();
-        });
-        
-        this.muteButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.toggleAudio();
-        });
-        
-        this.muteButton.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-        });
-        
-        this.muteButton.addEventListener('touchstart', (e) => {
-            e.stopPropagation();
-        });
-        
-        muteContainer.addEventListener('mouseenter', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-            muteContainer.style.transform = 'scale(1.1)';
-        });
-        
-        muteContainer.addEventListener('mouseleave', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            muteContainer.style.transform = 'scale(1)';
-        });
-        
-        muteContainer.appendChild(this.muteButton);
-        document.body.appendChild(muteContainer);
-        this.muteContainer = muteContainer;
-    }
-
-    updateMuteButtonIcon() {
-        if (this.muteButton) {
-            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
-            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
-        }
-    }
-
-    toggleAudio() {
-        this.audioEnabled = !this.audioEnabled;
-        this.updateMuteButtonIcon();
-        
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        if (this.audioEnabled) {
+        if (buttonBarReady && gameAreaReady) {
+            console.log('🎮 All systems ready, proceeding with initialization');
+            this.buttonBarReady = true;
+            this.gameAreaReady = true;
+            
+            // Create buttons first - this will trigger game area margin/sizing changes
+            this.createButtons();
+            
+            // Wait for ButtonBar to fully coordinate with game area
             setTimeout(() => {
-                this.speakText('Sound on');
+                console.log('🎮 ButtonBar coordination complete, initializing game');
+                this.initializeGame();
+            }, 800);
+        } else {
+            console.log(`⏳ Waiting for systems... ButtonBar: ${buttonBarReady}, GameArea: ${gameAreaReady}`);
+            setTimeout(() => {
+                this.waitForSystemsAndInitialize();
             }, 100);
         }
     }
 
+    initializeGame() {
+        console.log('🎮 Starting game initialization with loading sequence');
+        
+        // Hide all elements initially (except ButtonBar - it handles its own timing)
+        this.hideGameElements();
+        
+        // Wait for elements to be hidden, then start fade-in
+        setTimeout(() => {
+            console.log('🎮 Starting fade-in sequence');
+            this.showGameElements();
+            this.isLoading = false;
+            this.initializationComplete = true;
+            
+            // Start the first question after fade-in completes
+            setTimeout(() => {
+                this.startNewQuestion();
+            }, 1000);
+            
+        }, 500);
+    }
+
+    hideGameElements() {
+        // Hide game area and sum row (but NOT button bar)
+        if (this.gameArea) this.gameArea.classList.remove('loaded');
+        if (this.sumRow) this.sumRow.classList.remove('loaded');
+    }
+
+    showGameElements() {
+        // Fade in game area and sum row (ButtonBar handles its own timing)
+        if (this.gameArea) {
+            this.gameArea.classList.add('loaded');
+        }
+        
+        if (this.sumRow) {
+            this.sumRow.classList.add('loaded');
+        }
+        
+        console.log('🎮 Game elements faded in (ButtonBar handles its own timing)');
+    }
+
+    createButtons() {
+        // Determine button configuration based on current level
+        const isPictureFormat = this.shouldUsePictureFormat();
+        const config = isPictureFormat ? CONFIG.BUTTON_CONFIGS.PICTURE_FORMAT : CONFIG.BUTTON_CONFIGS.NUMBER_FORMAT;
+        
+        // Create button colors array
+        const colors = CONFIG.COLORS.slice(0, config.count);
+        
+        // Create button numbers array
+        let numbers;
+        if (isPictureFormat) {
+            numbers = config.numbers;
+        } else {
+            // For number format, we'll update this when we know the correct answer
+            numbers = [1, 2, 3, 4]; // Placeholder
+        }
+        
+        // Use the universal button bar system
+        if (window.ButtonBar && this.buttonBarReady) {
+            window.ButtonBar.create(
+                config.count,          // number of buttons
+                config.width,          // button width as % of button panel width
+                config.height,         // button height as % of button panel width
+                colors,                // array of button colors
+                numbers,               // array of button numbers/labels
+                (selectedNumber, buttonElement) => {  // click handler
+                    if (this.buttonsDisabled || !this.initializationComplete) return;
+                    
+                    // Clear inactivity timer on user interaction
+                    this.clearInactivityTimer();
+                    this.startInactivityTimer();
+                    
+                    this.handleNumberClick(selectedNumber, buttonElement);
+                }
+            );
+            console.log('✅ Button bar created successfully');
+        } else {
+            console.warn('ButtonBar not available - using fallback');
+        }
+    }
+
+    updateButtonsForNumberFormat(correctAnswer) {
+        // Generate 4 options: correct answer, n-1, random from level set, and n+2/n+3/n+5/n+10
+        const options = new Set();
+        
+        // Add correct answer (n+1)
+        options.add(correctAnswer);
+        
+        // Add n-1 (one less than original number)
+        const nMinus1 = Math.max(1, this.currentNumber - 1);
+        options.add(nMinus1);
+        
+        // Add random number from current level set
+        const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
+        let randomFromLevel;
+        let attempts = 0;
+        do {
+            randomFromLevel = levelNumbers[Math.floor(Math.random() * levelNumbers.length)] + 1;
+            attempts++;
+        } while (options.has(randomFromLevel) && attempts < 50);
+        options.add(randomFromLevel);
+        
+        // Add one of: n+2, n+3, n+5, n+10
+        const bonusOptions = [this.currentNumber + 2, this.currentNumber + 3, this.currentNumber + 5, this.currentNumber + 10];
+        let bonusChoice;
+        attempts = 0;
+        do {
+            bonusChoice = bonusOptions[Math.floor(Math.random() * bonusOptions.length)];
+            attempts++;
+        } while (options.has(bonusChoice) && attempts < 20);
+        options.add(bonusChoice);
+        
+        // Convert to array and shuffle
+        const shuffledOptions = Array.from(options).slice(0, 4);
+        this.shuffleArray(shuffledOptions);
+        
+        // Update ButtonBar with new numbers
+        if (window.ButtonBar) {
+            window.ButtonBar.shuffleNumbers(shuffledOptions);
+        }
+        
+        return shuffledOptions;
+    }
+
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
     setupVisibilityHandling() {
+        // Handle tab visibility changes
         document.addEventListener('visibilitychange', () => {
             this.isTabVisible = !document.hidden;
             
             if (!this.isTabVisible) {
+                // Tab is hidden - stop all audio and clear timers
                 this.clearInactivityTimer();
-                if ('speechSynthesis' in window) {
-                    speechSynthesis.cancel();
+                if (window.AudioSystem) {
+                    window.AudioSystem.stopAllAudio();
                 }
             } else {
-                if (!this.gameComplete && !this.buttonsDisabled) {
+                // Tab is visible again - restart inactivity timer if game is active
+                if (!this.gameComplete && !this.buttonsDisabled && this.initializationComplete) {
                     this.startInactivityTimer();
                 }
             }
         });
     }
 
-    speakText(text) {
-        if (!this.audioEnabled) return;
-        
-        try {
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.3;
-                utterance.volume = 0.8;
-                
-                const voices = speechSynthesis.getVoices();
-                let selectedVoice = voices.find(voice => 
-                    voice.name.toLowerCase().includes('male') ||
-                    voice.name.toLowerCase().includes('boy') ||
-                    voice.name.toLowerCase().includes('man') ||
-                    (!voice.name.toLowerCase().includes('female') && 
-                     !voice.name.toLowerCase().includes('woman') &&
-                     !voice.name.toLowerCase().includes('girl'))
-                );
-                
-                if (selectedVoice) utterance.voice = selectedVoice;
-                utterance.pitch = 1.3;
-                
-                speechSynthesis.speak(utterance);
-            }
-        } catch (error) {
-            // Silent failure
+    speakText(text, options = {}) {
+        if (window.AudioSystem) {
+            window.AudioSystem.speakText(text, options);
+        }
+    }
+
+    playCompletionSound() {
+        if (window.AudioSystem) {
+            window.AudioSystem.playCompletionSound();
+        }
+    }
+
+    playFailureSound() {
+        if (window.AudioSystem) {
+            window.AudioSystem.playFailureSound();
         }
     }
 
     startInactivityTimer() {
-        if (!this.isTabVisible || this.hintGiven) {
+        // Only start timer if tab is visible, game is initialized, and hint hasn't been given
+        if (!this.isTabVisible || this.hintGiven || !this.initializationComplete) {
             return;
         }
         
         this.clearInactivityTimer();
         this.inactivityTimer = setTimeout(() => {
             this.giveInactivityHint();
-        }, this.inactivityDuration);
+        }, CONFIG.INACTIVITY_DURATION);
     }
 
     clearInactivityTimer() {
@@ -254,24 +306,25 @@ class PlusOneGameController {
     }
 
     giveInactivityHint() {
-        if (!this.audioEnabled || this.buttonsDisabled || this.gameComplete || !this.isTabVisible) return;
+        if (this.buttonsDisabled || this.gameComplete || !this.isTabVisible || !this.initializationComplete) return;
         
+        // Mark that hint has been given for this question
         this.hintGiven = true;
         
         let hintText = '';
         if (this.shouldUsePictureFormat()) {
-            // Picture format levels (1, 2, 5): hints for each box in order
+            // Picture format levels: hints for each box in order
             if (!this.leftFilled) {
-                hintText = 'Count the number of pictures on the left side';
+                hintText = CONFIG.AUDIO.HINTS.COUNT_LEFT;
             } else if (!this.rightFilled) {
-                hintText = 'Count the number of pictures on the right side';
+                hintText = CONFIG.AUDIO.HINTS.COUNT_RIGHT;
             } else if (!this.totalFilled) {
-                hintText = `What is ${this.currentNumber} plus one?`;
+                hintText = CONFIG.AUDIO.HINTS.WHAT_IS_PLUS_ONE(this.currentNumber);
             }
         } else {
-            // Number format levels (3, 4, 6-10): focus on "what comes after"
+            // Number format levels: focus on "what comes after"
             if (!this.totalFilled) {
-                hintText = `What number comes after ${this.currentNumber}?`;
+                hintText = CONFIG.AUDIO.NUMBER_HINTS.WHAT_COMES_AFTER(this.currentNumber);
             }
         }
         
@@ -287,7 +340,7 @@ class PlusOneGameController {
 
         // Keyboard event listener
         document.addEventListener('keydown', (e) => {
-            if (this.buttonsDisabled || this.gameComplete) {
+            if (this.buttonsDisabled || this.gameComplete || !this.initializationComplete) {
                 return;
             }
             
@@ -320,7 +373,7 @@ class PlusOneGameController {
                 this.keyboardTimer = setTimeout(() => {
                     this.clearKeyboardTimer();
                     this.handleNumberClick(1, null);
-                }, this.keyboardWaitDuration);
+                }, CONFIG.KEYBOARD_WAIT_DURATION);
                 return;
             }
         }
@@ -344,8 +397,11 @@ class PlusOneGameController {
     }
 
     getCurrentOptions() {
-        // This will be set when creating buttons for number format levels
-        return this.currentOptions || [];
+        // Get current button numbers from ButtonBar
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            return window.ButtonBar.buttons.map(btn => parseInt(btn.dataset.number));
+        }
+        return [];
     }
 
     startNewGame() {
@@ -353,25 +409,31 @@ class PlusOneGameController {
         this.questionsCompleted = 0;
         this.gameComplete = false;
         this.usedNumbersInLevel.clear();
-        this.failedAtCurrentLevel = false; // Reset failure tracking
+        this.failedAtCurrentLevel = false;
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         this.resetBoxState();
         
         this.rainbow.reset();
         this.bear.reset();
-        this.iconRenderer.reset();
+        this.contentRenderer.reset();
         this.modal.classList.add('hidden');
         
-        // Clear the boxes properly for new game
-        this.setupInputBoxesForNewQuestion();
+        // Keep initialization flags - systems should stay ready
+        this.initializationComplete = true;
         
-        this.startNewQuestion();
+        // Update button configuration for current level
+        this.createButtons();
+        
+        // Wait for button setup to complete
+        setTimeout(() => {
+            this.startNewQuestion();
+        }, 200);
     }
 
     resetBoxState() {
         this.leftFilled = false;
-        this.rightFilled = false; // Reset for picture format levels
+        this.rightFilled = false;
         this.totalFilled = false;
         this.stopFlashing();
     }
@@ -381,30 +443,30 @@ class PlusOneGameController {
         
         const flashElements = () => {
             if (this.shouldUsePictureFormat()) {
-                // Picture format levels (1, 2, 5): flash based on which box needs filling (left → right → total)
+                // Picture format levels: flash based on which box needs filling (left → right → total)
                 if (!this.leftFilled) {
-                    this.leftSide.classList.add('area-flash');
+                    this.leftPulseArea.classList.add('area-flash');
                     this.leftInputBox.classList.add('box-flash');
                 } else if (!this.rightFilled) {
-                    this.rightSide.classList.add('area-flash');
+                    this.rightPulseArea.classList.add('area-flash');
                     this.rightInputBox.classList.add('box-flash');
                 } else if (!this.totalFilled) {
-                    this.leftSide.classList.add('area-flash');
-                    this.rightSide.classList.add('area-flash');
+                    this.leftPulseArea.classList.add('area-flash');
+                    this.rightPulseArea.classList.add('area-flash');
                     this.totalInputBox.classList.add('box-flash');
                 }
             } else {
-                // Number format levels (3, 4, 6-10): only flash for total answer (left and right are pre-filled)
+                // Number format levels: only flash for total answer (left and right are pre-filled)
                 if (!this.totalFilled) {
-                    this.leftSide.classList.add('area-flash');
-                    this.rightSide.classList.add('area-flash');
+                    this.leftPulseArea.classList.add('area-flash');
+                    this.rightPulseArea.classList.add('area-flash');
                     this.totalInputBox.classList.add('box-flash');
                 }
             }
             
             setTimeout(() => {
-                this.leftSide.classList.remove('area-flash');
-                this.rightSide.classList.remove('area-flash');
+                this.leftPulseArea.classList.remove('area-flash');
+                this.rightPulseArea.classList.remove('area-flash');
                 this.leftInputBox.classList.remove('box-flash');
                 this.rightInputBox.classList.remove('box-flash');
                 this.totalInputBox.classList.remove('box-flash');
@@ -428,34 +490,42 @@ class PlusOneGameController {
             this.flashingTimeout = null;
         }
         
-        this.leftSide.classList.remove('area-flash');
-        this.rightSide.classList.remove('area-flash');
+        this.leftPulseArea.classList.remove('area-flash');
+        this.rightPulseArea.classList.remove('area-flash');
         this.leftInputBox.classList.remove('box-flash');
         this.rightInputBox.classList.remove('box-flash');
         this.totalInputBox.classList.remove('box-flash');
     }
 
     startNewQuestion() {
-        if (this.gameComplete) {
+        if (this.gameComplete || !this.initializationComplete) {
             return;
         }
 
         this.resetBoxState();
         this.hintGiven = false;
 
-        // Generate n+1 question for current level FIRST
+        // Re-enable buttons FIRST before generating question
+        this.buttonsDisabled = false;
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(true);
+        }
+
+        // Generate n+1 question for current level
         this.generatePlusOneQuestion();
-        
-        // THEN hide/setup input boxes with correct current numbers
-        this.hideAllInputBoxes();
         
         console.log(`Question: ${this.currentNumber} + 1 = ${this.currentAnswer}, Level: ${this.currentLevel}`);
         
-        // Render the content (icons for picture format, numbers for number format)
-        this.iconRenderer.renderContent(this.currentNumber, this.currentLevel);
+        // Update buttons for number format levels
+        if (this.shouldUseNumberFormat()) {
+            this.updateButtonsForNumberFormat(this.currentAnswer);
+        }
         
-        // Create appropriate buttons
-        this.createButtons();
+        // Setup input boxes with correct current numbers
+        this.setupInputBoxesForQuestion();
+        
+        // Render the content (icons for picture format, numbers for number format)
+        this.contentRenderer.renderContent(this.currentNumber, this.currentLevel);
         
         // Reset button states and show input boxes
         this.resetButtonStates();
@@ -468,9 +538,6 @@ class PlusOneGameController {
     }
 
     generatePlusOneQuestion() {
-        console.log(`BEFORE generatePlusOneQuestion: this.currentNumber = ${this.currentNumber}`);
-        
-        // Use updated level structure - Level 10 is now just ##0 format, no composite
         const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
         const availableNumbers = levelNumbers.filter(num => !this.usedNumbersInLevel.has(num));
         
@@ -483,174 +550,9 @@ class PlusOneGameController {
         
         this.usedNumbersInLevel.add(this.currentNumber);  
         this.currentAnswer = this.currentNumber + 1;
-        
-        console.log(`AFTER generatePlusOneQuestion: this.currentNumber = ${this.currentNumber}, this.currentAnswer = ${this.currentAnswer}`);
     }
 
-    createButtons() {
-        this.numberButtons.innerHTML = '';
-        
-        if (this.shouldUsePictureFormat()) {
-            // Picture format levels (1, 2, 5): Use 1-10 buttons like add game
-            this.numberButtons.classList.remove('multiple-choice');
-            
-            for (let i = 1; i <= 10; i++) {
-                const button = document.createElement('button');
-                button.className = 'number-btn';
-                button.dataset.number = i;
-                button.textContent = i;
-                
-                // Click handler
-                button.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (this.buttonsDisabled) return;
-                    this.clearInactivityTimer();
-                    this.startInactivityTimer();
-                    const selectedNumber = parseInt(e.target.dataset.number);
-                    this.handleNumberClick(selectedNumber, e.target);
-                });
-                
-                // Touch handlers
-                button.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (this.buttonsDisabled) return;
-                    this.clearInactivityTimer();
-                    this.startInactivityTimer();
-                    const selectedNumber = parseInt(e.target.dataset.number);
-                    this.handleNumberClick(selectedNumber, e.target);
-                });
-                
-                // Prevent context menu and long press behaviors
-                button.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                });
-                
-                button.addEventListener('touchstart', (e) => {
-                    e.stopPropagation();
-                    // Don't prevent default on touchstart to allow touch events to work
-                });
-                
-                this.numberButtons.appendChild(button);
-            }
-        } else {
-            // Number format levels (3, 4, 6-10): Use 4 multiple choice options
-            this.numberButtons.classList.add('multiple-choice');
-            this.createMultipleChoiceButtons();
-        }
-    }
-
-    createMultipleChoiceButtons() {
-        // Generate 4 options: correct answer, n-1, random from level set, and n+2/n+3/n+5/n+10
-        const options = new Set();
-        
-        // Add correct answer (n+1)
-        options.add(this.currentAnswer);
-        
-        // Add n-1 (one less than original number)
-        const nMinus1 = Math.max(1, this.currentNumber - 1);
-        options.add(nMinus1);
-        
-        // Add random number from current level set
-        const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
-        let randomFromLevel;
-        let attempts = 0;
-        do {
-            randomFromLevel = levelNumbers[Math.floor(Math.random() * levelNumbers.length)] + 1;
-            attempts++;
-        } while (options.has(randomFromLevel) && attempts < 50);
-        options.add(randomFromLevel);
-        
-        // Add one of: n+2, n+3, n+5, n+10
-        const bonusOptions = [this.currentNumber + 2, this.currentNumber + 3, this.currentNumber + 5, this.currentNumber + 10];
-        let bonusChoice;
-        attempts = 0;
-        do {
-            bonusChoice = bonusOptions[Math.floor(Math.random() * bonusOptions.length)];
-            attempts++;
-        } while (options.has(bonusChoice) && attempts < 20);
-        options.add(bonusChoice);
-        
-        // Convert to array and shuffle
-        this.currentOptions = Array.from(options).slice(0, 4);
-        this.shuffleArray(this.currentOptions);
-        
-        // Create buttons
-        this.currentOptions.forEach((option, index) => {
-            const button = document.createElement('button');
-            button.className = 'number-btn';
-            button.dataset.number = option;
-            button.textContent = option;
-            
-            // Click handler
-            button.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (this.buttonsDisabled) return;
-                this.clearInactivityTimer();
-                this.startInactivityTimer();
-                const selectedNumber = parseInt(e.target.dataset.number);
-                this.handleNumberClick(selectedNumber, e.target);
-            });
-            
-            // FIXED: Add touchend handler (this was missing!)
-            button.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (this.buttonsDisabled) return;
-                this.clearInactivityTimer();
-                this.startInactivityTimer();
-                const selectedNumber = parseInt(e.target.dataset.number);
-                this.handleNumberClick(selectedNumber, e.target);
-            });
-            
-            // Prevent context menu and allow touch events
-            button.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-            });
-            
-            button.addEventListener('touchstart', (e) => {
-                e.stopPropagation();
-                // Don't prevent default on touchstart to allow touch events to work
-            });
-            
-            this.numberButtons.appendChild(button);
-        });
-    }
-
-    shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-    }
-
-    giveStartingInstruction() {
-        if (!this.audioEnabled || !this.isTabVisible) return;
-        
-        console.log(`Giving starting instruction for level ${this.currentLevel}, shouldUsePictureFormat: ${this.shouldUsePictureFormat()}`);
-        
-        setTimeout(() => {
-            if (this.shouldUsePictureFormat()) {
-                // Picture format levels (1, 2, 5): Basic instructions for icon levels  
-                console.log(`Level ${this.currentLevel}: Using picture format audio`);
-                if (this.questionsCompleted === 0) {
-                    this.speakText('Complete the plus one sum');
-                } else if (this.questionsCompleted === 1) {
-                    this.speakText('Try again and complete the sum');
-                } else {
-                    this.speakText('Complete the sum');
-                }
-            } else {
-                // Number format levels (3, 4, 6, 7, 8, 9, 10): Ask the plus one question immediately
-                console.log(`Level ${this.currentLevel}: Using number format audio`);
-                this.speakText(`What number is one more than ${this.currentNumber}?`);
-            }
-        }, 500);
-    }
-
-    hideAllInputBoxes() {
+    setupInputBoxesForQuestion() {
         this.checkMark.classList.remove('visible');
         
         // Clear all boxes first
@@ -658,22 +560,18 @@ class PlusOneGameController {
         this.rightInputBox.textContent = '';
         this.totalInputBox.textContent = '';
         
-        // Remove all classes including fixed-one
-        this.leftInputBox.classList.remove('flashing', 'filled');
+        // Remove all classes
+        this.leftInputBox.classList.remove('flashing', 'filled', 'fixed-one');
         this.rightInputBox.classList.remove('flashing', 'filled', 'fixed-one');
         this.totalInputBox.classList.remove('flashing', 'filled');
         
-        console.log(`Setting up input boxes for level ${this.currentLevel}, shouldUsePictureFormat: ${this.shouldUsePictureFormat()}`);
-        
         if (this.shouldUsePictureFormat()) {
-            // Picture format levels (1, 2, 5): All boxes start empty and need to be filled by user
-            console.log(`Level ${this.currentLevel}: Setting all boxes empty (picture format)`);
+            // Picture format levels: All boxes start empty and need to be filled by user
             this.leftFilled = false;
             this.rightFilled = false;
             this.totalFilled = false;
         } else {
-            // Number format levels (3, 4, 6, 7, 8, 9, 10): Pre-fill left and right boxes
-            console.log(`Level ${this.currentLevel}: Pre-filling boxes with ${this.currentNumber} + 1 (number format)`);
+            // Number format levels: Pre-fill left and right boxes
             this.leftInputBox.textContent = this.currentNumber;
             this.leftInputBox.classList.add('filled');
             this.leftFilled = true;
@@ -684,6 +582,63 @@ class PlusOneGameController {
             
             this.totalFilled = false;
         }
+        
+        // Update sum row width based on number of digits
+        this.updateSumRowWidth();
+    }
+
+    updateSumRowWidth() {
+        if (!this.sumRow) return;
+        
+        // Calculate max digits in any box
+        const leftDigits = this.currentNumber.toString().length;
+        const rightDigits = 1; // Always 1
+        const totalDigits = this.currentAnswer.toString().length;
+        const maxDigits = Math.max(leftDigits, rightDigits, totalDigits);
+        
+        // Set CSS custom properties for dynamic box sizing
+        const baseBoxSize = 'calc(var(--game-area-width) * 0.07)'; // 7% of game area width
+        let boxWidth;
+        
+        if (maxDigits === 1) {
+            boxWidth = baseBoxSize;
+        } else if (maxDigits === 2) {
+            boxWidth = `calc(${baseBoxSize} * 1.4)`; // 40% wider for 2 digits
+        } else {
+            boxWidth = `calc(${baseBoxSize} * 1.8)`; // 80% wider for 3+ digits
+        }
+        
+        // Update box widths
+        this.leftInputBox.style.width = boxWidth;
+        this.rightInputBox.style.width = baseBoxSize; // Right box always single digit
+        this.totalInputBox.style.width = boxWidth;
+        
+        // Update sum row width: (width of 3 boxes after adjustment) + 3.5 * box height
+        const boxHeight = baseBoxSize;
+        const totalBoxWidth = `calc(${boxWidth} + ${baseBoxSize} + ${boxWidth})`; // left + right + total
+        const sumRowWidth = `calc(${totalBoxWidth} + ${boxHeight} * 3.5)`; // boxes + spacing
+        
+        this.sumRow.style.width = sumRowWidth;
+    }
+
+    giveStartingInstruction() {
+        if (!window.AudioSystem || !this.isTabVisible || !this.initializationComplete) return;
+        
+        setTimeout(() => {
+            if (this.shouldUsePictureFormat()) {
+                // Picture format levels: Basic instructions for icon levels  
+                if (this.questionsCompleted === 0) {
+                    this.speakText(CONFIG.AUDIO.FIRST_QUESTION);
+                } else if (this.questionsCompleted === 1) {
+                    this.speakText(CONFIG.AUDIO.SECOND_QUESTION);
+                } else {
+                    this.speakText(CONFIG.AUDIO.LATER_QUESTIONS);
+                }
+            } else {
+                // Number format levels: Ask the plus one question immediately
+                this.speakText(CONFIG.AUDIO.NUMBER_FORMAT_QUESTION(this.currentNumber));
+            }
+        }, 500);
     }
 
     showInputBoxes() {
@@ -718,27 +673,27 @@ class PlusOneGameController {
         if (correctAnswer) {
             this.checkQuestionCompletion();
         } else {
-            this.handleIncorrectAnswer(buttonElement);
+            this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
 
     fillBox(boxType, selectedNumber, buttonElement) {
+        // Find button element if not provided (for keyboard input)
+        if (!buttonElement && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
+        }
+        
         // Flash green on correct answer
-        if (buttonElement) {
-            buttonElement.classList.add('correct');
-            setTimeout(() => {
-                buttonElement.classList.remove('correct');
-            }, CONFIG.FLASH_DURATION || 800);
+        if (buttonElement && window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'correct');
         }
 
         // Play completion sound
-        if (this.audioEnabled) {
-            this.playCompletionSound();
-        }
+        this.playCompletionSound();
 
         // Create celebration stars around the button
-        if (buttonElement) {
-            this.createCelebrationStars(buttonElement);
+        if (buttonElement && window.ButtonBar) {
+            window.ButtonBar.createCelebrationStars(buttonElement);
         }
 
         // Fill the appropriate box
@@ -763,15 +718,31 @@ class PlusOneGameController {
                 break;
         }
 
-        this.updateFlashingBoxes();
+        // Check if this was the final box
+        const boxesFilledBefore = [this.leftFilled, this.rightFilled, this.totalFilled].filter(Boolean).length - 1;
+        const wasLastBox = boxesFilledBefore === 2;
+        
+        if (wasLastBox) {
+            // Final box - disable buttons to prevent duplicate input
+            this.buttonsDisabled = true;
+            if (window.ButtonBar) {
+                window.ButtonBar.setButtonsEnabled(false);
+            }
+        }
+
+        // Update flashing to show next priority box (only if not the final box)
+        if (!wasLastBox) {
+            this.updateFlashingBoxes();
+        }
     }
 
     updateFlashingBoxes() {
+        // Remove flashing from all boxes first
         this.leftInputBox.classList.remove('flashing');
         this.rightInputBox.classList.remove('flashing');
         this.totalInputBox.classList.remove('flashing');
         
-        // Flash the next box that needs to be filled (left → right → total)
+        // Add flashing to the first uncompleted box (left-to-right priority)
         if (!this.leftFilled) {
             this.leftInputBox.classList.add('flashing');
         } else if (!this.rightFilled) {
@@ -780,11 +751,12 @@ class PlusOneGameController {
             this.totalInputBox.classList.add('flashing');
         }
         
+        // Restart flashing for the new priority box
         this.startFlashing();
     }
 
     checkQuestionCompletion() {
-        // Question is complete when both left and total are filled
+        // Question is complete when both left and total are filled (right may be pre-filled)
         const questionComplete = this.leftFilled && this.totalFilled;
         
         if (questionComplete) {
@@ -801,13 +773,8 @@ class PlusOneGameController {
             console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}, new level: ${this.currentLevel}`);
             
             // Give appropriate audio feedback
-            if (this.audioEnabled && wasFirstAttempt) {
-                console.log(`=== CALLING giveCompletionFeedback ===`);
-                console.log(`audioEnabled: ${this.audioEnabled}, wasFirstAttempt: ${wasFirstAttempt}`);
+            if (wasFirstAttempt) {
                 this.giveCompletionFeedback();
-            } else {
-                console.log(`=== NOT calling giveCompletionFeedback ===`);
-                console.log(`audioEnabled: ${this.audioEnabled}, wasFirstAttempt: ${wasFirstAttempt}`);
             }
             
             this.questionsCompleted++;
@@ -820,7 +787,7 @@ class PlusOneGameController {
             }
 
             // Different delays for different levels due to audio feedback
-            const delay = this.shouldUsePictureFormat() ? 4000 : 2000; // Longer for picture format due to sum repetition
+            const delay = this.shouldUsePictureFormat() ? 4000 : 2000;
             setTimeout(() => {
                 this.fadeOutQuestion();
             }, delay);
@@ -828,28 +795,21 @@ class PlusOneGameController {
     }
 
     giveCompletionFeedback() {
-        console.log(`=== AUDIO FEEDBACK: Level ${this.currentLevel}, wasFirstAttempt check ===`);
-        console.log(`Current number: ${this.currentNumber}, Current answer: ${this.currentAnswer}`);
-        
         if (this.shouldUsePictureFormat()) {
-            // Picture format levels (1, 2, 5): Say encouraging word first, then repeat the sum
-            console.log(`Level ${this.currentLevel}: Will provide sum repetition audio`);
-            const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
+            // Picture format levels: Say encouraging word first, then repeat the sum
+            const encouragements = CONFIG.AUDIO.ENCOURAGEMENTS;
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             
-            console.log(`Speaking encouragement: ${randomEncouragement}`);
             this.speakText(randomEncouragement);
             
             // Then repeat the sum after a short delay for picture format levels
             setTimeout(() => {
-                const sumMessage = `One more than ${this.currentNumber} is ${this.currentAnswer}`;
-                console.log(`Speaking sum repetition: ${sumMessage}`);
+                const sumMessage = CONFIG.AUDIO.SUM_REPETITION(this.currentNumber, this.currentAnswer);
                 this.speakText(sumMessage);
             }, 1500);
         } else {
-            // Number format levels (3, 4, 6-10): Just encouragement
-            console.log(`Level ${this.currentLevel}: Only encouragement, no sum repetition`);
-            const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
+            // Number format levels: Just encouragement
+            const encouragements = CONFIG.AUDIO.ENCOURAGEMENTS;
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             this.speakText(randomEncouragement);
         }
@@ -865,7 +825,7 @@ class PlusOneGameController {
             if (this.currentLevel > this.highestLevelReached) {
                 this.highestLevelReached = this.currentLevel;
             }
-            this.failedAtCurrentLevel = false; // Reset failure tracking on success
+            this.failedAtCurrentLevel = false;
         } else {
             // Failure - implement redemption system
             if (this.failedAtCurrentLevel) {
@@ -874,93 +834,76 @@ class PlusOneGameController {
                     this.currentLevel--;
                     console.log(`Second failure at level, dropping to level ${this.currentLevel}`);
                 }
-                this.failedAtCurrentLevel = false; // Reset for new level
+                this.failedAtCurrentLevel = false;
             } else {
                 // This is the first failure - stay at same level for redemption
                 this.failedAtCurrentLevel = true;
                 console.log(`First failure at level ${this.currentLevel}, staying for redemption question`);
             }
         }
+        
+        // Update button configuration if level format changed
+        const oldFormat = this.shouldUsePictureFormat();
+        setTimeout(() => {
+            const newFormat = this.shouldUsePictureFormat();
+            if (oldFormat !== newFormat) {
+                console.log('Level format changed, updating buttons');
+                this.createButtons();
+            }
+        }, 100);
     }
 
-    handleIncorrectAnswer(buttonElement) {
-        this.clearInactivityTimer();
-        
-        if (this.audioEnabled) {
-            this.playFailureSound();
+    handleIncorrectAnswer(buttonElement, selectedNumber) {
+        // Find button element if not provided (for keyboard input)
+        if (!buttonElement && selectedNumber && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
         }
         
+        this.clearInactivityTimer();
+        this.playFailureSound();
+        
         // Give specific audio feedback
-        if (this.audioEnabled && this.isTabVisible) {
+        if (this.isTabVisible) {
             setTimeout(() => {
                 if (this.shouldUseNumberFormat()) {
-                    this.speakText(`What number comes after ${this.currentNumber}?`);
+                    this.speakText(CONFIG.AUDIO.NUMBER_HINTS.WHAT_COMES_AFTER(this.currentNumber));
                 } else {
-                    this.speakText('Try again');
+                    this.speakText(CONFIG.AUDIO.TRY_AGAIN);
                 }
             }, 800);
         }
         
         this.buttonsDisabled = true;
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(false);
+        }
+        
         this.stopFlashing();
         
-        if (buttonElement) {
-            buttonElement.classList.add('incorrect');
-            setTimeout(() => {
-                buttonElement.classList.remove('incorrect');
-            }, CONFIG.FLASH_DURATION || 800);
-
-            const crossOverlay = document.createElement('div');
-            crossOverlay.className = 'cross-overlay';
-            buttonElement.appendChild(crossOverlay);
-
-            buttonElement.dataset.attempted = 'true';
-            
-            // Fade out other buttons
-            const allButtons = this.numberButtons.querySelectorAll('.number-btn');
-            allButtons.forEach(btn => {
-                if (btn !== buttonElement) {
-                    btn.style.transition = 'opacity 700ms ease-in-out';
-                    btn.style.opacity = '0.1';
-                }
-            });
-
-            setTimeout(() => {
-                setTimeout(() => {
-                    allButtons.forEach(btn => {
-                        if (btn !== buttonElement) {
-                            btn.style.transition = 'opacity 700ms ease-in-out';
-                            btn.style.opacity = '1';
-                        }
-                    });
-                    
-                    if (crossOverlay && crossOverlay.parentNode) {
-                        crossOverlay.style.transition = 'opacity 700ms ease-out';
-                        crossOverlay.style.opacity = '0';
-                    }
-                    
-                    setTimeout(() => {
-                        if (crossOverlay && crossOverlay.parentNode) {
-                            crossOverlay.parentNode.removeChild(crossOverlay);
-                        }
-                        
-                        allButtons.forEach(btn => {
-                            btn.style.transition = '';
-                        });
-                    }, 700);
-                }, 700);
-                
-                setTimeout(() => {
-                    this.buttonsDisabled = false;
-                    this.startFlashing();
-                    this.startInactivityTimer();
-                }, 1400);
-            }, 700);
+        // Use ButtonBar's feedback system
+        if (window.ButtonBar) {
+            window.ButtonBar.showIncorrectFeedback(selectedNumber, buttonElement);
         }
+
+        // Mark that an attempt was made
+        if (buttonElement) {
+            buttonElement.dataset.attempted = 'true';
+        }
+        
+        // Re-enable buttons after feedback completes
+        setTimeout(() => {
+            this.buttonsDisabled = false;
+            if (window.ButtonBar) {
+                window.ButtonBar.setButtonsEnabled(true);
+            }
+            this.startFlashing();
+            this.startInactivityTimer();
+        }, 2100); // Match ButtonBar's feedback timing
     }
 
     fadeOutQuestion() {
-        const gameElements = [...this.iconRenderer.currentIcons];
+        // Add fade out class to content only
+        const gameElements = [...this.contentRenderer.currentContent];
         
         gameElements.forEach(element => {
             if (element) {
@@ -972,7 +915,7 @@ class PlusOneGameController {
             this.startNewQuestion();
             
             setTimeout(() => {
-                const newElements = [...this.iconRenderer.currentIcons];
+                const newElements = [...this.contentRenderer.currentContent];
                 
                 newElements.forEach(element => {
                     if (element) {
@@ -993,31 +936,29 @@ class PlusOneGameController {
     }
 
     hasAttemptedAnswer() {
-        const allButtons = this.numberButtons.querySelectorAll('.number-btn');
-        return Array.from(allButtons).some(btn => 
-            btn.dataset.attempted === 'true'
-        );
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            return window.ButtonBar.buttons.some(btn => 
+                btn.dataset.attempted === 'true'
+            );
+        }
+        return false;
     }
 
     resetButtonStates() {
         this.buttonsDisabled = false;
-        const allButtons = this.numberButtons.querySelectorAll('.number-btn');
-        allButtons.forEach(btn => {
-            btn.dataset.attempted = 'false';
-            btn.classList.remove('correct', 'incorrect');
-            btn.style.opacity = '1';
-            btn.style.transition = '';
-            
-            const crossOverlay = btn.querySelector('.cross-overlay');
-            if (crossOverlay) {
-                crossOverlay.remove();
-            }
-        });
-    }
-
-    setupInputBoxesForNewQuestion() {
-        // Method to ensure proper box setup - placeholder for future use
-        this.hideAllInputBoxes();
+        
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.setButtonsEnabled(true);
+            window.ButtonBar.buttons.forEach(btn => {
+                btn.dataset.attempted = 'false';
+                btn.classList.remove('correct', 'incorrect');
+                btn.style.opacity = '1';
+                btn.style.transition = '';
+                
+                // Remove any existing cross overlays
+                window.ButtonBar.removeCrossOverlay(btn);
+            });
+        }
     }
 
     completeGame() {
@@ -1029,91 +970,10 @@ class PlusOneGameController {
         
         this.bear.startCelebration();
         
-        if (this.audioEnabled && this.isTabVisible) {
+        if (this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Well done! You have completed all ten plus one sums! Try again or return to the home page.');
+                this.speakText(CONFIG.AUDIO.GAME_COMPLETE);
             }, 1000);
-        }
-    }
-
-    playCompletionSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
-            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
-            
-            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.5);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
-    playFailureSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
-            
-            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.3);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
-    createCelebrationStars(buttonElement) {
-        if (!buttonElement) return;
-        
-        const buttonRect = buttonElement.getBoundingClientRect();
-        const centerX = buttonRect.left + buttonRect.width / 2;
-        const centerY = buttonRect.top + buttonRect.height / 2;
-        
-        const starCount = 5;
-        const radius = 60;
-        
-        for (let i = 0; i < starCount; i++) {
-            const star = document.createElement('div');
-            star.innerHTML = '⭐';
-            star.className = 'completion-star';
-            star.style.fontSize = '20px';
-            
-            const angle = (i / starCount) * 2 * Math.PI;
-            const x = centerX + Math.cos(angle) * radius;
-            const y = centerY + Math.sin(angle) * radius;
-            
-            star.style.left = x + 'px';
-            star.style.top = y + 'px';
-            star.style.animationDelay = (i * 0.1) + 's';
-            
-            document.body.appendChild(star);
-            
-            setTimeout(() => {
-                if (star.parentNode) {
-                    star.parentNode.removeChild(star);
-                }
-            }, 1500 + (i * 100));
         }
     }
 
@@ -1121,26 +981,23 @@ class PlusOneGameController {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        if (this.audioContext) {
-            this.audioContext.close();
-        }
-        
-        if (this.muteContainer && this.muteContainer.parentNode) {
-            this.muteContainer.parentNode.removeChild(this.muteContainer);
+        if (window.AudioSystem) {
+            window.AudioSystem.stopAllAudio();
         }
         
         this.rainbow.reset();
         this.bear.reset();
-        this.iconRenderer.reset();
+        this.contentRenderer.reset();
+        
+        if (window.ButtonBar) {
+            window.ButtonBar.destroy();
+        }
     }
 }
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎮 DOM loaded, creating PlusOneGameController');
     window.plusOneGame = new PlusOneGameController();
 });
 
