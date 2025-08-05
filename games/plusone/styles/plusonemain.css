@@ -1,504 +1,221 @@
-/* Plus One Game Styles - Based on Add Game but adapted for n+1 format */
+/* Plus One Game - Responsive Styles with game area relative positioning */
 
-/* Import base styles from addmain.css patterns */
-.back-button:hover {
-    background: white;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+/* CSS Custom Properties for sum bar dimensions */
+:root {
+    --game-area-width: 100vw; /* Initial value, will be updated by JavaScript with actual game area width */
+    --sum-box-size: calc(var(--game-area-width) * 0.07); /* 7% of actual game area width */
+    --sum-bar-width-multiplier: 6.5; /* How many box widths for sum bar */
+    --plus-sign-size: calc(var(--game-area-width) * 0.07); /* 7% of actual game area width */
 }
 
-.back-button i {
-    margin-right: 8px;
-}
-
-* {
+/* Prevent scrolling - game always fits on screen */
+html, body {
+    overflow: hidden !important;
+    height: 100vh;
+    max-height: 100vh;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
 }
 
+/* Ensure game fits perfectly */
 body {
-    font-family: 'Arial', sans-serif;
-    height: 100vh;
     display: flex;
     flex-direction: column;
-    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-    /* FIXED: Prevent all scrolling - game should fit in viewport */
-    overflow: hidden;
-    position: relative;
-    /* FIXED: Prevent any height changes that could trigger scrollbars */
-    max-height: 100vh;
 }
 
-/* FIXED: Remove forced scrollbar */
-html {
-    overflow: hidden; /* Prevent any scrolling */
-    height: 100%;
-}
-
-/* Game area */
+/* Game area sections layout with initial fade state */
 .game-area {
-    flex: 1;
+    display: block;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
     position: relative;
-    background: white;
-    overflow: hidden;
-    width: 80%;
-    margin: 0 auto;
-    display: flex;
-    align-items: stretch;
-    /* FIXED: Prevent layout shifting and height changes */
-    min-height: 0;
-    max-height: calc(100vh - 140px); /* Reserve space for buttons */
+    /* Width, margins, and bottom spacing set by ButtonBar system */
+    /* DO NOT override these - they are calculated by the universal system */
 }
 
-/* Left side for icons/numbers */
+.game-area.loaded {
+    opacity: 1;
+}
+
+/* Left side - content placement area relative to game area */
 .left-side {
-    position: relative;
-    width: 45%;
-    height: 100%;
-    border-right: 2px dashed #ddd;
+    position: absolute;
+    left: 6%; /* 6% of game area width */
+    width: 34%; /* 40% - 6% = 34% width */
+    bottom: 30%; /* 30% of game area height from bottom */
+    height: 60%; /* 90% - 30% = 60% height */
+    /* Visual debugging - remove in production */
+    /* border: 1px dashed rgba(255, 0, 0, 0.3); */
     transition: background-color 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* FIXED: Prevent content shifting */
-    overflow: hidden;
+    z-index: 1;
 }
 
-/* Right side for "1" */
-.right-side {
-    position: relative;
-    width: 45%;
-    height: 100%;
-    border-left: 2px dashed #ddd;
-    transition: background-color 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* FIXED: Prevent content shifting */
-    overflow: hidden;
-}
-
-/* Middle section with plus sign */
+/* Middle section - central bar with plus sign */
 .middle-section {
-    position: relative;
-    width: 10%;
+    position: absolute;
+    left: 46%; /* Center section 46%-54% */
+    width: 8%; /* 8% width as specified */
+    top: 0;
     height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    /* FIXED: Prevent middle section from moving */
-    flex-shrink: 0;
+    z-index: 0; /* Below game area background and rainbow */
 }
 
 .plus-sign {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 80px;
-    height: 80px;
+    /* Red circle: 7% of game area width */
+    width: var(--plus-sign-size);
+    height: var(--plus-sign-size);
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    z-index: 10;
+    z-index: 10; /* Higher z-index as button furniture */
     position: relative;
-    /* FIXED: Prevent plus sign movement */
-    flex-shrink: 0;
 }
 
 .plus-sign i {
-    font-size: 3rem;
+    font-size: calc(var(--plus-sign-size) * 0.4);
     color: white;
     font-weight: bold;
 }
 
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    }
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 12px 35px rgba(220, 53, 69, 0.5);
-    }
+/* Right side - content placement area relative to game area */
+.right-side {
+    position: absolute;
+    left: 60%; /* 60% of game area width */
+    width: 34%; /* 94% - 60% = 34% width */
+    bottom: 30%; /* 30% of game area height from bottom */
+    height: 60%; /* 90% - 30% = 60% height */
+    /* Visual debugging - remove in production */
+    /* border: 1px dashed rgba(0, 255, 0, 0.3); */
+    transition: background-color 0.2s ease;
+    z-index: 1;
 }
 
-/* Area flashing styles - softer, longer duration, slower timing */
-.left-side.area-flash,
-.right-side.area-flash {
+/* Separate pulse areas for green flashing */
+.left-pulse-area {
+    position: absolute;
+    left: 0; /* Full left area from 0% */
+    width: 46%; /* Full left area to 46% */
+    top: 0; /* Full height */
+    height: 100%; /* Full height of game area */
+    pointer-events: none; /* Don't interfere with interactions */
+    transition: background-color 0.2s ease;
+    z-index: 2; /* Above game areas but below content */
+}
+
+.right-pulse-area {
+    position: absolute;
+    left: 54%; /* Full right area from 54% */
+    width: 46%; /* Full right area to 100% */
+    top: 0; /* Full height */
+    height: 100%; /* Full height of game area */
+    pointer-events: none; /* Don't interfere with interactions */
+    transition: background-color 0.2s ease;
+    z-index: 2; /* Above game areas but below content */
+}
+
+/* Area flashing styles - target the pulse areas */
+.left-pulse-area.area-flash,
+.right-pulse-area.area-flash {
     background-color: rgba(144, 238, 144, 0.2) !important;
     transition: background-color 1s ease-in-out;
 }
 
-/* Rainbow background */
-.rainbow-container {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    height: 50%;
-    z-index: 1;
-    pointer-events: none;
-}
-
-.rainbow-arc {
-    border-style: solid;
-    border-left: 0;
-    border-right: 0;
-    border-bottom: 0;
-    box-sizing: border-box;
-}
-
-/* Icons for levels 1-2 */
+/* Icons - positioned relative to game area */
 .game-icon {
     position: absolute;
-    z-index: 5;
-    font-size: 5rem;
+    z-index: 5; /* Above rainbow and game areas, below plus and sum */
     animation: fadeIn 0.5s ease-in;
     pointer-events: none;
-    /* FIXED: Prevent icon layout shifts */
-    transform-origin: center;
+    user-select: none;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    transition: filter 0.3s ease;
+    animation-fill-mode: both;
 }
 
-@keyframes fadeIn {
-    from { 
-        opacity: 0; 
-        transform: scale(0.5); 
-    }
-    to { 
-        opacity: 1; 
-        transform: scale(1); 
-    }
-}
-
-/* Large number display for levels 3+ (like balloon game) */
+/* Large number display for number format levels */
 .large-number-display {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    position: relative;
+    position: absolute;
     z-index: 5;
     animation: fadeIn 0.5s ease-in;
-    /* FIXED: Prevent number display shifts */
-    transform-origin: center;
+    pointer-events: none;
+    user-select: none;
+    animation-fill-mode: both;
 }
 
 .large-number {
-    font-size: 8rem;
     font-weight: bold;
     color: #dc3545;
     font-family: Arial, sans-serif;
     line-height: 1;
-    margin-bottom: 10px;
     text-shadow: 2px 2px 4px rgba(220, 53, 69, 0.3);
-    /* FIXED: Prevent number from causing layout shifts */
     white-space: nowrap;
 }
 
 .number-text {
-    font-size: 2rem;
     font-weight: bold;
     color: #dc3545;
     font-family: Arial, sans-serif;
     text-align: center;
     text-shadow: 1px 1px 2px rgba(220, 53, 69, 0.2);
-    /* FIXED: Prevent text from wrapping and shifting layout */
     white-space: nowrap;
 }
 
-/* Number buttons - Dynamic based on level */
-.number-buttons {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-    background: #f5f5f5;
-    gap: 10px;
-    flex-wrap: wrap;
-    min-height: 120px;
-    max-height: 120px; /* FIXED: Prevent height changes */
-    /* FIXED: Prevent button container from shifting or changing size */
-    flex-shrink: 0;
-    position: relative;
-    overflow: hidden; /* FIXED: Prevent any overflow that might cause scrollbars */
-}
-
-.number-btn {
-    width: 90px;
-    height: 90px;
-    border: none;
-    border-radius: 18px;
-    font-size: 3rem;
-    font-weight: bold;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    position: relative;
-    /* FIXED: Prevent button size changes from affecting layout */
-    flex-shrink: 0;
-    /* FIXED: Disable text selection and user interaction behaviors that cause shifts */
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
-    /* FIXED: Prevent button from changing dimensions */
-    min-width: 90px;
-    min-height: 90px;
-    /* FIXED: Ensure consistent sizing regardless of content */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Pseudo-element for larger touch target without affecting layout */
-.number-btn::before {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: -5px;
-    right: -5px;
-    bottom: -5px;
-    /* FIXED: Ensure pseudo-element doesn't interfere with layout */
-    pointer-events: none;
-}
-
-.number-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-}
-
-.number-btn:active {
-    transform: translateY(0);
-    transition: all 0.1s ease;
-}
-
-/* FIXED: Completely remove focus outlines and states */
-.number-btn:focus,
-.number-btn:active {
-    outline: none !important;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
-    border: none !important;
-}
-
-.number-btn.correct {
-    animation: flashGreen 0.8s ease;
-}
-
-.number-btn.incorrect {
-    animation: flashRed 0.8s ease;
-}
-
-@keyframes flashGreen {
-    0%, 100% { 
-        background-color: var(--btn-color); 
-        transform: scale(1);
-    }
-    50% { 
-        background-color: #4caf50; 
-        transform: scale(1.2);
-        box-shadow: 0 0 20px #4caf50;
-    }
-}
-
-@keyframes flashRed {
-    0%, 100% { 
-        background-color: var(--btn-color); 
-        transform: scale(1);
-    }
-    50% { 
-        background-color: #f44336; 
-        transform: scale(1.2);
-        box-shadow: 0 0 20px #f44336;
-    }
-}
-
-/* Button colors for levels 1-2 (1-10 buttons) */
-.number-btn:nth-child(1) { background-color: #ff6b6b; --btn-color: #ff6b6b; }
-.number-btn:nth-child(2) { background-color: #4ecdc4; --btn-color: #4ecdc4; }
-.number-btn:nth-child(3) { background-color: #45b7d1; --btn-color: #45b7d1; }
-.number-btn:nth-child(4) { background-color: #f9ca24; --btn-color: #f9ca24; }
-.number-btn:nth-child(5) { background-color: #f0932b; --btn-color: #f0932b; }
-.number-btn:nth-child(6) { background-color: #eb4d4b; --btn-color: #eb4d4b; }
-.number-btn:nth-child(7) { background-color: #6c5ce7; --btn-color: #6c5ce7; }
-.number-btn:nth-child(8) { background-color: #a29bfe; --btn-color: #a29bfe; }
-.number-btn:nth-child(9) { background-color: #fd79a8; --btn-color: #fd79a8; }
-.number-btn:nth-child(10) { background-color: #00b894; --btn-color: #00b894; }
-
-/* Button colors for levels 3+ (4 options) */
-.multiple-choice .number-btn:nth-child(1) { background-color: #ff6b6b; --btn-color: #ff6b6b; }
-.multiple-choice .number-btn:nth-child(2) { background-color: #4ecdc4; --btn-color: #4ecdc4; }
-.multiple-choice .number-btn:nth-child(3) { background-color: #45b7d1; --btn-color: #45b7d1; }
-.multiple-choice .number-btn:nth-child(4) { background-color: #f9ca24; --btn-color: #f9ca24; }
-
-/* Multiple choice buttons are larger for levels 3+ */
-.multiple-choice .number-btn {
-    width: 120px;
-    height: 90px;
-    font-size: 2.5rem;
-    margin: 5px;
-    /* FIXED: Ensure consistent sizing for multiple choice */
-    min-width: 120px;
-    min-height: 90px;
-}
-
-/* Game over modal - transparent overlay, solid modal content */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: transparent; /* Changed from dark overlay to transparent */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    pointer-events: none;
-}
-
-.modal:not(.hidden) {
-    pointer-events: auto;
-}
-
-.modal-content {
-    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-    padding: 40px;
-    border-radius: 20px;
-    text-align: center;
-    animation: modalAppear 0.5s ease;
-    pointer-events: auto;
-    z-index: 1001;
-}
-
-@keyframes modalAppear {
+@keyframes fadeIn {
     from { 
         opacity: 0; 
-        transform: scale(0.5); 
     }
     to { 
         opacity: 1; 
-        transform: scale(1); 
     }
 }
 
-.modal h2 {
-    color: white;
-    font-size: 3rem;
-    margin-bottom: 20px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+/* Content jiggle animation for hints */
+@keyframes contentJiggle {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+    20%, 40%, 60%, 80% { transform: translateX(3px); }
 }
 
-.play-again-btn {
-    background: #4caf50;
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    font-size: 1.5rem;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
-    position: relative;
-    z-index: 1002;
-    /* FIXED: Prevent button interaction issues */
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.play-again-btn:hover {
-    background: #45a049;
-    transform: translateY(-2px);
-}
-
-.play-again-btn:focus,
-.play-again-btn:active {
-    outline: none !important;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
-    border: none !important;
-}
-
-.hidden {
-    display: none;
-}
-
-/* Cross overlay for incorrect answers */
-.cross-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    pointer-events: none;
-    z-index: 10;
-}
-
-.cross-overlay::before,
-.cross-overlay::after {
-    content: '';
-    position: absolute;
-    background-color: #dc143c;
-    border-radius: 4px;
-    box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
-}
-
-.cross-overlay::before {
-    width: 60px;
-    height: 8px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.cross-overlay::after {
-    width: 60px;
-    height: 8px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-}
-
-.cross-overlay {
-    animation: crossAppear 0.3s ease-out;
-}
-
-@keyframes crossAppear {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.3);
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
-
-/* Sum row at bottom of game area */
+/* Sum row at bottom - width and height based on box parameter */
 .sum-row {
     position: absolute;
-    bottom: 20px;
+    bottom: 3%; /* 3% above button bar */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 20px;
-    z-index: 15;
-    height: 80px;
+    gap: 2%;
+    z-index: 15; /* Higher than everything else */
+    
+    /* Dynamic width calculation - will be overridden by JavaScript for multi-digit numbers */
+    width: calc(var(--sum-box-size) * var(--sum-bar-width-multiplier));
+    height: calc(var(--sum-box-size) + 2vh);
+    max-height: 90px;
+    min-height: 55px;
+    
     background: rgba(255, 255, 255, 0.95);
-    padding: 10px 20px;
+    padding: 1vh 2%;
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 2px solid #e0e0e0;
-    /* FIXED: Prevent sum row from moving */
-    flex-shrink: 0;
-    white-space: nowrap;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 1s ease-in-out, width 0.3s ease;
+}
+
+.sum-row.loaded {
+    opacity: 1;
 }
 
 /* Prevent sum row from fading */
@@ -511,44 +228,24 @@ html {
 
 .sum-plus-sign,
 .sum-equals-sign {
-    font-size: 2.5rem;
+    font-size: clamp(21px, 5.2vw, 42px);
     font-weight: bold;
     color: #333;
-    min-width: 40px;
+    min-width: clamp(26px, 3.9vw, 52px);
     text-align: center;
-    /* FIXED: Prevent operators from affecting layout */
     flex-shrink: 0;
 }
 
 .left-sum-box,
 .right-sum-box,
 .total-sum-box {
-    min-width: 70px;
-    width: auto;
-    height: 70px;
-    padding: 0 5px;
-    /* FIXED: Prevent boxes from shrinking and affecting layout */
+    width: var(--sum-box-size); /* DYNAMIC: Uses CSS parameter - will be overridden by JavaScript */
+    height: var(--sum-box-size); /* DYNAMIC: Square boxes using same parameter */
     flex-shrink: 0;
+    transition: width 0.3s ease; /* Smooth transition when boxes resize */
 }
 
-/* Wider boxes for 3+ digit numbers */
-.sum-box-wide {
-    min-width: 90px;
-}
-
-/* Wider sum row container for 3+ digit numbers */
-.sum-row.wide-numbers {
-    min-width: 400px;
-}
-
-/* Right box shows "1" and is pre-filled for levels 3+, but empty and fillable for levels 1-2 */
-.right-sum-box.fixed-one {
-    background: #e8f5e8;
-    border-color: #28a745;
-    animation: none;
-}
-
-/* Input boxes for step-by-step addition */
+/* Input boxes for Plus One game sum bar */
 .input-box {
     background: white;
     border: 4px solid #007bff;
@@ -556,12 +253,11 @@ html {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
+    font-size: clamp(18px, calc(var(--sum-box-size) * 0.52), 42px);
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
     transition: all 0.3s ease;
-    /* FIXED: Prevent input boxes from changing size */
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -576,7 +272,13 @@ html {
     animation: none;
 }
 
-/* Box flashing for hints */
+/* Special styling for fixed "1" in number format levels */
+.input-box.fixed-one {
+    background: #e8f5e8;
+    border-color: #28a745;
+    animation: none;
+}
+
 .input-box.box-flash {
     background: rgba(144, 238, 144, 0.3) !important;
     border-color: #28a745 !important;
@@ -595,14 +297,14 @@ html {
 }
 
 .check-mark {
-    font-size: 2.5rem;
+    font-size: clamp(21px, 5.2vw, 42px);
     color: #28a745;
     opacity: 0;
     transition: opacity 0.5s ease;
-    min-width: 50px;
+    min-width: clamp(26px, 5.2vw, 52px);
     text-align: center;
-    /* FIXED: Prevent check mark from affecting layout */
     flex-shrink: 0;
+    margin-left: 1.5%; /* Additional space before tick mark */
 }
 
 .check-mark.visible {
@@ -621,130 +323,24 @@ html {
 @keyframes fadeOut {
     from {
         opacity: 1;
-        transform: scale(1);
     }
     to {
         opacity: 0;
-        transform: scale(0.9);
     }
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* Star celebration animation */
-.completion-star {
-    animation: starSparkle 1.5s ease-out forwards;
-    transform-origin: center;
-    position: absolute;
-    font-size: 24px;
+/* Enhanced completion effects */
+.completion-effect {
     pointer-events: none;
-    z-index: 1000;
 }
 
-@keyframes starSparkle {
-    0% {
-        opacity: 0;
-        transform: scale(0) rotate(0deg);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.2) rotate(180deg);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(0.8) rotate(360deg);
-    }
+/* Responsive font sizing for 4-button layout in number format */
+.number-buttons .number-btn {
+    /* Font size based on button height rather than width for 4-button layout */
+    font-size: calc(var(--button-height, 8vw) * 0.6); /* 60% of button height */
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-    .game-area {
-        width: 95%;
-    }
-    
-    .number-btn {
-        width: 70px;
-        height: 70px;
-        font-size: 2rem;
-        min-width: 70px;
-        min-height: 70px;
-    }
-    
-    .multiple-choice .number-btn {
-        width: 100px;
-        height: 70px;
-        font-size: 2rem;
-        min-width: 100px;
-        min-height: 70px;
-    }
-    
-    .plus-sign {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .plus-sign i {
-        font-size: 2rem;
-    }
-    
-    .game-icon {
-        font-size: 4rem;
-    }
-    
-    .large-number {
-        font-size: 6rem;
-    }
-    
-    .number-text {
-        font-size: 1.5rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .number-btn {
-        width: 60px;
-        height: 60px;
-        font-size: 1.8rem;
-        gap: 5px;
-        min-width: 60px;
-        min-height: 60px;
-    }
-    
-    .multiple-choice .number-btn {
-        width: 80px;
-        height: 60px;
-        font-size: 1.8rem;
-        min-width: 80px;
-        min-height: 60px;
-    }
-    
-    .plus-sign {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .plus-sign i {
-        font-size: 1.5rem;
-    }
-    
-    .game-icon {
-        font-size: 3rem;
-    }
-    
-    .large-number {
-        font-size: 4rem;
-    }
-    
-    .number-text {
-        font-size: 1.2rem;
-    }
+/* Ensure number format buttons maintain proper aspect ratio */
+.number-buttons.multiple-choice .number-btn {
+    font-size: calc(var(--button-height, 8vw) * 0.6); /* Font based on height */
 }
