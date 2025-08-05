@@ -7,7 +7,6 @@ class PlusOneGameController {
         
         // Game progression
         this.currentLevel = 1;
-        this.highestLevelReached = 1;
         this.questionsCompleted = 0;
         this.gameComplete = false;
         
@@ -30,6 +29,7 @@ class PlusOneGameController {
         this.currentNumber = 0; // The 'n' in n+1
         this.currentAnswer = 0; // n+1
         this.buttonsDisabled = false;
+        this.hasAttemptedAnyAnswer = false; // Track if user has made any incorrect attempts on current question
         
         // Box state tracking - all boxes start empty for levels 1-2 and 5
         this.leftFilled = false;
@@ -155,16 +155,37 @@ class PlusOneGameController {
     }
 
     showGameElements() {
-        // Fade in game area and sum row (ButtonBar handles its own timing)
-        if (this.gameArea) {
+        // Only fade in game area and sum row AFTER dimensions are ready
+        // The dimensions-ready class should already be set by the renderer
+        if (this.gameArea && this.gameArea.classList.contains('dimensions-ready')) {
             this.gameArea.classList.add('loaded');
+        } else {
+            // Wait for dimensions to be ready
+            const checkDimensions = () => {
+                if (this.gameArea && this.gameArea.classList.contains('dimensions-ready')) {
+                    this.gameArea.classList.add('loaded');
+                } else {
+                    setTimeout(checkDimensions, 100);
+                }
+            };
+            setTimeout(checkDimensions, 100);
         }
         
-        if (this.sumRow) {
+        if (this.sumRow && this.sumRow.classList.contains('dimensions-ready')) {
             this.sumRow.classList.add('loaded');
+        } else {
+            // Wait for dimensions to be ready
+            const checkSumRowDimensions = () => {
+                if (this.sumRow && this.sumRow.classList.contains('dimensions-ready')) {
+                    this.sumRow.classList.add('loaded');
+                } else {
+                    setTimeout(checkSumRowDimensions, 100);
+                }
+            };
+            setTimeout(checkSumRowDimensions, 100);
         }
         
-        console.log('🎮 Game elements faded in (ButtonBar handles its own timing)');
+        console.log('🎮 Game elements faded in (after dimensions ready)');
     }
 
     createButtons() {
@@ -435,7 +456,10 @@ class PlusOneGameController {
         const oldLevel = this.currentLevel;
         const oldFormat = this.shouldUsePictureFormat();
         
-        this.currentLevel = this.highestLevelReached;
+        // Start at current level, but cap at level 5 maximum for restarts
+        this.currentLevel = Math.min(this.currentLevel, 5);
+        console.log(`New game: Starting at level ${this.currentLevel} (was ${oldLevel}, capped at 5)`);
+        
         this.questionsCompleted = 0;
         this.gameComplete = false;
         this.usedNumbersInLevel.clear();
@@ -555,6 +579,7 @@ class PlusOneGameController {
 
         this.resetBoxState();
         this.hintGiven = false;
+        this.hasAttemptedAnyAnswer = false; // Reset attempt tracking for new question
 
         // Re-enable buttons FIRST before generating question
         this.buttonsDisabled = false;
@@ -641,35 +666,49 @@ class PlusOneGameController {
     updateSumRowWidth() {
         if (!this.sumRow) return;
         
-        // Calculate max digits in any box
+        // Calculate max digits in any box for CURRENT question
         const leftDigits = this.currentNumber.toString().length;
         const rightDigits = 1; // Always 1
         const totalDigits = this.currentAnswer.toString().length;
         const maxDigits = Math.max(leftDigits, rightDigits, totalDigits);
         
+        console.log(`Sum row sizing: ${this.currentNumber} + 1 = ${this.currentAnswer} (${leftDigits}, ${rightDigits}, ${totalDigits} digits, max: ${maxDigits})`);
+        
         // Set CSS custom properties for dynamic box sizing
         const baseBoxSize = 'calc(var(--game-area-width) * 0.07)'; // 7% of game area width
-        let boxWidth;
+        let leftBoxWidth, totalBoxWidth;
         
-        if (maxDigits === 1) {
-            boxWidth = baseBoxSize;
-        } else if (maxDigits === 2) {
-            boxWidth = `calc(${baseBoxSize} * 1.4)`; // 40% wider for 2 digits
+        // Size left box based on its digit count
+        if (leftDigits === 1) {
+            leftBoxWidth = baseBoxSize;
+        } else if (leftDigits === 2) {
+            leftBoxWidth = `calc(${baseBoxSize} * 1.4)`; // 40% wider for 2 digits
         } else {
-            boxWidth = `calc(${baseBoxSize} * 1.8)`; // 80% wider for 3+ digits
+            leftBoxWidth = `calc(${baseBoxSize} * 1.8)`; // 80% wider for 3+ digits
+        }
+        
+        // Size total box based on its digit count
+        if (totalDigits === 1) {
+            totalBoxWidth = baseBoxSize;
+        } else if (totalDigits === 2) {
+            totalBoxWidth = `calc(${baseBoxSize} * 1.4)`; // 40% wider for 2 digits
+        } else {
+            totalBoxWidth = `calc(${baseBoxSize} * 1.8)`; // 80% wider for 3+ digits
         }
         
         // Update box widths
-        this.leftInputBox.style.width = boxWidth;
+        this.leftInputBox.style.width = leftBoxWidth;
         this.rightInputBox.style.width = baseBoxSize; // Right box always single digit
-        this.totalInputBox.style.width = boxWidth;
+        this.totalInputBox.style.width = totalBoxWidth;
         
         // Update sum row width: (width of 3 boxes after adjustment) + 3.5 * box height
         const boxHeight = baseBoxSize;
-        const totalBoxWidth = `calc(${boxWidth} + ${baseBoxSize} + ${boxWidth})`; // left + right + total
+        const totalBoxWidth = `calc(${leftBoxWidth} + ${baseBoxSize} + ${totalBoxWidth})`; // left + right + total
         const sumRowWidth = `calc(${totalBoxWidth} + ${boxHeight} * 3.5)`; // boxes + spacing
         
         this.sumRow.style.width = sumRowWidth;
+        
+        console.log(`Sum row updated: left=${leftBoxWidth}, right=${baseBoxSize}, total=${totalBoxWidth}, row=${sumRowWidth}`);
     }
 
     giveStartingInstruction() {
@@ -816,16 +855,17 @@ class PlusOneGameController {
             
             this.checkMark.classList.add('visible');
             
-            const wasFirstAttempt = !this.hasAttemptedAnswer();
+            // Check if this was first attempt (no incorrect answers on this question)
+            const wasFirstAttempt = !this.hasAttemptedAnyAnswer;
             
             this.handleLevelProgression(wasFirstAttempt);
             
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}, wasFirstAttempt: ${wasFirstAttempt}, new level: ${this.currentLevel}`);
             
-            // Give appropriate audio feedback
-            if (wasFirstAttempt) {
-                this.giveCompletionFeedback();
+            // Give appropriate audio feedback - ALWAYS for picture format, only first attempt for number format
+            if (this.shouldUsePictureFormat() || wasFirstAttempt) {
+                this.giveCompletionFeedback(wasFirstAttempt);
             }
             
             this.questionsCompleted++;
@@ -845,15 +885,15 @@ class PlusOneGameController {
         }
     }
 
-    giveCompletionFeedback() {
+    giveCompletionFeedback(wasFirstAttempt = true) {
         if (this.shouldUsePictureFormat()) {
-            // Picture format levels: Say encouraging word first, then repeat the sum
+            // Picture format levels: Say encouraging word first, then ALWAYS repeat the sum
             const encouragements = CONFIG.AUDIO.ENCOURAGEMENTS;
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             
             this.speakText(randomEncouragement);
             
-            // Then repeat the sum after a short delay for picture format levels
+            // ALWAYS repeat the sum for picture format levels (educational value)
             setTimeout(() => {
                 const sumMessage = CONFIG.AUDIO.SUM_REPETITION(this.currentNumber, this.currentAnswer);
                 this.speakText(sumMessage);
@@ -871,13 +911,10 @@ class PlusOneGameController {
         const oldFormat = this.shouldUsePictureFormat();
         
         if (wasFirstAttempt) {
-            // Success - advance to next level and reset failure tracking
+            // Success - advance to next level
             if (this.currentLevel < 10) {
                 this.currentLevel++;
                 console.log(`Advanced to level ${this.currentLevel}`);
-            }
-            if (this.currentLevel > this.highestLevelReached) {
-                this.highestLevelReached = this.currentLevel;
             }
             this.failedAtCurrentLevel = false;
         } else {
@@ -912,6 +949,9 @@ class PlusOneGameController {
             buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
         }
         
+        // Mark that user has attempted an answer on this question
+        this.hasAttemptedAnyAnswer = true;
+        
         this.clearInactivityTimer();
         this.playFailureSound();
         
@@ -938,7 +978,7 @@ class PlusOneGameController {
             window.ButtonBar.showIncorrectFeedback(selectedNumber, buttonElement);
         }
 
-        // Mark that an attempt was made
+        // Mark that an attempt was made on the button (for visual feedback)
         if (buttonElement) {
             buttonElement.dataset.attempted = 'true';
         }
