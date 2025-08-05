@@ -219,7 +219,7 @@ class PlusOneGameController {
                 this.sumRow.style.visibility = 'visible';
                 this.sumRow.style.opacity = '1';
             }
-        }, 3000); // 3 second failsafe
+        }, 5000); // Increased from 3000ms to 5000ms to give more time for proper coordination
         
         console.log('🎮 Game elements show sequence initiated');
     }
