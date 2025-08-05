@@ -703,8 +703,8 @@ class PlusOneGameController {
         
         // Update sum row width: (width of 3 boxes after adjustment) + 3.5 * box height
         const boxHeight = baseBoxSize;
-        const totalBoxWidth = `calc(${leftBoxWidth} + ${baseBoxSize} + ${totalBoxWidth})`; // left + right + total
-        const sumRowWidth = `calc(${totalBoxWidth} + ${boxHeight} * 3.5)`; // boxes + spacing
+        const combinedBoxWidth = `calc(${leftBoxWidth} + ${baseBoxSize} + ${totalBoxWidth})`; // left + right + total
+        const sumRowWidth = `calc(${combinedBoxWidth} + ${boxHeight} * 3.5)`; // boxes + spacing
         
         this.sumRow.style.width = sumRowWidth;
         
