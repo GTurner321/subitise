@@ -211,7 +211,8 @@ const CONFIG = {
     
     // Inactivity settings
     INACTIVITY_DURATION: 20000, // 20 seconds
-    KEYBOARD_WAIT_DURATION: 4000, // 4 seconds for multi-digit input
+    KEYBOARD_WAIT_DURATION: 3000, // 3 seconds for multi-digit input (reduced from 4)
+    MULTI_DIGIT_TIMEOUT: 3000, // 3 seconds maximum between digits for multi-digit numbers
     
     // Level progression settings
     REDEMPTION_SYSTEM: true, // Use redemption system for failures
