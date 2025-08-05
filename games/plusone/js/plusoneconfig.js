@@ -230,7 +230,15 @@ const CONFIG = {
             height: 8, // 8% of button panel width (same height, font based on height)
             // numbers generated dynamically based on correct answer
         }
-    }
+    },
+    
+    // System coordination timeouts - REDUCED for faster loading
+    SYSTEM_CHECK_INTERVAL: 50,        // Check every 50ms instead of 100ms
+    BUTTON_SETUP_DELAY: 100,          // Reduced from 300ms
+    COORDINATION_DELAY: 200,          // Reduced from 1000ms
+    DIMENSION_RETRY_DELAY: 50,        // Reduced from 100-200ms
+    FAILSAFE_TIMEOUT: 2000,           // Reduced from 5000ms to 2000ms
+    MAX_READY_CHECKS: 40              // 40 * 50ms = 2000ms max wait
 };
 
 // Generate number to word conversions for larger numbers
