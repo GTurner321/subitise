@@ -38,15 +38,22 @@ class PlusOneContentRenderer {
             }
         };
         
-        this.setupButtonBarCoordination();
+        // DON'T setup ButtonBar coordination in constructor
+        // Let the game controller call setupButtonBarCoordination() explicitly
+        // This ensures proper timing
+        console.log('🔍 PlusOneContentRenderer ready for coordination setup');
+        
         this.setupResizeHandling();
     }
 
     setupButtonBarCoordination() {
+        console.log('🔗 Setting up ButtonBar coordination for content renderer');
+        
         // Register with ButtonBar to be notified of dimension changes
         if (window.ButtonBar) {
+            console.log('✅ ButtonBar found, registering observer');
             window.ButtonBar.addObserver((dimensionData) => {
-                console.log('🎯 ButtonBar dimensions updated:', dimensionData);
+                console.log('🎯 ButtonBar dimensions updated for renderer:', dimensionData);
                 this.buttonBarReady = true;
                 
                 // Wait for game area to stabilize after ButtonBar sets its margins
@@ -68,16 +75,18 @@ class PlusOneContentRenderer {
             
             // Check if ButtonBar is already ready (in case we missed the initial notification)
             if (window.ButtonBar.dimensions && window.ButtonBar.dimensions.buttonPanelWidth > 0) {
-                console.log('🎯 ButtonBar already ready, setting flag');
+                console.log('🎯 ButtonBar already has dimensions, setting flag immediately');
                 this.buttonBarReady = true;
                 setTimeout(() => {
                     this.updateGameAreaDimensions();
                 }, 100);
             }
         } else {
+            console.warn('⚠️ ButtonBar not available when setting up coordination');
             // ButtonBar not ready yet, wait for it
             const checkButtonBar = () => {
                 if (window.ButtonBar) {
+                    console.log('🔄 ButtonBar now available, retrying coordination setup');
                     this.setupButtonBarCoordination();
                 } else {
                     setTimeout(checkButtonBar, 100);
