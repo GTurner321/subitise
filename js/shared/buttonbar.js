@@ -556,7 +556,7 @@ class ButtonBar {
         
         // Calculate cross size as 60% of button width
         const buttonWidth = parseFloat(buttonElement.style.width) || this.dimensions.buttonWidth;
-        const crossSize = buttonWidth * 0.6;
+        const crossSize = buttonHeight * 0.6;
         const crossThickness = crossSize * 0.133; // Maintain proportions (8px / 60px = 0.133)
         
         const crossOverlay = document.createElement('div');
