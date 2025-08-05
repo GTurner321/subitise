@@ -37,6 +37,20 @@ body {
     opacity: 1;
 }
 
+/* CRITICAL: Hide game area until CSS custom properties are set */
+.game-area:not(.dimensions-ready) {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+.game-area.dimensions-ready {
+    visibility: visible;
+}
+
+.game-area.dimensions-ready.loaded {
+    opacity: 1;
+}
+
 /* Left side - content placement area relative to game area */
 .left-side {
     position: absolute;
@@ -219,6 +233,20 @@ body {
 }
 
 .sum-row.loaded {
+    opacity: 1;
+}
+
+/* CRITICAL: Hide sum row until CSS custom properties are set */
+.sum-row:not(.dimensions-ready) {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+.sum-row.dimensions-ready {
+    visibility: visible;
+}
+
+.sum-row.dimensions-ready.loaded {
     opacity: 1;
 }
 
