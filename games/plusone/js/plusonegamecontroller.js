@@ -104,14 +104,21 @@ class PlusOneGameController {
             this.buttonBarReady = true;
             this.gameAreaReady = true;
             
-            // Create buttons first - this will trigger game area margin/sizing changes
+            // IMPORTANT: Initialize the content renderer's ButtonBar coordination FIRST
+            // This ensures it's ready to receive ButtonBar notifications
+            if (this.contentRenderer && typeof this.contentRenderer.setupButtonBarCoordination === 'function') {
+                console.log('🔗 Setting up content renderer ButtonBar coordination');
+                this.contentRenderer.setupButtonBarCoordination();
+            }
+            
+            // Create buttons - this will trigger ButtonBar notifications that renderer can now receive
             this.createButtons();
             
-            // Wait for ButtonBar to fully coordinate with game area
+            // Wait for ButtonBar to fully coordinate with game area AND renderer
             setTimeout(() => {
                 console.log('🎮 ButtonBar coordination complete, initializing game');
                 this.initializeGame();
-            }, 800);
+            }, 1000); // Increased delay to ensure complete coordination
         } else {
             console.log(`⏳ Waiting for systems... ButtonBar: ${buttonBarReady}, GameArea: ${gameAreaReady}`);
             setTimeout(() => {
