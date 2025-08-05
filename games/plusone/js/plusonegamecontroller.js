@@ -176,7 +176,7 @@ class PlusOneGameController {
                 this.sumRow.classList.add('sum-bar-ready');
                 console.log('🎯 Sum bar marked as ready for normal opacity control');
             }
-        }, 2500); // 1.5s delay + 1s animation = 2.5s total
+        }, 2000); // 1s delay + 1s animation = 2s total
         
         // Wait for elements to be hidden, then start fade-in
         setTimeout(() => {
