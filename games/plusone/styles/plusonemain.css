@@ -31,6 +31,19 @@ body {
     position: relative;
     /* Width, margins, and bottom spacing set by ButtonBar system */
     /* DO NOT override these - they are calculated by the universal system */
+    
+    /* Disable touch interactions for counting prevention */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    
+    /* Disable context menu (right-click menu) */
+    -webkit-context-menu: none;
+    -moz-context-menu: none;
+    context-menu: none;
 }
 
 .game-area.loaded {
@@ -63,6 +76,12 @@ body {
     /* border: 1px dashed rgba(255, 0, 0, 0.3); */
     transition: background-color 0.2s ease;
     z-index: 1;
+    
+    /* Disable touch interactions to prevent counting interference */
+    pointer-events: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* Middle section - central bar with plus sign */
@@ -114,6 +133,12 @@ body {
     /* border: 1px dashed rgba(0, 255, 0, 0.3); */
     transition: background-color 0.2s ease;
     z-index: 1;
+    
+    /* Disable touch interactions to prevent counting interference */
+    pointer-events: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* Separate pulse areas for green flashing */
@@ -151,11 +176,15 @@ body {
     position: absolute;
     z-index: 5; /* Above rainbow and game areas, below plus and sum */
     animation: fadeIn 0.5s ease-in;
-    pointer-events: none;
+    pointer-events: none; /* Already disabled - good for preventing touch counting */
     user-select: none;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     transition: filter 0.3s ease;
     animation-fill-mode: both;
+    
+    /* Extra protection against touch interactions */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
 }
 
 /* Large number display for number format levels */
