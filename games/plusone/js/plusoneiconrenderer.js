@@ -169,11 +169,7 @@ class PlusOneContentRenderer {
             this.gameArea.classList.add('dimensions-ready');
         }
         
-        // Also mark sum row as dimensions-ready
-        const sumRow = document.getElementById('sumRow');
-        if (sumRow) {
-            sumRow.classList.add('dimensions-ready');
-        }
+        // Don't touch sum row - it handles its own timing via CSS animation
         
         console.log('📏 Game area dimensions updated and marked ready:', this.gameAreaDimensions);
     }
