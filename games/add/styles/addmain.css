@@ -175,8 +175,8 @@ body {
     
     width: calc(var(--sum-box-size) * var(--sum-bar-width-multiplier)); /* DYNAMIC: 7vw * 7 = 49vw */
     height: calc(var(--sum-box-size) + 2vh); /* DYNAMIC: box height + padding */
-    max-height: 90px;
-    min-height: 55px;
+    /* max-height: 90px; */
+    /* min-height: 55px; */
     
     background: rgba(255, 255, 255, 0.95);
     padding: 1vh 2%;
