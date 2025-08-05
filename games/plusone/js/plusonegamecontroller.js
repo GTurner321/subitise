@@ -170,6 +170,14 @@ class PlusOneGameController {
         // Hide all elements initially (except ButtonBar - it handles its own timing)
         this.hideGameElements();
         
+        // Set up sum bar to become ready after its fade-in animation completes
+        setTimeout(() => {
+            if (this.sumRow) {
+                this.sumRow.classList.add('sum-bar-ready');
+                console.log('🎯 Sum bar marked as ready for normal opacity control');
+            }
+        }, 2500); // 1.5s delay + 1s animation = 2.5s total
+        
         // Wait for elements to be hidden, then start fade-in
         setTimeout(() => {
             console.log('🎮 Starting fade-in sequence');
@@ -186,44 +194,20 @@ class PlusOneGameController {
     }
 
     hideGameElements() {
-        // Hide game area and sum row (but NOT button bar)
+        // Only hide game area - sum row will stay transparent via CSS until its animation
         if (this.gameArea) this.gameArea.classList.remove('loaded');
-        if (this.sumRow) this.sumRow.classList.remove('loaded');
+        // Don't touch sum row classes - let CSS animation handle everything
     }
 
     showGameElements() {
-        console.log('🎮 showGameElements called - checking dimensions-ready status...');
+        console.log('🎮 showGameElements called - simplified approach');
         
-        // Use more aggressive dimension checking with shorter timeouts
-        const checkAndShowGameArea = () => {
-            if (this.gameArea) {
-                if (this.gameArea.classList.contains('dimensions-ready')) {
-                    console.log('✅ Game area is dimensions-ready, adding loaded class');
-                    this.gameArea.classList.add('loaded');
-                } else {
-                    console.log('🔧 Game area not dimensions-ready, forcing readiness');
-                    this.gameArea.classList.add('dimensions-ready', 'loaded');
-                }
-            }
-        };
+        // Only handle game area - sum row handles itself via CSS animation
+        if (this.gameArea) {
+            this.gameArea.classList.add('dimensions-ready', 'loaded');
+        }
         
-        const checkAndShowSumRow = () => {
-            if (this.sumRow) {
-                if (this.sumRow.classList.contains('dimensions-ready')) {
-                    console.log('✅ Sum row is dimensions-ready, adding loaded class');
-                    this.sumRow.classList.add('loaded');
-                } else {
-                    console.log('🔧 Sum row not dimensions-ready, forcing readiness');
-                    this.sumRow.classList.add('dimensions-ready', 'loaded');
-                }
-            }
-        };
-        
-        // Check immediately
-        checkAndShowGameArea();
-        checkAndShowSumRow();
-        
-        // Reduced failsafe timeout
+        // Reduced failsafe timeout - but only for game area
         setTimeout(() => {
             if (this.gameArea && !this.gameArea.classList.contains('loaded')) {
                 console.warn('⚠️ FAILSAFE: Game area never became ready, forcing visibility');
@@ -231,15 +215,9 @@ class PlusOneGameController {
                 this.gameArea.style.visibility = 'visible';
                 this.gameArea.style.opacity = '1';
             }
-            if (this.sumRow && !this.sumRow.classList.contains('loaded')) {
-                console.warn('⚠️ FAILSAFE: Sum row never became ready, forcing visibility');
-                this.sumRow.classList.add('dimensions-ready', 'loaded');
-                this.sumRow.style.visibility = 'visible';
-                this.sumRow.style.opacity = '1';
-            }
-        }, 1000); // Reduced from 5000ms to 1000ms
+        }, 1000);
         
-        console.log('🎮 Game elements show sequence initiated');
+        console.log('🎮 Game area show sequence initiated - sum bar will handle itself');
     }
 
     createButtons() {
