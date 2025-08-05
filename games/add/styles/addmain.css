@@ -66,9 +66,9 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Red circle: 6.5% of game area width */
-    width: 6.5vw;
-    height: 6.5vw;
+    /* Red circle: 7% of game area width (3.5% radius) */
+    width: 7vw;
+    height: 7vw;
     /* max-width: 70px; */ /* COMMENTED OUT: keeping for potential future use */
     /* max-height: 70px; */ /* COMMENTED OUT: keeping for potential future use */
     /* min-width: 35px; */ /* COMMENTED OUT: keeping for potential future use */
@@ -81,7 +81,7 @@ body {
 }
 
 .plus-sign i {
-    font-size: calc(6.5vw * 0.4);
+    font-size: calc(7vw * 0.4);
     /* max-font-size: 28px; */ /* COMMENTED OUT: keeping for potential future use */
     /* min-font-size: 14px; */ /* COMMENTED OUT: keeping for potential future use */
     color: white;
@@ -175,8 +175,8 @@ body {
     
     width: calc(var(--sum-box-size) * var(--sum-bar-width-multiplier)); /* DYNAMIC: 7vw * 7 = 49vw */
     height: calc(var(--sum-box-size) + 2vh); /* DYNAMIC: box height + padding */
-    /* max-height: 90px; */
-    /* min-height: 55px; */
+    max-height: 90px;
+    min-height: 55px;
     
     background: rgba(255, 255, 255, 0.95);
     padding: 1vh 2%;
@@ -301,73 +301,4 @@ body {
 /* Enhanced completion effects */
 .completion-effect {
     pointer-events: none;
-}
-
-/* Responsive design improvements - ONLY for game-specific elements */
-@media (max-width: 1200px) {
-    .plus-sign {
-        width: 5.5vw;
-        height: 5.5vw;
-    }
-    
-    .plus-sign i {
-        font-size: calc(5.5vw * 0.5);
-    }
-}
-
-@media (max-width: 900px) {
-    .plus-sign {
-        width: 5vw;
-        height: 5vw;
-        min-width: 35px;
-        min-height: 35px;
-    }
-    
-    .plus-sign i {
-        font-size: calc(5vw * 0.5);
-        min-font-size: 18px;
-    }
-    
-    .sum-row {
-        height: calc(var(--sum-box-size) + 1vh); /* DYNAMIC: Adjust height for smaller screens */
-        min-height: 50px;
-    }
-    
-    .left-sum-box,
-    .right-sum-box,
-    .total-sum-box {
-        width: var(--sum-box-size); /* DYNAMIC: Still uses parameter */
-        height: var(--sum-box-size); /* DYNAMIC: Still uses parameter */
-        min-width: 50px;
-        min-height: 50px;
-    }
-}
-
-@media (max-width: 600px) {
-    .plus-sign {
-        width: 4.5vw;
-        height: 4.5vw;
-        min-width: 30px;
-        min-height: 30px;
-    }
-    
-    .plus-sign i {
-        font-size: calc(4.5vw * 0.5);
-        min-font-size: 15px;
-    }
-    
-    .sum-row {
-        height: calc(var(--sum-box-size) + 0.5vh); /* DYNAMIC: Smaller height adjustment */
-        min-height: 45px;
-        gap: 1.5%;
-    }
-    
-    .left-sum-box,
-    .right-sum-box,
-    .total-sum-box {
-        width: var(--sum-box-size); /* DYNAMIC: Still uses parameter */
-        height: var(--sum-box-size); /* DYNAMIC: Still uses parameter */
-        min-width: 45px;
-        min-height: 45px;
-    }
 }
