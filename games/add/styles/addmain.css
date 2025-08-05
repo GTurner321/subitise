@@ -2,9 +2,10 @@
 
 /* CSS Custom Properties for sum bar dimensions */
 :root {
-    --sum-box-size: 7%; /* Base box width/height parameter - 7% of game area width */
+    --game-area-width: 100vw; /* Initial value, will be updated by JavaScript with actual game area width */
+    --sum-box-size: calc(var(--game-area-width) * 0.07); /* 7% of actual game area width */
     --sum-bar-width-multiplier: 6.5; /* How many box widths for sum bar */
-    --plus-sign-size: 7%; /* Plus sign: 7% of game area width */
+    --plus-sign-size: calc(var(--game-area-width) * 0.07); /* 7% of actual game area width */
 }
 
 /* Prevent scrolling - game always fits on screen */
