@@ -417,8 +417,8 @@ class PlusOneGameController {
             this.startNewGame();
         });
 
-        // Keyboard event listener
-        document.addEventListener('keydown', (e) => {
+        // Keyboard event listener - ensure it's active immediately
+        const keyboardHandler = (e) => {
             if (this.buttonsDisabled || this.gameComplete || !this.initializationComplete) {
                 return;
             }
@@ -432,7 +432,58 @@ class PlusOneGameController {
                 const digit = parseInt(e.key);
                 this.handleKeyboardDigit(digit);
             }
+        };
+        
+        // Add keyboard listener immediately and ensure it's active
+        document.addEventListener('keydown', keyboardHandler);
+        
+        // Also ensure document has focus for keyboard events
+        if (document.activeElement !== document.body) {
+            document.body.focus();
+        }
+        
+        // Store reference for potential cleanup
+        this.keyboardHandler = keyboardHandler;
+        
+        // Disable context menu (right-click) for game areas to prevent interference with touch counting
+        this.setupTouchProtection();
+        
+        console.log('🎹 Keyboard event listener initialized and ready');
+    }
+    
+    setupTouchProtection() {
+        // Prevent context menu on game area and its children
+        const gameAreaElements = [this.gameArea, this.leftSide, this.rightSide];
+        
+        gameAreaElements.forEach(element => {
+            if (element) {
+                element.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                });
+                
+                // Also prevent long press context menu on mobile
+                element.addEventListener('touchstart', (e) => {
+                    // Don't prevent touch on interactive elements
+                    if (e.target.closest('.number-btn, .back-button, .audio-button-container')) {
+                        return;
+                    }
+                    // For game area touches, prevent default but don't stop propagation
+                    // This prevents context menus while still allowing visual feedback
+                });
+                
+                element.addEventListener('touchend', (e) => {
+                    if (e.target.closest('.number-btn, .back-button, .audio-button-container')) {
+                        return;
+                    }
+                    e.preventDefault();
+                });
+            }
         });
+        
+        console.log('🚫 Touch protection enabled for game areas');
+    }
     }
 
     handleKeyboardDigit(digit) {
@@ -1193,6 +1244,11 @@ class PlusOneGameController {
         
         if (window.AudioSystem) {
             window.AudioSystem.stopAllAudio();
+        }
+        
+        // Clean up keyboard handler
+        if (this.keyboardHandler) {
+            document.removeEventListener('keydown', this.keyboardHandler);
         }
         
         this.rainbow.reset();
