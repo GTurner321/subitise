@@ -1,8 +1,8 @@
-console.log('🔍 LOADING PLUS ONE CONTENT RENDERER - Game area relative positioning');
+console.log('🔍 LOADING PLUS ONE CONTENT RENDERER - Fast initialization mode');
 
 class PlusOneContentRenderer {
     constructor() {
-        console.log('PlusOneContentRenderer constructor - using game area relative positioning');
+        console.log('PlusOneContentRenderer constructor - using fast initialization');
         this.gameArea = document.querySelector('.game-area');
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
@@ -21,7 +21,7 @@ class PlusOneContentRenderer {
         };
         this.currentContentCount = { left: 0, right: 0 };
         
-        // ButtonBar coordination
+        // ButtonBar coordination - SIMPLIFIED
         this.buttonBarReady = false;
         this.pendingRender = null;
         this.gameAreaDimensions = null;
@@ -38,12 +38,58 @@ class PlusOneContentRenderer {
             }
         };
         
-        // DON'T setup ButtonBar coordination in constructor
-        // Let the game controller call setupButtonBarCoordination() explicitly
-        // This ensures proper timing
-        console.log('🔍 PlusOneContentRenderer ready for coordination setup');
-        
+        // Setup immediate initialization
         this.setupResizeHandling();
+        
+        // Fast initialization - don't wait for explicit setup call
+        this.fastInitialization();
+        
+        console.log('🔍 PlusOneContentRenderer initialized with fast mode');
+    }
+
+    /**
+     * Fast initialization - check for ButtonBar immediately and set up coordination
+     */
+    fastInitialization() {
+        // Check if ButtonBar is already available
+        if (window.ButtonBar && typeof window.ButtonBar.create === 'function') {
+            console.log('🚀 ButtonBar already available, setting up coordination immediately');
+            this.buttonBarReady = true;
+            this.setupButtonBarCoordination();
+            // Update dimensions immediately
+            setTimeout(() => {
+                this.updateGameAreaDimensions();
+            }, 50);
+        } else {
+            console.log('⏳ ButtonBar not yet available, setting up immediate readiness');
+            // Don't wait - assume ButtonBar will be ready soon and proceed
+            this.buttonBarReady = true;
+            
+            // Set up basic game area dimensions immediately
+            setTimeout(() => {
+                this.updateGameAreaDimensions();
+            }, 100);
+            
+            // Still try to set up coordination when ButtonBar becomes available
+            let checkCount = 0;
+            const maxChecks = 10; // Reduced checks since we're not blocking
+            
+            const quickCheck = () => {
+                checkCount++;
+                
+                if (window.ButtonBar && typeof window.ButtonBar.create === 'function') {
+                    console.log(`🚀 ButtonBar became available after ${checkCount * 50}ms, setting up coordination`);
+                    this.setupButtonBarCoordination();
+                    return;
+                }
+                
+                if (checkCount < maxChecks) {
+                    setTimeout(quickCheck, 50);
+                }
+            };
+            
+            setTimeout(quickCheck, 50);
+        }
     }
 
     setupButtonBarCoordination() {
@@ -56,21 +102,22 @@ class PlusOneContentRenderer {
                 console.log('🎯 ButtonBar dimensions updated for renderer:', dimensionData);
                 this.buttonBarReady = true;
                 
-                // Wait for game area to stabilize after ButtonBar sets its margins
-                setTimeout(() => {
-                    this.updateGameAreaDimensions();
-                    
-                    // If we have a pending render, execute it now
-                    if (this.pendingRender) {
-                        console.log('🎮 Executing pending render with stable game area dimensions');
-                        const { leftCount, currentLevel } = this.pendingRender;
-                        this.pendingRender = null;
+                // Update game area dimensions immediately
+                this.updateGameAreaDimensions();
+                
+                // If we have a pending render, execute it now
+                if (this.pendingRender) {
+                    console.log('🎮 Executing pending render with ButtonBar dimensions');
+                    const { leftCount, currentLevel } = this.pendingRender;
+                    this.pendingRender = null;
+                    // Small delay to ensure dimensions are stable
+                    setTimeout(() => {
                         this.renderContent(leftCount, currentLevel);
-                    } else if (this.currentContent.length > 0) {
-                        // Update existing content positions and sizes
-                        this.updateContentSizesAndPositions();
-                    }
-                }, 400);
+                    }, 50);
+                } else if (this.currentContent.length > 0) {
+                    // Update existing content positions and sizes
+                    this.updateContentSizesAndPositions();
+                }
             });
             
             // Check if ButtonBar is already ready (in case we missed the initial notification)
@@ -79,20 +126,10 @@ class PlusOneContentRenderer {
                 this.buttonBarReady = true;
                 setTimeout(() => {
                     this.updateGameAreaDimensions();
-                }, 100);
+                }, 50);
             }
         } else {
             console.warn('⚠️ ButtonBar not available when setting up coordination');
-            // ButtonBar not ready yet, wait for it
-            const checkButtonBar = () => {
-                if (window.ButtonBar) {
-                    console.log('🔄 ButtonBar now available, retrying coordination setup');
-                    this.setupButtonBarCoordination();
-                } else {
-                    setTimeout(checkButtonBar, 100);
-                }
-            };
-            setTimeout(checkButtonBar, 100);
         }
     }
 
@@ -109,11 +146,11 @@ class PlusOneContentRenderer {
         const gameAreaRect = this.gameArea.getBoundingClientRect();
         
         // Validate that we have reasonable dimensions
-        if (gameAreaRect.width < 100 || gameAreaRect.height < 100) {
-            console.warn('⚠️ Game area dimensions seem too small, retrying...', gameAreaRect);
+        if (gameAreaRect.width < 50 || gameAreaRect.height < 50) {
+            console.log('⏳ Game area dimensions not ready, retrying...', gameAreaRect);
             setTimeout(() => {
                 this.updateGameAreaDimensions();
-            }, 100);
+            }, 50);
             return;
         }
         
@@ -127,25 +164,50 @@ class PlusOneContentRenderer {
         // Update CSS custom property with actual game area width
         document.documentElement.style.setProperty('--game-area-width', `${gameAreaRect.width}px`);
         
-        console.log('📏 Game area dimensions updated and validated:', this.gameAreaDimensions);
+        // Mark game area as dimensions-ready
+        if (this.gameArea) {
+            this.gameArea.classList.add('dimensions-ready');
+        }
+        
+        // Also mark sum row as dimensions-ready
+        const sumRow = document.getElementById('sumRow');
+        if (sumRow) {
+            sumRow.classList.add('dimensions-ready');
+        }
+        
+        console.log('📏 Game area dimensions updated and marked ready:', this.gameAreaDimensions);
     }
 
     setupResizeHandling() {
+        // Debounced resize handler
+        let resizeTimeout;
+        
         window.addEventListener('resize', () => {
-            if (this.resizeTimeout) {
-                clearTimeout(this.resizeTimeout);
+            if (resizeTimeout) {
+                clearTimeout(resizeTimeout);
             }
-            this.resizeTimeout = setTimeout(() => {
+            resizeTimeout = setTimeout(() => {
                 if (this.buttonBarReady) {
+                    console.log('🔄 Handling resize event');
                     this.updateGameAreaDimensions();
                     this.updateContentSizesAndPositions();
+                    
+                    // Also trigger ButtonBar resize if needed
+                    if (window.ButtonBar && typeof window.ButtonBar.handleResize === 'function') {
+                        window.ButtonBar.handleResize();
+                    }
                 }
             }, 100);
         });
     }
     
     updateContentSizesAndPositions() {
-        if (!this.gameArea || this.currentContent.length === 0 || !this.gameAreaDimensions) return;
+        if (!this.gameArea || this.currentContent.length === 0 || !this.gameAreaDimensions) {
+            console.log('📐 Skipping content update - missing requirements');
+            return;
+        }
+        
+        console.log('📐 Updating content sizes and positions for', this.currentContent.length, 'elements');
         
         // Update size and apply stored positions for all current content
         this.currentContent.forEach((content, index) => {
@@ -355,65 +417,7 @@ class PlusOneContentRenderer {
     renderContent(leftCount, currentLevel) {
         console.log(`🎮 === RENDERING CONTENT FOR LEVEL ${currentLevel}: ${leftCount} + 1 ===`);
         
-        // Check if ButtonBar is available and functional
-        const buttonBarExists = window.ButtonBar && typeof window.ButtonBar.create === 'function';
-        
-        // Force check if ButtonBar is actually ready by looking at its internal state
-        if (buttonBarExists) {
-            // Check if ButtonBar has been initialized and has dimensions
-            const hasValidDimensions = window.ButtonBar.dimensions && 
-                                     window.ButtonBar.dimensions.screenWidth > 0 && 
-                                     window.ButtonBar.dimensions.buttonPanelWidth > 0;
-            
-            if (hasValidDimensions && !this.buttonBarReady) {
-                console.log('🔧 ButtonBar has valid dimensions but flag not set - correcting');
-                this.buttonBarReady = true;
-            }
-        }
-        
-        // Check if ButtonBar is ready with proper dimensions
-        if (!this.buttonBarReady || !buttonBarExists) {
-            console.log(`⏳ ButtonBar not ready - storing render request for later (ready: ${this.buttonBarReady}, exists: ${buttonBarExists})`);
-            this.pendingRender = { leftCount, currentLevel };
-            
-            // Force update check after a short delay
-            setTimeout(() => {
-                if (this.pendingRender && window.ButtonBar) {
-                    console.log('🔄 Force-checking ButtonBar readiness');
-                    const hasValidDimensions = window.ButtonBar.dimensions && 
-                                             window.ButtonBar.dimensions.screenWidth > 0;
-                    if (hasValidDimensions) {
-                        console.log('🎮 ButtonBar dimensions found, proceeding with render');
-                        this.buttonBarReady = true;
-                        const { leftCount: retryLeft, currentLevel: retryLevel } = this.pendingRender;
-                        this.pendingRender = null;
-                        this.renderContent(retryLeft, retryLevel);
-                    }
-                }
-            }, 500);
-            return;
-        }
-        
-        // Update dimensions to ensure we have the latest measurements
-        this.updateGameAreaDimensions();
-        
-        // Check if we have valid game area dimensions
-        if (!this.gameAreaDimensions || this.gameAreaDimensions.width < 100 || this.gameAreaDimensions.height < 100) {
-            console.log('⏳ Game area dimensions not ready - storing render request for later');
-            this.pendingRender = { leftCount, currentLevel };
-            
-            // Retry after a short delay
-            setTimeout(() => {
-                if (this.pendingRender) {
-                    console.log('🔄 Retrying content render with updated dimensions');
-                    const { leftCount: retryLeft, currentLevel: retryLevel } = this.pendingRender;
-                    this.pendingRender = null;
-                    this.renderContent(retryLeft, retryLevel);
-                }
-            }, 200);
-            return;
-        }
-        
+        // Don't wait for ButtonBar - proceed immediately if we have basic requirements
         this.clearContent();
         
         if (!this.gameArea) {
@@ -421,12 +425,40 @@ class PlusOneContentRenderer {
             return;
         }
         
-        console.log('✅ Game area ready, proceeding with content render');
+        // Update dimensions immediately - don't wait for ButtonBar
+        this.updateGameAreaDimensions();
         
-        // Wait a small amount for any layout changes to settle
-        setTimeout(() => {
-            this.doActualRender(leftCount, currentLevel);
-        }, 50);
+        // If we don't have dimensions yet, use fallback values to get started
+        if (!this.gameAreaDimensions || this.gameAreaDimensions.width < 50) {
+            console.log('🔧 Using fallback dimensions for immediate rendering');
+            // Use viewport-based fallback dimensions
+            const fallbackWidth = window.innerWidth * 0.8; // 80% of viewport
+            const fallbackHeight = window.innerHeight * 0.6; // 60% of viewport
+            
+            this.gameAreaDimensions = {
+                width: fallbackWidth,
+                height: fallbackHeight,
+                left: window.innerWidth * 0.1,
+                top: window.innerHeight * 0.1
+            };
+            
+            // Update CSS custom property
+            document.documentElement.style.setProperty('--game-area-width', `${fallbackWidth}px`);
+            
+            // Mark as ready
+            if (this.gameArea) {
+                this.gameArea.classList.add('dimensions-ready');
+            }
+            const sumRow = document.getElementById('sumRow');
+            if (sumRow) {
+                sumRow.classList.add('dimensions-ready');
+            }
+        }
+        
+        console.log('✅ Proceeding with content render - dimensions:', this.gameAreaDimensions);
+        
+        // Start actual rendering immediately
+        this.doActualRender(leftCount, currentLevel);
     }
 
     doActualRender(leftCount, currentLevel) {
