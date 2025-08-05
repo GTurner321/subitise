@@ -2,8 +2,9 @@
 
 /* CSS Custom Properties for sum bar dimensions */
 :root {
-    --sum-box-size: 7vw; /* Base box width/height parameter */
-    --sum-bar-width-multiplier: 6.2; /* How many box widths for sum bar */
+    --sum-box-size: 7%; /* Base box width/height parameter - 7% of game area width */
+    --sum-bar-width-multiplier: 6.5; /* How many box widths for sum bar */
+    --plus-sign-size: 7%; /* Plus sign: 7% of game area width */
 }
 
 /* Prevent scrolling - game always fits on screen */
@@ -67,8 +68,8 @@ body {
     justify-content: center;
     align-items: center;
     /* Red circle: 7% of game area width (3.5% radius) */
-    width: 7vw;
-    height: 7vw;
+    width: var(--plus-sign-size);
+    height: var(--plus-sign-size);
     /* max-width: 70px; */ /* COMMENTED OUT: keeping for potential future use */
     /* max-height: 70px; */ /* COMMENTED OUT: keeping for potential future use */
     /* min-width: 35px; */ /* COMMENTED OUT: keeping for potential future use */
@@ -81,7 +82,7 @@ body {
 }
 
 .plus-sign i {
-    font-size: calc(7vw * 0.4);
+    font-size: calc(var(--plus-sign-size) * 0.4);
     /* max-font-size: 28px; */ /* COMMENTED OUT: keeping for potential future use */
     /* min-font-size: 14px; */ /* COMMENTED OUT: keeping for potential future use */
     color: white;
