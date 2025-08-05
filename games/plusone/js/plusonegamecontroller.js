@@ -40,12 +40,11 @@ class PlusOneGameController {
         this.flashingInterval = null;
         this.flashingTimeout = null;
         
-        // Loading state and initialization tracking
+        // Loading state and initialization tracking - SIMPLIFIED
         this.isLoading = true;
         this.initializationComplete = false;
-        this.buttonBarReady = false;
-        this.gameAreaReady = false;
-        this.needsButtonRecreation = false; // Track when buttons need recreation due to format changes
+        this.systemsReady = false;
+        this.readyCheckCount = 0;
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
@@ -62,14 +61,6 @@ class PlusOneGameController {
         // Try to find pulse areas, but don't break if they don't exist
         this.leftPulseArea = document.getElementById('leftPulseArea');
         this.rightPulseArea = document.getElementById('rightPulseArea');
-        
-        // Warn if pulse areas not found (but don't break)
-        if (!this.leftPulseArea) {
-            console.warn('leftPulseArea not found - flashing will use fallback');
-        }
-        if (!this.rightPulseArea) {
-            console.warn('rightPulseArea not found - flashing will use fallback');
-        }
         
         // Initialize in proper order
         this.initializeEventListeners();
@@ -88,47 +79,91 @@ class PlusOneGameController {
     }
 
     /**
-     * Wait for both ButtonBar AND proper game area setup
+     * SIMPLIFIED: Wait for systems to be ready with faster checks and shorter timeout
      */
     waitForSystemsAndInitialize() {
-        console.log('🎮 Checking system readiness...');
+        console.log('🎮 Checking system readiness - fast mode...');
         
-        // Check if ButtonBar is available and functional
-        const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
-        
-        // Check if game area containers exist
-        const gameAreaReady = this.gameArea && this.leftSide && this.rightSide && this.sumRow;
-        
-        if (buttonBarReady && gameAreaReady) {
-            console.log('🎮 All systems ready, proceeding with initialization');
-            this.buttonBarReady = true;
-            this.gameAreaReady = true;
+        const checkSystemsReady = () => {
+            this.readyCheckCount++;
             
-            // IMPORTANT: Initialize the content renderer's ButtonBar coordination FIRST
-            // This ensures it's ready to receive ButtonBar notifications
-            if (this.contentRenderer && typeof this.contentRenderer.setupButtonBarCoordination === 'function') {
-                console.log('🔗 Setting up content renderer ButtonBar coordination');
-                this.contentRenderer.setupButtonBarCoordination();
+            // Check if ButtonBar is available and functional
+            const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
+            
+            // Check if game area containers exist
+            const gameAreaReady = this.gameArea && this.leftSide && this.rightSide && this.sumRow;
+            
+            if (buttonBarReady && gameAreaReady) {
+                console.log(`🎮 All systems ready after ${this.readyCheckCount} checks (${this.readyCheckCount * CONFIG.SYSTEM_CHECK_INTERVAL}ms)`);
+                this.systemsReady = true;
+                
+                // Setup content renderer coordination FIRST
+                if (this.contentRenderer && typeof this.contentRenderer.setupButtonBarCoordination === 'function') {
+                    console.log('🔗 Setting up content renderer ButtonBar coordination');
+                    this.contentRenderer.setupButtonBarCoordination();
+                }
+                
+                // Create buttons immediately
+                this.createButtons();
+                
+                // Initialize game with shorter delay
+                setTimeout(() => {
+                    console.log('🎮 Starting game initialization');
+                    this.initializeGame();
+                }, CONFIG.BUTTON_SETUP_DELAY);
+                
+                return;
             }
             
-            // Create buttons - this will trigger ButtonBar notifications that renderer can now receive
-            this.createButtons();
+            // Check if we've exceeded maximum checks
+            if (this.readyCheckCount >= CONFIG.MAX_READY_CHECKS) {
+                console.warn(`⚠️ Systems not ready after ${CONFIG.FAILSAFE_TIMEOUT}ms, forcing initialization`);
+                this.systemsReady = true;
+                this.forceInitialization();
+                return;
+            }
             
-            // Wait for ButtonBar to fully coordinate with game area AND renderer
-            setTimeout(() => {
-                console.log('🎮 ButtonBar coordination complete, initializing game');
-                this.initializeGame();
-            }, 1000); // Increased delay to ensure complete coordination
-        } else {
-            console.log(`⏳ Waiting for systems... ButtonBar: ${buttonBarReady}, GameArea: ${gameAreaReady}`);
-            setTimeout(() => {
-                this.waitForSystemsAndInitialize();
-            }, 100);
+            // Continue checking
+            console.log(`⏳ Waiting for systems... (${this.readyCheckCount}/${CONFIG.MAX_READY_CHECKS}) ButtonBar: ${buttonBarReady}, GameArea: ${gameAreaReady}`);
+            setTimeout(checkSystemsReady, CONFIG.SYSTEM_CHECK_INTERVAL);
+        };
+        
+        // Start checking immediately
+        checkSystemsReady();
+    }
+
+    /**
+     * Force initialization when systems don't become ready in time
+     */
+    forceInitialization() {
+        console.log('🚨 Force initializing game systems');
+        
+        // Try to setup content renderer if available
+        if (this.contentRenderer && typeof this.contentRenderer.setupButtonBarCoordination === 'function') {
+            try {
+                this.contentRenderer.setupButtonBarCoordination();
+            } catch (error) {
+                console.warn('⚠️ Content renderer setup failed:', error);
+            }
         }
+        
+        // Try to create buttons if ButtonBar exists
+        if (window.ButtonBar && typeof window.ButtonBar.create === 'function') {
+            try {
+                this.createButtons();
+            } catch (error) {
+                console.warn('⚠️ Button creation failed:', error);
+            }
+        }
+        
+        // Initialize game
+        setTimeout(() => {
+            this.initializeGame();
+        }, CONFIG.BUTTON_SETUP_DELAY);
     }
 
     initializeGame() {
-        console.log('🎮 Starting game initialization with loading sequence');
+        console.log('🎮 Starting game initialization');
         
         // Hide all elements initially (except ButtonBar - it handles its own timing)
         this.hideGameElements();
@@ -143,9 +178,9 @@ class PlusOneGameController {
             // Start the first question after fade-in completes
             setTimeout(() => {
                 this.startNewQuestion();
-            }, 1000);
+            }, 500); // Reduced delay
             
-        }, 500);
+        }, 200); // Reduced delay
     }
 
     hideGameElements() {
@@ -157,55 +192,36 @@ class PlusOneGameController {
     showGameElements() {
         console.log('🎮 showGameElements called - checking dimensions-ready status...');
         
-        // Check current state of elements
-        const gameAreaReady = this.gameArea && this.gameArea.classList.contains('dimensions-ready');
-        const sumRowReady = this.sumRow && this.sumRow.classList.contains('dimensions-ready');
-        
-        console.log('📊 Element readiness check:', {
-            gameAreaExists: !!this.gameArea,
-            gameAreaReady: gameAreaReady,
-            sumRowExists: !!this.sumRow, 
-            sumRowReady: sumRowReady
-        });
-        
-        // Only fade in game area and sum row AFTER dimensions are ready
-        if (gameAreaReady) {
-            console.log('✅ Game area is dimensions-ready, adding loaded class');
-            this.gameArea.classList.add('loaded');
-        } else {
-            console.log('⏳ Game area not dimensions-ready, waiting...');
-            // Wait for dimensions to be ready
-            const checkDimensions = () => {
-                if (this.gameArea && this.gameArea.classList.contains('dimensions-ready')) {
-                    console.log('✅ Game area became dimensions-ready, adding loaded class');
+        // Use more aggressive dimension checking with shorter timeouts
+        const checkAndShowGameArea = () => {
+            if (this.gameArea) {
+                if (this.gameArea.classList.contains('dimensions-ready')) {
+                    console.log('✅ Game area is dimensions-ready, adding loaded class');
                     this.gameArea.classList.add('loaded');
                 } else {
-                    console.log('⏳ Still waiting for game area dimensions-ready...');
-                    setTimeout(checkDimensions, 200);
+                    console.log('🔧 Game area not dimensions-ready, forcing readiness');
+                    this.gameArea.classList.add('dimensions-ready', 'loaded');
                 }
-            };
-            setTimeout(checkDimensions, 100);
-        }
+            }
+        };
         
-        if (sumRowReady) {
-            console.log('✅ Sum row is dimensions-ready, adding loaded class');
-            this.sumRow.classList.add('loaded');
-        } else {
-            console.log('⏳ Sum row not dimensions-ready, waiting...');
-            // Wait for dimensions to be ready
-            const checkSumRowDimensions = () => {
-                if (this.sumRow && this.sumRow.classList.contains('dimensions-ready')) {
-                    console.log('✅ Sum row became dimensions-ready, adding loaded class');
+        const checkAndShowSumRow = () => {
+            if (this.sumRow) {
+                if (this.sumRow.classList.contains('dimensions-ready')) {
+                    console.log('✅ Sum row is dimensions-ready, adding loaded class');
                     this.sumRow.classList.add('loaded');
                 } else {
-                    console.log('⏳ Still waiting for sum row dimensions-ready...');
-                    setTimeout(checkSumRowDimensions, 200);
+                    console.log('🔧 Sum row not dimensions-ready, forcing readiness');
+                    this.sumRow.classList.add('dimensions-ready', 'loaded');
                 }
-            };
-            setTimeout(checkSumRowDimensions, 100);
-        }
+            }
+        };
         
-        // Failsafe: Force visibility after reasonable time if dimensions-ready never happens
+        // Check immediately
+        checkAndShowGameArea();
+        checkAndShowSumRow();
+        
+        // Reduced failsafe timeout
         setTimeout(() => {
             if (this.gameArea && !this.gameArea.classList.contains('loaded')) {
                 console.warn('⚠️ FAILSAFE: Game area never became ready, forcing visibility');
@@ -219,7 +235,7 @@ class PlusOneGameController {
                 this.sumRow.style.visibility = 'visible';
                 this.sumRow.style.opacity = '1';
             }
-        }, 5000); // Increased from 3000ms to 5000ms to give more time for proper coordination
+        }, 1000); // Reduced from 5000ms to 1000ms
         
         console.log('🎮 Game elements show sequence initiated');
     }
@@ -250,7 +266,7 @@ class PlusOneGameController {
         
         // Wait a moment for cleanup, then create new ButtonBar
         setTimeout(() => {
-            if (window.ButtonBar && this.buttonBarReady) {
+            if (window.ButtonBar) {
                 window.ButtonBar.create(
                     config.count,          // number of buttons
                     config.width,          // button width as % of button panel width
@@ -271,7 +287,7 @@ class PlusOneGameController {
             } else {
                 console.warn('ButtonBar not available during recreation');
             }
-        }, 100);
+        }, 50); // Reduced delay
     }
 
     updateButtonsForNumberFormat(correctAnswer) {
@@ -522,12 +538,12 @@ class PlusOneGameController {
             // Wait for button setup to complete
             setTimeout(() => {
                 this.startNewQuestion();
-            }, 400);
+            }, CONFIG.COORDINATION_DELAY);
         } else {
             // Same format, just start new question
             setTimeout(() => {
                 this.startNewQuestion();
-            }, 200);
+            }, 100);
         }
     }
 
@@ -1051,7 +1067,7 @@ class PlusOneGameController {
                 setTimeout(() => {
                     this.startNewQuestion();
                     this.fadeInNewContent();
-                }, 300);
+                }, CONFIG.BUTTON_SETUP_DELAY);
             } else {
                 this.startNewQuestion();
                 this.fadeInNewContent();
