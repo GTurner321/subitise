@@ -21,9 +21,11 @@ class PlusOneGameController {
         this.hintGiven = false; // Track if hint has been given for current question
         this.isTabVisible = true; // Track tab visibility
         
-        // Keyboard handling for two-digit numbers
+        // Keyboard handling for multi-digit numbers - ENHANCED
         this.keyboardBuffer = '';
         this.keyboardTimer = null;
+        this.lastKeyTime = 0;
+        this.isTypingSequence = false;
         
         // Game state
         this.currentNumber = 0; // The 'n' in n+1
@@ -402,7 +404,6 @@ class PlusOneGameController {
             clearTimeout(this.keyboardTimer);
             this.keyboardTimer = null;
         }
-        this.keyboardBuffer = '';
     }
 
     giveInactivityHint() {
@@ -457,28 +458,91 @@ class PlusOneGameController {
     }
 
     handleKeyboardDigit(digit) {
-        // Handle multi-digit input for higher levels
-        if (this.shouldUseNumberFormat()) {
-            // For number format levels, we might need multi-digit numbers
-            if (this.keyboardBuffer === '1' && digit === 0) {
-                this.clearKeyboardTimer();
-                this.handleNumberClick(10, null);
-                return;
-            }
-            
-            this.clearKeyboardTimer();
-            
-            if (digit === 1 && this.couldBePartOfLargerNumber()) {
-                this.keyboardBuffer = '1';
-                this.keyboardTimer = setTimeout(() => {
-                    this.clearKeyboardTimer();
-                    this.handleNumberClick(1, null);
-                }, CONFIG.KEYBOARD_WAIT_DURATION);
-                return;
-            }
+        const currentTime = Date.now();
+        
+        // Check if this is part of a multi-digit sequence
+        if (this.isTypingSequence && (currentTime - this.lastKeyTime) > CONFIG.MULTI_DIGIT_TIMEOUT) {
+            // Too much time elapsed, reset sequence
+            console.log('Multi-digit timeout exceeded, resetting sequence');
+            this.resetKeyboardState();
         }
         
-        this.handleNumberClick(digit, null);
+        this.lastKeyTime = currentTime;
+        
+        // Add digit to buffer
+        this.keyboardBuffer += digit.toString();
+        this.isTypingSequence = true;
+        
+        console.log(`Keyboard buffer: "${this.keyboardBuffer}"`);
+        
+        // Clear any existing timer
+        this.clearKeyboardTimer();
+        this.resetKeyboardState();
+        
+        // Check if buffer matches any valid answers immediately
+        const currentBufferNumber = parseInt(this.keyboardBuffer);
+        const validAnswers = this.getValidAnswersForCurrentState();
+        
+        // If buffer matches a valid answer exactly, use it immediately
+        if (validAnswers.includes(currentBufferNumber)) {
+            console.log(`Buffer "${this.keyboardBuffer}" matches valid answer ${currentBufferNumber}`);
+            this.resetKeyboardState();
+            this.handleNumberClick(currentBufferNumber, null);
+            return;
+        }
+        
+        // Check if buffer could be the start of a longer valid answer
+        const couldBeLonger = validAnswers.some(answer => 
+            answer.toString().startsWith(this.keyboardBuffer) && 
+            answer.toString().length > this.keyboardBuffer.length
+        );
+        
+        if (couldBeLonger) {
+            // Wait for more digits
+            console.log(`Buffer "${this.keyboardBuffer}" could be start of longer number, waiting...`);
+            this.keyboardTimer = setTimeout(() => {
+                // Timeout reached, try current buffer
+                const bufferNumber = parseInt(this.keyboardBuffer);
+                console.log(`Keyboard timeout reached, submitting buffer: ${bufferNumber}`);
+                this.resetKeyboardState();
+                this.handleNumberClick(bufferNumber, null);
+            }, CONFIG.MULTI_DIGIT_TIMEOUT);
+        } else {
+            // Buffer doesn't match anything and can't be extended
+            console.log(`Buffer "${this.keyboardBuffer}" doesn't match any valid pattern`);
+            this.resetKeyboardState();
+            this.handleNumberClick(currentBufferNumber, null);
+        }
+    }
+    
+    resetKeyboardState() {
+        this.keyboardBuffer = '';
+        this.isTypingSequence = false;
+        this.lastKeyTime = 0;
+        this.clearKeyboardTimer();
+    }
+    
+    getValidAnswersForCurrentState() {
+        // Get all possible valid answers based on current box state
+        const validAnswers = [];
+        
+        if (!this.leftFilled) {
+            validAnswers.push(this.currentNumber);
+        }
+        if (!this.rightFilled) {
+            validAnswers.push(1);
+        }
+        if (!this.totalFilled) {
+            validAnswers.push(this.currentAnswer);
+        }
+        
+        // For picture format, also include all button numbers
+        if (this.shouldUsePictureFormat()) {
+            validAnswers.push(...CONFIG.BUTTON_CONFIGS.PICTURE_FORMAT.numbers);
+        }
+        
+        // Remove duplicates and return
+        return [...new Set(validAnswers)];
     }
 
     couldBePartOfLargerNumber() {
@@ -730,22 +794,29 @@ class PlusOneGameController {
         const baseBoxSize = 'calc(var(--game-area-width) * 0.07)'; // 7% of game area width
         let leftBoxWidth, totalBoxWidth;
         
-        // Size left box based on its digit count
-        if (leftDigits === 1) {
+        // PICTURE FORMAT: Keep all boxes same size (single digit size) - 10 fits in square box
+        if (this.shouldUsePictureFormat()) {
             leftBoxWidth = baseBoxSize;
-        } else if (leftDigits === 2) {
-            leftBoxWidth = `calc(${baseBoxSize} * 1.4)`; // 40% wider for 2 digits
+            totalBoxWidth = baseBoxSize; // Keep same size even for 10
         } else {
-            leftBoxWidth = `calc(${baseBoxSize} * 1.8)`; // 80% wider for 3+ digits
-        }
-        
-        // Size total box based on its digit count
-        if (totalDigits === 1) {
-            totalBoxWidth = baseBoxSize;
-        } else if (totalDigits === 2) {
-            totalBoxWidth = `calc(${baseBoxSize} * 1.4)`; // 40% wider for 2 digits
-        } else {
-            totalBoxWidth = `calc(${baseBoxSize} * 1.8)`; // 80% wider for 3+ digits
+            // NUMBER FORMAT: Size boxes based on digit count for readability
+            // Size left box based on its digit count
+            if (leftDigits === 1) {
+                leftBoxWidth = baseBoxSize;
+            } else if (leftDigits === 2) {
+                leftBoxWidth = `calc(${baseBoxSize} * 1.4)`; // 40% wider for 2 digits
+            } else {
+                leftBoxWidth = `calc(${baseBoxSize} * 1.8)`; // 80% wider for 3+ digits
+            }
+            
+            // Size total box based on its digit count
+            if (totalDigits === 1) {
+                totalBoxWidth = baseBoxSize;
+            } else if (totalDigits === 2) {
+                totalBoxWidth = `calc(${baseBoxSize} * 1.4)`; // 40% wider for 2 digits
+            } else {
+                totalBoxWidth = `calc(${baseBoxSize} * 1.8)`; // 80% wider for 3+ digits
+            }
         }
         
         // Update box widths
