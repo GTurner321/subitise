@@ -56,9 +56,19 @@ class PlusOneGameController {
         this.checkMark = document.getElementById('checkMark');
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
+        this.gameArea = document.querySelector('.game-area');
+        
+        // Try to find pulse areas, but don't break if they don't exist
         this.leftPulseArea = document.getElementById('leftPulseArea');
         this.rightPulseArea = document.getElementById('rightPulseArea');
-        this.gameArea = document.querySelector('.game-area');
+        
+        // Warn if pulse areas not found (but don't break)
+        if (!this.leftPulseArea) {
+            console.warn('leftPulseArea not found - flashing will use fallback');
+        }
+        if (!this.rightPulseArea) {
+            console.warn('rightPulseArea not found - flashing will use fallback');
+        }
         
         // Initialize in proper order
         this.initializeEventListeners();
@@ -445,31 +455,31 @@ class PlusOneGameController {
             if (this.shouldUsePictureFormat()) {
                 // Picture format levels: flash based on which box needs filling (left → right → total)
                 if (!this.leftFilled) {
-                    this.leftPulseArea.classList.add('area-flash');
-                    this.leftInputBox.classList.add('box-flash');
+                    if (this.leftPulseArea) this.leftPulseArea.classList.add('area-flash');
+                    if (this.leftInputBox) this.leftInputBox.classList.add('box-flash');
                 } else if (!this.rightFilled) {
-                    this.rightPulseArea.classList.add('area-flash');
-                    this.rightInputBox.classList.add('box-flash');
+                    if (this.rightPulseArea) this.rightPulseArea.classList.add('area-flash');
+                    if (this.rightInputBox) this.rightInputBox.classList.add('box-flash');
                 } else if (!this.totalFilled) {
-                    this.leftPulseArea.classList.add('area-flash');
-                    this.rightPulseArea.classList.add('area-flash');
-                    this.totalInputBox.classList.add('box-flash');
+                    if (this.leftPulseArea) this.leftPulseArea.classList.add('area-flash');
+                    if (this.rightPulseArea) this.rightPulseArea.classList.add('area-flash');
+                    if (this.totalInputBox) this.totalInputBox.classList.add('box-flash');
                 }
             } else {
                 // Number format levels: only flash for total answer (left and right are pre-filled)
                 if (!this.totalFilled) {
-                    this.leftPulseArea.classList.add('area-flash');
-                    this.rightPulseArea.classList.add('area-flash');
-                    this.totalInputBox.classList.add('box-flash');
+                    if (this.leftPulseArea) this.leftPulseArea.classList.add('area-flash');
+                    if (this.rightPulseArea) this.rightPulseArea.classList.add('area-flash');
+                    if (this.totalInputBox) this.totalInputBox.classList.add('box-flash');
                 }
             }
             
             setTimeout(() => {
-                this.leftPulseArea.classList.remove('area-flash');
-                this.rightPulseArea.classList.remove('area-flash');
-                this.leftInputBox.classList.remove('box-flash');
-                this.rightInputBox.classList.remove('box-flash');
-                this.totalInputBox.classList.remove('box-flash');
+                if (this.leftPulseArea) this.leftPulseArea.classList.remove('area-flash');
+                if (this.rightPulseArea) this.rightPulseArea.classList.remove('area-flash');
+                if (this.leftInputBox) this.leftInputBox.classList.remove('box-flash');
+                if (this.rightInputBox) this.rightInputBox.classList.remove('box-flash');
+                if (this.totalInputBox) this.totalInputBox.classList.remove('box-flash');
             }, 1000);
         };
         
@@ -490,11 +500,22 @@ class PlusOneGameController {
             this.flashingTimeout = null;
         }
         
-        this.leftPulseArea.classList.remove('area-flash');
-        this.rightPulseArea.classList.remove('area-flash');
-        this.leftInputBox.classList.remove('box-flash');
-        this.rightInputBox.classList.remove('box-flash');
-        this.totalInputBox.classList.remove('box-flash');
+        // Safely remove flash classes - check if elements exist first
+        if (this.leftPulseArea) {
+            this.leftPulseArea.classList.remove('area-flash');
+        }
+        if (this.rightPulseArea) {
+            this.rightPulseArea.classList.remove('area-flash');
+        }
+        if (this.leftInputBox) {
+            this.leftInputBox.classList.remove('box-flash');
+        }
+        if (this.rightInputBox) {
+            this.rightInputBox.classList.remove('box-flash');
+        }
+        if (this.totalInputBox) {
+            this.totalInputBox.classList.remove('box-flash');
+        }
     }
 
     startNewQuestion() {
