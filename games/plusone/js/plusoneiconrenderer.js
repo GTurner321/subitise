@@ -65,6 +65,15 @@ class PlusOneContentRenderer {
                     }
                 }, 400);
             });
+            
+            // Check if ButtonBar is already ready (in case we missed the initial notification)
+            if (window.ButtonBar.dimensions && window.ButtonBar.dimensions.buttonPanelWidth > 0) {
+                console.log('🎯 ButtonBar already ready, setting flag');
+                this.buttonBarReady = true;
+                setTimeout(() => {
+                    this.updateGameAreaDimensions();
+                }, 100);
+            }
         } else {
             // ButtonBar not ready yet, wait for it
             const checkButtonBar = () => {
@@ -337,10 +346,42 @@ class PlusOneContentRenderer {
     renderContent(leftCount, currentLevel) {
         console.log(`🎮 === RENDERING CONTENT FOR LEVEL ${currentLevel}: ${leftCount} + 1 ===`);
         
+        // Check if ButtonBar is available and functional
+        const buttonBarExists = window.ButtonBar && typeof window.ButtonBar.create === 'function';
+        
+        // Force check if ButtonBar is actually ready by looking at its internal state
+        if (buttonBarExists) {
+            // Check if ButtonBar has been initialized and has dimensions
+            const hasValidDimensions = window.ButtonBar.dimensions && 
+                                     window.ButtonBar.dimensions.screenWidth > 0 && 
+                                     window.ButtonBar.dimensions.buttonPanelWidth > 0;
+            
+            if (hasValidDimensions && !this.buttonBarReady) {
+                console.log('🔧 ButtonBar has valid dimensions but flag not set - correcting');
+                this.buttonBarReady = true;
+            }
+        }
+        
         // Check if ButtonBar is ready with proper dimensions
-        if (!this.buttonBarReady) {
-            console.log('⏳ ButtonBar not ready - storing render request for later');
+        if (!this.buttonBarReady || !buttonBarExists) {
+            console.log(`⏳ ButtonBar not ready - storing render request for later (ready: ${this.buttonBarReady}, exists: ${buttonBarExists})`);
             this.pendingRender = { leftCount, currentLevel };
+            
+            // Force update check after a short delay
+            setTimeout(() => {
+                if (this.pendingRender && window.ButtonBar) {
+                    console.log('🔄 Force-checking ButtonBar readiness');
+                    const hasValidDimensions = window.ButtonBar.dimensions && 
+                                             window.ButtonBar.dimensions.screenWidth > 0;
+                    if (hasValidDimensions) {
+                        console.log('🎮 ButtonBar dimensions found, proceeding with render');
+                        this.buttonBarReady = true;
+                        const { leftCount: retryLeft, currentLevel: retryLevel } = this.pendingRender;
+                        this.pendingRender = null;
+                        this.renderContent(retryLeft, retryLevel);
+                    }
+                }
+            }, 500);
             return;
         }
         
