@@ -45,6 +45,7 @@ class PlusOneGameController {
         this.initializationComplete = false;
         this.buttonBarReady = false;
         this.gameAreaReady = false;
+        this.needsButtonRecreation = false; // Track when buttons need recreation due to format changes
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
@@ -164,40 +165,49 @@ class PlusOneGameController {
         const isPictureFormat = this.shouldUsePictureFormat();
         const config = isPictureFormat ? CONFIG.BUTTON_CONFIGS.PICTURE_FORMAT : CONFIG.BUTTON_CONFIGS.NUMBER_FORMAT;
         
+        console.log(`Creating buttons for level ${this.currentLevel}: ${isPictureFormat ? 'Picture' : 'Number'} format (${config.count} buttons)`);
+        
         // Create button colors array
         const colors = CONFIG.COLORS.slice(0, config.count);
         
         // Create button numbers array
         let numbers;
         if (isPictureFormat) {
-            numbers = config.numbers;
+            numbers = [...config.numbers]; // Use spread to avoid reference issues
         } else {
-            // For number format, we'll update this when we know the correct answer
-            numbers = [1, 2, 3, 4]; // Placeholder
+            // For number format, use placeholder numbers - will be updated when question is generated
+            numbers = [1, 2, 3, 4];
         }
         
-        // Use the universal button bar system
-        if (window.ButtonBar && this.buttonBarReady) {
-            window.ButtonBar.create(
-                config.count,          // number of buttons
-                config.width,          // button width as % of button panel width
-                config.height,         // button height as % of button panel width
-                colors,                // array of button colors
-                numbers,               // array of button numbers/labels
-                (selectedNumber, buttonElement) => {  // click handler
-                    if (this.buttonsDisabled || !this.initializationComplete) return;
-                    
-                    // Clear inactivity timer on user interaction
-                    this.clearInactivityTimer();
-                    this.startInactivityTimer();
-                    
-                    this.handleNumberClick(selectedNumber, buttonElement);
-                }
-            );
-            console.log('✅ Button bar created successfully');
-        } else {
-            console.warn('ButtonBar not available - using fallback');
+        // Always destroy and recreate ButtonBar to ensure proper configuration
+        if (window.ButtonBar) {
+            window.ButtonBar.destroy();
         }
+        
+        // Wait a moment for cleanup, then create new ButtonBar
+        setTimeout(() => {
+            if (window.ButtonBar && this.buttonBarReady) {
+                window.ButtonBar.create(
+                    config.count,          // number of buttons
+                    config.width,          // button width as % of button panel width
+                    config.height,         // button height as % of button panel width
+                    colors,                // array of button colors
+                    numbers,               // array of button numbers/labels
+                    (selectedNumber, buttonElement) => {  // click handler
+                        if (this.buttonsDisabled || !this.initializationComplete) return;
+                        
+                        // Clear inactivity timer on user interaction
+                        this.clearInactivityTimer();
+                        this.startInactivityTimer();
+                        
+                        this.handleNumberClick(selectedNumber, buttonElement);
+                    }
+                );
+                console.log(`✅ Button bar created successfully: ${config.count} buttons (${config.width}% x ${config.height}%)`);
+            } else {
+                console.warn('ButtonBar not available during recreation');
+            }
+        }, 100);
     }
 
     updateButtonsForNumberFormat(correctAnswer) {
@@ -415,6 +425,9 @@ class PlusOneGameController {
     }
 
     startNewGame() {
+        const oldLevel = this.currentLevel;
+        const oldFormat = this.shouldUsePictureFormat();
+        
         this.currentLevel = this.highestLevelReached;
         this.questionsCompleted = 0;
         this.gameComplete = false;
@@ -432,13 +445,23 @@ class PlusOneGameController {
         // Keep initialization flags - systems should stay ready
         this.initializationComplete = true;
         
-        // Update button configuration for current level
-        this.createButtons();
-        
-        // Wait for button setup to complete
-        setTimeout(() => {
-            this.startNewQuestion();
-        }, 200);
+        // Check if format changed from previous game
+        const newFormat = this.shouldUsePictureFormat();
+        if (oldFormat !== newFormat || Math.abs(this.currentLevel - oldLevel) > 0) {
+            console.log(`New game: Level ${oldLevel} → ${this.currentLevel}, Format ${oldFormat ? 'Picture' : 'Number'} → ${newFormat ? 'Picture' : 'Number'}`);
+            // Always recreate buttons for new game to ensure proper configuration
+            this.createButtons();
+            
+            // Wait for button setup to complete
+            setTimeout(() => {
+                this.startNewQuestion();
+            }, 400);
+        } else {
+            // Same format, just start new question
+            setTimeout(() => {
+                this.startNewQuestion();
+            }, 200);
+        }
     }
 
     resetBoxState() {
@@ -837,6 +860,9 @@ class PlusOneGameController {
     }
 
     handleLevelProgression(wasFirstAttempt) {
+        const oldLevel = this.currentLevel;
+        const oldFormat = this.shouldUsePictureFormat();
+        
         if (wasFirstAttempt) {
             // Success - advance to next level and reset failure tracking
             if (this.currentLevel < 10) {
@@ -863,15 +889,14 @@ class PlusOneGameController {
             }
         }
         
-        // Update button configuration if level format changed
-        const oldFormat = this.shouldUsePictureFormat();
-        setTimeout(() => {
-            const newFormat = this.shouldUsePictureFormat();
-            if (oldFormat !== newFormat) {
-                console.log('Level format changed, updating buttons');
-                this.createButtons();
-            }
-        }, 100);
+        // Check if format changed and schedule button recreation
+        const newFormat = this.shouldUsePictureFormat();
+        if (oldFormat !== newFormat || Math.abs(this.currentLevel - oldLevel) > 0) {
+            console.log(`Level progression: ${oldLevel} → ${this.currentLevel}, Format change: ${oldFormat ? 'Picture' : 'Number'} → ${newFormat ? 'Picture' : 'Number'}`);
+            
+            // Mark that buttons need recreation
+            this.needsButtonRecreation = true;
+        }
     }
 
     handleIncorrectAnswer(buttonElement, selectedNumber) {
@@ -933,27 +958,43 @@ class PlusOneGameController {
         });
         
         setTimeout(() => {
-            this.startNewQuestion();
+            // Check if buttons need recreation before starting new question
+            if (this.needsButtonRecreation) {
+                console.log('🔄 Recreating buttons due to format change');
+                this.needsButtonRecreation = false;
+                this.createButtons();
+                
+                // Wait for button recreation to complete
+                setTimeout(() => {
+                    this.startNewQuestion();
+                    this.fadeInNewContent();
+                }, 300);
+            } else {
+                this.startNewQuestion();
+                this.fadeInNewContent();
+            }
+        }, 1000);
+    }
+    
+    fadeInNewContent() {
+        setTimeout(() => {
+            const newElements = [...this.contentRenderer.currentContent];
+            
+            newElements.forEach(element => {
+                if (element) {
+                    element.classList.remove('fade-out');
+                    element.classList.add('fade-in');
+                }
+            });
             
             setTimeout(() => {
-                const newElements = [...this.contentRenderer.currentContent];
-                
                 newElements.forEach(element => {
                     if (element) {
-                        element.classList.remove('fade-out');
-                        element.classList.add('fade-in');
+                        element.classList.remove('fade-in');
                     }
                 });
-                
-                setTimeout(() => {
-                    newElements.forEach(element => {
-                        if (element) {
-                            element.classList.remove('fade-in');
-                        }
-                    });
-                }, 1000);
-            }, 100);
-        }, 1000);
+            }, 1000);
+        }, 100);
     }
 
     hasAttemptedAnswer() {
