@@ -17,28 +17,33 @@
     
     <!-- Main game area -->
     <div class="game-area">
+        <!-- Rainbow container -->
         <div class="rainbow-container" id="rainbowContainer">
             <!-- Rainbow arcs will be added here by JavaScript -->
         </div>
         
-        <!-- Left side for icons/numbers -->
+        <!-- Separate pulse areas for green flashing -->
+        <div class="left-pulse-area" id="leftPulseArea"></div>
+        <div class="right-pulse-area" id="rightPulseArea"></div>
+        
+        <!-- Left side for content (positioned for proper content placement: 6%-40% horizontal, 30%-90% vertical) -->
         <div class="left-side" id="leftSide">
             <!-- Left side content will be added here by JavaScript -->
         </div>
         
-        <!-- Middle section with plus sign -->
+        <!-- Middle section with plus sign (46%-54% horizontal) -->
         <div class="middle-section">
             <div class="plus-sign">
                 <i class="fas fa-plus"></i>
             </div>
         </div>
         
-        <!-- Right side for "1" -->
+        <!-- Right side for content (positioned for proper content placement: 60%-94% horizontal, 30%-90% vertical) -->
         <div class="right-side" id="rightSide">
             <!-- Right side content will be added here by JavaScript -->
         </div>
         
-                    <!-- Sum row at bottom -->
+        <!-- Sum row at bottom -->
         <div class="sum-row" id="sumRow">
             <div class="input-box left-sum-box" id="leftInputBox"></div>
             <div class="sum-plus-sign">+</div>
@@ -51,10 +56,8 @@
         </div>
     </div>
     
-    <!-- Number selection buttons - Dynamic based on level -->
-    <div class="number-buttons" id="numberButtons">
-        <!-- Buttons will be dynamically created by JavaScript -->
-    </div>
+    <!-- Empty container for universal button system -->
+    <div class="number-buttons"></div>
     
     <!-- Game completion modal -->
     <div class="modal hidden" id="gameModal">
@@ -64,12 +67,13 @@
         </div>
     </div>
     
-    <!-- JavaScript files -->
+    <!-- JavaScript files - Load universal systems first -->
     <script src="js/plusoneconfig.js"></script>
     <script src="../../js/shared/buttonbar.js"></script>
     <script src="../../js/shared/audio.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
+    <!-- Then game-specific files -->
     <script src="js/plusoneiconrenderer.js"></script>
     <script src="js/plusonegamecontroller.js"></script>
 </body>
