@@ -46,7 +46,6 @@ body {
     height: 60%; /* 90% - 30% = 60% height */
     /* Visual debugging - remove in production */
     /* border: 1px dashed rgba(255, 0, 0, 0.3); */
-    border-right: 1px dotted rgba(0, 0, 0, 0.3); /* Dotted line at 40% (46% minus 6% margin) */
     transition: background-color 0.2s ease;
     z-index: 1;
 }
@@ -62,6 +61,8 @@ body {
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-left: 1px dotted rgba(0, 0, 0, 0.3); /* Dotted line at 46% */
+    border-right: 1px dotted rgba(0, 0, 0, 0.3); /* Dotted line at 54% */
     z-index: 0; /* Below game area background and rainbow */
 }
 
@@ -100,7 +101,6 @@ body {
     height: 60%; /* 90% - 30% = 60% height */
     /* Visual debugging - remove in production */
     /* border: 1px dashed rgba(0, 255, 0, 0.3); */
-    border-left: 1px dotted rgba(0, 0, 0, 0.3); /* Dotted line at 60% (54% plus 6% margin) */
     transition: background-color 0.2s ease;
     z-index: 1;
 }
