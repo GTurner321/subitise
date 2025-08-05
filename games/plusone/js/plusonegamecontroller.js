@@ -484,6 +484,7 @@ class PlusOneGameController {
         
         console.log('🚫 Touch protection enabled for game areas');
     }
+    }
 
     handleKeyboardDigit(digit) {
         const currentTime = Date.now();
@@ -564,13 +565,27 @@ class PlusOneGameController {
             validAnswers.push(this.currentAnswer);
         }
         
-        // For picture format, also include all button numbers
+        // For picture format, also include all button numbers (but prioritize correct answers)
         if (this.shouldUsePictureFormat()) {
-            validAnswers.push(...CONFIG.BUTTON_CONFIGS.PICTURE_FORMAT.numbers);
+            CONFIG.BUTTON_CONFIGS.PICTURE_FORMAT.numbers.forEach(num => {
+                if (!validAnswers.includes(num)) {
+                    validAnswers.push(num);
+                }
+            });
+        } else {
+            // For number format, include the multiple choice options from buttons
+            if (window.ButtonBar && window.ButtonBar.buttons) {
+                window.ButtonBar.buttons.forEach(btn => {
+                    const btnNumber = parseInt(btn.dataset.number);
+                    if (!validAnswers.includes(btnNumber)) {
+                        validAnswers.push(btnNumber);
+                    }
+                });
+            }
         }
         
-        // Remove duplicates and return
-        return [...new Set(validAnswers)];
+        // Remove duplicates and sort for consistent behavior
+        return [...new Set(validAnswers)].sort((a, b) => a - b);
     }
 
     couldBePartOfLargerNumber() {
