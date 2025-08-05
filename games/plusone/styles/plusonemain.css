@@ -237,30 +237,32 @@ body {
 }
 
 .sum-row.loaded {
-    opacity: 1;
+    /* Don't override the forced transparency - let animation handle it */
 }
 
-/* SIMPLIFIED: Show sum row immediately */
-.sum-row:not(.dimensions-ready) {
-    /* Don't hide - show immediately */
-    visibility: visible;
-    opacity: 1;
-}
-
-.sum-row.dimensions-ready {
-    visibility: visible;
-}
-
+/* OVERRIDE: Force sum row to stay transparent regardless of other classes */
+.sum-row:not(.dimensions-ready),
+.sum-row.dimensions-ready,
 .sum-row.dimensions-ready.loaded {
-    opacity: 1;
+    opacity: 0 !important; /* Force transparency until animation starts */
 }
 
-/* Prevent sum row from fading */
+/* Prevent sum row from fading during content transitions - but allow initial fade-in */
 .sum-row.fade-out,
 .sum-row.fade-in {
     animation: none !important;
-    opacity: 1 !important;
+    /* Don't force opacity here - let the sumBarFadeIn animation handle initial display */
     transform: translateX(-50%) !important;
+}
+
+/* After sum bar has faded in, allow normal opacity control */
+.sum-row.sum-bar-ready {
+    opacity: 1 !important;
+}
+
+.sum-row.sum-bar-ready.fade-out,
+.sum-row.sum-bar-ready.fade-in {
+    opacity: 1 !important;
 }
 
 .sum-plus-sign,
@@ -363,6 +365,16 @@ body {
     }
     to {
         opacity: 0;
+    }
+}
+
+/* Sum row fade-in animation - delayed start */
+@keyframes sumBarFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
     }
 }
 
