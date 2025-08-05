@@ -545,7 +545,7 @@ class AddGameController {
                 // Third sum onwards - randomize from 3 options
                 const randomPrompts = [
                     'Complete the sum',
-                    'Have a go at this one',
+                    'Give this one a go',
                     'Here\'s another'
                 ];
                 const randomPrompt = randomPrompts[Math.floor(Math.random() * randomPrompts.length)];
