@@ -155,37 +155,73 @@ class PlusOneGameController {
     }
 
     showGameElements() {
+        console.log('🎮 showGameElements called - checking dimensions-ready status...');
+        
+        // Check current state of elements
+        const gameAreaReady = this.gameArea && this.gameArea.classList.contains('dimensions-ready');
+        const sumRowReady = this.sumRow && this.sumRow.classList.contains('dimensions-ready');
+        
+        console.log('📊 Element readiness check:', {
+            gameAreaExists: !!this.gameArea,
+            gameAreaReady: gameAreaReady,
+            sumRowExists: !!this.sumRow, 
+            sumRowReady: sumRowReady
+        });
+        
         // Only fade in game area and sum row AFTER dimensions are ready
-        // The dimensions-ready class should already be set by the renderer
-        if (this.gameArea && this.gameArea.classList.contains('dimensions-ready')) {
+        if (gameAreaReady) {
+            console.log('✅ Game area is dimensions-ready, adding loaded class');
             this.gameArea.classList.add('loaded');
         } else {
+            console.log('⏳ Game area not dimensions-ready, waiting...');
             // Wait for dimensions to be ready
             const checkDimensions = () => {
                 if (this.gameArea && this.gameArea.classList.contains('dimensions-ready')) {
+                    console.log('✅ Game area became dimensions-ready, adding loaded class');
                     this.gameArea.classList.add('loaded');
                 } else {
-                    setTimeout(checkDimensions, 100);
+                    console.log('⏳ Still waiting for game area dimensions-ready...');
+                    setTimeout(checkDimensions, 200);
                 }
             };
             setTimeout(checkDimensions, 100);
         }
         
-        if (this.sumRow && this.sumRow.classList.contains('dimensions-ready')) {
+        if (sumRowReady) {
+            console.log('✅ Sum row is dimensions-ready, adding loaded class');
             this.sumRow.classList.add('loaded');
         } else {
+            console.log('⏳ Sum row not dimensions-ready, waiting...');
             // Wait for dimensions to be ready
             const checkSumRowDimensions = () => {
                 if (this.sumRow && this.sumRow.classList.contains('dimensions-ready')) {
+                    console.log('✅ Sum row became dimensions-ready, adding loaded class');
                     this.sumRow.classList.add('loaded');
                 } else {
-                    setTimeout(checkSumRowDimensions, 100);
+                    console.log('⏳ Still waiting for sum row dimensions-ready...');
+                    setTimeout(checkSumRowDimensions, 200);
                 }
             };
             setTimeout(checkSumRowDimensions, 100);
         }
         
-        console.log('🎮 Game elements faded in (after dimensions ready)');
+        // Failsafe: Force visibility after reasonable time if dimensions-ready never happens
+        setTimeout(() => {
+            if (this.gameArea && !this.gameArea.classList.contains('loaded')) {
+                console.warn('⚠️ FAILSAFE: Game area never became ready, forcing visibility');
+                this.gameArea.classList.add('dimensions-ready', 'loaded');
+                this.gameArea.style.visibility = 'visible';
+                this.gameArea.style.opacity = '1';
+            }
+            if (this.sumRow && !this.sumRow.classList.contains('loaded')) {
+                console.warn('⚠️ FAILSAFE: Sum row never became ready, forcing visibility');
+                this.sumRow.classList.add('dimensions-ready', 'loaded');
+                this.sumRow.style.visibility = 'visible';
+                this.sumRow.style.opacity = '1';
+            }
+        }, 3000); // 3 second failsafe
+        
+        console.log('🎮 Game elements show sequence initiated');
     }
 
     createButtons() {
