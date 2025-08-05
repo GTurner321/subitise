@@ -272,6 +272,7 @@ body {
     min-width: clamp(26px, 5.2vw, 52px); /* INCREASED: Was clamp(20px, 4vw, 40px) - 30% larger */
     text-align: center;
     flex-shrink: 0;
+    margin-left: 1.5%; /* Additional space before tick mark */
 }
 
 .check-mark.visible {
