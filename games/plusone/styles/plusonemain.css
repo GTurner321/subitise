@@ -23,11 +23,11 @@ body {
     flex-direction: column;
 }
 
-/* Game area sections layout with initial fade state */
+/* Game area sections layout with immediate visibility */
 .game-area {
     display: block;
-    opacity: 0;
-    transition: opacity 1s ease-in-out;
+    opacity: 1; /* Start visible to prevent delay */
+    transition: opacity 0.5s ease-in-out; /* Faster transition */
     position: relative;
     /* Width, margins, and bottom spacing set by ButtonBar system */
     /* DO NOT override these - they are calculated by the universal system */
@@ -37,10 +37,11 @@ body {
     opacity: 1;
 }
 
-/* CRITICAL: Hide game area until CSS custom properties are set */
+/* SIMPLIFIED: Show game area immediately, let ButtonBar coordinate later */
 .game-area:not(.dimensions-ready) {
-    visibility: hidden !important;
-    opacity: 0 !important;
+    /* Don't hide - show immediately and let coordination happen in background */
+    visibility: visible;
+    opacity: 1;
 }
 
 .game-area.dimensions-ready {
@@ -228,18 +229,19 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 2px solid #e0e0e0;
     box-sizing: border-box;
-    opacity: 0;
-    transition: opacity 1s ease-in-out, width 0.3s ease;
+    opacity: 1; /* Start visible */
+    transition: opacity 0.5s ease-in-out, width 0.3s ease; /* Faster transition */
 }
 
 .sum-row.loaded {
     opacity: 1;
 }
 
-/* CRITICAL: Hide sum row until CSS custom properties are set */
+/* SIMPLIFIED: Show sum row immediately */
 .sum-row:not(.dimensions-ready) {
-    visibility: hidden !important;
-    opacity: 0 !important;
+    /* Don't hide - show immediately */
+    visibility: visible;
+    opacity: 1;
 }
 
 .sum-row.dimensions-ready {
