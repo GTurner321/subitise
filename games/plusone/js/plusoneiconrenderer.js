@@ -102,7 +102,7 @@ class PlusOneContentRenderer {
                 console.log('🎯 ButtonBar dimensions updated for renderer:', dimensionData);
                 this.buttonBarReady = true;
                 
-                // Update game area dimensions immediately
+                // Update game area dimensions immediately with no delay
                 this.updateGameAreaDimensions();
                 
                 // If we have a pending render, execute it now
@@ -110,12 +110,10 @@ class PlusOneContentRenderer {
                     console.log('🎮 Executing pending render with ButtonBar dimensions');
                     const { leftCount, currentLevel } = this.pendingRender;
                     this.pendingRender = null;
-                    // Small delay to ensure dimensions are stable
-                    setTimeout(() => {
-                        this.renderContent(leftCount, currentLevel);
-                    }, 50);
+                    // No delay - execute immediately
+                    this.renderContent(leftCount, currentLevel);
                 } else if (this.currentContent.length > 0) {
-                    // Update existing content positions and sizes
+                    // Update existing content positions and sizes immediately
                     this.updateContentSizesAndPositions();
                 }
             });
@@ -124,9 +122,8 @@ class PlusOneContentRenderer {
             if (window.ButtonBar.dimensions && window.ButtonBar.dimensions.buttonPanelWidth > 0) {
                 console.log('🎯 ButtonBar already has dimensions, setting flag immediately');
                 this.buttonBarReady = true;
-                setTimeout(() => {
-                    this.updateGameAreaDimensions();
-                }, 50);
+                // No delay - update immediately
+                this.updateGameAreaDimensions();
             }
         } else {
             console.warn('⚠️ ButtonBar not available when setting up coordination');
@@ -175,25 +172,44 @@ class PlusOneContentRenderer {
     }
 
     setupResizeHandling() {
-        // Debounced resize handler
+        // More responsive resize handler with shorter debounce
         let resizeTimeout;
         
         window.addEventListener('resize', () => {
+            // Clear any existing timeout
             if (resizeTimeout) {
                 clearTimeout(resizeTimeout);
             }
+            
+            // Immediate response for ButtonBar updates
+            if (window.ButtonBar && typeof window.ButtonBar.handleResize === 'function') {
+                window.ButtonBar.handleResize();
+            }
+            
+            // Quick update of our dimensions
             resizeTimeout = setTimeout(() => {
                 if (this.buttonBarReady) {
-                    console.log('🔄 Handling resize event');
+                    console.log('🔄 Handling resize event - fast response');
+                    this.updateGameAreaDimensions();
+                    this.updateContentSizesAndPositions();
+                }
+            }, 50); // Reduced from 100ms to 50ms for faster response
+        });
+        
+        // Also listen for orientation changes on mobile
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                if (this.buttonBarReady) {
+                    console.log('📱 Handling orientation change');
                     this.updateGameAreaDimensions();
                     this.updateContentSizesAndPositions();
                     
-                    // Also trigger ButtonBar resize if needed
+                    // Force ButtonBar resize after orientation change
                     if (window.ButtonBar && typeof window.ButtonBar.handleResize === 'function') {
                         window.ButtonBar.handleResize();
                     }
                 }
-            }, 100);
+            }, 100); // Small delay for orientation change to complete
         });
     }
     
