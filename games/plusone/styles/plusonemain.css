@@ -23,11 +23,11 @@ body {
     flex-direction: column;
 }
 
-/* Game area sections layout with immediate visibility */
+/* Game area sections layout with controlled fade-in */
 .game-area {
     display: block;
-    opacity: 1; /* Start visible to prevent delay */
-    transition: opacity 0.5s ease-in-out; /* Faster transition */
+    opacity: 0; /* Start hidden for controlled fade-in */
+    transition: opacity 1s ease-in-out; /* Smooth transition */
     position: relative;
     /* Width, margins, and bottom spacing set by ButtonBar system */
     /* DO NOT override these - they are calculated by the universal system */
@@ -47,16 +47,10 @@ body {
 }
 
 .game-area.loaded {
-    opacity: 1;
+    opacity: 1; /* Show when loaded */
 }
 
-/* SIMPLIFIED: Show game area immediately, let ButtonBar coordinate later */
-.game-area:not(.dimensions-ready) {
-    /* Don't hide - show immediately and let coordination happen in background */
-    visibility: visible;
-    opacity: 1;
-}
-
+/* Show game area when dimensions are ready and loaded */
 .game-area.dimensions-ready {
     visibility: visible;
 }
@@ -72,8 +66,6 @@ body {
     width: 34%; /* 40% - 6% = 34% width */
     bottom: 30%; /* 30% of game area height from bottom */
     height: 60%; /* 90% - 30% = 60% height */
-    /* Visual debugging - remove in production */
-    /* border: 1px dashed rgba(255, 0, 0, 0.3); */
     transition: background-color 0.2s ease;
     z-index: 1;
     
@@ -84,7 +76,7 @@ body {
     user-select: none;
 }
 
-/* Middle section - central bar with plus sign */
+/* Middle section - central bar with operator sign */
 .middle-section {
     position: absolute;
     left: 46%; /* Center section 46%-54% */
@@ -102,6 +94,7 @@ body {
     border-right: 2px dashed #ddd;
 }
 
+/* Operator sign - can be plus or minus */
 .plus-sign {
     display: flex;
     justify-content: center;
@@ -129,8 +122,6 @@ body {
     width: 34%; /* 94% - 60% = 34% width */
     bottom: 30%; /* 30% of game area height from bottom */
     height: 60%; /* 90% - 30% = 60% height */
-    /* Visual debugging - remove in production */
-    /* border: 1px dashed rgba(0, 255, 0, 0.3); */
     transition: background-color 0.2s ease;
     z-index: 1;
     
@@ -258,30 +249,16 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 2px solid #e0e0e0;
     box-sizing: border-box;
-    opacity: 0; /* Start hidden to prevent initial style flash */
-    transition: opacity 0.5s ease-in-out, width 0.3s ease;
+    opacity: 0; /* Start hidden for controlled fade-in */
+    transition: opacity 1s ease-in-out, width 0.3s ease;
     
     /* Fade in after 1 second to allow styles to settle */
     animation: delayedFadeIn 0.5s ease-in-out 1s forwards;
 }
 
-.sum-row.loaded {
-    /* Don't override the forced transparency - let animation handle it */
-}
-
-/* OVERRIDE: Force sum row to stay transparent regardless of other classes */
-.sum-row:not(.dimensions-ready),
-.sum-row.dimensions-ready,
-.sum-row.dimensions-ready.loaded {
-    opacity: 0 !important; /* Force transparency until animation starts */
-}
-
-/* Prevent sum row from fading during content transitions - but allow initial fade-in */
-.sum-row.fade-out,
-.sum-row.fade-in {
-    animation: none !important;
-    /* Don't force opacity here - let the sumBarFadeIn animation handle initial display */
-    transform: translateX(-50%) !important;
+/* OVERRIDE: Force sum row to stay transparent until animation starts */
+.sum-row:not(.sum-bar-ready) {
+    opacity: 0 !important; /* Force transparency until ready */
 }
 
 /* After sum bar has faded in, allow normal opacity control */
@@ -289,11 +266,13 @@ body {
     opacity: 1 !important;
 }
 
+/* Prevent sum row from disappearing during content transitions */
 .sum-row.sum-bar-ready.fade-out,
 .sum-row.sum-bar-ready.fade-in {
     opacity: 1 !important;
 }
 
+/* Sum row operator and equals signs - support both + and - */
 .sum-plus-sign,
 .sum-equals-sign {
     font-size: clamp(21px, 5.2vw, 42px);
@@ -313,7 +292,7 @@ body {
     transition: width 0.3s ease; /* Smooth transition when boxes resize */
 }
 
-/* Input boxes for Plus One game sum bar */
+/* Input boxes for Plus One/Minus One game sum bar */
 .input-box {
     background: white;
     border: 4px solid #007bff;
@@ -379,13 +358,13 @@ body {
     opacity: 1;
 }
 
-/* Fade animations - exclude sum row */
-.fade-out:not(.sum-row) {
-    animation: fadeOut 1s ease-out forwards;
+/* Improved fade animations - exclude persistent elements */
+.fade-out:not(.sum-row):not(.middle-section):not(.plus-sign) {
+    animation: fadeOut 0.6s ease-out forwards;
 }
 
-.fade-in:not(.sum-row) {
-    animation: fadeIn 1s ease-in forwards;
+.fade-in:not(.sum-row):not(.middle-section):not(.plus-sign) {
+    animation: fadeIn 0.8s ease-in forwards;
 }
 
 @keyframes fadeOut {
@@ -394,16 +373,6 @@ body {
     }
     to {
         opacity: 0;
-    }
-}
-
-/* Sum row fade-in animation - delayed start */
-@keyframes sumBarFadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
     }
 }
 
