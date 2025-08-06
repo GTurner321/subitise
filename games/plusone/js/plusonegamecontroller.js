@@ -82,7 +82,7 @@ class PlusOneGameController {
         try {
             const key = gameMode === CONFIG.GAME_MODES.MINUS_ONE ? 
                 CONFIG.STORAGE_KEYS.MINUS_ONE_LEVEL : CONFIG.STORAGE_KEYS.PLUS_ONE_LEVEL;
-            const stored = localStorage.getItem(key);
+            const stored = sessionStorage.getItem(key); // Use sessionStorage instead of localStorage
             return stored ? parseInt(stored, 10) : 1;
         } catch (error) {
             console.warn('Could not load stored level:', error);
@@ -94,7 +94,7 @@ class PlusOneGameController {
         try {
             const key = this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ? 
                 CONFIG.STORAGE_KEYS.MINUS_ONE_LEVEL : CONFIG.STORAGE_KEYS.PLUS_ONE_LEVEL;
-            localStorage.setItem(key, this.currentLevel.toString());
+            sessionStorage.setItem(key, this.currentLevel.toString()); // Use sessionStorage instead of localStorage
         } catch (error) {
             console.warn('Could not save current level:', error);
         }
@@ -102,12 +102,15 @@ class PlusOneGameController {
 
     switchGameMode(newGameMode) {
         this.gameMode = newGameMode;
-        this.currentLevel = this.loadStoredLevel(newGameMode);
+        this.currentLevel = Math.min(this.loadStoredLevel(newGameMode), 4); // Start at saved level or level 4, whichever is lowest
         this.questionsCompleted = 0;
         this.gameComplete = false;
         this.usedNumbersInLevel.clear();
         this.failedAtCurrentLevel = false;
         this.resetQuestionState();
+        
+        // Update the operator symbol in the middle section
+        this.updateOperatorSymbol();
         
         console.log(`🔄 Switched to ${newGameMode} mode, starting at level ${this.currentLevel}`);
     }
@@ -210,6 +213,9 @@ class PlusOneGameController {
     initializeGame() {
         console.log('🎮 Starting game initialization');
         
+        // Set the correct operator symbol from the start
+        this.updateOperatorSymbol();
+        
         // Start all elements at 0% opacity
         this.hideAllElements();
         
@@ -230,6 +236,18 @@ class PlusOneGameController {
             }, 500);
             
         }, CONFIG.INITIAL_FADE_DELAY);
+    }
+
+    updateOperatorSymbol() {
+        // Update the operator symbol in the middle section
+        const operatorIcon = document.getElementById('operatorIcon');
+        if (operatorIcon) {
+            if (this.gameMode === CONFIG.GAME_MODES.MINUS_ONE) {
+                operatorIcon.className = 'fas fa-minus';
+            } else {
+                operatorIcon.className = 'fas fa-plus';
+            }
+        }
     }
 
     hideAllElements() {
@@ -1041,7 +1059,21 @@ class PlusOneGameController {
                     this.speakText(audioConfig.LATER_QUESTIONS);
                 }
             } else {
-                this.speakText(audioConfig.NUMBER_FORMAT_QUESTION(this.currentNumber));
+                // For number format questions
+                if (this.gameMode === CONFIG.GAME_MODES.MINUS_ONE) {
+                    if (this.questionsCompleted === 0) {
+                        // First question uses specific format
+                        this.speakText(audioConfig.FIRST_NUMBER_FORMAT_QUESTION(this.currentNumber));
+                    } else {
+                        // Subsequent questions use random format
+                        const randomQuestions = audioConfig.NUMBER_FORMAT_QUESTIONS;
+                        const randomQuestion = randomQuestions[Math.floor(Math.random() * randomQuestions.length)];
+                        this.speakText(randomQuestion(this.currentNumber));
+                    }
+                } else {
+                    // Plus one always uses the same format
+                    this.speakText(audioConfig.NUMBER_FORMAT_QUESTION(this.currentNumber));
+                }
             }
         }, 500);
     }
@@ -1177,7 +1209,10 @@ class PlusOneGameController {
 
     // GAME MANAGEMENT
     startNewGame() {
-        console.log(`New game: Starting ${this.gameMode} at level ${this.currentLevel}`);
+        console.log(`New game: Starting ${this.gameMode} at level ${Math.min(this.currentLevel, 4)}`);
+        
+        // Apply level 4 cap for new games
+        this.currentLevel = Math.min(this.currentLevel, 4);
         
         this.questionsCompleted = 0;
         this.gameComplete = false;
@@ -1191,6 +1226,9 @@ class PlusOneGameController {
         // Reset question type tracking for new game
         this.currentQuestionType = null;
         this.previousQuestionType = null;
+        
+        // Update operator symbol for current game mode
+        this.updateOperatorSymbol();
         
         this.rainbow.reset();
         this.bear.reset();
@@ -1389,5 +1427,16 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('beforeunload', () => {
     if (window.plusOneGame) {
         window.plusOneGame.destroy();
+    }
+    // Clear session storage when leaving the game
+    CONFIG.clearStoredLevels();
+});
+
+// Also clear levels when navigating away via links
+document.addEventListener('click', (e) => {
+    const link = e.target.closest('a[href]');
+    if (link && !link.href.includes('plusone')) {
+        // User is navigating away from the plusone game
+        CONFIG.clearStoredLevels();
     }
 });
