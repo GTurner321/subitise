@@ -97,7 +97,7 @@ class PlusOneGameController {
             
             if (buttonBarReady && gameAreaReady) {
                 console.log(`🎮 All systems ready after ${this.readyCheckCount} checks (${this.readyCheckCount * CONFIG.SYSTEM_CHECK_INTERVAL}ms)`);
-                this.systemsReady = true;
+                this.systemsReady = true; // Set this flag early for keyboard input
                 
                 // Setup content renderer coordination FIRST
                 if (this.contentRenderer && typeof this.contentRenderer.setupButtonBarCoordination === 'function') {
@@ -120,7 +120,7 @@ class PlusOneGameController {
             // Check if we've exceeded maximum checks
             if (this.readyCheckCount >= CONFIG.MAX_READY_CHECKS) {
                 console.warn(`⚠️ Systems not ready after ${CONFIG.FAILSAFE_TIMEOUT}ms, forcing initialization`);
-                this.systemsReady = true;
+                this.systemsReady = true; // Set flag even if forced
                 this.forceInitialization();
                 return;
             }
@@ -139,6 +139,8 @@ class PlusOneGameController {
      */
     forceInitialization() {
         console.log('🚨 Force initializing game systems');
+        
+        this.systemsReady = true; // Ensure this flag is set for keyboard input
         
         // Try to setup content renderer if available
         if (this.contentRenderer && typeof this.contentRenderer.setupButtonBarCoordination === 'function') {
@@ -419,12 +421,22 @@ class PlusOneGameController {
 
         // Keyboard event listener - ensure it's active immediately
         const keyboardHandler = (e) => {
-            if (this.buttonsDisabled || this.gameComplete || !this.initializationComplete) {
+            // More permissive conditions - allow input as soon as systems are ready
+            if (this.buttonsDisabled || this.gameComplete) {
+                console.log('🚫 Keyboard input blocked:', { buttonsDisabled: this.buttonsDisabled, gameComplete: this.gameComplete });
+                return;
+            }
+            
+            // Allow input as soon as systems are ready, don't wait for full initialization
+            if (!this.systemsReady) {
+                console.log('🚫 Keyboard input blocked: systems not ready');
                 return;
             }
             
             if (e.key >= '0' && e.key <= '9') {
                 e.preventDefault();
+                
+                console.log('⌨️ Keyboard digit accepted:', e.key);
                 
                 this.clearInactivityTimer();
                 this.startInactivityTimer();
@@ -732,7 +744,16 @@ class PlusOneGameController {
     }
 
     startNewQuestion() {
-        if (this.gameComplete || !this.initializationComplete) {
+        if (this.gameComplete) {
+            return;
+        }
+        
+        // Don't require full initialization - just systems ready
+        if (!this.systemsReady) {
+            console.log('⏳ Systems not ready for new question, waiting...');
+            setTimeout(() => {
+                this.startNewQuestion();
+            }, 100);
             return;
         }
 
@@ -749,7 +770,7 @@ class PlusOneGameController {
         // Generate n+1 question for current level
         this.generatePlusOneQuestion();
         
-        console.log(`Question: ${this.currentNumber} + 1 = ${this.currentAnswer}, Level: ${this.currentLevel}`);
+        console.log(`🎮 NEW QUESTION: ${this.currentNumber} + 1 = ${this.currentAnswer}, Level: ${this.currentLevel} (Keyboard input available)`);
         
         // Update buttons for number format levels
         if (this.shouldUseNumberFormat()) {
