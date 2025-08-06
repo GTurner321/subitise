@@ -611,7 +611,7 @@ class PlusOneGameController {
 
     couldBePartOfLargerNumber() {
         // Check if "1" could be part of a larger valid answer
-        const possibleAnswers = this.getPossibleAnswers();
+        const possibleAnswers = this.getAvailableAnswerSets();
         return possibleAnswers.some(answer => answer >= 10 && answer.toString().startsWith('1'));
     }
 
