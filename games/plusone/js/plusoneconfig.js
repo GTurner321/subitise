@@ -203,7 +203,16 @@ const CONFIG = {
             FIRST_QUESTION: 'Complete the minus one sum',
             SECOND_QUESTION: 'Try again and complete the sum',
             LATER_QUESTIONS: 'Complete the sum',
-            NUMBER_FORMAT_QUESTION: (n) => `What number is one less than ${n}?`,
+            // First question format
+            FIRST_NUMBER_FORMAT_QUESTION: (n) => `What number is one less than ${n}?`,
+            // Random question formats for subsequent questions
+            NUMBER_FORMAT_QUESTIONS: [
+                (n) => `What number is 1 less than ${n}?`,
+                (n) => `What is ${n} subtract 1?`,
+                (n) => `What is ${n} take away 1?`,
+                (n) => `What is ${n} minus 1?`,
+                (n) => `What number comes before ${n}?`
+            ],
             HINTS: {
                 COUNT_LEFT: 'Count the number of pictures on the left side',
                 COUNT_RIGHT: 'Count the number of pictures on the right side',
@@ -270,10 +279,20 @@ const CONFIG = {
     FAILSAFE_TIMEOUT: 2000,
     MAX_READY_CHECKS: 40,
     
-    // Local storage keys for persistence
+    // Local storage keys for session-only persistence (not cross-session)
     STORAGE_KEYS: {
-        PLUS_ONE_LEVEL: 'plusone_current_level',
-        MINUS_ONE_LEVEL: 'minusone_current_level'
+        PLUS_ONE_LEVEL: 'session_plusone_current_level',
+        MINUS_ONE_LEVEL: 'session_minusone_current_level'
+    },
+    
+    // Session storage management
+    clearStoredLevels: function() {
+        try {
+            sessionStorage.removeItem(this.STORAGE_KEYS.PLUS_ONE_LEVEL);
+            sessionStorage.removeItem(this.STORAGE_KEYS.MINUS_ONE_LEVEL);
+        } catch (error) {
+            console.warn('Could not clear stored levels:', error);
+        }
     }
 };
 
