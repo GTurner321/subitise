@@ -867,6 +867,7 @@ class PlusOneGameController {
         
         if (this.isTabVisible) {
             setTimeout(() => {
+                if (this.shouldUseNumberFormat()) {
                     this.speakText(CONFIG.AUDIO.NUMBER_HINTS.WHAT_COMES_AFTER(this.currentNumber));
                 } else {
                     this.speakText(CONFIG.AUDIO.TRY_AGAIN);
