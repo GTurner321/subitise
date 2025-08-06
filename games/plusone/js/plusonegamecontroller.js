@@ -33,6 +33,9 @@ class PlusOneGameController {
         this.buttonsDisabled = false;
         this.hasAttemptedAnyAnswer = false; // Track if user has made any incorrect attempts on current question
         
+        // Enhanced keyboard buffer system - track used answers
+        this.usedAnswersInCurrentQuestion = new Set(); // Track which answers have been used in current question
+        
         // Box state tracking - all boxes start empty for levels 1-2 and 5
         this.leftFilled = false;
         this.rightFilled = false; // Right box fillable in picture format
@@ -496,6 +499,7 @@ class PlusOneGameController {
         
         console.log('🚫 Touch protection enabled for game areas');
     }
+    }
 
     handleKeyboardDigit(digit) {
         const currentTime = Date.now();
@@ -518,6 +522,9 @@ class PlusOneGameController {
         // Clear any existing timer
         this.clearKeyboardTimer();
         this.resetKeyboardState();
+        
+        // Reset used answers for new game
+        this.usedAnswersInCurrentQuestion.clear();
         
         // Check if buffer matches any valid answers immediately
         const currentBufferNumber = parseInt(this.keyboardBuffer);
@@ -562,25 +569,25 @@ class PlusOneGameController {
         this.clearKeyboardTimer();
     }
     
-    getValidAnswersForCurrentState() {
+    getAvailableAnswerSets() {
         // Get all possible valid answers based on current box state
-        const validAnswers = [];
+        const allValidAnswers = [];
         
         if (!this.leftFilled) {
-            validAnswers.push(this.currentNumber);
+            allValidAnswers.push(this.currentNumber);
         }
         if (!this.rightFilled) {
-            validAnswers.push(1);
+            allValidAnswers.push(1);
         }
         if (!this.totalFilled) {
-            validAnswers.push(this.currentAnswer);
+            allValidAnswers.push(this.currentAnswer);
         }
         
         // For picture format, also include all button numbers (but prioritize correct answers)
         if (this.shouldUsePictureFormat()) {
             CONFIG.BUTTON_CONFIGS.PICTURE_FORMAT.numbers.forEach(num => {
-                if (!validAnswers.includes(num)) {
-                    validAnswers.push(num);
+                if (!allValidAnswers.includes(num)) {
+                    allValidAnswers.push(num);
                 }
             });
         } else {
@@ -588,15 +595,19 @@ class PlusOneGameController {
             if (window.ButtonBar && window.ButtonBar.buttons) {
                 window.ButtonBar.buttons.forEach(btn => {
                     const btnNumber = parseInt(btn.dataset.number);
-                    if (!validAnswers.includes(btnNumber)) {
-                        validAnswers.push(btnNumber);
+                    if (!allValidAnswers.includes(btnNumber)) {
+                        allValidAnswers.push(btnNumber);
                     }
                 });
             }
         }
         
-        // Remove duplicates and sort for consistent behavior
-        return [...new Set(validAnswers)].sort((a, b) => a - b);
+        // Remove used answers and duplicates, then sort
+        const availableAnswers = [...new Set(allValidAnswers)]
+            .filter(answer => !this.usedAnswersInCurrentQuestion.has(answer))
+            .sort((a, b) => a - b);
+            
+        return availableAnswers;
     }
 
     couldBePartOfLargerNumber() {
@@ -759,6 +770,10 @@ class PlusOneGameController {
         this.resetBoxState();
         this.hintGiven = false;
         this.hasAttemptedAnyAnswer = false; // Reset attempt tracking for new question
+        
+        // Reset used answers for new question
+        this.usedAnswersInCurrentQuestion.clear();
+        console.log('🆕 New question: Reset used answers set');
 
         // Re-enable buttons FIRST before generating question
         this.buttonsDisabled = false;
@@ -947,6 +962,9 @@ class PlusOneGameController {
         }
         
         if (correctAnswer) {
+            // Mark this number as used for keyboard algorithm
+            this.usedAnswersInCurrentQuestion.add(selectedNumber);
+            console.log(`✅ Used answer: ${selectedNumber}. Used answers now: [${Array.from(this.usedAnswersInCurrentQuestion).join(', ')}]`);
             this.checkQuestionCompletion();
         } else {
             this.handleIncorrectAnswer(buttonElement, selectedNumber);
