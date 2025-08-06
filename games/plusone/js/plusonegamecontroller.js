@@ -115,6 +115,9 @@ class PlusOneGameController {
         // Update the operator symbol in the middle section
         this.updateOperatorSymbol();
         
+        // Register activity for mode switch
+        this.stats.registerActivity();
+        
         console.log(`🔄 Switched to ${newGameMode} mode, starting at level ${this.currentLevel}`);
     }
 
@@ -827,34 +830,6 @@ class PlusOneGameController {
             this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
-        
-        let correctAnswer = false;
-        
-        if (!this.leftFilled && selectedNumber === this.currentNumber) {
-            this.fillBox('left', selectedNumber, buttonElement);
-            correctAnswer = true;
-        } else if (!this.rightFilled && selectedNumber === this.getOperatorValue()) {
-            this.fillBox('right', selectedNumber, buttonElement);
-            correctAnswer = true;
-        } else if (!this.totalFilled && selectedNumber === this.currentAnswer) {
-            this.fillBox('total', selectedNumber, buttonElement);
-            correctAnswer = true;
-        }
-        
-        // Record statistics for first attempt only
-        if (!this.hasAttemptedAnyAnswer) {
-            this.stats.recordQuestionAttempt(correctAnswer);
-            this.stats.registerActivity();
-        }
-        
-        if (correctAnswer) {
-            this.usedAnswersInCurrentQuestion.add(selectedNumber);
-            console.log(`✅ Used answer: ${selectedNumber}. Used: [${Array.from(this.usedAnswersInCurrentQuestion).join(', ')}]`);
-            this.checkQuestionCompletion();
-        } else {
-            this.handleIncorrectAnswer(buttonElement, selectedNumber);
-        }
-    }
 
     fillBox(boxType, selectedNumber, buttonElement) {
         if (!buttonElement && window.ButtonBar) {
@@ -1283,6 +1258,9 @@ class PlusOneGameController {
         
         // Update operator symbol for current game mode
         this.updateOperatorSymbol();
+        
+        // Don't reset stats - continue tracking across rounds in same session
+        this.stats.registerActivity();
         
         this.rainbow.reset();
         this.bear.reset();
