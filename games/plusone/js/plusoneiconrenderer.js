@@ -1,8 +1,8 @@
-console.log('🔍 LOADING PLUS ONE CONTENT RENDERER - Fast initialization mode');
+console.log('🔍 LOADING PLUS ONE CONTENT RENDERER - Dual Mode Version');
 
 class PlusOneContentRenderer {
     constructor() {
-        console.log('PlusOneContentRenderer constructor - using fast initialization');
+        console.log('PlusOneContentRenderer constructor - dual mode support');
         this.gameArea = document.querySelector('.game-area');
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
@@ -40,11 +40,9 @@ class PlusOneContentRenderer {
         
         // Setup immediate initialization
         this.setupResizeHandling();
-        
-        // Fast initialization - don't wait for explicit setup call
         this.fastInitialization();
         
-        console.log('🔍 PlusOneContentRenderer initialized with fast mode');
+        console.log('🔍 PlusOneContentRenderer initialized with dual mode support');
     }
 
     /**
@@ -72,7 +70,7 @@ class PlusOneContentRenderer {
             
             // Still try to set up coordination when ButtonBar becomes available
             let checkCount = 0;
-            const maxChecks = 10; // Reduced checks since we're not blocking
+            const maxChecks = 10;
             
             const quickCheck = () => {
                 checkCount++;
@@ -108,10 +106,10 @@ class PlusOneContentRenderer {
                 // If we have a pending render, execute it now
                 if (this.pendingRender) {
                     console.log('🎮 Executing pending render with ButtonBar dimensions');
-                    const { leftCount, currentLevel } = this.pendingRender;
+                    const { leftCount, currentLevel, gameMode } = this.pendingRender;
                     this.pendingRender = null;
                     // No delay - execute immediately
-                    this.renderContent(leftCount, currentLevel);
+                    this.renderContent(leftCount, currentLevel, gameMode);
                 } else if (this.currentContent.length > 0) {
                     // Update existing content positions and sizes immediately
                     this.updateContentSizesAndPositions();
@@ -166,8 +164,6 @@ class PlusOneContentRenderer {
             this.gameArea.classList.add('dimensions-ready');
         }
         
-        // Don't touch sum row - it handles its own timing via CSS animation
-        
         console.log('📏 Game area dimensions updated and marked ready:', this.gameAreaDimensions);
     }
 
@@ -193,7 +189,7 @@ class PlusOneContentRenderer {
                     this.updateGameAreaDimensions();
                     this.updateContentSizesAndPositions();
                 }
-            }, 50); // Reduced from 100ms to 50ms for faster response
+            }, 50);
         });
         
         // Also listen for orientation changes on mobile
@@ -209,7 +205,7 @@ class PlusOneContentRenderer {
                         window.ButtonBar.handleResize();
                     }
                 }
-            }, 100); // Small delay for orientation change to complete
+            }, 100);
         });
     }
     
@@ -239,7 +235,7 @@ class PlusOneContentRenderer {
                     numberElement.style.fontSize = `${numberSize}px`;
                 }
                 if (textElement) {
-                    textElement.style.fontSize = `${numberSize * 0.25}px`; // 25% of number size
+                    textElement.style.fontSize = `${numberSize * 0.25}px`;
                 }
             }
             
@@ -426,8 +422,8 @@ class PlusOneContentRenderer {
         return true;
     }
 
-    renderContent(leftCount, currentLevel) {
-        console.log(`🎮 === RENDERING CONTENT FOR LEVEL ${currentLevel}: ${leftCount} + 1 ===`);
+    renderContent(leftCount, currentLevel, gameMode = CONFIG.GAME_MODES.PLUS_ONE) {
+        console.log(`🎮 === RENDERING CONTENT FOR LEVEL ${currentLevel}: ${leftCount} ${gameMode === CONFIG.GAME_MODES.MINUS_ONE ? '-' : '+'} 1 ===`);
         
         // Don't wait for ButtonBar - proceed immediately if we have basic requirements
         this.clearContent();
@@ -461,29 +457,26 @@ class PlusOneContentRenderer {
             if (this.gameArea) {
                 this.gameArea.classList.add('dimensions-ready');
             }
-            const sumRow = document.getElementById('sumRow');
-            if (sumRow) {
-                sumRow.classList.add('dimensions-ready');
-            }
         }
         
         console.log('✅ Proceeding with content render - dimensions:', this.gameAreaDimensions);
         
         // Start actual rendering immediately
-        this.doActualRender(leftCount, currentLevel);
+        this.doActualRender(leftCount, currentLevel, gameMode);
     }
 
-    doActualRender(leftCount, currentLevel) {
+    doActualRender(leftCount, currentLevel, gameMode) {
         // Determine if this is a picture format level (icons) or number format (large numbers)
-        const isPictureFormat = currentLevel <= 2 || currentLevel === 5;
+        const isPictureFormat = CONFIG.usesPictureFormat(currentLevel, gameMode);
         
         if (isPictureFormat) {
             this.renderIcons(leftCount);
         } else {
-            this.renderNumbers(leftCount);
+            this.renderNumbers(leftCount, gameMode);
         }
         
-        return { left: leftCount, right: 1, total: leftCount + 1 };
+        const rightCount = 1; // Always 1 on the right side for both game modes
+        return { left: leftCount, right: rightCount, total: gameMode === CONFIG.GAME_MODES.MINUS_ONE ? leftCount - 1 : leftCount + 1 };
     }
 
     renderIcons(leftCount) {
@@ -519,7 +512,7 @@ class PlusOneContentRenderer {
             this.currentContent.push(icon);
         });
         
-        // Create right side icons (always 1 for Plus One)
+        // Create right side icons (always 1 for both game modes)
         rightPositions.forEach((pos, index) => {
             const icon = this.createIcon(iconClass, iconColor, iconSize, pos.x, pos.y, 'right', leftCount + index);
             icon.dataset.sideIndex = index;
@@ -531,8 +524,8 @@ class PlusOneContentRenderer {
         console.log(`🎉 Created ${this.currentContent.length} icons positioned relative to game area`);
     }
 
-    renderNumbers(leftNumber) {
-        console.log(`🔢 Rendering numbers: ${leftNumber} + 1`);
+    renderNumbers(leftNumber, gameMode) {
+        console.log(`🔢 Rendering numbers: ${leftNumber} ${gameMode === CONFIG.GAME_MODES.MINUS_ONE ? '-' : '+'} 1`);
         
         // Store the new content counts
         this.currentContentCount = { left: 1, right: 1 }; // One number display per side
