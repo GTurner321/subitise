@@ -1,14 +1,15 @@
 class PlusOneGameController {
     constructor() {
-        console.log('🎮 Plus One Game Controller - Complete Rewrite');
+        console.log('🎮 Plus One Game Controller - Dual Mode Version');
         
         // Initialize components
         this.contentRenderer = new PlusOneContentRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
         
-        // Game progression
-        this.currentLevel = 1;
+        // Game mode and progression
+        this.gameMode = CONFIG.GAME_MODES.PLUS_ONE; // Default to plus one
+        this.currentLevel = this.loadStoredLevel(this.gameMode);
         this.questionsCompleted = 0;
         this.gameComplete = false;
         
@@ -23,7 +24,7 @@ class PlusOneGameController {
         this.hintGiven = false;
         this.isTabVisible = true;
         
-        // Enhanced keyboard handling with smart algorithm
+        // Enhanced keyboard handling with fixed algorithm
         this.keyboardBuffer = '';
         this.keyboardTimer = null;
         this.lastKeyTime = 0;
@@ -31,8 +32,8 @@ class PlusOneGameController {
         this.usedAnswersInCurrentQuestion = new Set();
         
         // Game state
-        this.currentNumber = 0; // The 'n' in n+1
-        this.currentAnswer = 0; // n+1
+        this.currentNumber = 0; // The 'n' in n+1 or n-1
+        this.currentAnswer = 0; // n+1 or n-1
         this.buttonsDisabled = false;
         this.hasAttemptedAnyAnswer = false;
         
@@ -45,10 +46,11 @@ class PlusOneGameController {
         this.flashingInterval = null;
         this.flashingTimeout = null;
         
-        // System readiness
+        // System readiness and initial fade control
         this.systemsReady = false;
         this.initializationComplete = false;
         this.readyCheckCount = 0;
+        this.initialFadeStarted = false;
         
         // Track current question type for smooth transitions
         this.currentQuestionType = null; // 'picture' or 'number'
@@ -75,13 +77,70 @@ class PlusOneGameController {
         this.waitForSystemsAndInitialize();
     }
 
+    // Game mode and level management
+    loadStoredLevel(gameMode) {
+        try {
+            const key = gameMode === CONFIG.GAME_MODES.MINUS_ONE ? 
+                CONFIG.STORAGE_KEYS.MINUS_ONE_LEVEL : CONFIG.STORAGE_KEYS.PLUS_ONE_LEVEL;
+            const stored = localStorage.getItem(key);
+            return stored ? parseInt(stored, 10) : 1;
+        } catch (error) {
+            console.warn('Could not load stored level:', error);
+            return 1;
+        }
+    }
+
+    saveCurrentLevel() {
+        try {
+            const key = this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ? 
+                CONFIG.STORAGE_KEYS.MINUS_ONE_LEVEL : CONFIG.STORAGE_KEYS.PLUS_ONE_LEVEL;
+            localStorage.setItem(key, this.currentLevel.toString());
+        } catch (error) {
+            console.warn('Could not save current level:', error);
+        }
+    }
+
+    switchGameMode(newGameMode) {
+        this.gameMode = newGameMode;
+        this.currentLevel = this.loadStoredLevel(newGameMode);
+        this.questionsCompleted = 0;
+        this.gameComplete = false;
+        this.usedNumbersInLevel.clear();
+        this.failedAtCurrentLevel = false;
+        this.resetQuestionState();
+        
+        console.log(`🔄 Switched to ${newGameMode} mode, starting at level ${this.currentLevel}`);
+    }
+
     // Helper functions
     shouldUsePictureFormat() {
-        return this.currentLevel <= 2 || this.currentLevel === 5;
+        return CONFIG.usesPictureFormat(this.currentLevel, this.gameMode);
     }
 
     shouldUseNumberFormat() {
-        return this.currentLevel >= 3 && this.currentLevel !== 5;
+        return !this.shouldUsePictureFormat();
+    }
+
+    getCurrentLevels() {
+        return CONFIG.getLevels(this.gameMode);
+    }
+
+    getCurrentAudio() {
+        return this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ? 
+            CONFIG.AUDIO.MINUS_ONE : CONFIG.AUDIO.PLUS_ONE;
+    }
+
+    calculateAnswer(number) {
+        return this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ? 
+            number - 1 : number + 1;
+    }
+
+    getOperatorSymbol() {
+        return this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ? '-' : '+';
+    }
+
+    getOperatorValue() {
+        return 1; // Always adding or subtracting 1
     }
 
     waitForSystemsAndInitialize() {
@@ -151,53 +210,67 @@ class PlusOneGameController {
     initializeGame() {
         console.log('🎮 Starting game initialization');
         
-        // Hide elements initially (except persistent ones like button bar, game area structure)
-        this.hideTransitionElements();
+        // Start all elements at 0% opacity
+        this.hideAllElements();
         
-        // Set up sum bar ready state after fade-in
+        // Set up game area for controlled fade-in
         setTimeout(() => {
             if (this.sumRow) {
                 this.sumRow.classList.add('sum-bar-ready');
             }
-        }, 1000);
+        }, CONFIG.INITIAL_FADE_DELAY);
         
+        // Wait for initial delay, then fade everything in together
         setTimeout(() => {
-            this.showPersistentElements();
+            this.controlledFadeIn();
             this.initializationComplete = true;
             
             setTimeout(() => {
                 this.startNewQuestion();
             }, 500);
             
-        }, 200);
+        }, CONFIG.INITIAL_FADE_DELAY);
     }
 
-    hideTransitionElements() {
-        // Only hide elements that transition between questions
-        if (this.gameArea) this.gameArea.classList.remove('loaded');
-    }
-
-    showPersistentElements() {
-        // Show persistent game structure
+    hideAllElements() {
+        // Set all elements to 0% opacity initially
         if (this.gameArea) {
-            this.gameArea.classList.add('dimensions-ready', 'loaded');
+            this.gameArea.style.opacity = '0';
+            this.gameArea.classList.remove('loaded');
         }
         
-        // Failsafe
-        setTimeout(() => {
-            if (this.gameArea && !this.gameArea.classList.contains('loaded')) {
-                this.gameArea.classList.add('dimensions-ready', 'loaded');
-                this.gameArea.style.visibility = 'visible';
-                this.gameArea.style.opacity = '1';
-            }
-        }, 1000);
+        const buttonContainer = document.querySelector('.number-buttons');
+        if (buttonContainer) {
+            buttonContainer.style.opacity = '0';
+            buttonContainer.classList.remove('loaded');
+        }
+    }
+
+    controlledFadeIn() {
+        console.log('🎭 Starting controlled fade-in');
+        this.initialFadeStarted = true;
+        
+        // Fade in game area
+        if (this.gameArea) {
+            this.gameArea.classList.add('dimensions-ready', 'loaded');
+            this.gameArea.style.transition = 'opacity 1s ease-in-out';
+            this.gameArea.style.opacity = '1';
+        }
+        
+        // Fade in button container
+        const buttonContainer = document.querySelector('.number-buttons');
+        if (buttonContainer) {
+            buttonContainer.classList.add('loaded');
+            buttonContainer.style.transition = 'opacity 1s ease-in-out';
+            buttonContainer.style.opacity = '1';
+        }
     }
 
     createButtons() {
         const isPictureFormat = this.shouldUsePictureFormat();
         const config = isPictureFormat ? CONFIG.BUTTON_CONFIGS.PICTURE_FORMAT : CONFIG.BUTTON_CONFIGS.NUMBER_FORMAT;
         
-        console.log(`Creating buttons: ${isPictureFormat ? 'Picture' : 'Number'} format (${config.count} buttons)`);
+        console.log(`Creating buttons: ${isPictureFormat ? 'Picture' : 'Number'} format (${config.count} buttons) for ${this.gameMode}`);
         
         const colors = CONFIG.COLORS.slice(0, config.count);
         let numbers = isPictureFormat ? [...config.numbers] : [1, 2, 3, 4];
@@ -226,7 +299,7 @@ class PlusOneGameController {
         }, 50);
     }
 
-    // SMOOTH TRANSITION SYSTEM
+    // SMOOTH TRANSITION SYSTEM - Updated to prevent flashing
     startNewQuestion() {
         if (this.gameComplete) return;
         
@@ -240,13 +313,16 @@ class PlusOneGameController {
         this.currentQuestionType = this.shouldUsePictureFormat() ? 'picture' : 'number';
         
         this.resetQuestionState();
-        this.generatePlusOneQuestion();
+        this.generateQuestion();
         
-        console.log(`🎮 NEW QUESTION: ${this.currentNumber} + 1 = ${this.currentAnswer}, Level: ${this.currentLevel}`);
+        console.log(`🎮 NEW QUESTION: ${this.currentNumber} ${this.getOperatorSymbol()} 1 = ${this.currentAnswer}, Level: ${this.currentLevel}, Mode: ${this.gameMode}`);
+        
+        // Update sum row operator display
+        this.updateSumRowOperator();
         
         // Handle transitions based on question type changes
         if (this.previousQuestionType !== this.currentQuestionType) {
-            // Different question types - need button recreation and content fade
+            // Different question types - need button recreation
             this.handleQuestionTypeChange();
         } else {
             // Same question type - smooth content update only
@@ -254,11 +330,19 @@ class PlusOneGameController {
         }
     }
 
+    updateSumRowOperator() {
+        // Update the operator symbol in the sum row
+        const operatorElement = this.sumRow.querySelector('.sum-plus-sign');
+        if (operatorElement) {
+            operatorElement.textContent = this.getOperatorSymbol();
+        }
+    }
+
     handleQuestionTypeChange() {
         console.log(`🔄 Question type change: ${this.previousQuestionType} → ${this.currentQuestionType}`);
         
-        // Fade out current content
-        this.fadeOutCurrentContent();
+        // Fade out only the content that needs to change
+        this.fadeOutChangingElements();
         
         // Recreate buttons for new format
         this.createButtons();
@@ -273,7 +357,7 @@ class PlusOneGameController {
             this.renderNewContent();
             
             setTimeout(() => {
-                this.fadeInNewContent();
+                this.fadeInChangingElements();
                 this.finalizeNewQuestion();
             }, 200);
             
@@ -284,7 +368,7 @@ class PlusOneGameController {
         console.log(`✨ Same question type: ${this.currentQuestionType} - smooth transition`);
         
         // Smooth content transition - no button recreation needed
-        this.fadeOutCurrentContent();
+        this.fadeOutChangingElements();
         
         setTimeout(() => {
             // Update button numbers if needed (number format)
@@ -296,23 +380,32 @@ class PlusOneGameController {
             this.renderNewContent();
             
             setTimeout(() => {
-                this.fadeInNewContent();
+                this.fadeInChangingElements();
                 this.finalizeNewQuestion();
             }, 100);
             
         }, 600); // Wait for fade out
     }
 
-    fadeOutCurrentContent() {
+    fadeOutChangingElements() {
+        // Only fade out content that changes, not persistent elements
         const currentContent = [...this.contentRenderer.currentContent];
         currentContent.forEach(element => {
             if (element) {
                 element.classList.add('fade-out');
             }
         });
+        
+        // Fade out buttons (they may change)
+        const buttonContainer = document.querySelector('.number-buttons');
+        if (buttonContainer) {
+            buttonContainer.style.transition = 'opacity 0.6s ease';
+            buttonContainer.style.opacity = '0.3';
+        }
     }
 
-    fadeInNewContent() {
+    fadeInChangingElements() {
+        // Fade in new content
         const newContent = [...this.contentRenderer.currentContent];
         newContent.forEach(element => {
             if (element) {
@@ -320,6 +413,13 @@ class PlusOneGameController {
                 element.classList.add('fade-in');
             }
         });
+        
+        // Fade in buttons
+        const buttonContainer = document.querySelector('.number-buttons');
+        if (buttonContainer) {
+            buttonContainer.style.transition = 'opacity 0.8s ease';
+            buttonContainer.style.opacity = '1';
+        }
         
         setTimeout(() => {
             newContent.forEach(element => {
@@ -340,7 +440,7 @@ class PlusOneGameController {
     }
 
     renderNewContent() {
-        this.contentRenderer.renderContent(this.currentNumber, this.currentLevel);
+        this.contentRenderer.renderContent(this.currentNumber, this.currentLevel, this.gameMode);
     }
 
     finalizeNewQuestion() {
@@ -357,8 +457,8 @@ class PlusOneGameController {
         this.resetKeyboardState();
     }
 
-    generatePlusOneQuestion() {
-        const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
+    generateQuestion() {
+        const levelNumbers = this.getCurrentLevels()[this.currentLevel].numbers;
         const availableNumbers = levelNumbers.filter(num => !this.usedNumbersInLevel.has(num));
         
         if (availableNumbers.length === 0) {
@@ -369,7 +469,7 @@ class PlusOneGameController {
         }
         
         this.usedNumbersInLevel.add(this.currentNumber);
-        this.currentAnswer = this.currentNumber + 1;
+        this.currentAnswer = this.calculateAnswer(this.currentNumber);
     }
 
     setupInputBoxesForQuestion() {
@@ -392,7 +492,7 @@ class PlusOneGameController {
             this.leftInputBox.classList.add('filled');
             this.leftFilled = true;
             
-            this.rightInputBox.textContent = '1';
+            this.rightInputBox.textContent = this.getOperatorValue();
             this.rightInputBox.classList.add('filled', 'fixed-one');
             this.rightFilled = true;
             
@@ -449,25 +549,25 @@ class PlusOneGameController {
         const options = new Set();
         
         options.add(correctAnswer);
-        options.add(Math.max(1, this.currentNumber - 1));
         
-        const levelNumbers = CONFIG.LEVELS[this.currentLevel].numbers;
+        // Add contextually appropriate wrong answers based on game mode
+        if (this.gameMode === CONFIG.GAME_MODES.MINUS_ONE) {
+            options.add(this.currentNumber); // Original number
+            options.add(Math.max(0, this.currentNumber - 2)); // Two less
+        } else {
+            options.add(Math.max(1, this.currentNumber - 1)); // One less
+            options.add(this.currentNumber + 2); // Two more
+        }
+        
+        const levelNumbers = this.getCurrentLevels()[this.currentLevel].numbers;
         let randomFromLevel;
         let attempts = 0;
         do {
-            randomFromLevel = levelNumbers[Math.floor(Math.random() * levelNumbers.length)] + 1;
+            const randomBase = levelNumbers[Math.floor(Math.random() * levelNumbers.length)];
+            randomFromLevel = this.calculateAnswer(randomBase);
             attempts++;
         } while (options.has(randomFromLevel) && attempts < 50);
         options.add(randomFromLevel);
-        
-        const bonusOptions = [this.currentNumber + 2, this.currentNumber + 3, this.currentNumber + 5, this.currentNumber + 10];
-        let bonusChoice;
-        attempts = 0;
-        do {
-            bonusChoice = bonusOptions[Math.floor(Math.random() * bonusOptions.length)];
-            attempts++;
-        } while (options.has(bonusChoice) && attempts < 20);
-        options.add(bonusChoice);
         
         const shuffledOptions = Array.from(options).slice(0, 4);
         this.shuffleArray(shuffledOptions);
@@ -562,7 +662,7 @@ class PlusOneGameController {
         });
     }
 
-    // ENHANCED KEYBOARD ALGORITHM
+    // FIXED KEYBOARD ALGORITHM - Based on unfilled boxes only
     handleKeyboardDigit(digit) {
         const currentTime = Date.now();
         
@@ -578,55 +678,36 @@ class PlusOneGameController {
         
         this.clearKeyboardTimer();
         
-        const availableAnswerSets = this.getAvailableAnswerSets();
-        console.log(`Available answer sets: [${availableAnswerSets.join(', ')}]`);
+        const unfilledBoxAnswers = this.getUnfilledBoxAnswers();
+        console.log(`Unfilled box answers: [${unfilledBoxAnswers.join(', ')}]`);
         
-        this.processKeyboardBufferWithAlgorithm(availableAnswerSets);
+        this.processKeyboardBufferWithFixedAlgorithm(unfilledBoxAnswers);
     }
 
-    getAvailableAnswerSets() {
-        const allValidAnswers = [];
+    getUnfilledBoxAnswers() {
+        const answers = [];
         
+        // Only include answers for unfilled boxes
         if (!this.leftFilled) {
-            allValidAnswers.push(this.currentNumber);
+            answers.push(this.currentNumber);
         }
         if (!this.rightFilled) {
-            allValidAnswers.push(1);
+            answers.push(this.getOperatorValue()); // Always 1
         }
         if (!this.totalFilled) {
-            allValidAnswers.push(this.currentAnswer);
+            answers.push(this.currentAnswer);
         }
         
-        if (this.shouldUsePictureFormat()) {
-            CONFIG.BUTTON_CONFIGS.PICTURE_FORMAT.numbers.forEach(num => {
-                if (!allValidAnswers.includes(num)) {
-                    allValidAnswers.push(num);
-                }
-            });
-        } else {
-            if (window.ButtonBar && window.ButtonBar.buttons) {
-                window.ButtonBar.buttons.forEach(btn => {
-                    const btnNumber = parseInt(btn.dataset.number);
-                    if (!allValidAnswers.includes(btnNumber)) {
-                        allValidAnswers.push(btnNumber);
-                    }
-                });
-            }
-        }
-        
-        const availableAnswers = [...new Set(allValidAnswers)]
-            .filter(answer => !this.usedAnswersInCurrentQuestion.has(answer))
-            .sort((a, b) => a - b);
-            
-        return availableAnswers;
+        // Remove already used answers in current question
+        return answers.filter(answer => !this.usedAnswersInCurrentQuestion.has(answer));
     }
 
-    processKeyboardBufferWithAlgorithm(availableAnswerSets) {
+    processKeyboardBufferWithFixedAlgorithm(availableAnswers) {
         const bufferLength = this.keyboardBuffer.length;
         const currentBufferNumber = parseInt(this.keyboardBuffer);
         
         // Step 1: Check for exact matches of current buffer length
-        const exactMatches = availableAnswerSets.filter(answer => 
+        const exactMatches = availableAnswers.filter(answer => 
             answer.toString().length === bufferLength && 
             parseInt(answer.toString()) === currentBufferNumber
         );
@@ -638,7 +719,7 @@ class PlusOneGameController {
         }
         
         // Step 2: Check if any longer numbers exist
-        const longerNumbers = availableAnswerSets.filter(answer => 
+        const longerNumbers = availableAnswers.filter(answer => 
             answer.toString().length > bufferLength
         );
         
@@ -700,7 +781,7 @@ class PlusOneGameController {
         if (!this.leftFilled && selectedNumber === this.currentNumber) {
             this.fillBox('left', selectedNumber, buttonElement);
             correctAnswer = true;
-        } else if (!this.rightFilled && selectedNumber === 1) {
+        } else if (!this.rightFilled && selectedNumber === this.getOperatorValue()) {
             this.fillBox('right', selectedNumber, buttonElement);
             correctAnswer = true;
         } else if (!this.totalFilled && selectedNumber === this.currentAnswer) {
@@ -804,6 +885,9 @@ class PlusOneGameController {
             
             this.questionsCompleted++;
             
+            // Save current level progress
+            this.saveCurrentLevel();
+            
             if (this.rainbow.isComplete()) {
                 setTimeout(() => {
                     this.completeGame();
@@ -813,12 +897,14 @@ class PlusOneGameController {
 
             const delay = this.shouldUsePictureFormat() ? 3000 : 1500;
             setTimeout(() => {
-                this.startNewQuestion(); // This now handles smooth transitions
+                this.startNewQuestion();
             }, delay);
         }
     }
 
     giveCompletionFeedback(wasFirstAttempt = true) {
+        const audioConfig = this.getCurrentAudio();
+        
         if (this.shouldUsePictureFormat()) {
             const encouragements = CONFIG.AUDIO.ENCOURAGEMENTS;
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
@@ -826,7 +912,7 @@ class PlusOneGameController {
             this.speakText(randomEncouragement);
             
             setTimeout(() => {
-                const sumMessage = CONFIG.AUDIO.SUM_REPETITION(this.currentNumber, this.currentAnswer);
+                const sumMessage = audioConfig.SUM_REPETITION(this.currentNumber, this.currentAnswer);
                 this.speakText(sumMessage);
             }, 1500);
         } else {
@@ -865,10 +951,15 @@ class PlusOneGameController {
         this.clearInactivityTimer();
         this.playFailureSound();
         
+        const audioConfig = this.getCurrentAudio();
+        
         if (this.isTabVisible) {
             setTimeout(() => {
                 if (this.shouldUseNumberFormat()) {
-                    this.speakText(CONFIG.AUDIO.NUMBER_HINTS.WHAT_COMES_AFTER(this.currentNumber));
+                    const hintMessage = this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ?
+                        audioConfig.NUMBER_HINTS.WHAT_COMES_BEFORE(this.currentNumber) :
+                        audioConfig.NUMBER_HINTS.WHAT_COMES_AFTER(this.currentNumber);
+                    this.speakText(hintMessage);
                 } else {
                     this.speakText(CONFIG.AUDIO.TRY_AGAIN);
                 }
@@ -938,17 +1029,19 @@ class PlusOneGameController {
     giveStartingInstruction() {
         if (!window.AudioSystem || !this.isTabVisible || !this.initializationComplete) return;
         
+        const audioConfig = this.getCurrentAudio();
+        
         setTimeout(() => {
             if (this.shouldUsePictureFormat()) {
                 if (this.questionsCompleted === 0) {
-                    this.speakText(CONFIG.AUDIO.FIRST_QUESTION);
+                    this.speakText(audioConfig.FIRST_QUESTION);
                 } else if (this.questionsCompleted === 1) {
-                    this.speakText(CONFIG.AUDIO.SECOND_QUESTION);
+                    this.speakText(audioConfig.SECOND_QUESTION);
                 } else {
-                    this.speakText(CONFIG.AUDIO.LATER_QUESTIONS);
+                    this.speakText(audioConfig.LATER_QUESTIONS);
                 }
             } else {
-                this.speakText(CONFIG.AUDIO.NUMBER_FORMAT_QUESTION(this.currentNumber));
+                this.speakText(audioConfig.NUMBER_FORMAT_QUESTION(this.currentNumber));
             }
         }, 500);
     }
@@ -976,19 +1069,28 @@ class PlusOneGameController {
         if (this.buttonsDisabled || this.gameComplete || !this.isTabVisible || !this.initializationComplete) return;
         
         this.hintGiven = true;
+        const audioConfig = this.getCurrentAudio();
         
         let hintText = '';
         if (this.shouldUsePictureFormat()) {
             if (!this.leftFilled) {
-                hintText = CONFIG.AUDIO.HINTS.COUNT_LEFT;
+                hintText = audioConfig.HINTS.COUNT_LEFT;
             } else if (!this.rightFilled) {
-                hintText = CONFIG.AUDIO.HINTS.COUNT_RIGHT;
+                hintText = audioConfig.HINTS.COUNT_RIGHT;
             } else if (!this.totalFilled) {
-                hintText = CONFIG.AUDIO.HINTS.WHAT_IS_PLUS_ONE(this.currentNumber);
+                if (this.gameMode === CONFIG.GAME_MODES.MINUS_ONE) {
+                    hintText = audioConfig.HINTS.WHAT_IS_MINUS_ONE(this.currentNumber);
+                } else {
+                    hintText = audioConfig.HINTS.WHAT_IS_PLUS_ONE(this.currentNumber);
+                }
             }
         } else {
             if (!this.totalFilled) {
-                hintText = CONFIG.AUDIO.NUMBER_HINTS.WHAT_COMES_AFTER(this.currentNumber);
+                if (this.gameMode === CONFIG.GAME_MODES.MINUS_ONE) {
+                    hintText = audioConfig.NUMBER_HINTS.WHAT_COMES_BEFORE(this.currentNumber);
+                } else {
+                    hintText = audioConfig.NUMBER_HINTS.WHAT_COMES_AFTER(this.currentNumber);
+                }
             }
         }
         
@@ -1075,10 +1177,7 @@ class PlusOneGameController {
 
     // GAME MANAGEMENT
     startNewGame() {
-        const oldLevel = this.currentLevel;
-        
-        this.currentLevel = Math.min(this.currentLevel, 5);
-        console.log(`New game: Starting at level ${this.currentLevel}`);
+        console.log(`New game: Starting ${this.gameMode} at level ${this.currentLevel}`);
         
         this.questionsCompleted = 0;
         this.gameComplete = false;
@@ -1113,15 +1212,143 @@ class PlusOneGameController {
         this.clearInactivityTimer();
         this.resetKeyboardState();
         this.stopFlashing();
+        
+        // Update modal for dual-button layout
+        this.updateModalForCompletion();
         this.modal.classList.remove('hidden');
         
         this.bear.startCelebration();
         
         if (this.isTabVisible) {
+            const audioConfig = this.getCurrentAudio();
             setTimeout(() => {
-                this.speakText(CONFIG.AUDIO.GAME_COMPLETE);
+                this.speakText(audioConfig.GAME_COMPLETE);
             }, 1000);
         }
+    }
+
+    updateModalForCompletion() {
+        const modalContent = this.modal.querySelector('.modal-content');
+        if (!modalContent) return;
+        
+        // Clear existing content
+        modalContent.innerHTML = '';
+        
+        // Add title
+        const title = document.createElement('h2');
+        title.textContent = '🌈 Well Done! 🌈';
+        modalContent.appendChild(title);
+        
+        // Create button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            margin-top: 20px;
+        `;
+        
+        // Play Again button
+        const playAgainBtn = document.createElement('button');
+        playAgainBtn.className = 'modal-btn primary-btn';
+        playAgainBtn.innerHTML = '<i class="fas fa-redo-alt"></i> PLAY AGAIN';
+        playAgainBtn.addEventListener('click', () => {
+            this.startNewGame();
+        });
+        
+        // Switch Game Mode button
+        const switchModeBtn = document.createElement('button');
+        switchModeBtn.className = 'modal-btn secondary-btn';
+        
+        if (this.gameMode === CONFIG.GAME_MODES.PLUS_ONE) {
+            switchModeBtn.innerHTML = '<i class="fas fa-arrow-right"></i> MINUS ONE';
+            switchModeBtn.addEventListener('click', () => {
+                this.switchGameMode(CONFIG.GAME_MODES.MINUS_ONE);
+                this.startNewGame();
+            });
+        } else {
+            switchModeBtn.innerHTML = '<i class="fas fa-arrow-right"></i> PLUS ONE';
+            switchModeBtn.addEventListener('click', () => {
+                this.switchGameMode(CONFIG.GAME_MODES.PLUS_ONE);
+                this.startNewGame();
+            });
+        }
+        
+        buttonContainer.appendChild(playAgainBtn);
+        buttonContainer.appendChild(switchModeBtn);
+        modalContent.appendChild(buttonContainer);
+        
+        // Update styles for new buttons
+        this.updateModalButtonStyles();
+    }
+
+    updateModalButtonStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .modal-btn {
+                border: none;
+                padding: 15px 30px;
+                font-size: 1.3rem;
+                border-radius: 10px;
+                cursor: pointer;
+                font-weight: bold;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+                touch-action: manipulation;
+                pointer-events: auto;
+                outline: none;
+                min-width: 200px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+            }
+            
+            .modal-btn.primary-btn {
+                background: #4caf50;
+                color: white;
+            }
+            
+            .modal-btn.secondary-btn {
+                background: #2196F3;
+                color: white;
+            }
+            
+            .modal-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            }
+            
+            .modal-btn.primary-btn:hover {
+                background: #45a049;
+            }
+            
+            .modal-btn.secondary-btn:hover {
+                background: #1976D2;
+            }
+            
+            .modal-btn:focus {
+                outline: none;
+            }
+            
+            @media (max-width: 768px) {
+                .modal-btn {
+                    font-size: 1.1rem;
+                    padding: 12px 24px;
+                    min-width: 180px;
+                }
+            }
+        `;
+        
+        // Remove existing style if present
+        const existingStyle = document.head.querySelector('style[data-modal-buttons]');
+        if (existingStyle) {
+            existingStyle.remove();
+        }
+        
+        style.setAttribute('data-modal-buttons', 'true');
+        document.head.appendChild(style);
     }
 
     destroy() {
@@ -1143,12 +1370,18 @@ class PlusOneGameController {
         if (window.ButtonBar) {
             window.ButtonBar.destroy();
         }
+        
+        // Remove modal button styles
+        const modalButtonStyles = document.head.querySelector('style[data-modal-buttons]');
+        if (modalButtonStyles) {
+            modalButtonStyles.remove();
+        }
     }
 }
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎮 DOM loaded, creating PlusOneGameController (Complete Rewrite)');
+    console.log('🎮 DOM loaded, creating PlusOneGameController (Dual Mode Version)');
     window.plusOneGame = new PlusOneGameController();
 });
 
