@@ -7,6 +7,9 @@ class PlusOneGameController {
         this.rainbow = new Rainbow();
         this.bear = new Bear();
         
+        // Initialize statistics tracking
+        this.stats = new PlusOneStats();
+        
         // Game mode and progression
         this.gameMode = CONFIG.GAME_MODES.PLUS_ONE; // Default to plus one
         this.currentLevel = this.loadStoredLevel(this.gameMode);
@@ -465,6 +468,9 @@ class PlusOneGameController {
         this.showInputBoxes();
         this.giveStartingInstruction();
         this.startInactivityTimer();
+        
+        // Start timing for statistics
+        this.stats.startQuestionTimer();
     }
 
     resetQuestionState() {
@@ -807,6 +813,40 @@ class PlusOneGameController {
             correctAnswer = true;
         }
         
+        // Record statistics for first attempt only
+        if (!this.hasAttemptedAnyAnswer) {
+            this.stats.recordQuestionAttempt(correctAnswer);
+            this.stats.registerActivity();
+        }
+        
+        if (correctAnswer) {
+            this.usedAnswersInCurrentQuestion.add(selectedNumber);
+            console.log(`✅ Used answer: ${selectedNumber}. Used: [${Array.from(this.usedAnswersInCurrentQuestion).join(', ')}]`);
+            this.checkQuestionCompletion();
+        } else {
+            this.handleIncorrectAnswer(buttonElement, selectedNumber);
+        }
+    }
+        
+        let correctAnswer = false;
+        
+        if (!this.leftFilled && selectedNumber === this.currentNumber) {
+            this.fillBox('left', selectedNumber, buttonElement);
+            correctAnswer = true;
+        } else if (!this.rightFilled && selectedNumber === this.getOperatorValue()) {
+            this.fillBox('right', selectedNumber, buttonElement);
+            correctAnswer = true;
+        } else if (!this.totalFilled && selectedNumber === this.currentAnswer) {
+            this.fillBox('total', selectedNumber, buttonElement);
+            correctAnswer = true;
+        }
+        
+        // Record statistics for first attempt only
+        if (!this.hasAttemptedAnyAnswer) {
+            this.stats.recordQuestionAttempt(correctAnswer);
+            this.stats.registerActivity();
+        }
+        
         if (correctAnswer) {
             this.usedAnswersInCurrentQuestion.add(selectedNumber);
             console.log(`✅ Used answer: ${selectedNumber}. Used: [${Array.from(this.usedAnswersInCurrentQuestion).join(', ')}]`);
@@ -906,7 +946,13 @@ class PlusOneGameController {
             // Save current level progress
             this.saveCurrentLevel();
             
+            // Register activity for statistics
+            this.stats.registerActivity();
+            
             if (this.rainbow.isComplete()) {
+                // Record round completion for statistics
+                this.stats.recordRoundCompletion();
+                
                 setTimeout(() => {
                     this.completeGame();
                 }, 3000);
@@ -968,6 +1014,9 @@ class PlusOneGameController {
         this.hasAttemptedAnyAnswer = true;
         this.clearInactivityTimer();
         this.playFailureSound();
+        
+        // Register activity for statistics
+        this.stats.registerActivity();
         
         const audioConfig = this.getCurrentAudio();
         
@@ -1094,6 +1143,11 @@ class PlusOneGameController {
         if (this.inactivityTimer) {
             clearTimeout(this.inactivityTimer);
             this.inactivityTimer = null;
+        }
+        
+        // Register activity when clearing timer (user did something)
+        if (this.stats && this.initializationComplete) {
+            this.stats.registerActivity();
         }
     }
 
@@ -1399,6 +1453,11 @@ class PlusOneGameController {
         
         if (this.keyboardHandler) {
             document.removeEventListener('keydown', this.keyboardHandler);
+        }
+        
+        // Clean up statistics
+        if (this.stats) {
+            this.stats.destroy();
         }
         
         this.rainbow.reset();
