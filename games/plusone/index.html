@@ -78,5 +78,159 @@
     <script src="js/plusonestats.js"></script>
     <script src="js/plusoneiconrenderer.js"></script>
     <script src="js/plusonegamecontroller.js"></script>
+    
+    <!-- TEMPORARY: Stats display for testing - remove in production -->
+    <script>
+        /**
+         * Temporary Stats Display for Testing
+         * Shows live stats during gameplay
+         */
+        class StatsDisplay {
+            constructor() {
+                this.createDisplay();
+                this.updateInterval = null;
+                this.startUpdating();
+            }
+
+            createDisplay() {
+                this.container = document.createElement('div');
+                this.container.id = 'stats-display';
+                this.container.style.cssText = `
+                    position: fixed;
+                    top: 10px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 10px 15px;
+                    border-radius: 8px;
+                    font-family: Arial, sans-serif;
+                    font-size: 12px;
+                    z-index: 9999;
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 15px;
+                    min-width: 400px;
+                    text-align: center;
+                `;
+
+                this.accuracyEl = this.createStatElement('Accuracy', '0%');
+                this.resilienceEl = this.createStatElement('Resilience', '0%');
+                this.speedEl = this.createStatElement('Speed', '0%');
+                this.varietyEl = this.createStatElement('Variety', '0%');
+
+                this.container.appendChild(this.accuracyEl);
+                this.container.appendChild(this.resilienceEl);
+                this.container.appendChild(this.speedEl);
+                this.container.appendChild(this.varietyEl);
+
+                document.body.appendChild(this.container);
+                this.createToggleButton();
+            }
+
+            createStatElement(label, value) {
+                const element = document.createElement('div');
+                element.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 2px;">${label}</div>
+                    <div class="stat-value" style="color: #4CAF50; font-size: 14px;">${value}</div>
+                `;
+                return element;
+            }
+
+            createToggleButton() {
+                const button = document.createElement('button');
+                button.innerHTML = '📊';
+                button.style.cssText = `
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    border: none;
+                    padding: 8px 12px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    font-size: 16px;
+                    z-index: 10000;
+                `;
+                
+                button.addEventListener('click', () => {
+                    this.container.style.display = 
+                        this.container.style.display === 'none' ? 'grid' : 'none';
+                });
+
+                document.body.appendChild(button);
+            }
+
+            startUpdating() {
+                this.updateInterval = setInterval(() => {
+                    this.updateStats();
+                }, 1000);
+            }
+
+            updateStats() {
+                if (!window.plusOneGame || !window.plusOneGame.stats) return;
+
+                const stats = window.plusOneGame.stats.getCurrentStats();
+                const debug = {
+                    questions: window.plusOneGame.stats.totalQuestions,
+                    correct: window.plusOneGame.stats.correctFirstAttempts,
+                    rounds: window.plusOneGame.stats.roundsCompleted,
+                    activeTime: Math.round(window.plusOneGame.stats.totalActiveTime / 1000),
+                    avgResponseTime: window.plusOneGame.stats.questionTimes.length > 0 ? 
+                        Math.round((window.plusOneGame.stats.questionTimes.reduce((a, b) => a + b, 0) / window.plusOneGame.stats.questionTimes.length) * 100) / 100 : 0
+                };
+
+                const accuracyEl = this.accuracyEl.querySelector('.stat-value');
+                accuracyEl.textContent = `${stats.accuracy}%`;
+                accuracyEl.title = `${debug.correct}/${debug.questions} first attempts`;
+
+                const resilienceEl = this.resilienceEl.querySelector('.stat-value');
+                resilienceEl.textContent = `${stats.resilience}%`;
+                resilienceEl.title = `${debug.rounds} rounds, ${debug.activeTime}s active`;
+
+                const speedEl = this.speedEl.querySelector('.stat-value');
+                speedEl.textContent = `${stats.speed}%`;
+                speedEl.title = `Avg: ${debug.avgResponseTime}s per question`;
+
+                const varietyEl = this.varietyEl.querySelector('.stat-value');
+                varietyEl.textContent = `${stats.variety}%`;
+                varietyEl.title = `${debug.rounds > 0 ? 'Round completed' : 'No rounds completed'}`;
+
+                [accuracyEl, resilienceEl, speedEl, varietyEl].forEach((el, i) => {
+                    const value = [stats.accuracy, stats.resilience, stats.speed, stats.variety][i];
+                    if (value >= 80) el.style.color = '#4CAF50';
+                    else if (value >= 60) el.style.color = '#FF9800';
+                    else if (value >= 40) el.style.color = '#FFC107';
+                    else el.style.color = '#F44336';
+                });
+            }
+
+            destroy() {
+                if (this.updateInterval) {
+                    clearInterval(this.updateInterval);
+                }
+                if (this.container) {
+                    this.container.remove();
+                }
+            }
+        }
+
+        // Auto-initialize stats display
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (window.plusOneGame) {
+                    window.statsDisplay = new StatsDisplay();
+                    console.log('📊 Stats display initialized for testing');
+                }
+            }, 2000);
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (window.statsDisplay) {
+                window.statsDisplay.destroy();
+            }
+        });
+    </script>
 </body>
 </html>
