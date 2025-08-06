@@ -499,7 +499,6 @@ class PlusOneGameController {
         
         console.log('🚫 Touch protection enabled for game areas');
     }
-    }
 
     handleKeyboardDigit(digit) {
         const currentTime = Date.now();
