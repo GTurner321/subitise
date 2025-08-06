@@ -179,9 +179,10 @@ class PlusOneStats {
 
     /**
      * Calculate resilience score (0-100%)
-     * Based on: active time spent + completion status
+     * Based on: active time spent + completion status with round completion bonuses
      * - If any round completed: 100%
-     * - If 200+ active seconds: 100%  
+     * - After round 1: minimum 60% (120 seconds equivalent)
+     * - After round 2: can advance to 100%
      * - Otherwise: (active seconds / 200) * 100%
      * @returns {number} Resilience percentage (0-100)
      */
@@ -199,13 +200,20 @@ class PlusOneStats {
             return 100;
         }
         
-        // If 200+ seconds of active time, 100%
-        if (activeSeconds >= 200) {
-            return 100;
+        // Calculate base percentage from time
+        let basePercentage = Math.round((activeSeconds / 200) * 100);
+        
+        // Apply round completion bonuses
+        if (this.roundsCompleted >= 2) {
+            // After round 2: can advance to 100%
+            basePercentage = Math.max(basePercentage, 100);
+        } else if (this.roundsCompleted >= 1) {
+            // After round 1: minimum 60% (equivalent to 120 seconds)
+            basePercentage = Math.max(basePercentage, 60);
         }
         
-        // Otherwise proportional to 200 seconds
-        return Math.round((activeSeconds / 200) * 100);
+        // Cap at 100%
+        return Math.min(basePercentage, 100);
     }
 
     /**
