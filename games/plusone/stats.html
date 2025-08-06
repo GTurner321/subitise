@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plus One Stats</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-card.accuracy {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .stat-card.resilience {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        .stat-card.speed {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        }
+
+        .stat-card.variety {
+            background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+        }
+
+        .stat-card i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .stat-card .description {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .details {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .details h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-item .label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .detail-item .value {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .no-stats {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .no-stats i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+        }
+
+        .clear-button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .clear-button:hover {
+            background: #c82333;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .stat-card .value {
+                font-size: 2rem;
+            }
+
+            .button-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .back-button {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-plus-circle"></i> Plus One Stats</h1>
+            <p>Your highest scores in the Plus One game</p>
+        </div>
+
+        <div id="statsContent">
+            <!-- Stats will be loaded here -->
+        </div>
+
+        <div class="button-container">
+            <a href="../../index.html" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                Back to Games
+            </a>
+            <button id="clearStats" class="clear-button" onclick="clearStats()">
+                <i class="fas fa-trash"></i> Clear Stats
+            </button>
+        </div>
+    </div>
+
+    <!-- Load the stats manager -->
+    <script src="../../js/shared/statsmanager.js"></script>
+    
+    <script>
+        function loadStats() {
+            const statsContent = document.getElementById('statsContent');
+            
+            if (!window.StatsManager) {
+                statsContent.innerHTML = `
+                    <div class="no-stats">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Stats Manager Not Available</h3>
+                        <p>Could not load statistics system.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const gameStats = window.StatsManager.getGameStats('plusone');
+            
+            if (!gameStats || !gameStats.metadata || gameStats.metadata.totalRounds === 0) {
+                statsContent.innerHTML = `
+                    <div class="no-stats">
+                        <i class="fas fa-chart-line"></i>
+                        <h3>No Stats Yet</h3>
+                        <p>Play the Plus One game to see your statistics here!</p>
+                        <p style="margin-top: 15px; font-size: 0.9rem; opacity: 0.8;">
+                            Statistics track your accuracy, resilience, speed, and completion progress.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            const stats = gameStats.highest;
+            const metadata = gameStats.metadata;
+            const lastPlayed = new Date(gameStats.lastUpdated).toLocaleDateString();
+
+            statsContent.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card accuracy">
+                        <i class="fas fa-bullseye"></i>
+                        <div class="value">${stats.accuracy}%</div>
+                        <div class="label">Accuracy</div>
+                        <div class="description">First attempt success</div>
+                    </div>
+                    <div class="stat-card resilience">
+                        <i class="fas fa-clock"></i>
+                        <div class="value">${stats.resilience}%</div>
+                        <div class="label">Resilience</div>
+                        <div class="description">Active time & completion</div>
+                    </div>
+                    <div class="stat-card speed">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <div class="value">${stats.speed}%</div>
+                        <div class="label">Speed</div>
+                        <div class="description">Response time score</div>
+                    </div>
+                    <div class="stat-card variety">
+                        <i class="fas fa-trophy"></i>
+                        <div class="value">${stats.variety}%</div>
+                        <div class="label">Variety</div>
+                        <div class="description">Game completion</div>
+                    </div>
+                </div>
+
+                <div class="details">
+                    <h3><i class="fas fa-info-circle"></i> Game Details</h3>
+                    <div class="detail-item">
+                        <span class="label">Total Rounds Played</span>
+                        <span class="value">${metadata.totalRounds}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Games Completed</span>
+                        <span class="value">${metadata.gamesCompleted}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Last Played</span>
+                        <span class="value">${lastPlayed}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Overall Score</span>
+                        <span class="value">${Math.round((stats.accuracy + stats.resilience + stats.speed + stats.variety) / 4)}%</span>
+                    </div>
+                </div>
+
+                <div class="details">
+                    <h3><i class="fas fa-lightbulb"></i> What These Stats Mean</h3>
+                    <div class="detail-item">
+                        <span class="label">Accuracy</span>
+                        <span class="value">Correct answers on first try</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Resilience</span>
+                        <span class="value">Time spent + completions</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Speed</span>
+                        <span class="value">How quickly you answer</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Variety</span>
+                        <span class="value">Complete any 10-question round</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearStats() {
+            if (confirm('Are you sure you want to clear all Plus One statistics? This cannot be undone.')) {
+                if (window.StatsManager) {
+                    // Clear just the plusone stats
+                    try {
+                        const allStats = JSON.parse(localStorage.getItem('learner_stats') || '{}');
+                        delete allStats.plusone;
+                        if (Object.keys(allStats).length === 0) {
+                            localStorage.removeItem('learner_stats');
+                        } else {
+                            localStorage.setItem('learner_stats', JSON.stringify(allStats));
+                        }
+                        loadStats(); // Reload to show empty state
+                        alert('Statistics cleared successfully!');
+                    } catch (error) {
+                        console.error('Error clearing stats:', error);
+                        alert('Error clearing statistics. Please try again.');
+                    }
+                } else {
+                    alert('Statistics system not available.');
+                }
+            }
+        }
+
+        // Load stats when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait a moment for StatsManager to initialize
+            setTimeout(loadStats, 100);
+        });
+    </script>
+</body>
+</html>
