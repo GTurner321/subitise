@@ -1,7 +1,13 @@
-// Plus One game configuration settings
+// Plus One and Minus One game configuration settings
 const CONFIG = {
-    // Level definitions with number sets - UPDATED STRUCTURE
-    LEVELS: {
+    // Game modes
+    GAME_MODES: {
+        PLUS_ONE: 'plus_one',
+        MINUS_ONE: 'minus_one'
+    },
+    
+    // Plus One level definitions
+    PLUS_ONE_LEVELS: {
         1: { numbers: [1, 2, 3, 4], name: 'Level 1' },
         2: { numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9], name: 'Level 2' },
         3: { numbers: [10, 11, 12, 13, 14, 15, 16, 17, 18], name: 'Level 3' },
@@ -24,6 +30,42 @@ const CONFIG = {
             numbers: Array.from({length: 90}, (_, i) => (i + 10) * 10), 
             name: 'Level 10' 
         }
+    },
+    
+    // Minus One level definitions
+    MINUS_ONE_LEVELS: {
+        1: { numbers: [2, 3, 4, 5], name: 'Level 1' },
+        2: { numbers: [6, 7, 8, 9, 10, 11], name: 'Level 2' },
+        3: { numbers: [12, 13, 14, 15, 16, 17, 18, 19], name: 'Level 3' },
+        4: { numbers: [22, 23, 24, 25, 26, 27, 28, 29], name: 'Level 4' },
+        5: { numbers: [21, 31, 41, 51, 61, 71, 81, 91, 101], name: 'Level 5' },
+        6: { numbers: [20, 30, 40, 50, 60, 70, 80, 90, 100], name: 'Level 6' },
+        7: { 
+            // Random number from 2-101
+            numbers: Array.from({length: 100}, (_, i) => i + 2), 
+            name: 'Level 7' 
+        },
+        8: { 
+            // Any number from level 5 and 6 sets combined
+            numbers: [21, 31, 41, 51, 61, 71, 81, 91, 101, 20, 30, 40, 50, 60, 70, 80, 90, 100], 
+            name: 'Level 8' 
+        },
+        9: { 
+            // Repeat level 7: random number from 2-101
+            numbers: Array.from({length: 100}, (_, i) => i + 2), 
+            name: 'Level 9' 
+        },
+        10: { numbers: [200, 300, 400, 500, 600, 700, 800, 900, 1000], name: 'Level 10' }
+    },
+    
+    // Get appropriate levels based on game mode
+    getLevels: function(gameMode) {
+        return gameMode === this.GAME_MODES.MINUS_ONE ? this.MINUS_ONE_LEVELS : this.PLUS_ONE_LEVELS;
+    },
+    
+    // Check if level uses picture format (only Plus One levels 1, 2, and 5)
+    usesPictureFormat: function(level, gameMode) {
+        return gameMode === this.GAME_MODES.PLUS_ONE && (level <= 2 || level === 5);
     },
     
     // Font Awesome icons suitable for nursery age children (levels 1-2 and 5 only)
@@ -97,45 +139,21 @@ const CONFIG = {
     
     // Color palette for icons
     COLORS: [
-        '#ff6b6b', // Red
-        '#4ecdc4', // Teal
-        '#45b7d1', // Blue
-        '#f9ca24', // Yellow
-        '#f0932b', // Orange
-        '#eb4d4b', // Dark Red
-        '#6c5ce7', // Purple
-        '#a29bfe', // Light Purple
-        '#fd79a8', // Pink
-        '#00b894', // Green
-        '#00cec9', // Cyan
-        '#fdcb6e', // Light Orange
-        '#e17055', // Coral
-        '#74b9ff', // Light Blue
-        '#0984e3', // Dark Blue
-        '#00a085', // Dark Green
-        '#e84393', // Magenta
-        '#fd63a3', // Hot Pink
-        '#636e72', // Gray
-        '#2d3436'  // Dark Gray
+        '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+        '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894',
+        '#00cec9', '#fdcb6e', '#e17055', '#74b9ff', '#0984e3',
+        '#00a085', '#e84393', '#fd63a3', '#636e72', '#2d3436'
     ],
     
     // Rainbow colors (in order)
     RAINBOW_COLORS: [
-        '#ff0000', // Red
-        '#ff8000', // Orange  
-        '#ffff00', // Yellow
-        '#80ff00', // Yellow-Green
-        '#00ff00', // Green
-        '#00ff80', // Green-Cyan
-        '#00ffff', // Cyan
-        '#0080ff', // Blue-Cyan
-        '#0000ff', // Blue
-        '#8000ff'  // Purple
+        '#ff0000', '#ff8000', '#ffff00', '#80ff00', '#00ff00',
+        '#00ff80', '#00ffff', '#0080ff', '#0000ff', '#8000ff'
     ],
     
     // Number to word conversion for levels 3+
     NUMBER_TO_WORD: {
-        1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
+        0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
         6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
         11: 'eleven', 12: 'twelve', 13: 'thirteen', 14: 'fourteen', 15: 'fifteen',
         16: 'sixteen', 17: 'seventeen', 18: 'eighteen', 19: 'nineteen', 20: 'twenty',
@@ -154,43 +172,53 @@ const CONFIG = {
         81: 'eighty-one', 82: 'eighty-two', 83: 'eighty-three', 84: 'eighty-four', 85: 'eighty-five',
         86: 'eighty-six', 87: 'eighty-seven', 88: 'eighty-eight', 89: 'eighty-nine', 90: 'ninety',
         91: 'ninety-one', 92: 'ninety-two', 93: 'ninety-three', 94: 'ninety-four', 95: 'ninety-five',
-        96: 'ninety-six', 97: 'ninety-seven', 98: 'ninety-eight', 99: 'ninety-nine', 100: 'one hundred'
-        // For numbers above 100, we'll generate them dynamically
+        96: 'ninety-six', 97: 'ninety-seven', 98: 'ninety-eight', 99: 'ninety-nine', 100: 'one hundred',
+        199: 'one hundred ninety-nine', 200: 'two hundred', 300: 'three hundred', 400: 'four hundred',
+        500: 'five hundred', 600: 'six hundred', 700: 'seven hundred', 800: 'eight hundred',
+        900: 'nine hundred', 1000: 'one thousand'
     },
     
-    // Audio messages for consistent speech
+    // Audio messages for both game modes
     AUDIO: {
-        // Starting instructions
-        FIRST_QUESTION: 'Complete the plus one sum',
-        SECOND_QUESTION: 'Try again and complete the sum',
-        LATER_QUESTIONS: 'Complete the sum',
-        
-        // Number format specific instructions
-        NUMBER_FORMAT_QUESTION: (n) => `What number is one more than ${n}?`,
-        
-        // Hints for picture format
-        HINTS: {
-            COUNT_LEFT: 'Count the number of pictures on the left side',
-            COUNT_RIGHT: 'Count the number of pictures on the right side',
-            WHAT_IS_PLUS_ONE: (n) => `What is ${n} plus one?`
+        // Plus One messages
+        PLUS_ONE: {
+            FIRST_QUESTION: 'Complete the plus one sum',
+            SECOND_QUESTION: 'Try again and complete the sum',
+            LATER_QUESTIONS: 'Complete the sum',
+            NUMBER_FORMAT_QUESTION: (n) => `What number is one more than ${n}?`,
+            HINTS: {
+                COUNT_LEFT: 'Count the number of pictures on the left side',
+                COUNT_RIGHT: 'Count the number of pictures on the right side',
+                WHAT_IS_PLUS_ONE: (n) => `What is ${n} plus one?`
+            },
+            NUMBER_HINTS: {
+                WHAT_COMES_AFTER: (n) => `What number comes after ${n}?`
+            },
+            SUM_REPETITION: (n, answer) => `One more than ${n} is ${answer}`,
+            GAME_COMPLETE: 'Well done! Choose the top button to play again, the bottom button to try subtracting one, or return to the home page.'
         },
         
-        // Hints for number format
-        NUMBER_HINTS: {
-            WHAT_COMES_AFTER: (n) => `What number comes after ${n}?`
+        // Minus One messages
+        MINUS_ONE: {
+            FIRST_QUESTION: 'Complete the minus one sum',
+            SECOND_QUESTION: 'Try again and complete the sum',
+            LATER_QUESTIONS: 'Complete the sum',
+            NUMBER_FORMAT_QUESTION: (n) => `What number is one less than ${n}?`,
+            HINTS: {
+                COUNT_LEFT: 'Count the number of pictures on the left side',
+                COUNT_RIGHT: 'Count the number of pictures on the right side',
+                WHAT_IS_MINUS_ONE: (n) => `What is ${n} subtract one?`
+            },
+            NUMBER_HINTS: {
+                WHAT_COMES_BEFORE: (n) => `What number comes before ${n}?`
+            },
+            SUM_REPETITION: (n, answer) => `One less than ${n} is ${answer}`,
+            GAME_COMPLETE: 'Well done! Choose the top button to play again, the bottom button to play plus one, or return to the home page.'
         },
         
-        // Feedback
+        // Common messages
         ENCOURAGEMENTS: ['Well done!', 'Excellent!', 'Perfect!'],
         TRY_AGAIN: 'Try again',
-        
-        // Completion feedback for picture format
-        SUM_REPETITION: (n, answer) => `One more than ${n} is ${answer}`,
-        
-        // Final completion
-        GAME_COMPLETE: 'Well done! You have completed all ten plus one sums! Try again or return to the home page.',
-        
-        // Audio controls
         AUDIO_ON: 'Audio enabled'
     },
     
@@ -208,14 +236,15 @@ const CONFIG = {
     FLASH_DURATION: 800,
     ICON_FADE_DURATION: 500,
     NEXT_QUESTION_DELAY: 1500,
+    INITIAL_FADE_DELAY: 1000, // 1 second before everything fades in
     
     // Inactivity settings
     INACTIVITY_DURATION: 20000, // 20 seconds
-    KEYBOARD_WAIT_DURATION: 3000, // 3 seconds for multi-digit input (reduced from 4)
-    MULTI_DIGIT_TIMEOUT: 3000, // 3 seconds maximum between digits for multi-digit numbers
+    KEYBOARD_WAIT_DURATION: 3000, // 3 seconds for multi-digit input
+    MULTI_DIGIT_TIMEOUT: 3000, // 3 seconds maximum between digits
     
     // Level progression settings
-    REDEMPTION_SYSTEM: true, // Use redemption system for failures
+    REDEMPTION_SYSTEM: true,
     
     // Button configurations
     BUTTON_CONFIGS: {
@@ -228,18 +257,24 @@ const CONFIG = {
         NUMBER_FORMAT: {
             count: 4,
             width: 14, // 14% of button panel width
-            height: 8, // 8% of button panel width (same height, font based on height)
+            height: 8, // 8% of button panel width
             // numbers generated dynamically based on correct answer
         }
     },
     
-    // System coordination timeouts - REDUCED for faster loading
-    SYSTEM_CHECK_INTERVAL: 50,        // Check every 50ms instead of 100ms
-    BUTTON_SETUP_DELAY: 100,          // Reduced from 300ms
-    COORDINATION_DELAY: 200,          // Reduced from 1000ms
-    DIMENSION_RETRY_DELAY: 50,        // Reduced from 100-200ms
-    FAILSAFE_TIMEOUT: 2000,           // Reduced from 5000ms to 2000ms
-    MAX_READY_CHECKS: 40              // 40 * 50ms = 2000ms max wait
+    // System coordination timeouts
+    SYSTEM_CHECK_INTERVAL: 50,
+    BUTTON_SETUP_DELAY: 100,
+    COORDINATION_DELAY: 200,
+    DIMENSION_RETRY_DELAY: 50,
+    FAILSAFE_TIMEOUT: 2000,
+    MAX_READY_CHECKS: 40,
+    
+    // Local storage keys for persistence
+    STORAGE_KEYS: {
+        PLUS_ONE_LEVEL: 'plusone_current_level',
+        MINUS_ONE_LEVEL: 'minusone_current_level'
+    }
 };
 
 // Generate number to word conversions for larger numbers
