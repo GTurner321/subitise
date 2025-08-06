@@ -7,6 +7,70 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/landing.css">
+    <style>
+        /* Stats integration styles */
+        .stats-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            z-index: 10;
+            text-decoration: none;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .stats-button.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .stats-button:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+            color: white;
+            text-decoration: none;
+        }
+
+        .completion-star {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #FFD700;
+            font-size: 20px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            z-index: 10;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+
+        .completion-star.visible {
+            opacity: 1;
+            transform: scale(1);
+            animation: starTwinkle 2s ease-in-out infinite;
+        }
+
+        @keyframes starTwinkle {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        .game-card {
+            position: relative;
+        }
+    </style>
 </head>
 <body>
     <div class="landing-container">
@@ -18,6 +82,10 @@
         <main class="games-grid">
             <!-- Game 1: Subitising -->
             <div class="game-card" data-game="subitising">
+                <a href="#" class="stats-button" data-game="subitising" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="subitising"></i>
                 <div class="game-preview">
                     <div class="preview-icons">
                         <i class="fas fa-star"></i>
@@ -49,6 +117,10 @@
             
             <!-- Game 2: Addition -->
             <div class="game-card" data-game="add">
+                <a href="#" class="stats-button" data-game="add" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="add"></i>
                 <div class="game-preview">
                     <div class="preview-icons addition-preview">
                         <div class="preview-left">
@@ -89,6 +161,10 @@
 
             <!-- Game 3: Two Dice -->
             <div class="game-card" data-game="twodice">
+                <a href="#" class="stats-button" data-game="twodice" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="twodice"></i>
                 <div class="game-preview">
                     <div class="preview-icons dice-preview">
                         <div class="preview-dice left-dice">
@@ -140,6 +216,10 @@
 
             <!-- Game 4: Number Tracing -->
             <div class="game-card" data-game="trace">
+                <a href="#" class="stats-button" data-game="trace" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="trace"></i>
                 <div class="game-preview">
                     <div class="preview-icons tracing-preview">
                         <div class="preview-number">
@@ -175,6 +255,10 @@
 
             <!-- Game 5: Draw Numbers -->
             <div class="game-card" data-game="draw">
+                <a href="#" class="stats-button" data-game="draw" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="draw"></i>
                 <div class="game-preview">
                     <div class="preview-icons draw-preview">
                         <div class="preview-canvas"></div>
@@ -205,299 +289,327 @@
                 </div>
             </div>
 
-<!-- Game 6: Balloon Numbers -->
-<div class="game-card" data-game="balloon">
-    <div class="game-preview">
-        <div class="preview-icons balloon-preview">
-            <div class="preview-balloon">
-                <i class="fas fa-circle"></i>
-                <span class="balloon-number">25</span>
-            </div>
-            <div class="preview-target">
-                <i class="fas fa-bullseye"></i>
-            </div>
-        </div>
-        <div class="mini-rainbow">
-            <div class="mini-arc" style="border-top-color: #ff0000;"></div>
-            <div class="mini-arc" style="border-top-color: #ff8000;"></div>
-            <div class="mini-arc" style="border-top-color: #ffff00;"></div>
-            <div class="mini-arc" style="border-top-color: #00ff00;"></div>
-            <div class="mini-arc" style="border-top-color: #0000ff;"></div>
-        </div>
-    </div>
-    <div class="game-info">
-        <h2>Balloon Numbers</h2>
-        <p>Pop the balloons with the target number and build a rainbow!</p>
-        <div class="game-features">
-            <span class="feature-tag">Numbers</span>
-            <span class="feature-tag">Numbers 1-100</span>
-            <span class="feature-tag">Ages 5-10</span>
-        </div>
-        <button class="play-button">
-            <i class="fas fa-play"></i>
-            Play Now
-        </button>
-    </div>
-</div>
-
-<!-- Game 7: Raisin Game -->
-<div class="game-card" data-game="raisin">
-    <div class="game-preview">
-        <div class="preview-icons raisin-preview">
-            <div class="preview-raisin">
-                <i class="fas fa-circle"></i>
-            </div>
-            <div class="preview-guinea-pig">
-                <i class="fas fa-paw"></i>
-            </div>
-            <div class="preview-raisin eaten">
-                <i class="fas fa-circle"></i>
-            </div>
-        </div>
-        <div class="mini-rainbow">
-            <div class="mini-arc" style="border-top-color: #ff0000;"></div>
-            <div class="mini-arc" style="border-top-color: #ff8000;"></div>
-            <div class="mini-arc" style="border-top-color: #ffff00;"></div>
-            <div class="mini-arc" style="border-top-color: #00ff00;"></div>
-            <div class="mini-arc" style="border-top-color: #0000ff;"></div>
-        </div>
-    </div>
-    <div class="game-info">
-        <h2>Raisin Game</h2>
-        <p>Count how many raisins the guinea pig ate and build a rainbow!</p>
-        <div class="game-features">
-            <span class="feature-tag">Counting</span>
-            <span class="feature-tag">Numbers 1-10</span>
-            <span class="feature-tag">Ages 3-7</span>
-        </div>
-        <button class="play-button">
-            <i class="fas fa-play"></i>
-            Play Now
-        </button>
-    </div>
-</div>
-            
-<!-- Game 8: Slider Game -->
-<div class="game-card" data-game="slider">
-    <div class="game-preview">
-        <div class="preview-icons slider-preview">
-            <div class="preview-slider-frame">
-                <div class="preview-slider-bar top-preview-bar">
-                    <div class="preview-bead blue-preview-bead"></div>
-                    <div class="preview-bead blue-preview-bead"></div>
-                    <div class="preview-bead red-preview-bead"></div>
-                </div>
-                <div class="preview-slider-bar bottom-preview-bar">
-                    <div class="preview-bead blue-preview-bead"></div>
-                    <div class="preview-bead red-preview-bead"></div>
-                </div>
-            </div>
-            <div class="preview-arrow">
-                <i class="fas fa-arrow-right"></i>
-            </div>
-        </div>
-        <div class="mini-rainbow">
-            <div class="mini-arc" style="border-top-color: #ff0000;"></div>
-            <div class="mini-arc" style="border-top-color: #ff8000;"></div>
-            <div class="mini-arc" style="border-top-color: #ffff00;"></div>
-            <div class="mini-arc" style="border-top-color: #00ff00;"></div>
-            <div class="mini-arc" style="border-top-color: #0000ff;"></div>
-        </div>
-    </div>
-    <div class="game-info">
-        <h2>Slider Twos</h2>
-        <p>Slide beads in twos across the counter and count them to build a rainbow!</p>
-        <div class="game-features">
-            <span class="feature-tag">Sliding</span>
-            <span class="feature-tag">Numbers 2-20</span>
-            <span class="feature-tag">Ages 4-8</span>
-        </div>
-        <button class="play-button">
-            <i class="fas fa-play"></i>
-            Play Now
-        </button>
-    </div>
-</div>          
-            
-<!-- Game 9: Teddy Trumps -->
-<div class="game-card" data-game="trumps">
-    <div class="game-preview">
-        <div class="preview-icons trumps-preview">
-            <div class="preview-cards">
-                <div class="preview-card user-preview-card">
-                    <div class="card-back-mini">TT</div>
-                    <div class="card-front-mini">
-                        <i class="fas fa-teddy-bear"></i>
-                        <div class="mini-stats">
-                            <span>Fun: 85%</span>
-                            <span>❤️: 9/10</span>
-                            <span>⭐: 4/5</span>
+            <!-- Game 6: Balloon Numbers -->
+            <div class="game-card" data-game="balloon">
+                <a href="#" class="stats-button" data-game="balloon" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="balloon"></i>
+                <div class="game-preview">
+                    <div class="preview-icons balloon-preview">
+                        <div class="preview-balloon">
+                            <i class="fas fa-circle"></i>
+                            <span class="balloon-number">25</span>
+                        </div>
+                        <div class="preview-target">
+                            <i class="fas fa-bullseye"></i>
                         </div>
                     </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
+                    </div>
                 </div>
-                <div class="preview-vs">VS</div>
-                <div class="preview-card computer-preview-card">
-                    <div class="card-back-mini">TT</div>
+                <div class="game-info">
+                    <h2>Balloon Numbers</h2>
+                    <p>Pop the balloons with the target number and build a rainbow!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Numbers</span>
+                        <span class="feature-tag">Numbers 1-100</span>
+                        <span class="feature-tag">Ages 5-10</span>
+                    </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
                 </div>
             </div>
-            <div class="preview-scores">
-                <div class="mini-score user-mini-score">3</div>
-                <div class="score-dash">-</div>
-                <div class="mini-score computer-mini-score">2</div>
-            </div>
-        </div>
-        <div class="mini-rainbow">
-            <div class="mini-arc" style="border-top-color: #ff0000;"></div>
-            <div class="mini-arc" style="border-top-color: #ff8000;"></div>
-            <div class="mini-arc" style="border-top-color: #ffff00;"></div>
-            <div class="mini-arc" style="border-top-color: #00ff00;"></div>
-            <div class="mini-arc" style="border-top-color: #0000ff;"></div>
-        </div>
-    </div>
-    <div class="game-info">
-        <h2>Teddy Trumps</h2>
-        <p>Play trump cards with teddy bears and compete against the computer!</p>
-        <div class="game-features">
-            <span class="feature-tag">Strategy</span>
-            <span class="feature-tag">Card Game</span>
-            <span class="feature-tag">Ages 5-12</span>
-        </div>
-        <button class="play-button">
-            <i class="fas fa-play"></i>
-            Play Now
-        </button>
-    </div>
-</div>
 
-<!-- Game: Plus One -->
-<div class="game-card" data-game="plusone">
-    <div class="game-preview">
-        <div class="preview-icons plusone-preview">
-            <div class="preview-left">
-                <span class="preview-number">5</span>
+            <!-- Game 7: Raisin Game -->
+            <div class="game-card" data-game="raisin">
+                <a href="#" class="stats-button" data-game="raisin" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="raisin"></i>
+                <div class="game-preview">
+                    <div class="preview-icons raisin-preview">
+                        <div class="preview-raisin">
+                            <i class="fas fa-circle"></i>
+                        </div>
+                        <div class="preview-guinea-pig">
+                            <i class="fas fa-paw"></i>
+                        </div>
+                        <div class="preview-raisin eaten">
+                            <i class="fas fa-circle"></i>
+                        </div>
+                    </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>Raisin Game</h2>
+                    <p>Count how many raisins the guinea pig ate and build a rainbow!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Counting</span>
+                        <span class="feature-tag">Numbers 1-10</span>
+                        <span class="feature-tag">Ages 3-7</span>
+                    </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
+                </div>
             </div>
-            <div class="preview-plus">
-                <i class="fas fa-plus"></i>
+                
+            <!-- Game 8: Slider Game -->
+            <div class="game-card" data-game="slider">
+                <a href="#" class="stats-button" data-game="slider" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="slider"></i>
+                <div class="game-preview">
+                    <div class="preview-icons slider-preview">
+                        <div class="preview-slider-frame">
+                            <div class="preview-slider-bar top-preview-bar">
+                                <div class="preview-bead blue-preview-bead"></div>
+                                <div class="preview-bead blue-preview-bead"></div>
+                                <div class="preview-bead red-preview-bead"></div>
+                            </div>
+                            <div class="preview-slider-bar bottom-preview-bar">
+                                <div class="preview-bead blue-preview-bead"></div>
+                                <div class="preview-bead red-preview-bead"></div>
+                            </div>
+                        </div>
+                        <div class="preview-arrow">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                    </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>Slider Twos</h2>
+                    <p>Slide beads in twos across the counter and count them to build a rainbow!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Sliding</span>
+                        <span class="feature-tag">Numbers 2-20</span>
+                        <span class="feature-tag">Ages 4-8</span>
+                    </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
+                </div>
+            </div>          
+                
+            <!-- Game 9: Teddy Trumps -->
+            <div class="game-card" data-game="trumps">
+                <a href="#" class="stats-button" data-game="trumps" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="trumps"></i>
+                <div class="game-preview">
+                    <div class="preview-icons trumps-preview">
+                        <div class="preview-cards">
+                            <div class="preview-card user-preview-card">
+                                <div class="card-back-mini">TT</div>
+                                <div class="card-front-mini">
+                                    <i class="fas fa-teddy-bear"></i>
+                                    <div class="mini-stats">
+                                        <span>Fun: 85%</span>
+                                        <span>❤️: 9/10</span>
+                                        <span>⭐: 4/5</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="preview-vs">VS</div>
+                            <div class="preview-card computer-preview-card">
+                                <div class="card-back-mini">TT</div>
+                            </div>
+                        </div>
+                        <div class="preview-scores">
+                            <div class="mini-score user-mini-score">3</div>
+                            <div class="score-dash">-</div>
+                            <div class="mini-score computer-mini-score">2</div>
+                        </div>
+                    </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>Teddy Trumps</h2>
+                    <p>Play trump cards with teddy bears and compete against the computer!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Strategy</span>
+                        <span class="feature-tag">Card Game</span>
+                        <span class="feature-tag">Ages 5-12</span>
+                    </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
+                </div>
             </div>
-            <div class="preview-right">
-                <span class="preview-number">1</span>
-            </div>
-            <div class="preview-equals">
-                <i class="fas fa-equals"></i>
-            </div>
-            <div class="preview-answer">
-                <span class="preview-number">6</span>
-            </div>
-        </div>
-        <div class="mini-rainbow">
-            <div class="mini-arc" style="border-top-color: #ff0000;"></div>
-            <div class="mini-arc" style="border-top-color: #ff8000;"></div>
-            <div class="mini-arc" style="border-top-color: #ffff00;"></div>
-            <div class="mini-arc" style="border-top-color: #00ff00;"></div>
-            <div class="mini-arc" style="border-top-color: #0000ff;"></div>
-        </div>
-    </div>
-    <div class="game-info">
-        <h2>Plus One</h2>
-        <p>Add one to numbers and build a rainbow through 10 progressive levels!</p>
-        <div class="game-features">
-            <span class="feature-tag">Plus One</span>
-            <span class="feature-tag">Numbers 1-9,999,999</span>
-            <span class="feature-tag">Ages 4-10</span>
-        </div>
-        <button class="play-button">
-            <i class="fas fa-play"></i>
-            Play Now
-        </button>
-    </div>
-</div>
 
-<!-- Game: Stacks -->
-<div class="game-card" data-game="stacks">
-    <div class="game-preview">
-        <div class="preview-icons stacks-preview">
-            <div class="preview-tower">
-                <div class="preview-block bottom-block">
-                    <span class="block-number">2</span>
+            <!-- Game: Plus One -->
+            <div class="game-card" data-game="plusone">
+                <a href="games/plusone/stats.html" class="stats-button" data-game="plusone" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="plusone"></i>
+                <div class="game-preview">
+                    <div class="preview-icons plusone-preview">
+                        <div class="preview-left">
+                            <span class="preview-number">5</span>
+                        </div>
+                        <div class="preview-plus">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="preview-right">
+                            <span class="preview-number">1</span>
+                        </div>
+                        <div class="preview-equals">
+                            <i class="fas fa-equals"></i>
+                        </div>
+                        <div class="preview-answer">
+                            <span class="preview-number">6</span>
+                        </div>
+                    </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
+                    </div>
                 </div>
-                <div class="preview-block middle-block">
-                    <span class="block-number">5</span>
-                </div>
-                <div class="preview-block top-block">
-                    <span class="block-number">8</span>
+                <div class="game-info">
+                    <h2>Plus One</h2>
+                    <p>Add one to numbers and build a rainbow through 10 progressive levels!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Plus One</span>
+                        <span class="feature-tag">Numbers 1-9,999,999</span>
+                        <span class="feature-tag">Ages 4-10</span>
+                    </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
                 </div>
             </div>
-            <div class="preview-arrow">
-                <i class="fas fa-arrow-up"></i>
-            </div>
-        </div>
-        <div class="mini-rainbow">
-            <div class="mini-arc" style="border-top-color: #ff0000;"></div>
-            <div class="mini-arc" style="border-top-color: #ff8000;"></div>
-            <div class="mini-arc" style="border-top-color: #ffff00;"></div>
-            <div class="mini-arc" style="border-top-color: #00ff00;"></div>
-            <div class="mini-arc" style="border-top-color: #0000ff;"></div>
-        </div>
-    </div>
-    <div class="game-info">
-        <h2>Stacks</h2>
-        <p>Build towers by stacking blocks in numerical order and build a rainbow!</p>
-        <div class="game-features">
-            <span class="feature-tag">Ordering</span>
-            <span class="feature-tag">Numbers 1-999</span>
-            <span class="feature-tag">Ages 4-10</span>
-        </div>
-        <button class="play-button">
-            <i class="fas fa-play"></i>
-            Play Now
-        </button>
-    </div>
-</div>
 
-<!-- Game: Slider Random -->
-<div class="game-card" data-game="sliderrandom">
-    <div class="game-preview">
-        <div class="preview-icons sliderrandom-preview">
-            <div class="preview-target">
-                <div class="target-number">7</div>
-                <div class="target-text">seven</div>
-            </div>
-            <div class="preview-slider">
-                <div class="slider-bar">
-                    <div class="bead blue"></div>
-                    <div class="bead blue"></div>
-                    <div class="bead red"></div>
-                    <div class="bead red"></div>
-                    <div class="bead red"></div>
+            <!-- Game: Stacks -->
+            <div class="game-card" data-game="stacks">
+                <a href="#" class="stats-button" data-game="stacks" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="stacks"></i>
+                <div class="game-preview">
+                    <div class="preview-icons stacks-preview">
+                        <div class="preview-tower">
+                            <div class="preview-block bottom-block">
+                                <span class="block-number">2</span>
+                            </div>
+                            <div class="preview-block middle-block">
+                                <span class="block-number">5</span>
+                            </div>
+                            <div class="preview-block top-block">
+                                <span class="block-number">8</span>
+                            </div>
+                        </div>
+                        <div class="preview-arrow">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                    </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
+                    </div>
                 </div>
-                <div class="slider-bar">
-                    <div class="bead blue"></div>
-                    <div class="bead red"></div>
+                <div class="game-info">
+                    <h2>Stacks</h2>
+                    <p>Build towers by stacking blocks in numerical order and build a rainbow!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Ordering</span>
+                        <span class="feature-tag">Numbers 1-999</span>
+                        <span class="feature-tag">Ages 4-10</span>
+                    </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
                 </div>
             </div>
-        </div>
-        <div class="mini-rainbow">
-            <div class="mini-arc" style="border-top-color: #ff0000;"></div>
-            <div class="mini-arc" style="border-top-color: #ff8000;"></div>
-            <div class="mini-arc" style="border-top-color: #ffff00;"></div>
-            <div class="mini-arc" style="border-top-color: #00ff00;"></div>
-            <div class="mini-arc" style="border-top-color: #0000ff;"></div>
-        </div>
-    </div>
-    <div class="game-info">
-        <h2>Slider Random</h2>
-        <p>Slide beads to match the target number and build a rainbow!</p>
-        <div class="game-features">
-            <span class="feature-tag">Counting</span>
-            <span class="feature-tag">Numbers 2-19</span>
-            <span class="feature-tag">Ages 3-8</span>
-        </div>
-        <button class="play-button">
-            <i class="fas fa-play"></i>
-            Play Now
-        </button>
-    </div>
-</div>
+
+            <!-- Game: Slider Random -->
+            <div class="game-card" data-game="sliderrandom">
+                <a href="#" class="stats-button" data-game="sliderrandom" title="View Stats">
+                    <i class="fas fa-info"></i>
+                </a>
+                <i class="fas fa-star completion-star" data-game="sliderrandom"></i>
+                <div class="game-preview">
+                    <div class="preview-icons sliderrandom-preview">
+                        <div class="preview-target">
+                            <div class="target-number">7</div>
+                            <div class="target-text">seven</div>
+                        </div>
+                        <div class="preview-slider">
+                            <div class="slider-bar">
+                                <div class="bead blue"></div>
+                                <div class="bead blue"></div>
+                                <div class="bead red"></div>
+                                <div class="bead red"></div>
+                                <div class="bead red"></div>
+                            </div>
+                            <div class="slider-bar">
+                                <div class="bead blue"></div>
+                                <div class="bead red"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mini-rainbow">
+                        <div class="mini-arc" style="border-top-color: #ff0000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ff8000;"></div>
+                        <div class="mini-arc" style="border-top-color: #ffff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #00ff00;"></div>
+                        <div class="mini-arc" style="border-top-color: #0000ff;"></div>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <h2>Slider Random</h2>
+                    <p>Slide beads to match the target number and build a rainbow!</p>
+                    <div class="game-features">
+                        <span class="feature-tag">Counting</span>
+                        <span class="feature-tag">Numbers 2-19</span>
+                        <span class="feature-tag">Ages 3-8</span>
+                    </div>
+                    <button class="play-button">
+                        <i class="fas fa-play"></i>
+                        Play Now
+                    </button>
+                </div>
+            </div>
         </main>
         
         <footer class="landing-footer">
@@ -505,22 +617,49 @@
         </footer>
     </div>
 
+    <!-- Load the stats manager for checking stats -->
+    <script src="js/shared/statsmanager.js"></script>
+
     <script>
         // Game navigation
         document.addEventListener('DOMContentLoaded', () => {
             const gameCards = document.querySelectorAll('.game-card:not(.coming-soon)');
             
+            // Initialize stats display
+            updateStatsDisplay();
+            
             gameCards.forEach(card => {
                 const playButton = card.querySelector('.play-button');
+                const statsButton = card.querySelector('.stats-button');
                 const gameName = card.dataset.game;
                 
-                // Add click handlers to both card and button
+                // Add click handlers to play button and card (but not stats button)
                 [card, playButton].forEach(element => {
                     element.addEventListener('click', (e) => {
+                        // Don't navigate if clicking on stats button
+                        if (e.target.closest('.stats-button')) {
+                            return;
+                        }
                         e.preventDefault();
                         navigateToGame(gameName);
                     });
                 });
+                
+                // Handle stats button clicks
+                if (statsButton) {
+                    statsButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        if (gameName === 'plusone') {
+                            // Plus One has its own stats page
+                            window.location.href = 'games/plusone/stats.html';
+                        } else {
+                            // Other games don't have stats yet
+                            alert(`Stats for ${gameName} are not yet available. Only Plus One has statistics tracking.`);
+                        }
+                    });
+                }
                 
                 // Add hover effects
                 card.addEventListener('mouseenter', () => {
@@ -539,6 +678,40 @@
         function navigateToGame(gameName) {
             // Navigate to the specific game
             window.location.href = `games/${gameName}/index.html`;
+        }
+        
+        function updateStatsDisplay() {
+            if (!window.StatsManager) {
+                console.log('StatsManager not available yet, retrying...');
+                setTimeout(updateStatsDisplay, 500);
+                return;
+            }
+            
+            const gameCards = document.querySelectorAll('.game-card');
+            
+            gameCards.forEach(card => {
+                const gameName = card.dataset.game;
+                const statsButton = card.querySelector('.stats-button');
+                const completionStar = card.querySelector('.completion-star');
+                
+                if (!gameName || !statsButton || !completionStar) return;
+                
+                try {
+                    const gameStats = window.StatsManager.getGameDisplayStats(gameName);
+                    
+                    if (gameStats.attempted) {
+                        // Show stats button if game has been attempted
+                        statsButton.classList.add('visible');
+                        
+                        if (gameStats.completed) {
+                            // Show completion star if game has been completed
+                            completionStar.classList.add('visible');
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`Error checking stats for ${gameName}:`, error);
+                }
+            });
         }
         
         // Animate dice preview
@@ -608,6 +781,18 @@
         
         // Create sparkles periodically
         setInterval(createSparkle, 3000);
+        
+        // Refresh stats display when returning to page
+        window.addEventListener('focus', () => {
+            updateStatsDisplay();
+        });
+        
+        // Also check when page becomes visible
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                updateStatsDisplay();
+            }
+        });
     </script>
 </body>
 </html>
