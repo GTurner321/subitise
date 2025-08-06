@@ -70,6 +70,204 @@
         .game-card {
             position: relative;
         }
+
+        /* Statistics Modal Styles */
+        .stats-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .stats-modal.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .stats-modal.hidden {
+            display: none;
+        }
+
+        .stats-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .stats-modal.visible .stats-modal-content {
+            transform: scale(1);
+        }
+
+        .stats-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .stats-modal-close:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+            color: #2c3e50;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .modal-header p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .modal-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .modal-stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .modal-stat-card.accuracy {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .modal-stat-card.resilience {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        .modal-stat-card.speed {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        }
+
+        .modal-stat-card.pulsing {
+            animation: statPulse 1s ease-in-out 4;
+        }
+
+        @keyframes statPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            }
+        }
+
+        .modal-stat-card i {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+
+        .modal-stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .modal-stat-card .label {
+            font-size: 0.85rem;
+            opacity: 0.95;
+        }
+
+        .modal-explanation {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .modal-explanation h4 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .modal-explanation p {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .no-stats-modal {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        .no-stats-modal i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 600px) {
+            .stats-modal-content {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .modal-stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .modal-stat-card .value {
+                font-size: 1.8rem;
+            }
+            
+            .modal-stat-card {
+                padding: 12px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -471,7 +669,7 @@
 
             <!-- Game: Plus One -->
             <div class="game-card" data-game="plusone">
-                <a href="games/plusone/stats.html" class="stats-button" data-game="plusone" title="View Stats">
+                <a href="#" class="stats-button" data-game="plusone" title="View Stats">
                     <i class="fas fa-info"></i>
                 </a>
                 <i class="fas fa-star completion-star" data-game="plusone"></i>
