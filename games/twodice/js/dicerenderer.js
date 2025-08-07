@@ -17,6 +17,52 @@ class DiceRenderer {
         
         // Track previously used colors to avoid repeats
         this.previousColors = [];
+        
+        // Setup resize handling for responsive dice
+        this.setupResizeHandling();
+    }
+
+    setupResizeHandling() {
+        window.addEventListener('resize', () => {
+            if (this.resizeTimeout) {
+                clearTimeout(this.resizeTimeout);
+            }
+            this.resizeTimeout = setTimeout(() => {
+                this.updateDiceSize();
+            }, 100);
+        });
+    }
+
+    updateDiceSize() {
+        if (this.currentDice.length === 0) return;
+        
+        const gameArea = document.querySelector('.game-area');
+        if (!gameArea) return;
+        
+        const gameAreaWidth = gameArea.offsetWidth;
+        const diceWidthPx = gameAreaWidth * 0.12; // 12% of game area width
+        const halfDiceSize = diceWidthPx / 2;
+        
+        this.currentDice.forEach(dice => {
+            // Update dice height to match width
+            dice.style.height = `${diceWidthPx}px`;
+            dice.dataset.halfSize = halfDiceSize;
+            
+            // Update 3D face positioning
+            const faces = dice.querySelectorAll('.dice-face');
+            faces.forEach(face => {
+                const faceClass = face.classList[1]; // e.g., 'front', 'back', etc.
+                this.setFace3DPosition(face, faceClass, halfDiceSize);
+            });
+            
+            // Update dot sizes
+            const dots = dice.querySelectorAll('.dice-dot');
+            const dotSize = gameAreaWidth * 0.018;
+            dots.forEach(dot => {
+                dot.style.width = `${dotSize}px`;
+                dot.style.height = `${dotSize}px`;
+            });
+        });
     }
 
     clearDice() {
@@ -223,9 +269,18 @@ class DiceRenderer {
                 // Set dot size in pixels to match CSS percentage
                 dot.style.width = `${dotSize}px`;
                 dot.style.height = `${dotSize}px`;
+                dot.style.borderRadius = '50%';
+                dot.style.backgroundColor = '#333';
+                dot.style.margin = 'auto';
+                dot.style.transition = 'opacity 0.1s ease';
+                dot.style.pointerEvents = 'none';
+                dot.style.touchAction = 'none';
                 
                 if (pattern[row][col] === 1) {
                     dot.classList.add('active');
+                    dot.style.opacity = '1';
+                } else {
+                    dot.style.opacity = '0';
                 }
                 
                 container.appendChild(dot);
@@ -541,6 +596,13 @@ class DiceRenderer {
         this.clearDice();
         // Reset color tracking when game resets
         this.previousColors = [];
+        
+        // Clear resize timeout
+        if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = null;
+        }
+        
         console.log('Dice renderer reset - color tracking cleared');
     }
 }
