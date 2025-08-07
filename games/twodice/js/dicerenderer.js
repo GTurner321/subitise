@@ -395,10 +395,28 @@ class DiceRenderer {
             const rect = face.getBoundingClientRect();
             const area = rect.width * rect.height;
             
-            // Only consider faces that are actually visible
-            if (area > largestArea && rect.width > 20 && rect.height > 20) {
-                largestFace = face;
-                largestArea = area;
+            // Check if face is actually visible (not hidden by backface-visibility)
+            const computedStyle = window.getComputedStyle(face);
+            const isVisible = computedStyle.visibility !== 'hidden' && 
+                             computedStyle.display !== 'none' &&
+                             area > 20; // Minimum area threshold
+            
+            if (isVisible && area > largestArea) {
+                // Additional check: ensure this face is actually facing forward
+                const transform = computedStyle.transform;
+                if (transform && transform !== 'none') {
+                    // Parse transform matrix to determine if face is front-facing
+                    const matrix = new DOMMatrix(transform);
+                    const dotProduct = matrix.m33; // Z-component indicates if facing forward
+                    
+                    if (dotProduct > 0.5) { // Face is reasonably front-facing
+                        largestFace = face;
+                        largestArea = area;
+                    }
+                } else {
+                    largestFace = face;
+                    largestArea = area;
+                }
             }
         });
         
