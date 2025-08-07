@@ -3,7 +3,7 @@
     --game-area-width: 100%; /* Will be updated by JavaScript with actual game area width */
     --sum-box-size: 8%; /* 8% of actual game area width for sum boxes */
     --sum-bar-width-multiplier: 6.5; /* How many box widths for sum bar */
-    --plus-sign-size: 7%; /* 7% of game area width for plus sign */
+    --red-circle-diameter: 7%; /* 7% of game area width for red circle diameter */
 }
 
 /* Prevent scrolling - game always fits on screen */
@@ -82,8 +82,8 @@ body {
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border-left: 1px dotted rgba(0, 0, 0, 0.3);
-    border-right: 1px dotted rgba(0, 0, 0, 0.3);
+    border-left: 1px dashed rgba(0, 0, 0, 0.3);
+    border-right: 1px dashed rgba(0, 0, 0, 0.3);
     z-index: 0; /* Below game area background and rainbow */
 }
 
@@ -91,9 +91,11 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Red circle: 7% of game area width for both dimensions (perfect circle) */
-    width: var(--plus-sign-size);
-    height: var(--plus-sign-size);
+    /* Red circle: diameter = 7% of game area width (perfect circle) */
+    width: var(--red-circle-diameter);
+    height: var(--red-circle-diameter);
+    /* Ensure height matches width in pixels for perfect circle */
+    aspect-ratio: 1;
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
@@ -102,7 +104,8 @@ body {
 }
 
 .plus-sign i {
-    font-size: calc(var(--plus-sign-size) * 0.4); /* 40% of plus sign size */
+    /* Plus icon: 40% of the red circle diameter */
+    font-size: calc(var(--red-circle-diameter) * 0.4);
     color: white;
     font-weight: bold;
 }
