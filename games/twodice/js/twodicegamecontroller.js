@@ -1,4 +1,45 @@
-class TwoDiceGameController {
+/**
+     * Wait for both ButtonBar AND proper game area setup
+     */
+    waitForSystemsAndInitialize() {
+        console.log('🎲 Checking system readiness...');
+        
+        // Check if ButtonBar is available and functional
+        const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
+        
+        // Check if game area containers exist
+        const gameAreaReady = this.gameArea && this.leftSide && this.rightSide && this.sumRow;
+        
+        if (buttonBarReady && gameAreaReady) {
+            console.log('🎲 All systems ready, proceeding with initialization');
+            this.buttonBarReady = true;
+            this.gameAreaReady = true;
+            
+            // Create buttons first - this will trigger game area margin/sizing changes
+            this.createButtons();
+            
+            // Set up ButtonBar coordination for CSS custom properties
+            this.setupButtonBarCoordination();
+            
+            // Wait for ButtonBar to fully coordinate with game area
+            setTimeout(() => {
+                console.log('🎲 ButtonBar coordination complete, initializing game');
+                this.initializeGame();
+            }, 800);
+        } else {
+            console.log(`⏳ Waiting for systems... ButtonBar: ${buttonBarReady}, GameArea: ${gameAreaReady}`);
+            setTimeout(() => {
+                this.waitForSystemsAndInitialize();
+            }, 100);
+        }
+    }
+
+    setupButtonBarCoordination() {
+        // Register with ButtonBar to be notified of dimension changes
+        if (window.ButtonBar) {
+            window.ButtonBar.addObserver((dimensionData) => {
+                console.log('🎯 ButtonBar dimensions updated:', dimensionData);
+                this.updateGameAreaDimensions();class TwoDiceGameController {
     constructor() {
         // Initialize components in proper order
         this.diceRenderer = new DiceRenderer();
@@ -81,6 +122,9 @@ class TwoDiceGameController {
             // Create buttons first - this will trigger game area margin/sizing changes
             this.createButtons();
             
+            // Set up ButtonBar coordination for CSS custom properties
+            this.setupButtonBarCoordination();
+            
             // Wait for ButtonBar to fully coordinate with game area
             setTimeout(() => {
                 console.log('🎲 ButtonBar coordination complete, initializing game');
@@ -92,6 +136,43 @@ class TwoDiceGameController {
                 this.waitForSystemsAndInitialize();
             }, 100);
         }
+    }
+
+    setupButtonBarCoordination() {
+        // Register with ButtonBar to be notified of dimension changes
+        if (window.ButtonBar) {
+            window.ButtonBar.addObserver((dimensionData) => {
+                console.log('🎯 ButtonBar dimensions updated:', dimensionData);
+                this.updateGameAreaDimensions();
+            });
+        }
+    }
+
+    updateGameAreaDimensions() {
+        if (!this.gameArea) {
+            console.error('❌ Game area not found when trying to update dimensions');
+            return;
+        }
+        
+        // Force a reflow to ensure we get accurate dimensions
+        this.gameArea.offsetHeight;
+        
+        // Get the actual game area dimensions after ButtonBar has set them
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+        
+        // Validate that we have reasonable dimensions
+        if (gameAreaRect.width < 100 || gameAreaRect.height < 100) {
+            console.warn('⚠️ Game area dimensions seem too small, retrying...', gameAreaRect);
+            setTimeout(() => {
+                this.updateGameAreaDimensions();
+            }, 100);
+            return;
+        }
+        
+        // Update CSS custom property with actual game area width
+        document.documentElement.style.setProperty('--game-area-width', `${gameAreaRect.width}px`);
+        
+        console.log('📏 Game area dimensions updated and CSS custom property set:', gameAreaRect.width);
     }
 
     initializeGame() {
