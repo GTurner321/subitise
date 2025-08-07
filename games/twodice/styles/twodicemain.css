@@ -162,14 +162,16 @@ body {
 
 /* Left dice positioning: centered at (23%, 50%) of game area */
 .dice.left-dice {
-    left: calc(23% - 6%); /* 23% minus half dice width (6%) */
-    top: calc(50% - 6%); /* 50% minus half dice height (6%) */
+    left: 23%; /* Center X position */
+    top: 50%; /* Center Y position */
+    transform: translate(-50%, -50%); /* Center the dice on the position */
 }
 
 /* Right dice positioning: centered at (77%, 50%) of game area */
 .dice.right-dice {
-    left: calc(77% - 6%); /* 77% minus half dice width (6%) */
-    top: calc(50% - 6%); /* 50% minus half dice height (6%) */
+    left: 77%; /* Center X position */
+    top: 50%; /* Center Y position */
+    transform: translate(-50%, -50%); /* Center the dice on the position */
 }
 
 /* Dice faces - completely transparent containers for 3D positioning */
@@ -185,7 +187,7 @@ body {
     box-shadow: none !important;
     outline: none !important;
     opacity: 1;
-    backface-visibility: hidden;
+    backface-visibility: hidden; /* Hide faces when rotated away from viewer */
     box-sizing: border-box;
     color: transparent;
     /* Disable touch interactions */
