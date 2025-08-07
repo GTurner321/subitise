@@ -1,6 +1,5 @@
 class DiceRenderer {
     constructor() {
-        // SEARCH FOR THIS LINE: DICE RENDERER UPDATED 2025-01-01
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
         this.currentDice = [];
