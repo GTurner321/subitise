@@ -235,7 +235,6 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 2vw;
-    margin-bottom: 3vh;
 }
 
 .modal-stat-card {
@@ -289,27 +288,6 @@
 .modal-stat-card .label {
     font-size: 1vw;
     opacity: 0.95;
-}
-
-.modal-explanation {
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 2vh;
-    margin-top: 2vh;
-    text-align: center;
-}
-
-.modal-explanation h4 {
-    color: #2c3e50;
-    margin-bottom: 1vh;
-    font-size: 1.3vw;
-}
-
-.modal-explanation p {
-    color: #666;
-    font-size: 1.1vw;
-    line-height: 1.4;
-    margin: 0;
 }
 
 .no-stats-modal {
