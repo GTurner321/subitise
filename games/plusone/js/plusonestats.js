@@ -2,7 +2,7 @@
  * Plus One Game Statistics Tracker
  * Tracks 4 metrics and converts them to scores out of 100:
  * 1) Accuracy - Questions answered correctly on first attempt
- * 2) Resilience - Active time + completion status  
+ * 2) Resilience - Time-based scoring with round completion bonuses
  * 3) Speed - Average response time converted to score
  * 4) Variety - Whether any round has been completed
  */
@@ -19,6 +19,9 @@ class PlusOneStats {
         this.activityTimer = null;
         this.isTabVisible = true;
         this.isPaused = false;
+        
+        // Round completion tracking across both game modes
+        this.totalRoundsCompleted = 0; // Tracks rounds from both plus one and minus one
         
         this.init();
     }
@@ -38,7 +41,7 @@ class PlusOneStats {
         this.correctFirstAttempts = 0;
         
         // 2) Resilience tracking  
-        this.roundsCompleted = 0;
+        this.roundsCompleted = 0; // Rounds completed in current session
         this.anyRoundCompleted = false;
         
         // 3) Speed tracking
@@ -161,10 +164,11 @@ class PlusOneStats {
      */
     recordRoundCompletion() {
         this.roundsCompleted++;
+        this.totalRoundsCompleted++;
         this.completedAnyRound = true;
         this.registerActivity();
         
-        console.log(`📈 Round completed: Total rounds: ${this.roundsCompleted}`);
+        console.log(`📈 Round completed: Session rounds: ${this.roundsCompleted}, Total rounds: ${this.totalRoundsCompleted}`);
     }
 
     /**
@@ -179,41 +183,35 @@ class PlusOneStats {
 
     /**
      * Calculate resilience score (0-100%)
-     * Based on: active time spent + completion status with round completion bonuses
-     * - If any round completed: 100%
-     * - After round 1: minimum 60% (120 seconds equivalent)
-     * - After round 2: can advance to 100%
-     * - Otherwise: (active seconds / 200) * 100%
+     * Based on time taken out of 200 seconds as a percentage with round completion bonuses:
+     * - Base: (active seconds / 200) * 100%
+     * - After 1st round completed: advance timer to 100s minimum (50%)
+     * - After 2nd round completed: advance timer to 200s (100%)
      * @returns {number} Resilience percentage (0-100)
      */
     calculateResilienceScore() {
-        // Add current session time if not paused
+        // Get current active time
         let currentActiveTime = this.totalActiveTime;
         if (!this.isPaused && this.isTabVisible) {
             currentActiveTime += Date.now() - this.lastActivityTime;
         }
         
-        const activeSeconds = currentActiveTime / 1000;
-        
-        // If completed any round, automatic 100%
-        if (this.completedAnyRound) {
-            return 100;
-        }
-        
-        // Calculate base percentage from time
-        let basePercentage = Math.round((activeSeconds / 200) * 100);
+        let activeSeconds = currentActiveTime / 1000;
         
         // Apply round completion bonuses
-        if (this.roundsCompleted >= 2) {
-            // After round 2: can advance to 100%
-            basePercentage = Math.max(basePercentage, 100);
-        } else if (this.roundsCompleted >= 1) {
-            // After round 1: minimum 60% (equivalent to 120 seconds)
-            basePercentage = Math.max(basePercentage, 60);
+        if (this.totalRoundsCompleted >= 2) {
+            // After 2nd round: advance to 200 seconds minimum (100%)
+            activeSeconds = Math.max(activeSeconds, 200);
+        } else if (this.totalRoundsCompleted >= 1) {
+            // After 1st round: advance to 100 seconds minimum (50%)
+            activeSeconds = Math.max(activeSeconds, 100);
         }
         
+        // Calculate percentage based on 200 seconds max
+        const percentage = Math.round((activeSeconds / 200) * 100);
+        
         // Cap at 100%
-        return Math.min(basePercentage, 100);
+        return Math.min(percentage, 100);
     }
 
     /**
@@ -266,7 +264,11 @@ class PlusOneStats {
         };
         
         // Add debug information
-        const activeSeconds = this.totalActiveTime / 1000;
+        let currentActiveTime = this.totalActiveTime;
+        if (!this.isPaused && this.isTabVisible) {
+            currentActiveTime += Date.now() - this.lastActivityTime;
+        }
+        const activeSeconds = currentActiveTime / 1000;
         const avgTime = this.questionTimes.length > 0 ? 
             (this.questionTimes.reduce((sum, time) => sum + time, 0) / this.questionTimes.length) : 0;
             
@@ -275,7 +277,8 @@ class PlusOneStats {
             debug: {
                 totalQuestions: this.totalQuestions,
                 correctFirstAttempts: this.correctFirstAttempts,
-                roundsCompleted: this.roundsCompleted,
+                sessionRoundsCompleted: this.roundsCompleted,
+                totalRoundsCompleted: this.totalRoundsCompleted,
                 activeTimeSeconds: Math.round(activeSeconds),
                 averageResponseTime: Math.round(avgTime * 100) / 100,
                 questionTimes: this.questionTimes
@@ -299,7 +302,8 @@ class PlusOneStats {
             roundsThisSession: this.roundsCompleted,
             gamesCompletedThisSession: this.completedAnyRound ? 1 : 0,
             totalQuestionsThisSession: this.totalQuestions,
-            activeTimeThisSession: Math.round(this.totalActiveTime / 1000)
+            activeTimeThisSession: Math.round(this.totalActiveTime / 1000),
+            totalRoundsCompleted: this.totalRoundsCompleted
         };
         
         const updatedStats = window.StatsManager.updateGameStats(this.gameId, sessionStats, metadata);
@@ -339,6 +343,31 @@ class PlusOneStats {
     }
 
     /**
+     * Load total rounds completed from previous sessions
+     */
+    loadTotalRoundsCompleted() {
+        try {
+            const stored = sessionStorage.getItem('plusone_total_rounds') || '0';
+            this.totalRoundsCompleted = parseInt(stored, 10);
+            console.log(`📈 Loaded total rounds completed: ${this.totalRoundsCompleted}`);
+        } catch (error) {
+            console.warn('Could not load total rounds completed:', error);
+            this.totalRoundsCompleted = 0;
+        }
+    }
+
+    /**
+     * Save total rounds completed for persistence across sessions
+     */
+    saveTotalRoundsCompleted() {
+        try {
+            sessionStorage.setItem('plusone_total_rounds', this.totalRoundsCompleted.toString());
+        } catch (error) {
+            console.warn('Could not save total rounds completed:', error);
+        }
+    }
+
+    /**
      * Cleanup when leaving the game
      */
     destroy() {
@@ -346,6 +375,9 @@ class PlusOneStats {
         if (this.totalQuestions > 0) {
             this.submitStats();
         }
+        
+        // Save total rounds completed
+        this.saveTotalRoundsCompleted();
         
         if (this.activityTimer) {
             clearInterval(this.activityTimer);
