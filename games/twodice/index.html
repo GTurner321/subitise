@@ -11,6 +11,15 @@
 <body>
     <!-- Main game area -->
     <div class="game-area">
+        <!-- Simple stats display for testing -->
+        <div id="statsDisplay" style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 5px; font-size: 12px; z-index: 1000;">
+            Accuracy: <span id="accuracyStat">0</span>% | 
+            Resilience: <span id="resilienceStat">0</span>% | 
+            Speed: <span id="speedStat">0</span>% | 
+            Variety: <span id="varietyStat">0</span>% | 
+            Questions: <span id="questionsStat">0</span>
+        </div>
+        
         <!-- Rainbow container for background rainbow -->
         <div class="rainbow-container" id="rainbowContainer">
             <!-- Rainbow arcs will be added here by JavaScript -->
