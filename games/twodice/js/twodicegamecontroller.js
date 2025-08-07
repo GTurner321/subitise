@@ -1,5 +1,6 @@
 class TwoDiceGameController {
     constructor() {
+        // Initialize components in proper order
         this.diceRenderer = new DiceRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
@@ -19,10 +20,6 @@ class TwoDiceGameController {
         this.rightFilled = false;
         this.totalFilled = false;
         
-        // Audio functionality
-        this.audioContext = null;
-        this.audioEnabled = CONFIG.AUDIO_ENABLED || true;
-        
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
         this.inactivityDuration = 20000; // 20 seconds
@@ -38,163 +35,181 @@ class TwoDiceGameController {
         this.flashingInterval = null;
         this.flashingTimeout = null;
         
+        // Loading state and initialization tracking
+        this.isLoading = true;
+        this.initializationComplete = false;
+        this.buttonBarReady = false;
+        this.gameAreaReady = false;
+        
         // DOM elements
-        this.numberButtons = document.querySelectorAll('.number-btn');
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         this.leftInputBox = document.getElementById('leftInputBox');
         this.rightInputBox = document.getElementById('rightInputBox');
-        this.sumRow = document.getElementById('sumRow');
         this.totalInputBox = document.getElementById('totalInputBox');
         this.checkMark = document.getElementById('checkMark');
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
+        this.leftFlashArea = document.getElementById('leftFlashArea');
+        this.rightFlashArea = document.getElementById('rightFlashArea');
+        this.gameArea = document.querySelector('.game-area');
+        this.sumRow = document.getElementById('sumRow');
         
-        // Mute button references
-        this.muteButton = null;
-        this.muteContainer = null;
-        
+        // Initialize in proper order
         this.initializeEventListeners();
-        this.initializeAudio();
-        this.createMuteButton();
         this.setupVisibilityHandling();
-        this.startNewQuestion();
+        this.waitForSystemsAndInitialize();
     }
 
-    async initializeAudio() {
-        if (!this.audioEnabled) return;
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
-            this.audioEnabled = false;
+    /**
+     * Wait for both ButtonBar AND proper game area setup
+     */
+    waitForSystemsAndInitialize() {
+        console.log('🎲 Checking system readiness...');
+        
+        // Check if ButtonBar is available and functional
+        const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
+        
+        // Check if game area containers exist
+        const gameAreaReady = this.gameArea && this.leftSide && this.rightSide && this.sumRow;
+        
+        if (buttonBarReady && gameAreaReady) {
+            console.log('🎲 All systems ready, proceeding with initialization');
+            this.buttonBarReady = true;
+            this.gameAreaReady = true;
+            
+            // Create buttons first - this will trigger game area margin/sizing changes
+            this.createButtons();
+            
+            // Wait for ButtonBar to fully coordinate with game area
+            setTimeout(() => {
+                console.log('🎲 ButtonBar coordination complete, initializing game');
+                this.initializeGame();
+            }, 800);
+        } else {
+            console.log(`⏳ Waiting for systems... ButtonBar: ${buttonBarReady}, GameArea: ${gameAreaReady}`);
+            setTimeout(() => {
+                this.waitForSystemsAndInitialize();
+            }, 100);
         }
     }
 
-    createMuteButton() {
-        const muteContainer = document.createElement('div');
-        muteContainer.style.position = 'fixed';
-        muteContainer.style.top = '20px';
-        muteContainer.style.right = '20px';
-        muteContainer.style.zIndex = '1000';
-        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        muteContainer.style.borderRadius = '50%';
-        muteContainer.style.width = '60px';
-        muteContainer.style.height = '60px';
-        muteContainer.style.display = 'flex';
-        muteContainer.style.alignItems = 'center';
-        muteContainer.style.justifyContent = 'center';
-        muteContainer.style.cursor = 'pointer';
-        muteContainer.style.transition = 'all 0.3s ease';
-        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+    initializeGame() {
+        console.log('🎲 Starting game initialization with loading sequence');
         
-        this.muteButton = document.createElement('button');
-        this.muteButton.style.background = 'none';
-        this.muteButton.style.border = 'none';
-        this.muteButton.style.color = 'white';
-        this.muteButton.style.fontSize = '24px';
-        this.muteButton.style.cursor = 'pointer';
-        this.muteButton.style.width = '100%';
-        this.muteButton.style.height = '100%';
-        this.muteButton.style.display = 'flex';
-        this.muteButton.style.alignItems = 'center';
-        this.muteButton.style.justifyContent = 'center';
+        // Hide all elements initially (except ButtonBar)
+        this.hideGameElements();
         
-        this.updateMuteButtonIcon();
-        
-        this.muteButton.addEventListener('click', () => this.toggleAudio());
-        this.muteButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.toggleAudio();
-        });
-        
-        muteContainer.addEventListener('mouseenter', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-            muteContainer.style.transform = 'scale(1.1)';
-        });
-        
-        muteContainer.addEventListener('mouseleave', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            muteContainer.style.transform = 'scale(1)';
-        });
-        
-        muteContainer.appendChild(this.muteButton);
-        document.body.appendChild(muteContainer);
-        this.muteContainer = muteContainer;
+        // Wait for elements to be hidden, then start fade-in
+        setTimeout(() => {
+            console.log('🎲 Starting fade-in sequence');
+            this.showGameElements();
+            this.isLoading = false;
+            this.initializationComplete = true;
+            
+            // Start the first question after fade-in completes
+            setTimeout(() => {
+                this.startNewQuestion();
+            }, 1000);
+            
+        }, 500);
     }
 
-    updateMuteButtonIcon() {
-        if (this.muteButton) {
-            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
-            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
+    hideGameElements() {
+        // Hide game area and sum row (but NOT button bar)
+        if (this.gameArea) this.gameArea.classList.remove('loaded');
+        if (this.sumRow) this.sumRow.classList.remove('loaded');
+    }
+
+    showGameElements() {
+        // Fade in game area and sum row (ButtonBar handles its own timing)
+        if (this.gameArea) {
+            this.gameArea.classList.add('loaded');
+        }
+        
+        if (this.sumRow) {
+            this.sumRow.classList.add('loaded');
+        }
+        
+        console.log('🎲 Game elements faded in');
+    }
+
+    createButtons() {
+        // Create button colors and numbers arrays for 1-12
+        const colors = [
+            '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+            '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894',
+            '#00cec9', '#e17055'
+        ];
+        const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        
+        // Use the universal button bar system
+        if (window.ButtonBar && this.buttonBarReady) {
+            window.ButtonBar.create(
+                12,                    // number of buttons (1-12 for dice sums)
+                7.5,                   // button width as % of button panel width
+                7.5,                   // button height as % of button panel width
+                colors,                // array of button colors
+                numbers,               // array of button numbers/labels
+                (selectedNumber, buttonElement) => {  // click handler
+                    if (this.buttonsDisabled || !this.initializationComplete) return;
+                    
+                    // Clear inactivity timer on user interaction
+                    this.clearInactivityTimer();
+                    this.startInactivityTimer();
+                    
+                    this.handleNumberClick(selectedNumber, buttonElement);
+                }
+            );
+            console.log('✅ Button bar created successfully');
+        } else {
+            console.warn('ButtonBar not available - using fallback');
         }
     }
 
     setupVisibilityHandling() {
+        // Handle tab visibility changes
         document.addEventListener('visibilitychange', () => {
             this.isTabVisible = !document.hidden;
             
             if (!this.isTabVisible) {
+                // Tab is hidden - stop all audio and clear timers
                 this.clearInactivityTimer();
-                if ('speechSynthesis' in window) {
-                    speechSynthesis.cancel();
+                if (window.AudioSystem) {
+                    window.AudioSystem.stopAllAudio();
                 }
             } else {
-                if (!this.gameComplete && !this.buttonsDisabled) {
+                // Tab is visible again - restart inactivity timer if game is active
+                if (!this.gameComplete && !this.buttonsDisabled && this.initializationComplete) {
                     this.startInactivityTimer();
                 }
             }
         });
     }
 
-    toggleAudio() {
-        this.audioEnabled = !this.audioEnabled;
-        this.updateMuteButtonIcon();
-        
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText('Sound on');
-            }, 100);
+    speakText(text, options = {}) {
+        if (window.AudioSystem) {
+            window.AudioSystem.speakText(text, options);
         }
     }
 
-    speakText(text) {
-        if (!this.audioEnabled) return;
-        
-        try {
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.3;
-                utterance.volume = 0.8;
-                
-                const voices = speechSynthesis.getVoices();
-                let selectedVoice = voices.find(voice => 
-                    voice.name.toLowerCase().includes('male') ||
-                    voice.name.toLowerCase().includes('boy') ||
-                    voice.name.toLowerCase().includes('man') ||
-                    (!voice.name.toLowerCase().includes('female') && 
-                     !voice.name.toLowerCase().includes('woman') &&
-                     !voice.name.toLowerCase().includes('girl'))
-                );
-                
-                if (selectedVoice) utterance.voice = selectedVoice;
-                utterance.pitch = 1.3;
-                
-                speechSynthesis.speak(utterance);
-            }
-        } catch (error) {
-            // Silent failure
+    playCompletionSound() {
+        if (window.AudioSystem) {
+            window.AudioSystem.playCompletionSound();
+        }
+    }
+
+    playFailureSound() {
+        if (window.AudioSystem) {
+            window.AudioSystem.playFailureSound();
         }
     }
 
     startInactivityTimer() {
-        if (!this.isTabVisible || this.hintGiven) return;
+        // Only start timer if tab is visible, game is initialized, and hint hasn't been given
+        if (!this.isTabVisible || this.hintGiven || !this.initializationComplete) {
+            return;
+        }
         
         this.clearInactivityTimer();
         this.inactivityTimer = setTimeout(() => {
@@ -218,10 +233,12 @@ class TwoDiceGameController {
     }
 
     giveInactivityHint() {
-        if (!this.audioEnabled || this.buttonsDisabled || this.gameComplete || !this.isTabVisible) return;
+        if (this.buttonsDisabled || this.gameComplete || !this.isTabVisible || !this.initializationComplete) return;
         
+        // Mark that hint has been given for this question
         this.hintGiven = true;
         
+        // Determine which hint to give based on current flashing box
         let hintText = '';
         if (!this.leftFilled) {
             hintText = 'Look at the number on the left dice';
@@ -237,29 +254,24 @@ class TwoDiceGameController {
     }
 
     initializeEventListeners() {
-        this.numberButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                if (this.buttonsDisabled) return;
-                
-                this.clearInactivityTimer();
-                this.startInactivityTimer();
-                
-                const selectedNumber = parseInt(e.target.dataset.number);
-                this.handleNumberClick(selectedNumber, e.target);
-            });
-        });
-
         this.playAgainBtn.addEventListener('click', () => {
             this.startNewGame();
         });
 
+        // Add keyboard event listener
         document.addEventListener('keydown', (e) => {
-            if (this.buttonsDisabled || this.gameComplete) return;
+            if (this.buttonsDisabled || this.gameComplete || !this.initializationComplete) {
+                return;
+            }
             
+            // Handle number keys 0-9
             if (e.key >= '0' && e.key <= '9') {
                 e.preventDefault();
+                
+                // Clear inactivity timer on user interaction
                 this.clearInactivityTimer();
                 this.startInactivityTimer();
+                
                 const digit = parseInt(e.key);
                 this.handleKeyboardDigit(digit);
             }
@@ -267,16 +279,12 @@ class TwoDiceGameController {
     }
 
     handleKeyboardDigit(digit) {
+        // Handle two-digit numbers 10, 11, 12
         if (this.keyboardBuffer === '1' && (digit === 0 || digit === 1 || digit === 2)) {
             this.clearKeyboardTimer();
             const number = parseInt('1' + digit);
             if (number >= 10 && number <= 12) {
-                const button = Array.from(this.numberButtons).find(btn => 
-                    parseInt(btn.dataset.number) === number
-                );
-                if (button) {
-                    this.handleNumberClick(number, button);
-                }
+                this.handleNumberClick(number, null);
             }
             return;
         }
@@ -284,38 +292,26 @@ class TwoDiceGameController {
         this.clearKeyboardTimer();
         
         if (digit === 1) {
+            // Check if 1 is a valid answer first
             if (this.isDigitValidAnswer(1)) {
-                const button = Array.from(this.numberButtons).find(btn => 
-                    parseInt(btn.dataset.number) === 1
-                );
-                if (button) {
-                    this.handleNumberClick(1, button);
-                }
+                this.handleNumberClick(1, null);
                 return;
             }
             
+            // If 1 is not valid but 10, 11, or 12 could be valid, wait for second digit
             if (this.isDigitValidAnswer(10) || this.isDigitValidAnswer(11) || this.isDigitValidAnswer(12)) {
                 this.keyboardBuffer = '1';
                 this.keyboardTimer = setTimeout(() => {
                     this.clearKeyboardTimer();
-                    const button = Array.from(this.numberButtons).find(btn => 
-                        parseInt(btn.dataset.number) === 1
-                    );
-                    if (button) {
-                        this.handleNumberClick(1, button);
-                    }
+                    this.handleNumberClick(1, null);
                 }, this.keyboardWaitDuration);
                 return;
             }
         }
         
+        // Handle normal single digit input
         if (digit >= 1 && digit <= 9) {
-            const button = Array.from(this.numberButtons).find(btn => 
-                parseInt(btn.dataset.number) === digit
-            );
-            if (button) {
-                this.handleNumberClick(digit, button);
-            }
+            this.handleNumberClick(digit, null);
         }
     }
 
@@ -338,6 +334,10 @@ class TwoDiceGameController {
         this.diceRenderer.reset();
         this.modal.classList.add('hidden');
         this.hideAllInputBoxes();
+        
+        // Keep initialization flags - systems should stay ready
+        this.initializationComplete = true;
+        
         this.startNewQuestion();
     }
 
@@ -353,20 +353,20 @@ class TwoDiceGameController {
         
         const flashElements = () => {
             if (!this.leftFilled) {
-                this.leftSide.classList.add('area-flash');
+                this.leftFlashArea.classList.add('area-flash');
                 this.leftInputBox.classList.add('box-flash');
             } else if (!this.rightFilled) {
-                this.rightSide.classList.add('area-flash');
+                this.rightFlashArea.classList.add('area-flash');
                 this.rightInputBox.classList.add('box-flash');
             } else if (!this.totalFilled) {
-                this.leftSide.classList.add('area-flash');
-                this.rightSide.classList.add('area-flash');
+                this.leftFlashArea.classList.add('area-flash');
+                this.rightFlashArea.classList.add('area-flash');
                 this.totalInputBox.classList.add('box-flash');
             }
             
             setTimeout(() => {
-                this.leftSide.classList.remove('area-flash');
-                this.rightSide.classList.remove('area-flash');
+                this.leftFlashArea.classList.remove('area-flash');
+                this.rightFlashArea.classList.remove('area-flash');
                 this.leftInputBox.classList.remove('box-flash');
                 this.rightInputBox.classList.remove('box-flash');
                 this.totalInputBox.classList.remove('box-flash');
@@ -390,18 +390,22 @@ class TwoDiceGameController {
             this.flashingTimeout = null;
         }
         
-        this.leftSide.classList.remove('area-flash');
-        this.rightSide.classList.remove('area-flash');
+        this.leftFlashArea.classList.remove('area-flash');
+        this.rightFlashArea.classList.remove('area-flash');
         this.leftInputBox.classList.remove('box-flash');
         this.rightInputBox.classList.remove('box-flash');
         this.totalInputBox.classList.remove('box-flash');
     }
 
     async startNewQuestion() {
-        if (this.gameComplete) return;
+        if (this.gameComplete || !this.initializationComplete) {
+            return;
+        }
 
         this.resetBoxState();
         this.hideAllInputBoxes();
+
+        // Reset hint tracking for new question
         this.hintGiven = false;
 
         console.log(`Starting question ${this.questionsCompleted + 1}`);
@@ -411,6 +415,9 @@ class TwoDiceGameController {
         
         // Disable buttons during dice roll
         this.buttonsDisabled = true;
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(false);
+        }
         
         try {
             // Roll dice - this will return the actual values based on face reading
@@ -425,6 +432,9 @@ class TwoDiceGameController {
             
             // Enable buttons and show input boxes
             this.buttonsDisabled = false;
+            if (window.ButtonBar) {
+                window.ButtonBar.setButtonsEnabled(true);
+            }
             this.showInputBoxes();
             this.startInactivityTimer();
         } catch (error) {
@@ -435,13 +445,16 @@ class TwoDiceGameController {
             this.currentTotal = this.currentLeftValue + this.currentRightValue;
             
             this.buttonsDisabled = false;
+            if (window.ButtonBar) {
+                window.ButtonBar.setButtonsEnabled(true);
+            }
             this.showInputBoxes();
             this.startInactivityTimer();
         }
     }
 
     giveStartingInstruction() {
-        if (!this.audioEnabled || !this.isTabVisible) return;
+        if (!this.isTabVisible || !this.initializationComplete) return;
         
         setTimeout(() => {
             if (this.questionsCompleted === 0) {
@@ -496,21 +509,27 @@ class TwoDiceGameController {
         if (correctAnswer) {
             this.checkQuestionCompletion();
         } else {
-            this.handleIncorrectAnswer(buttonElement);
+            this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
 
     fillBox(boxType, selectedNumber, buttonElement) {
-        buttonElement.classList.add('correct');
-        setTimeout(() => {
-            buttonElement.classList.remove('correct');
-        }, CONFIG.FLASH_DURATION);
-
-        if (this.audioEnabled) {
-            this.playCompletionSound();
+        // Find button element if not provided (for keyboard input)
+        if (!buttonElement && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
+        }
+        
+        // Flash green on correct answer
+        if (buttonElement && window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'correct');
         }
 
-        this.createCelebrationStars(buttonElement);
+        this.playCompletionSound();
+
+        // Create celebration stars
+        if (buttonElement) {
+            this.createCelebrationStars(buttonElement);
+        }
 
         switch (boxType) {
             case 'left':
@@ -533,7 +552,23 @@ class TwoDiceGameController {
                 break;
         }
 
-        this.updateFlashingBoxes();
+        // Check if this was the final box
+        const boxesFilledBefore = [this.leftFilled, this.rightFilled, this.totalFilled].filter(Boolean).length - 1;
+        const wasLastBox = boxesFilledBefore === 2;
+        
+        if (wasLastBox) {
+            // Final box filled - disable buttons
+            this.buttonsDisabled = true;
+            if (window.ButtonBar) {
+                window.ButtonBar.setButtonsEnabled(false);
+            }
+            console.log('🔒 Final box filled - buttons disabled');
+        }
+
+        // Update flashing if not the final box
+        if (!wasLastBox) {
+            this.updateFlashingBoxes();
+        }
     }
 
     updateFlashingBoxes() {
@@ -562,11 +597,9 @@ class TwoDiceGameController {
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}`);
             
-            if (this.audioEnabled) {
-                const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
-                const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-                this.speakText(randomEncouragement);
-            }
+            const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
+            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+            this.speakText(randomEncouragement);
             
             this.questionsCompleted++;
             
@@ -583,48 +616,50 @@ class TwoDiceGameController {
         }
     }
 
-    handleIncorrectAnswer(buttonElement) {
-        this.clearInactivityTimer();
-        
-        if (this.audioEnabled) {
-            this.playFailureSound();
+    handleIncorrectAnswer(buttonElement, selectedNumber) {
+        // Find button element if not provided (for keyboard input)
+        if (!buttonElement && selectedNumber && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
         }
         
-        if (this.audioEnabled && this.isTabVisible) {
+        this.clearInactivityTimer();
+        
+        this.playFailureSound();
+        
+        if (this.isTabVisible) {
             setTimeout(() => {
                 this.speakText('Try again');
             }, 800);
         }
         
         this.buttonsDisabled = true;
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(false);
+        }
+        
         this.stopFlashing();
         
-        buttonElement.classList.add('incorrect');
-        setTimeout(() => {
-            buttonElement.classList.remove('incorrect');
-        }, CONFIG.FLASH_DURATION);
+        // Flash red on the clicked button
+        if (buttonElement && window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'incorrect');
+        }
 
-        const crossOverlay = document.createElement('div');
-        crossOverlay.className = 'cross-overlay';
-        buttonElement.appendChild(crossOverlay);
+        // Add cross overlay
+        let crossOverlay = null;
+        if (buttonElement && window.ButtonBar) {
+            crossOverlay = window.ButtonBar.addCrossOverlay(buttonElement);
+        }
 
-        buttonElement.dataset.attempted = 'true';
+        if (buttonElement) {
+            buttonElement.dataset.attempted = 'true';
+        }
         
-        this.numberButtons.forEach(btn => {
-            if (btn !== buttonElement) {
-                btn.style.transition = 'opacity 700ms ease-in-out';
-                btn.style.opacity = '0.1';
-            }
-        });
+        // Fade other buttons
+        this.fadeOtherButtons(buttonElement);
 
         setTimeout(() => {
             setTimeout(() => {
-                this.numberButtons.forEach(btn => {
-                    if (btn !== buttonElement) {
-                        btn.style.transition = 'opacity 700ms ease-in-out';
-                        btn.style.opacity = '1';
-                    }
-                });
+                this.fadeInAllButtons();
                 
                 if (crossOverlay && crossOverlay.parentNode) {
                     crossOverlay.style.transition = 'opacity 700ms ease-out';
@@ -632,22 +667,47 @@ class TwoDiceGameController {
                 }
                 
                 setTimeout(() => {
-                    if (crossOverlay && crossOverlay.parentNode) {
-                        crossOverlay.parentNode.removeChild(crossOverlay);
+                    if (buttonElement && window.ButtonBar) {
+                        window.ButtonBar.removeCrossOverlay(buttonElement);
                     }
-                    
-                    this.numberButtons.forEach(btn => {
-                        btn.style.transition = '';
-                    });
                 }, 700);
             }, 700);
             
             setTimeout(() => {
                 this.buttonsDisabled = false;
+                if (window.ButtonBar) {
+                    window.ButtonBar.setButtonsEnabled(true);
+                }
                 this.startFlashing();
                 this.startInactivityTimer();
             }, 1400);
         }, 700);
+    }
+
+    fadeOtherButtons(excludeButton) {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.buttons.forEach(btn => {
+                if (btn !== excludeButton) {
+                    btn.style.transition = 'opacity 700ms ease-in-out';
+                    btn.style.opacity = '0.1';
+                }
+            });
+        }
+    }
+
+    fadeInAllButtons() {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.buttons.forEach(btn => {
+                btn.style.transition = 'opacity 700ms ease-in-out';
+                btn.style.opacity = '1';
+            });
+            
+            setTimeout(() => {
+                window.ButtonBar.buttons.forEach(btn => {
+                    btn.style.transition = '';
+                });
+            }, 700);
+        }
     }
 
     async fadeOutDice() {
@@ -659,17 +719,18 @@ class TwoDiceGameController {
 
     resetButtonStates() {
         this.buttonsDisabled = false;
-        this.numberButtons.forEach(btn => {
-            btn.dataset.attempted = 'false';
-            btn.classList.remove('correct', 'incorrect');
-            btn.style.opacity = '1';
-            btn.style.transition = '';
-            
-            const crossOverlay = btn.querySelector('.cross-overlay');
-            if (crossOverlay) {
-                crossOverlay.remove();
-            }
-        });
+        
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.setButtonsEnabled(true);
+            window.ButtonBar.buttons.forEach(btn => {
+                btn.dataset.attempted = 'false';
+                btn.classList.remove('correct', 'incorrect');
+                btn.style.opacity = '1';
+                btn.style.transition = '';
+                
+                window.ButtonBar.removeCrossOverlay(btn);
+            });
+        }
     }
 
     completeGame() {
@@ -681,61 +742,16 @@ class TwoDiceGameController {
         
         this.bear.startCelebration();
         
-        if (this.audioEnabled && this.isTabVisible) {
+        if (this.isTabVisible) {
             setTimeout(() => {
                 this.speakText('Well done! You have completed all ten sums! Try again or return to the home page.');
             }, 1000);
         }
     }
 
-    playCompletionSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
-            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
-            
-            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.5);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
-    playFailureSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
-            
-            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.3);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
     createCelebrationStars(buttonElement) {
+        if (!buttonElement) return;
+        
         const buttonRect = buttonElement.getBoundingClientRect();
         const centerX = buttonRect.left + buttonRect.width / 2;
         const centerY = buttonRect.top + buttonRect.height / 2;
@@ -771,26 +787,23 @@ class TwoDiceGameController {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        if (this.audioContext) {
-            this.audioContext.close();
-        }
-        
-        if (this.muteContainer && this.muteContainer.parentNode) {
-            this.muteContainer.parentNode.removeChild(this.muteContainer);
+        if (window.AudioSystem) {
+            window.AudioSystem.stopAllAudio();
         }
         
         this.rainbow.reset();
         this.bear.reset();
         this.diceRenderer.reset();
+        
+        if (window.ButtonBar) {
+            window.ButtonBar.destroy();
+        }
     }
 }
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎲 DOM loaded, creating TwoDiceGameController');
     window.twoDiceGame = new TwoDiceGameController();
 });
 
