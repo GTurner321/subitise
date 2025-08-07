@@ -230,6 +230,7 @@ class DiceRenderer {
             dotsContainer.style.padding = '12px';
             dotsContainer.style.boxSizing = 'border-box';
             
+            // Create dots with proper sizing and visibility
             this.createDots(dotsContainer, faceValue, gameAreaWidth);
             
             face.appendChild(innerFace);      
@@ -276,9 +277,10 @@ class DiceRenderer {
                 dot.style.pointerEvents = 'none';
                 dot.style.touchAction = 'none';
                 
+                // Set visibility based on pattern and add active class
                 if (pattern[row][col] === 1) {
                     dot.classList.add('active');
-                    dot.style.opacity = '1';
+                    dot.style.opacity = '1'; // Make dots visible immediately
                 } else {
                     dot.style.opacity = '0';
                 }
@@ -309,25 +311,6 @@ class DiceRenderer {
             case 'bottom':
                 face.style.transform = `rotateX(-90deg) translateZ(${halfSize}px)`;
                 break;
-        }
-    }
-
-    createDots(container, value) {
-        const pattern = CONFIG.DICE_FACES[value];
-        container.innerHTML = '';
-        
-        // Create 9 dot positions in 3x3 grid
-        for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 3; col++) {
-                const dot = document.createElement('div');
-                dot.className = 'dice-dot';
-                
-                if (pattern[row][col] === 1) {
-                    dot.classList.add('active');
-                }
-                
-                container.appendChild(dot);
-            }
         }
     }
 
