@@ -98,6 +98,15 @@ class DiceRenderer {
         dice.style.opacity = '0';
         dice.style.transformStyle = 'preserve-3d';
         
+        // Calculate dice size dynamically for translateZ
+        const gameArea = document.querySelector('.game-area');
+        const gameAreaWidth = gameArea.offsetWidth;
+        const diceSize = gameAreaWidth * 0.12; // 12% of game area width
+        const halfDiceSize = diceSize / 2;
+        
+        // Store dice size for 3D transforms
+        dice.dataset.halfSize = halfDiceSize;
+        
         // Ensure dice container is transparent
         dice.style.backgroundColor = 'transparent';
         dice.style.background = 'transparent';
@@ -113,6 +122,9 @@ class DiceRenderer {
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
+            
+            // Set proper 3D positioning with calculated translateZ
+            this.setFace3DPosition(face, faceClass, halfDiceSize);
             
             // Ensure transparent background
             face.style.backgroundColor = 'transparent';
@@ -190,6 +202,30 @@ class DiceRenderer {
         dice.dataset.previousDirection = null;
         
         return dice;
+    }
+
+    setFace3DPosition(face, faceClass, halfSize) {
+        // Set 3D positioning with proper translateZ using calculated pixel values
+        switch (faceClass) {
+            case 'front':
+                face.style.transform = `rotateY(0deg) translateZ(${halfSize}px)`;
+                break;
+            case 'back':
+                face.style.transform = `rotateY(180deg) translateZ(${halfSize}px)`;
+                break;
+            case 'right':
+                face.style.transform = `rotateY(90deg) translateZ(${halfSize}px)`;
+                break;
+            case 'left':
+                face.style.transform = `rotateY(-90deg) translateZ(${halfSize}px)`;
+                break;
+            case 'top':
+                face.style.transform = `rotateX(90deg) translateZ(${halfSize}px)`;
+                break;
+            case 'bottom':
+                face.style.transform = `rotateX(-90deg) translateZ(${halfSize}px)`;
+                break;
+        }
     }
 
     createDots(container, value) {
