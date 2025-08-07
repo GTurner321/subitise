@@ -389,38 +389,43 @@ class DiceRenderer {
     readVisibleFaceSimple(dice) {
         console.log('=== READING DICE FACE ===');
         const faces = dice.querySelectorAll('.dice-face');
-        let largestFace = null;
-        let largestArea = 0;
-        let faceData = [];
+        let candidateFaces = [];
         
         faces.forEach(face => {
             const rect = face.getBoundingClientRect();
             const area = rect.width * rect.height;
-            const faceClass = face.classList[1]; // Should be 'front', 'back', etc.
+            const faceClass = face.classList[1];
+            const computedStyle = window.getComputedStyle(face);
             
-            faceData.push({
-                class: faceClass,
-                width: rect.width,
-                height: rect.height,
-                area: area
-            });
-            
-            // Only consider faces that are actually visible with reasonable area
-            if (area > largestArea && rect.width > 10 && rect.height > 10) {
-                largestFace = face;
-                largestArea = area;
+            if (area > 10) { // Only consider faces with reasonable area
+                candidateFaces.push({
+                    face: face,
+                    class: faceClass,
+                    area: area,
+                    backfaceVisibility: computedStyle.backfaceVisibility,
+                    visibility: computedStyle.visibility,
+                    transform: computedStyle.transform
+                });
             }
         });
         
-        // Log all face data for debugging
-        console.log('All face areas:', faceData);
+        console.log('Visible faces with debug info:', candidateFaces.map(f => ({ 
+            class: f.class, 
+            area: f.area.toFixed(1),
+            backfaceVisibility: f.backfaceVisibility,
+            visibility: f.visibility
+        })));
         
-        if (largestFace) {
-            const faceClass = largestFace.classList[1];
-            const activeDots = largestFace.querySelectorAll('.dice-dot.active');
+        // For now, just pick the first face with maximum area
+        // TODO: Fix backface-visibility issue
+        const maxArea = Math.max(...candidateFaces.map(f => f.area));
+        const selectedFace = candidateFaces.find(f => f.area === maxArea);
+        
+        if (selectedFace) {
+            const activeDots = selectedFace.face.querySelectorAll('.dice-dot.active');
             const value = activeDots.length;
             
-            console.log(`Largest face: ${faceClass} (${largestArea.toFixed(1)}px²) has ${value} dots`);
+            console.log(`Selected ${selectedFace.class} face (${maxArea.toFixed(1)}px²) has ${value} dots`);
             console.log('=== FACE READING COMPLETE ===');
             return Math.max(1, Math.min(6, value));
         }
