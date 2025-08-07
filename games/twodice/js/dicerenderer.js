@@ -292,6 +292,9 @@ class DiceRenderer {
 
     setFace3DPosition(face, faceClass, halfSize) {
         // Set 3D positioning with proper translateZ using calculated pixel values
+        // IMPORTANT: Set backface-visibility to hidden for proper face detection
+        face.style.backfaceVisibility = 'hidden';
+        
         switch (faceClass) {
             case 'front':
                 face.style.transform = `rotateY(0deg) translateZ(${halfSize}px)`;
