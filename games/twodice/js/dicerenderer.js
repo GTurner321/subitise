@@ -92,9 +92,9 @@ class DiceRenderer {
         return durations[Math.floor(Math.random() * durations.length)];
     }
 
-    createDice(diceColor) {
+    createDice(diceColor, isLeft = true) {
         const dice = document.createElement('div');
-        dice.className = 'dice';
+        dice.className = `dice ${isLeft ? 'left-dice' : 'right-dice'}`;
         dice.style.opacity = '0';
         dice.style.transformStyle = 'preserve-3d';
         
@@ -114,7 +114,7 @@ class DiceRenderer {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
             
-            // Aggressively ensure transparent background
+            // Ensure transparent background
             face.style.backgroundColor = 'transparent';
             face.style.background = 'transparent';
             face.style.backgroundImage = 'none';
@@ -171,14 +171,14 @@ class DiceRenderer {
             
             this.createDots(dotsContainer, faceValue);
             
-            face.appendChild(innerFace);      // Inner cube first (z-index 0)
-            face.appendChild(coloredSurface); // Colored surface second (z-index 1)
-            face.appendChild(dotsContainer);  // Dots on top (z-index 2)
+            face.appendChild(innerFace);      
+            face.appendChild(coloredSurface); 
+            face.appendChild(dotsContainer);  
             dice.appendChild(face);
         });
         
         // Set random starting orientation
-        const startingRotX = Math.floor(Math.random() * 4) * 90; // 0, 90, 180, 270
+        const startingRotX = Math.floor(Math.random() * 4) * 90;
         const startingRotY = Math.floor(Math.random() * 4) * 90;
         dice.style.transform = `rotateX(${startingRotX}deg) rotateY(${startingRotY}deg)`;
         
@@ -290,7 +290,7 @@ class DiceRenderer {
             const area = rect.width * rect.height;
             
             // Only consider faces that are actually visible
-            if (area > largestArea && rect.width > 50 && rect.height > 50) {
+            if (area > largestArea && rect.width > 20 && rect.height > 20) {
                 largestFace = face;
                 largestArea = area;
             }
@@ -314,13 +314,14 @@ class DiceRenderer {
         // Get random colors
         const colors = this.getRandomDiceColors();
         
-        // Create two dice
-        const leftDice = this.createDice(colors.left);
-        const rightDice = this.createDice(colors.right);
+        // Create two dice with positioning classes
+        const leftDice = this.createDice(colors.left, true);
+        const rightDice = this.createDice(colors.right, false);
         
-        // Add to sides
-        this.leftSide.appendChild(leftDice);
-        this.rightSide.appendChild(rightDice);
+        // Add to game area (not to left/right sides - dice position themselves)
+        const gameArea = document.querySelector('.game-area');
+        gameArea.appendChild(leftDice);
+        gameArea.appendChild(rightDice);
         this.currentDice = [leftDice, rightDice];
         
         // Fade in
@@ -365,7 +366,7 @@ class DiceRenderer {
             let rollCount = 0;
             let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
             let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
-            let previousDirection = null; // Track the previous direction
+            let previousDirection = null;
             
             const performRoll = () => {
                 rollCount++;
