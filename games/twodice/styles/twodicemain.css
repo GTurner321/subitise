@@ -63,3 +63,78 @@ body {
     transition: background-color 0.2s ease;
     z-index: 2; /* Above game areas but below dice */
 }
+
+/* Middle section - central bar with plus sign: 46% to 54% of game area width */
+.middle-section {
+    position: absolute;
+    left: 46%;
+    width: 8%;
+    top: 0;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-left: 1px dotted rgba(0, 0, 0, 0.3);
+    border-right: 1px dotted rgba(0, 0, 0, 0.3);
+    z-index: 0; /* Below game area background and rainbow */
+}
+
+.plus-sign {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Red circle: 7% of game area width */
+    width: 7vw;
+    height: 7vw;
+    max-width: 70px;
+    max-height: 70px;
+    min-width: 35px;
+    min-height: 35px;
+    background: #dc3545;
+    border-radius: 50%;
+    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+    z-index: 10;
+    position: relative;
+}
+
+.plus-sign i {
+    font-size: clamp(14px, 2.8vw, 28px);
+    color: white;
+    font-weight: bold;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 12px 35px rgba(220, 53, 69, 0.5);
+    }
+}
+
+/* Right game area and flash area: 54% to 100% of game area width */
+.right-side {
+    position: absolute;
+    left: 54%;
+    width: 46%;
+    top: 0%;
+    height: 100%;
+    /* Visual debugging - remove in production */
+    /* border: 1px dashed rgba(0, 255, 0, 0.3); */
+    z-index: 5; /* Above rainbow, below dice */
+}
+
+.right-flash-area {
+    position: absolute;
+    left: 54%;
+    width: 46%;
+    top: 0%;
+    height: 100%;
+    pointer-events: none;
+    transition: background-color 0.2s ease;
+    z-index: 2; /* Above game areas but below dice */
+}
