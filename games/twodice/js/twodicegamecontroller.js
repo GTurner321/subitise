@@ -1,50 +1,10 @@
-/**
-     * Wait for both ButtonBar AND proper game area setup
-     */
-    waitForSystemsAndInitialize() {
-        console.log('🎲 Checking system readiness...');
-        
-        // Check if ButtonBar is available and functional
-        const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
-        
-        // Check if game area containers exist
-        const gameAreaReady = this.gameArea && this.leftSide && this.rightSide && this.sumRow;
-        
-        if (buttonBarReady && gameAreaReady) {
-            console.log('🎲 All systems ready, proceeding with initialization');
-            this.buttonBarReady = true;
-            this.gameAreaReady = true;
-            
-            // Create buttons first - this will trigger game area margin/sizing changes
-            this.createButtons();
-            
-            // Set up ButtonBar coordination for CSS custom properties
-            this.setupButtonBarCoordination();
-            
-            // Wait for ButtonBar to fully coordinate with game area
-            setTimeout(() => {
-                console.log('🎲 ButtonBar coordination complete, initializing game');
-                this.initializeGame();
-            }, 800);
-        } else {
-            console.log(`⏳ Waiting for systems... ButtonBar: ${buttonBarReady}, GameArea: ${gameAreaReady}`);
-            setTimeout(() => {
-                this.waitForSystemsAndInitialize();
-            }, 100);
-        }
-    }
-
-    setupButtonBarCoordination() {
-        // Register with ButtonBar to be notified of dimension changes
-        if (window.ButtonBar) {
-            window.ButtonBar.addObserver((dimensionData) => {
-                console.log('🎯 ButtonBar dimensions updated:', dimensionData);
-                this.updateGameAreaDimensions();class TwoDiceGameController {
+class TwoDiceGameController {
     constructor() {
         // Initialize components in proper order
         this.diceRenderer = new DiceRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
+        this.stats = new TwoDiceStats(); // Initialize stats tracking
         
         // Game state
         this.questionsCompleted = 0;
@@ -357,6 +317,11 @@
                 this.handleKeyboardDigit(digit);
             }
         });
+
+        // Setup cleanup when user navigates away
+        window.addEventListener('beforeunload', () => {
+            this.destroy();
+        });
     }
 
     handleKeyboardDigit(digit) {
@@ -518,6 +483,10 @@
             }
             this.showInputBoxes();
             this.startInactivityTimer();
+            
+            // Start question timer for stats tracking
+            this.stats.startQuestionTimer();
+            
         } catch (error) {
             console.error('Error rolling dice:', error);
             // Fallback with random values
@@ -531,6 +500,9 @@
             }
             this.showInputBoxes();
             this.startInactivityTimer();
+            
+            // Start question timer for stats tracking
+            this.stats.startQuestionTimer();
         }
     }
 
@@ -587,9 +559,15 @@
             correctAnswer = true;
         }
         
+        // Record stats for this question attempt
         if (correctAnswer) {
+            // Check if this is the first attempt on this question
+            const isFirstAttempt = !this.hasAttemptedAnswer();
+            this.stats.recordQuestionAttempt(isFirstAttempt);
             this.checkQuestionCompletion();
         } else {
+            // This is an incorrect answer, so definitely not first attempt success
+            this.stats.recordQuestionAttempt(false);
             this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
@@ -685,6 +663,9 @@
             this.questionsCompleted++;
             
             if (this.rainbow.isComplete()) {
+                // Record round completion for stats
+                this.stats.recordRoundCompletion();
+                
                 setTimeout(() => {
                     this.completeGame();
                 }, 3000);
@@ -798,6 +779,15 @@
         this.startNewQuestion();
     }
 
+    hasAttemptedAnswer() {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            return window.ButtonBar.buttons.some(btn => 
+                btn.dataset.attempted === 'true'
+            );
+        }
+        return false;
+    }
+
     resetButtonStates() {
         this.buttonsDisabled = false;
         
@@ -870,6 +860,11 @@
         
         if (window.AudioSystem) {
             window.AudioSystem.stopAllAudio();
+        }
+        
+        // Cleanup stats tracking
+        if (this.stats) {
+            this.stats.destroy();
         }
         
         this.rainbow.reset();
