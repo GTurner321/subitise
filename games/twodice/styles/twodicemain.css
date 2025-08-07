@@ -85,13 +85,9 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Red circle: 7% of game area width */
+    /* Red circle: 7% of game area width - fully responsive */
     width: 7%;
     height: 7%;
-    max-width: 70px;
-    max-height: 70px;
-    min-width: 35px;
-    min-height: 35px;
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
@@ -148,15 +144,13 @@ body {
     transition: background-color 1s ease-in-out;
 }
 
-/* 3D Dice Styling - Responsive and positioned precisely */
+/* 3D Dice Styling - Fully responsive, square dice based on game area width */
 .dice {
-    /* Size: 12% of game area width (square) */
+    /* Size: 12% of game area width for both dimensions (square) */
     width: 12%;
-    height: 12%;
-    max-width: 120px;
-    max-height: 120px;
-    min-width: 60px;
-    min-height: 60px;
+    height: 12%; 
+    /* But height should be based on width to ensure perfect square */
+    aspect-ratio: 1 / 1;
     position: absolute;
     transform-style: preserve-3d;
     opacity: 0;
@@ -254,30 +248,31 @@ body {
     touch-action: none;
 }
 
-/* 3D face positioning - using fixed pixel values for translateZ */
+/* 3D face positioning - translateZ should be half the dice width for proper 3D cube */
 .dice-face.front { 
-    transform: rotateY(0deg) translateZ(60px); 
+    transform: rotateY(0deg) translateZ(6%); 
 }
 .dice-face.back { 
-    transform: rotateY(180deg) translateZ(60px); 
+    transform: rotateY(180deg) translateZ(6%); 
 }
 .dice-face.right { 
-    transform: rotateY(90deg) translateZ(60px); 
+    transform: rotateY(90deg) translateZ(6%); 
 }
 .dice-face.left { 
-    transform: rotateY(-90deg) translateZ(60px); 
+    transform: rotateY(-90deg) translateZ(6%); 
 }
 .dice-face.top { 
-    transform: rotateX(90deg) translateZ(60px); 
+    transform: rotateX(90deg) translateZ(6%); 
 }
 .dice-face.bottom { 
-    transform: rotateX(-90deg) translateZ(60px); 
+    transform: rotateX(-90deg) translateZ(6%); 
 }
 
-/* Dice dots styling */
+/* Dice dots styling - responsive to game area width */
 .dice-dot {
-    width: clamp(10px, 1.5vw, 18px);
-    height: clamp(10px, 1.5vw, 18px);
+    width: 1.5%; /* 1.5% of game area width */
+    height: 1.5%; /* 1.5% of game area width - square dots */
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
     background-color: #333;
     margin: auto;
@@ -339,10 +334,15 @@ body {
     transform: translateX(-50%) !important;
 }
 
-/* Remove legacy plus and equals signs - dice game doesn't need them */
+/* Restore sum row symbols - dice game DOES need them */
 .sum-plus-sign,
 .sum-equals-sign {
-    display: none;
+    font-size: clamp(21px, 5.2vw, 42px);
+    font-weight: bold;
+    color: #333;
+    min-width: clamp(26px, 3.9vw, 52px);
+    text-align: center;
+    flex-shrink: 0;
 }
 
 .left-sum-box,
@@ -396,7 +396,18 @@ body {
 }
 
 .check-mark {
-    display: none; /* Dice game doesn't use check mark */
+    font-size: clamp(21px, 5.2vw, 42px);
+    color: #28a745;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    min-width: clamp(26px, 5.2vw, 52px);
+    text-align: center;
+    flex-shrink: 0;
+    margin-left: 1.5%;
+}
+
+.check-mark.visible {
+    opacity: 1;
 }
 
 /* Fade animations - exclude sum row */
