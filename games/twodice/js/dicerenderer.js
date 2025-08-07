@@ -98,11 +98,14 @@ class DiceRenderer {
         dice.style.opacity = '0';
         dice.style.transformStyle = 'preserve-3d';
         
-        // Calculate dice size dynamically for translateZ
+        // Calculate dice size dynamically - width is 12% of game area width
         const gameArea = document.querySelector('.game-area');
         const gameAreaWidth = gameArea.offsetWidth;
-        const diceSize = gameAreaWidth * 0.12; // 12% of game area width
-        const halfDiceSize = diceSize / 2;
+        const diceWidthPx = gameAreaWidth * 0.12; // 12% of game area width
+        const halfDiceSize = diceWidthPx / 2;
+        
+        // Set height to match width in pixels for perfect square
+        dice.style.height = `${diceWidthPx}px`;
         
         // Store dice size for 3D transforms
         dice.dataset.halfSize = halfDiceSize;
@@ -181,7 +184,7 @@ class DiceRenderer {
             dotsContainer.style.padding = '12px';
             dotsContainer.style.boxSizing = 'border-box';
             
-            this.createDots(dotsContainer, faceValue);
+            this.createDots(dotsContainer, faceValue, gameAreaWidth);
             
             face.appendChild(innerFace);      
             face.appendChild(coloredSurface); 
@@ -202,6 +205,32 @@ class DiceRenderer {
         dice.dataset.previousDirection = null;
         
         return dice;
+    }
+
+    createDots(container, value, gameAreaWidth) {
+        const pattern = CONFIG.DICE_FACES[value];
+        container.innerHTML = '';
+        
+        // Calculate dot size - 1.8% of game area width
+        const dotSize = gameAreaWidth * 0.018; // 1.8% of game area width
+        
+        // Create 9 dot positions in 3x3 grid
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 3; col++) {
+                const dot = document.createElement('div');
+                dot.className = 'dice-dot';
+                
+                // Set dot size in pixels to match CSS percentage
+                dot.style.width = `${dotSize}px`;
+                dot.style.height = `${dotSize}px`;
+                
+                if (pattern[row][col] === 1) {
+                    dot.classList.add('active');
+                }
+                
+                container.appendChild(dot);
+            }
+        }
     }
 
     setFace3DPosition(face, faceClass, halfSize) {
