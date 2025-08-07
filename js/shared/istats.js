@@ -141,7 +141,7 @@ class InteractiveStats {
         this.modalBody.innerHTML = `
             <div class="modal-header">
                 <h2>Plus One Game Stats</h2>
-                <p>Your highest scores</p>
+                <p>Your highest scores today</p>
             </div>
             
             <div class="modal-stats-grid">
@@ -162,10 +162,6 @@ class InteractiveStats {
                     <div class="value">${stats.highest.speed}%</div>
                     <div class="label">Speed</div>
                 </div>
-            </div>
-            
-            <div class="modal-explanation" id="statExplanation">
-                <!-- Explanation will be added by audio/pulse logic -->
             </div>
         `;
 
@@ -198,55 +194,51 @@ class InteractiveStats {
 
         // Play audio and show explanation
         this.playStatAudio(selectedStat.name, selectedStat.value);
-        this.showStatExplanation(selectedStat.name);
     }
 
     playStatAudio(statName, value) {
-        const messages = {
+        const firstMessages = {
             accuracy: `In the Plus One game, you scored ${value}% in accuracy`,
             resilience: `In the Plus One game, you scored ${value}% in resilience`, 
             speed: `In the Plus One game, you scored ${value}% in speed`
         };
 
-        const message = messages[statName];
-        if (message && window.speechSynthesis) {
+        const explanationMessages = {
+            accuracy: 'This means you get a lot of questions right first time',
+            resilience: 'This means you are good at sticking at the task and making improvements', 
+            speed: 'This means you are fast at answering questions'
+        };
+
+        const firstMessage = firstMessages[statName];
+        const explanationMessage = explanationMessages[statName];
+        
+        if (firstMessage && explanationMessage && window.speechSynthesis) {
             this.stopCurrentAudio();
             
-            const utterance = new SpeechSynthesisUtterance(message);
-            utterance.rate = 0.9;
-            utterance.pitch = 1.1;
-            utterance.volume = 0.8;
+            // Play first message
+            const firstUtterance = new SpeechSynthesisUtterance(firstMessage);
+            firstUtterance.rate = 0.9;
+            firstUtterance.pitch = 1.1;
+            firstUtterance.volume = 0.8;
             
-            this.currentAudio = utterance;
-            window.speechSynthesis.speak(utterance);
+            // Play explanation message after first one finishes
+            firstUtterance.onend = () => {
+                const explanationUtterance = new SpeechSynthesisUtterance(explanationMessage);
+                explanationUtterance.rate = 0.9;
+                explanationUtterance.pitch = 1.1;
+                explanationUtterance.volume = 0.8;
+                
+                this.currentAudio = explanationUtterance;
+                window.speechSynthesis.speak(explanationUtterance);
+            };
+            
+            this.currentAudio = firstUtterance;
+            window.speechSynthesis.speak(firstUtterance);
         }
     }
 
     showStatExplanation(statName) {
-        const explanations = {
-            accuracy: {
-                title: 'Accuracy',
-                text: 'This means you get a lot of questions right first time'
-            },
-            resilience: {
-                title: 'Resilience', 
-                text: 'This means you are good at sticking at the task and making improvements'
-            },
-            speed: {
-                title: 'Speed',
-                text: 'This means you are fast at answering questions'
-            }
-        };
-
-        const explanation = explanations[statName];
-        const explanationEl = document.getElementById('statExplanation');
-        
-        if (explanation && explanationEl) {
-            explanationEl.innerHTML = `
-                <h4>${explanation.title}</h4>
-                <p>${explanation.text}</p>
-            `;
-        }
+        // Remove this method as explanations are now audio-only
     }
 
     showNoStatsMessage(gameId) {
