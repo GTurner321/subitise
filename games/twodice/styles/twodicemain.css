@@ -1,6 +1,6 @@
 /* CSS Custom Properties for responsive sizing based on game area width */
 :root {
-    --game-area-width: 100vw; /* Initial value, will be updated by JavaScript with actual game area width */
+    --game-area-width: 800px; /* Initial reasonable value, will be updated by JavaScript with actual game area width */
     --sum-box-size: calc(var(--game-area-width) * 0.08); /* 8% of actual game area width */
     --sum-bar-width-multiplier: 6.5; /* How many box widths for sum bar */
     --red-circle-diameter: calc(var(--game-area-width) * 0.07); /* 7% of game area width for red circle diameter */
@@ -163,15 +163,15 @@ body {
 /* Left dice positioning: centered at (23%, 50%) of game area */
 .dice.left-dice {
     left: 23%; /* Center X position */
-    top: 50%; /* Center Y position */
-    transform: translate(-50%, -50%); /* Center the dice on the position */
+    bottom: 50%; /* Center Y position from bottom */
+    transform: translate(-50%, 50%); /* Center the dice on the position */
 }
 
 /* Right dice positioning: centered at (77%, 50%) of game area */
 .dice.right-dice {
     left: 77%; /* Center X position */
-    top: 50%; /* Center Y position */
-    transform: translate(-50%, -50%); /* Center the dice on the position */
+    bottom: 50%; /* Center Y position from bottom */
+    transform: translate(-50%, 50%); /* Center the dice on the position */
 }
 
 /* Dice faces - completely transparent containers for 3D positioning */
@@ -204,7 +204,6 @@ body {
     bottom: 0;
     border: 3px solid #333;
     border-radius: 15px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     box-sizing: border-box;
     z-index: 1;
     /* Disable touch interactions */
