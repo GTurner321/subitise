@@ -56,6 +56,20 @@ class TwoDiceGameController {
         this.gameArea = document.querySelector('.game-area');
         this.sumRow = document.getElementById('sumRow');
         
+        // Stats display elements
+        this.statsDisplay = {
+            accuracy: document.getElementById('accuracyStat'),
+            resilience: document.getElementById('resilienceStat'),
+            speed: document.getElementById('speedStat'),
+            variety: document.getElementById('varietyStat'),
+            questions: document.getElementById('questionsStat')
+        };
+        
+        // Update stats display periodically
+        this.statsUpdateInterval = setInterval(() => {
+            this.updateStatsDisplay();
+        }, 1000);
+        
         // Initialize in proper order
         this.initializeEventListeners();
         this.setupVisibilityHandling();
@@ -854,9 +868,25 @@ class TwoDiceGameController {
         }
     }
 
+    updateStatsDisplay() {
+        if (this.stats && this.statsDisplay.accuracy) {
+            const currentStats = this.stats.getCurrentStats();
+            this.statsDisplay.accuracy.textContent = currentStats.accuracy;
+            this.statsDisplay.resilience.textContent = currentStats.resilience;
+            this.statsDisplay.speed.textContent = currentStats.speed;
+            this.statsDisplay.variety.textContent = currentStats.variety;
+            this.statsDisplay.questions.textContent = this.stats.totalQuestions;
+        }
+    }
+
     destroy() {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
+        
+        // Clear stats update interval
+        if (this.statsUpdateInterval) {
+            clearInterval(this.statsUpdateInterval);
+        }
         
         if (window.AudioSystem) {
             window.AudioSystem.stopAllAudio();
