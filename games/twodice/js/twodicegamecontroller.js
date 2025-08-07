@@ -143,10 +143,38 @@ class TwoDiceGameController {
             return;
         }
         
-        // Update CSS custom property with actual game area width
+        // CRITICAL FIX: Update CSS custom property with actual game area width in pixels
         document.documentElement.style.setProperty('--game-area-width', `${gameAreaRect.width}px`);
         
-        console.log('📏 Game area dimensions updated and CSS custom property set:', gameAreaRect.width);
+        console.log('📏 Game area dimensions updated and CSS custom property set:', gameAreaRect.width, 'px');
+        
+        // Force a style recalculation for all elements using CSS custom properties
+        this.forceStyleRecalculation();
+    }
+    
+    /**
+     * Force recalculation of styles for elements that depend on --game-area-width
+     */
+    forceStyleRecalculation() {
+        const elementsToUpdate = [
+            document.querySelector('.plus-sign'),
+            document.querySelector('.sum-row'),
+            ...document.querySelectorAll('.input-box'),
+            ...document.querySelectorAll('.sum-plus-sign, .sum-equals-sign'),
+            document.querySelector('.check-mark')
+        ];
+        
+        elementsToUpdate.forEach(element => {
+            if (element) {
+                // Force recalculation by temporarily changing and restoring a property
+                const originalDisplay = element.style.display;
+                element.style.display = 'none';
+                element.offsetHeight; // Trigger reflow
+                element.style.display = originalDisplay;
+            }
+        });
+        
+        console.log('🔄 Forced style recalculation for CSS custom property dependent elements');
     }
 
     initializeGame() {
