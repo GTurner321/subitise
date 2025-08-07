@@ -213,7 +213,6 @@ class DiceRenderer {
             coloredSurface.style.border = '3px solid #333';
             coloredSurface.style.borderRadius = '15px';
             coloredSurface.style.boxSizing = 'border-box';
-            coloredSurface.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
             coloredSurface.style.zIndex = '1';
             
             // Create dots container
@@ -387,30 +386,57 @@ class DiceRenderer {
 
     // Alternative simpler approach - find the largest visible face
     readVisibleFaceSimple(dice) {
-        const faces = dice.querySelectorAll('.dice-face');
-        let largestFace = null;
-        let largestArea = 0;
+        console.log('=== READING DICE FACE ===');
         
-        faces.forEach(face => {
-            const rect = face.getBoundingClientRect();
-            const area = rect.width * rect.height;
-            
-            // Only consider faces that are actually visible
-            if (area > largestArea && rect.width > 20 && rect.height > 20) {
-                largestFace = face;
-                largestArea = area;
-            }
-        });
+        // Get current rotation to determine which face should be visible
+        const currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
+        const currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
         
-        if (largestFace) {
-            // Count dots on the largest visible face
-            const activeDots = largestFace.querySelectorAll('.dice-dot.active');
+        // Normalize rotations to 0-360 range
+        const normalizedX = ((currentRotationX % 360) + 360) % 360;
+        const normalizedY = ((currentRotationY % 360) + 360) % 360;
+        
+        console.log(`Dice rotations: X=${normalizedX}°, Y=${normalizedY}°`);
+        
+        // Determine which face should be visible based on rotation
+        let targetFaceClass = 'front'; // default
+        
+        // Y rotation determines left/right/front/back faces
+        if (normalizedY >= 315 || normalizedY < 45) {
+            targetFaceClass = 'front';
+        } else if (normalizedY >= 45 && normalizedY < 135) {
+            targetFaceClass = 'right';
+        } else if (normalizedY >= 135 && normalizedY < 225) {
+            targetFaceClass = 'back';
+        } else if (normalizedY >= 225 && normalizedY < 315) {
+            targetFaceClass = 'left';
+        }
+        
+        // X rotation can override with top/bottom faces
+        if (normalizedX >= 315 || normalizedX < 45) {
+            // Keep the Y-rotation determined face
+        } else if (normalizedX >= 45 && normalizedX < 135) {
+            targetFaceClass = 'bottom';
+        } else if (normalizedX >= 135 && normalizedX < 225) {
+            // Keep the Y-rotation determined face (upside down)
+        } else if (normalizedX >= 225 && normalizedX < 315) {
+            targetFaceClass = 'top';
+        }
+        
+        console.log(`Target face class: ${targetFaceClass}`);
+        
+        // Find the target face and count its dots
+        const targetFace = dice.querySelector(`.dice-face.${targetFaceClass}`);
+        if (targetFace) {
+            const activeDots = targetFace.querySelectorAll('.dice-dot.active');
             const value = activeDots.length;
-            console.log(`Simple reader: Largest face has ${value} dots`);
+            console.log(`Face ${targetFaceClass} has ${value} dots`);
+            console.log('=== FACE READING COMPLETE ===');
             return Math.max(1, Math.min(6, value));
         }
         
-        console.log('Simple reader: No clear visible face found, defaulting to 1');
+        console.log('Target face not found, defaulting to 1');
+        console.log('=== FACE READING COMPLETE ===');
         return 1;
     }
 
