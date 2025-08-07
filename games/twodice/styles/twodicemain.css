@@ -1,9 +1,9 @@
 /* CSS Custom Properties for responsive sizing based on game area width */
 :root {
-    --game-area-width: 100%; /* Will be updated by JavaScript with actual game area width */
-    --sum-box-size: 8%; /* 8% of actual game area width for sum boxes */
+    --game-area-width: 100vw; /* Initial value, will be updated by JavaScript with actual game area width */
+    --sum-box-size: calc(var(--game-area-width) * 0.08); /* 8% of actual game area width */
     --sum-bar-width-multiplier: 6.5; /* How many box widths for sum bar */
-    --red-circle-diameter: 7%; /* 7% of game area width for red circle diameter */
+    --red-circle-diameter: calc(var(--game-area-width) * 0.07); /* 7% of game area width for red circle diameter */
 }
 
 /* Prevent scrolling - game always fits on screen */
@@ -92,8 +92,8 @@ body {
     justify-content: center;
     align-items: center;
     /* Red circle: diameter = 7% of game area width (perfect circle) */
-    width: calc(var(--game-area-width) * 0.07);
-    height: calc(var(--game-area-width) * 0.07);
+    width: var(--red-circle-diameter);
+    height: var(--red-circle-diameter);
     /* Ensure perfect circle */
     aspect-ratio: 1;
     background: #dc3545;
@@ -105,7 +105,7 @@ body {
 
 .plus-sign i {
     /* Plus icon: 40% of the red circle diameter */
-    font-size: calc(var(--game-area-width) * 0.07 * 0.4);
+    font-size: calc(var(--red-circle-diameter) * 0.4);
     color: white;
     font-weight: bold;
 }
@@ -279,11 +279,11 @@ body {
     z-index: 15;
     
     /* Responsive sizing based on game area */
-    width: calc(var(--game-area-width) * 0.52); /* 52% of game area width for sum bar */
-    height: calc(var(--game-area-width) * 0.14); /* 14% of game area width for sum bar height */
+    width: calc(var(--sum-box-size) * var(--sum-bar-width-multiplier)); /* 6.5 boxes width */
+    height: calc(var(--sum-box-size) + 2vh); /* box height + padding */
     
     background: rgba(255, 255, 255, 0.95);
-    padding: 1.5% 2%; /* 1.5% top/bottom, 2% left/right of game area */
+    padding: 1vh 2%; /* 1vh top/bottom, 2% left/right of game area */
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 2px solid #e0e0e0;
@@ -311,10 +311,10 @@ body {
 /* Sum row symbols with proper responsive sizing */
 .sum-plus-sign,
 .sum-equals-sign {
-    font-size: calc(var(--game-area-width) * 0.08 * 0.52); /* 52% of box size for proportional text */
+    font-size: calc(var(--sum-box-size) * 0.52); /* Based on box size */
     font-weight: bold;
     color: #333;
-    min-width: calc(var(--game-area-width) * 0.08 * 0.75); /* 75% of box size for minimum width */
+    min-width: calc(var(--sum-box-size) * 0.75); /* 75% of box size */
     text-align: center;
     flex-shrink: 0;
 }
@@ -322,8 +322,8 @@ body {
 .left-sum-box,
 .right-sum-box,
 .total-sum-box {
-    width: calc(var(--game-area-width) * 0.08); /* 8% of game area width */
-    height: calc(var(--game-area-width) * 0.08); /* Same as width - perfect squares */
+    width: var(--sum-box-size); /* 8% of game area width */
+    height: var(--sum-box-size); /* Same as width - perfect squares */
     flex-shrink: 0;
 }
 
@@ -335,7 +335,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: calc(var(--game-area-width) * 0.08 * 0.6); /* Font size proportional to box size */
+    font-size: calc(var(--sum-box-size) * 0.6); /* Font size proportional to box size */
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
@@ -370,11 +370,11 @@ body {
 }
 
 .check-mark {
-    font-size: calc(var(--game-area-width) * 0.08 * 0.6); /* Font size proportional to box size */
+    font-size: calc(var(--sum-box-size) * 0.6); /* Font size proportional to box size */
     color: #28a745;
     opacity: 0;
     transition: opacity 0.5s ease;
-    min-width: calc(var(--game-area-width) * 0.08 * 0.7); /* 70% of box size for minimum width */
+    min-width: calc(var(--sum-box-size) * 0.7); /* 70% of box size */
     text-align: center;
     flex-shrink: 0;
     margin-left: 1.5%;
