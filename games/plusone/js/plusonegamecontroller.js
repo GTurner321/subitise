@@ -9,6 +9,8 @@ class PlusOneGameController {
         
         // Initialize statistics tracking
         this.stats = new PlusOneStats();
+        // Load total rounds completed from previous sessions
+        this.stats.loadTotalRoundsCompleted();
         
         // Game mode and progression
         this.gameMode = CONFIG.GAME_MODES.PLUS_ONE; // Default to plus one
@@ -1277,25 +1279,28 @@ class PlusOneGameController {
         }, 200);
     }
 
-    completeGame() {
-        this.gameComplete = true;
-        this.clearInactivityTimer();
-        this.resetKeyboardState();
-        this.stopFlashing();
-        
-        // Update modal for dual-button layout
-        this.updateModalForCompletion();
-        this.modal.classList.remove('hidden');
-        
-        this.bear.startCelebration();
-        
-        if (this.isTabVisible) {
-            const audioConfig = this.getCurrentAudio();
-            setTimeout(() => {
-                this.speakText(audioConfig.GAME_COMPLETE);
-            }, 1000);
-        }
+completeGame() {
+    this.gameComplete = true;
+    this.clearInactivityTimer();
+    this.resetKeyboardState();
+    this.stopFlashing();
+    
+    // Save total rounds completed for persistence
+    this.stats.saveTotalRoundsCompleted();
+    
+    // Update modal for dual-button layout
+    this.updateModalForCompletion();
+    this.modal.classList.remove('hidden');
+    
+    this.bear.startCelebration();
+    
+    if (this.isTabVisible) {
+        const audioConfig = this.getCurrentAudio();
+        setTimeout(() => {
+            this.speakText(audioConfig.GAME_COMPLETE);
+        }, 1000);
     }
+}
 
     updateModalForCompletion() {
         const modalContent = this.modal.querySelector('.modal-content');
@@ -1421,37 +1426,37 @@ class PlusOneGameController {
         document.head.appendChild(style);
     }
 
-    destroy() {
-        this.clearInactivityTimer();
-        this.resetKeyboardState();
-        
-        if (window.AudioSystem) {
-            window.AudioSystem.stopAllAudio();
-        }
-        
-        if (this.keyboardHandler) {
-            document.removeEventListener('keydown', this.keyboardHandler);
-        }
-        
-        // Clean up statistics
-        if (this.stats) {
-            this.stats.destroy();
-        }
-        
-        this.rainbow.reset();
-        this.bear.reset();
-        this.contentRenderer.reset();
-        
-        if (window.ButtonBar) {
-            window.ButtonBar.destroy();
-        }
-        
-        // Remove modal button styles
-        const modalButtonStyles = document.head.querySelector('style[data-modal-buttons]');
-        if (modalButtonStyles) {
-            modalButtonStyles.remove();
-        }
+destroy() {
+    this.clearInactivityTimer();
+    this.resetKeyboardState();
+    
+    if (window.AudioSystem) {
+        window.AudioSystem.stopAllAudio();
     }
+    
+    if (this.keyboardHandler) {
+        document.removeEventListener('keydown', this.keyboardHandler);
+    }
+    
+    // Clean up statistics - this will save total rounds
+    if (this.stats) {
+        this.stats.destroy();
+    }
+    
+    this.rainbow.reset();
+    this.bear.reset();
+    this.contentRenderer.reset();
+    
+    if (window.ButtonBar) {
+        window.ButtonBar.destroy();
+    }
+    
+    // Remove modal button styles
+    const modalButtonStyles = document.head.querySelector('style[data-modal-buttons]');
+    if (modalButtonStyles) {
+        modalButtonStyles.remove();
+    }
+}
 }
 
 // Initialize game when DOM is loaded
