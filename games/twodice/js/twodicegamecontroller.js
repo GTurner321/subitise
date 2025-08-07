@@ -324,9 +324,9 @@ class TwoDiceGameController {
         // Determine which hint to give based on current flashing box
         let hintText = '';
         if (!this.leftFilled) {
-            hintText = 'Look at the number on the left dice';
+            hintText = 'Count the dots on the left dice';
         } else if (!this.rightFilled) {
-            hintText = 'Look at the number on the right dice';
+            hintText = 'Count the dots on the right dice';
         } else if (!this.totalFilled) {
             hintText = 'Add the two dice numbers together';
         }
@@ -857,7 +857,7 @@ class TwoDiceGameController {
         
         if (this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Well done! You have completed all ten sums! Try again or return to the home page.');
+                this.speakText('Well done! You\'re on a roll! Try again or return to the home page.');
             }, 1000);
         }
     }
