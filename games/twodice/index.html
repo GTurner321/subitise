@@ -9,21 +9,19 @@
     <link rel="stylesheet" href="styles/twodicemain.css">
 </head>
 <body>
-    <!-- Back to games navigation -->
-    <a href="../../index.html" class="back-button">
-        <i class="fas fa-arrow-left"></i>
-        Back to Games
-    </a>
-    
     <!-- Main game area -->
     <div class="game-area">
+        <!-- Rainbow container for background rainbow -->
         <div class="rainbow-container" id="rainbowContainer">
             <!-- Rainbow arcs will be added here by JavaScript -->
         </div>
         
-        <!-- Left side for dice -->
+        <!-- Left flash area for green flashing -->
+        <div class="left-flash-area" id="leftFlashArea"></div>
+        
+        <!-- Left side dice placement area -->
         <div class="left-side" id="leftSide">
-            <!-- Left dice will be added here by JavaScript -->
+            <!-- Left dice will be positioned here via CSS classes -->
         </div>
         
         <!-- Middle section with plus sign -->
@@ -33,9 +31,12 @@
             </div>
         </div>
         
-        <!-- Right side for dice -->
+        <!-- Right flash area for green flashing -->
+        <div class="right-flash-area" id="rightFlashArea"></div>
+        
+        <!-- Right side dice placement area -->
         <div class="right-side" id="rightSide">
-            <!-- Right dice will be added here by JavaScript -->
+            <!-- Right dice will be positioned here via CSS classes -->
         </div>
         
         <!-- Sum row at bottom -->
@@ -51,20 +52,9 @@
         </div>
     </div>
     
-    <!-- Number selection buttons for 1-12 -->
+    <!-- Universal button bar (will be created by ButtonBar system) -->
     <div class="number-buttons">
-        <button class="number-btn" data-number="1">1</button>
-        <button class="number-btn" data-number="2">2</button>
-        <button class="number-btn" data-number="3">3</button>
-        <button class="number-btn" data-number="4">4</button>
-        <button class="number-btn" data-number="5">5</button>
-        <button class="number-btn" data-number="6">6</button>
-        <button class="number-btn" data-number="7">7</button>
-        <button class="number-btn" data-number="8">8</button>
-        <button class="number-btn" data-number="9">9</button>
-        <button class="number-btn" data-number="10">10</button>
-        <button class="number-btn" data-number="11">11</button>
-        <button class="number-btn" data-number="12">12</button>
+        <!-- Buttons 1-12 will be dynamically created by ButtonBar.js -->
     </div>
     
     <!-- Game completion modal -->
@@ -75,7 +65,7 @@
         </div>
     </div>
     
-    <!-- JavaScript files -->
+    <!-- JavaScript files - Universal systems first, then game-specific -->
     <script src="js/twodiceconfig.js"></script>
     <script src="../../js/shared/buttonbar.js"></script>
     <script src="../../js/shared/audio.js"></script>
