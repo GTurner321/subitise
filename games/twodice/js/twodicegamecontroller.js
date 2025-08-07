@@ -147,8 +147,8 @@ class TwoDiceGameController {
         if (window.ButtonBar && this.buttonBarReady) {
             window.ButtonBar.create(
                 12,                    // number of buttons (1-12 for dice sums)
-                7,                     // button width as % of button panel width (reduced from 7.5% to fit 12 buttons)
-                7,                     // button height as % of button panel width (square buttons)
+                6.7,                   // button width as % of button panel width (12 × 6.7% + 11 × 1.5% = 96.9%)
+                6.7,                   // button height as % of button panel width (square buttons)
                 colors,                // array of button colors
                 numbers,               // array of button numbers/labels
                 (selectedNumber, buttonElement) => {  // click handler
