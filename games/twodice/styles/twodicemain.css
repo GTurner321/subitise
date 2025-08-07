@@ -1,8 +1,9 @@
-/* CSS Custom Properties for sum bar dimensions */
+/* CSS Custom Properties for responsive sizing based on game area width */
 :root {
     --game-area-width: 100%; /* Will be updated by JavaScript with actual game area width */
-    --sum-box-size: 7%; /* 7% of actual game area width */
+    --sum-box-size: 8%; /* 8% of actual game area width for sum boxes */
     --sum-bar-width-multiplier: 6.5; /* How many box widths for sum bar */
+    --plus-sign-size: 7%; /* 7% of game area width for plus sign */
 }
 
 /* Prevent scrolling - game always fits on screen */
@@ -90,33 +91,20 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Red circle: 7% of GAME AREA width - not middle section width */
-    width: calc(7% * 100 / 8); /* 7% of game area = 87.5% of the 8% middle section */
-    height: calc(7% * 100 / 8); /* Keep it square */
-    aspect-ratio: 1 / 1;
+    /* Red circle: 7% of game area width for both dimensions (perfect circle) */
+    width: var(--plus-sign-size);
+    height: var(--plus-sign-size);
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    animation: pulse 2s ease-in-out infinite;
     z-index: 10;
     position: relative;
 }
 
 .plus-sign i {
-    font-size: clamp(14px, 2.8%, 28px);
+    font-size: calc(var(--plus-sign-size) * 0.4); /* 40% of plus sign size */
     color: white;
     font-weight: bold;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    }
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 12px 35px rgba(220, 53, 69, 0.5);
-    }
 }
 
 /* Right game area: 54% to 100% of game area width */
@@ -150,13 +138,11 @@ body {
     transition: background-color 1s ease-in-out;
 }
 
-/* 3D Dice Styling - Fully responsive, square dice based on game area width */
+/* 3D Dice Styling - Square dice with height matching width based on game area width */
 .dice {
-    /* Size: 12% of game area width for both dimensions (square) */
+    /* Size: 12% of game area width for width, height should match width in pixels */
     width: 12%;
-    height: 12%; 
-    /* But height should be based on width to ensure perfect square */
-    aspect-ratio: 1 / 1;
+    height: 12%; /* This will be overridden by JavaScript to match width in pixels */
     position: absolute;
     transform-style: preserve-3d;
     opacity: 0;
@@ -254,31 +240,10 @@ body {
     touch-action: none;
 }
 
-/* 3D face positioning - translateZ should be half the dice width for proper 3D cube */
-.dice-face.front { 
-    transform: rotateY(0deg) translateZ(6%); 
-}
-.dice-face.back { 
-    transform: rotateY(180deg) translateZ(6%); 
-}
-.dice-face.right { 
-    transform: rotateY(90deg) translateZ(6%); 
-}
-.dice-face.left { 
-    transform: rotateY(-90deg) translateZ(6%); 
-}
-.dice-face.top { 
-    transform: rotateX(90deg) translateZ(6%); 
-}
-.dice-face.bottom { 
-    transform: rotateX(-90deg) translateZ(6%); 
-}
-
-/* Dice dots styling - responsive to game area width */
+/* Dice dots styling - sized relative to game area width for consistency */
 .dice-dot {
-    width: 1.5%; /* 1.5% of game area width */
-    height: 1.5%; /* 1.5% of game area width - square dots */
-    aspect-ratio: 1 / 1;
+    width: 1.8%; /* 1.8% of game area width */
+    height: 1.8%; /* Same as width for perfect circles */
     border-radius: 50%;
     background-color: #333;
     margin: auto;
@@ -340,13 +305,13 @@ body {
     transform: translateX(-50%) !important;
 }
 
-/* Restore sum row symbols - dice game DOES need them */
+/* Sum row symbols with proper responsive sizing */
 .sum-plus-sign,
 .sum-equals-sign {
-    font-size: calc(var(--sum-box-size) * 0.6); /* 60% of box size for proportional text */
+    font-size: calc(var(--sum-box-size) * 0.52); /* 52% of box size for proportional text */
     font-weight: bold;
     color: #333;
-    min-width: calc(var(--sum-box-size) * 0.7); /* 70% of box size for minimum width */
+    min-width: calc(var(--sum-box-size) * 0.75); /* 75% of box size for minimum width */
     text-align: center;
     flex-shrink: 0;
 }
@@ -354,8 +319,8 @@ body {
 .left-sum-box,
 .right-sum-box,
 .total-sum-box {
-    width: var(--sum-box-size); /* 7% of game area width */
-    height: var(--sum-box-size); /* Square boxes */
+    width: var(--sum-box-size); /* 8% of game area width */
+    height: var(--sum-box-size); /* Same as width - perfect squares */
     flex-shrink: 0;
 }
 
