@@ -85,8 +85,8 @@ body {
     justify-content: center;
     align-items: center;
     /* Red circle: 7% of game area width */
-    width: 7vw;
-    height: 7vw;
+    width: 7%;
+    height: 7%;
     max-width: 70px;
     max-height: 70px;
     min-width: 35px;
@@ -100,7 +100,7 @@ body {
 }
 
 .plus-sign i {
-    font-size: clamp(14px, 2.8vw, 28px);
+    font-size: clamp(14px, 2.8%, 28px);
     color: white;
     font-weight: bold;
 }
