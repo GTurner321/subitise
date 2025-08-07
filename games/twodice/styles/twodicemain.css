@@ -41,7 +41,7 @@ body {
     opacity: 1;
 }
 
-/* Left game area and flash area: 0% to 46% of game area width */
+/* Left game area: 0% to 46% of game area width */
 .left-side {
     position: absolute;
     left: 0%;
@@ -53,6 +53,7 @@ body {
     z-index: 5; /* Above rainbow, below dice */
 }
 
+/* Left flash area for green flashing */
 .left-flash-area {
     position: absolute;
     left: 0%;
@@ -116,7 +117,7 @@ body {
     }
 }
 
-/* Right game area and flash area: 54% to 100% of game area width */
+/* Right game area: 54% to 100% of game area width */
 .right-side {
     position: absolute;
     left: 54%;
@@ -128,6 +129,7 @@ body {
     z-index: 5; /* Above rainbow, below dice */
 }
 
+/* Right flash area for green flashing */
 .right-flash-area {
     position: absolute;
     left: 54%;
@@ -137,4 +139,406 @@ body {
     pointer-events: none;
     transition: background-color 0.2s ease;
     z-index: 2; /* Above game areas but below dice */
+}
+
+/* Area flashing styles */
+.left-flash-area.area-flash,
+.right-flash-area.area-flash {
+    background-color: rgba(144, 238, 144, 0.2) !important;
+    transition: background-color 1s ease-in-out;
+}
+
+/* 3D Dice Styling - Responsive and positioned precisely */
+.dice {
+    /* Size: 12% of game area width (square) */
+    width: 12%;
+    height: 12%;
+    max-width: 120px;
+    max-height: 120px;
+    min-width: 60px;
+    min-height: 60px;
+    position: absolute;
+    transform-style: preserve-3d;
+    opacity: 0;
+    z-index: 10; /* Above everything except UI elements */
+    transition: opacity 1s ease-in-out;
+    transform-origin: center center;
+    /* Ensure dice container is transparent */
+    background: transparent !important;
+    background-color: transparent !important;
+    /* Disable touch interactions */
+    pointer-events: none;
+    touch-action: none;
+}
+
+/* Left dice positioning: centered at (23%, 50%) of game area */
+.dice.left-dice {
+    left: calc(23% - 6%); /* 23% minus half dice width (6%) */
+    top: calc(50% - 6%); /* 50% minus half dice height (6%) */
+}
+
+/* Right dice positioning: centered at (77%, 50%) of game area */
+.dice.right-dice {
+    left: calc(77% - 6%); /* 77% minus half dice width (6%) */
+    top: calc(50% - 6%); /* 50% minus half dice height (6%) */
+}
+
+/* Dice faces - completely transparent containers for 3D positioning */
+.dice-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    opacity: 1;
+    backface-visibility: hidden;
+    box-sizing: border-box;
+    color: transparent;
+    /* Disable touch interactions */
+    pointer-events: none;
+    touch-action: none;
+}
+
+/* The actual colored surface of each face */
+.dice-face-surface {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 3px solid #333;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    box-sizing: border-box;
+    z-index: 1;
+    /* Disable touch interactions */
+    pointer-events: none;
+    touch-action: none;
+}
+
+/* Inner face - fills gaps during rotation */
+.dice-face-inner {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    width: 90%;
+    height: 90%;
+    border: none;
+    border-radius: 0;
+    box-sizing: border-box;
+    z-index: 0;
+    /* Disable touch interactions */
+    pointer-events: none;
+    touch-action: none;
+}
+
+/* Dots container sits above the colored surface */
+.dice-dots-container {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+    box-sizing: border-box;
+    /* Disable touch interactions */
+    pointer-events: none;
+    touch-action: none;
+}
+
+/* 3D face positioning - using fixed pixel values for translateZ */
+.dice-face.front { 
+    transform: rotateY(0deg) translateZ(60px); 
+}
+.dice-face.back { 
+    transform: rotateY(180deg) translateZ(60px); 
+}
+.dice-face.right { 
+    transform: rotateY(90deg) translateZ(60px); 
+}
+.dice-face.left { 
+    transform: rotateY(-90deg) translateZ(60px); 
+}
+.dice-face.top { 
+    transform: rotateX(90deg) translateZ(60px); 
+}
+.dice-face.bottom { 
+    transform: rotateX(-90deg) translateZ(60px); 
+}
+
+/* Dice dots styling */
+.dice-dot {
+    width: clamp(10px, 1.5vw, 18px);
+    height: clamp(10px, 1.5vw, 18px);
+    border-radius: 50%;
+    background-color: #333;
+    margin: auto;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    /* Disable touch interactions */
+    pointer-events: none;
+    touch-action: none;
+}
+
+.dice-dot.active {
+    opacity: 1;
+}
+
+/* Final dice state - when animation is complete */
+.dice.dice-final {
+    opacity: 1 !important;
+    transition: transform 0.8s ease-out !important;
+}
+
+/* Sum row at bottom - positioned above button bar */
+.sum-row {
+    position: absolute;
+    bottom: 3%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 2%;
+    z-index: 15;
+    
+    /* Responsive sizing */
+    width: clamp(300px, 50vw, 600px);
+    height: clamp(55px, 8vh, 90px);
+    
+    background: rgba(255, 255, 255, 0.95);
+    padding: 1vh 2%;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 2px solid #e0e0e0;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    
+    /* Re-enable touch for sum row interactions */
+    touch-action: manipulation;
+    pointer-events: auto;
+}
+
+.sum-row.loaded {
+    opacity: 1;
+}
+
+/* Prevent sum row from fading during transitions */
+.sum-row.fade-out,
+.sum-row.fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: translateX(-50%) !important;
+}
+
+/* Remove legacy plus and equals signs - dice game doesn't need them */
+.sum-plus-sign,
+.sum-equals-sign {
+    display: none;
+}
+
+.left-sum-box,
+.right-sum-box,
+.total-sum-box {
+    width: clamp(50px, 7vw, 80px);
+    height: clamp(50px, 7vw, 80px);
+    flex-shrink: 0;
+}
+
+/* Input boxes for sum row */
+.input-box {
+    background: white;
+    border: 4px solid #007bff;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(18px, 4vw, 42px);
+    font-weight: bold;
+    color: #333;
+    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.input-box.flashing {
+    animation: flashingBox 1s ease-in-out infinite;
+}
+
+.input-box.filled {
+    background: #e8f5e8;
+    border-color: #28a745;
+    animation: none;
+}
+
+.input-box.box-flash {
+    background: rgba(144, 238, 144, 0.3) !important;
+    border-color: #28a745 !important;
+    transition: all 1s ease-in-out;
+}
+
+@keyframes flashingBox {
+    0%, 100% {
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 12px 35px rgba(0, 123, 255, 0.6);
+        transform: scale(1.05);
+    }
+}
+
+.check-mark {
+    display: none; /* Dice game doesn't use check mark */
+}
+
+/* Fade animations - exclude sum row */
+.fade-out:not(.sum-row) {
+    animation: fadeOut 1s ease-out forwards;
+}
+
+.fade-in:not(.sum-row) {
+    animation: fadeIn 1s ease-in forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Game completion modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: #4caf50;
+    color: white;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+    pointer-events: auto;
+    animation: modalAppear 0.5s ease;
+    /* Re-enable touch for modal */
+    touch-action: manipulation;
+}
+
+@keyframes modalAppear {
+    from { 
+        opacity: 0; 
+        transform: scale(0.5); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+}
+
+.modal-content h2 {
+    margin: 0 0 30px 0;
+    font-size: 2.5rem;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.play-again-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    /* Re-enable touch for button */
+    touch-action: manipulation;
+    pointer-events: auto;
+}
+
+.play-again-btn:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.play-again-btn:active {
+    transform: translateY(0);
+}
+
+/* Star celebration animation */
+.completion-star {
+    animation: starSparkle 1.5s ease-out forwards;
+    transform-origin: center;
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 1000;
+    /* Disable touch interactions */
+    touch-action: none;
+}
+
+@keyframes starSparkle {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8) rotate(360deg);
+    }
+}
+
+/* Enhanced completion effects */
+.completion-effect {
+    pointer-events: none;
+    touch-action: none;
 }
