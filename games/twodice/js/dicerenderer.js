@@ -1,5 +1,6 @@
 class DiceRenderer {
     constructor() {
+        // SEARCH FOR THIS LINE: DICE RENDERER UPDATED 2025-01-01
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
         this.currentDice = [];
@@ -386,30 +387,46 @@ class DiceRenderer {
 
     // Alternative simpler approach - find the largest visible face
     readVisibleFaceSimple(dice) {
+        console.log('=== READING DICE FACE ===');
         const faces = dice.querySelectorAll('.dice-face');
         let largestFace = null;
         let largestArea = 0;
+        let faceData = [];
         
         faces.forEach(face => {
             const rect = face.getBoundingClientRect();
             const area = rect.width * rect.height;
+            const faceClass = face.classList[1]; // Should be 'front', 'back', etc.
             
-            // Only consider faces that are actually visible
-            if (area > largestArea && rect.width > 20 && rect.height > 20) {
+            faceData.push({
+                class: faceClass,
+                width: rect.width,
+                height: rect.height,
+                area: area
+            });
+            
+            // Only consider faces that are actually visible with reasonable area
+            if (area > largestArea && rect.width > 10 && rect.height > 10) {
                 largestFace = face;
                 largestArea = area;
             }
         });
         
+        // Log all face data for debugging
+        console.log('All face areas:', faceData);
+        
         if (largestFace) {
-            // Count dots on the largest visible face
+            const faceClass = largestFace.classList[1];
             const activeDots = largestFace.querySelectorAll('.dice-dot.active');
             const value = activeDots.length;
-            console.log(`Simple reader: Largest face has ${value} dots`);
+            
+            console.log(`Largest face: ${faceClass} (${largestArea.toFixed(1)}px²) has ${value} dots`);
+            console.log('=== FACE READING COMPLETE ===');
             return Math.max(1, Math.min(6, value));
         }
         
-        console.log('Simple reader: No clear visible face found, defaulting to 1');
+        console.log('No visible face found, defaulting to 1');
+        console.log('=== FACE READING COMPLETE ===');
         return 1;
     }
 
@@ -500,10 +517,6 @@ class DiceRenderer {
                 if (rollCount >= numberOfRolls) {
                     const stopTimeout = setTimeout(() => {
                         dice.classList.add('dice-final');
-                        
-                        // CRITICAL FIX: Hide back faces to force correct dot counting
-                        this.hideBackFaces(dice);
-                        
                         console.log(`${diceName} dice completed rolling after ${rollCount} moves`);
                         resolve();
                     }, flipDuration * 1000);
@@ -519,34 +532,6 @@ class DiceRenderer {
             const initialTimeout = setTimeout(performRoll, 1300);
             this.rollTimeouts.push(initialTimeout);
         });
-    }
-    
-    /**
-     * Hide faces that are facing away from the viewer to ensure dot counting works properly
-     */
-    hideBackFaces(dice) {
-        const faces = dice.querySelectorAll('.dice-face');
-        
-        faces.forEach(face => {
-            const rect = face.getBoundingClientRect();
-            const area = rect.width * rect.height;
-            
-            // If face has very small area, it's likely facing away - hide its dots
-            if (area < 100) { // Threshold for "back face"
-                const dots = face.querySelectorAll('.dice-dot');
-                dots.forEach(dot => {
-                    dot.style.opacity = '0';
-                });
-                
-                // Also make the face surface transparent
-                const surface = face.querySelector('.dice-face-surface');
-                if (surface) {
-                    surface.style.opacity = '0.1';
-                }
-            }
-        });
-        
-        console.log('Back faces hidden for better dot counting');
     }
 
     async fadeOutCurrentDice() {
