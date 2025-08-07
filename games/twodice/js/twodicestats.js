@@ -20,8 +20,9 @@ class TwoDiceStats {
         this.isTabVisible = true;
         this.isPaused = false;
         
-        // Round completion tracking
-        this.totalRoundsCompleted = 0;
+        // Round completion tracking - SEPARATED
+        this.roundsCompleted = 0; // Current session only - used for metric calculations
+        this.totalRoundsCompleted = 0; // Persistent across sessions - used for StatsManager only
         
         this.init();
     }
@@ -43,7 +44,7 @@ class TwoDiceStats {
         this.correctFirstAttempts = 0;
         
         // 2) Resilience tracking  
-        this.roundsCompleted = 0; // Rounds completed in current session
+        this.roundsCompleted = 0; // Current session rounds - RESET to 0
         
         // 3) Speed tracking
         this.questionTimes = [];
@@ -179,8 +180,9 @@ class TwoDiceStats {
      * Record round completion (called when 10 questions completed)
      */
     recordRoundCompletion() {
-        this.roundsCompleted++;
-        this.totalRoundsCompleted++;
+        // Update BOTH counters
+        this.roundsCompleted++;        // Current session (used for metric calculations)
+        this.totalRoundsCompleted++;   // Persistent total (used for StatsManager)
         this.completedAnyRound = true;
         this.registerActivity();
         
@@ -207,8 +209,8 @@ class TwoDiceStats {
      * Calculate resilience score (0-100%)
      * Based on time taken out of 200 seconds as a percentage with round completion bonuses:
      * - Base: (active seconds / 200) * 100%
-     * - After 1st round completed: advance timer to 120s minimum (60%)
-     * - After 2nd round completed: advance timer to 200s (100%)
+     * - After 1st round completed IN CURRENT SESSION: advance timer to 120s minimum (60%)
+     * - After 2nd round completed IN CURRENT SESSION: advance timer to 200s (100%)
      * @returns {number} Resilience percentage (0-100)
      */
     calculateResilienceScore() {
@@ -220,11 +222,11 @@ class TwoDiceStats {
         
         let activeSeconds = currentActiveTime / 1000;
         
-        // Apply round completion bonuses
-        if (this.totalRoundsCompleted >= 2) {
+        // Apply round completion bonuses - USE CURRENT SESSION ROUNDS ONLY
+        if (this.roundsCompleted >= 2) {
             // After 2nd round: advance to 200 seconds (100%)
             activeSeconds = Math.max(activeSeconds, 200);
-        } else if (this.totalRoundsCompleted >= 1) {
+        } else if (this.roundsCompleted >= 1) {
             // After 1st round: advance to 120 seconds minimum (60%)
             activeSeconds = Math.max(activeSeconds, 120);
         }
@@ -266,7 +268,7 @@ class TwoDiceStats {
 
     /**
      * Calculate variety score (0% or 100%)
-     * Based on: whether any round has been completed
+     * Based on: whether any round has been completed IN CURRENT SESSION
      * @returns {number} Variety percentage (0 or 100)
      */
     calculateVarietyScore() {
@@ -325,7 +327,7 @@ class TwoDiceStats {
             gamesCompletedThisSession: this.completedAnyRound ? 1 : 0,
             totalQuestionsThisSession: this.totalQuestions,
             activeTimeThisSession: Math.round(this.totalActiveTime / 1000),
-            totalRoundsCompleted: this.totalRoundsCompleted
+            totalRoundsCompleted: this.totalRoundsCompleted // This uses persistent total for StatsManager
         };
         
         const updatedStats = window.StatsManager.updateGameStats(this.gameId, sessionStats, metadata);
@@ -356,7 +358,7 @@ class TwoDiceStats {
             this.submitStats();
         }
         
-        this.resetSessionData();
+        this.resetSessionData(); // This resets roundsCompleted to 0, but keeps totalRoundsCompleted
         this.totalActiveTime = 0;
         this.lastActivityTime = Date.now();
         this.resumeActivityTracking();
@@ -366,6 +368,7 @@ class TwoDiceStats {
 
     /**
      * Load total rounds completed from previous sessions
+     * This is ONLY used for StatsManager submissions, NOT for current session calculations
      */
     loadTotalRoundsCompleted() {
         try {
