@@ -163,10 +163,13 @@ class DiceRenderer {
         dice.style.border = 'none';
         dice.style.boxShadow = 'none';
         
-        // Standard dice face values
+        // Standard dice face values - let's use original mapping and debug
+        // TODO: This mapping may need adjustment based on visual verification
         const faceValues = {
             'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4
         };
+        
+        console.log('Creating dice with face values:', faceValues);
         
         // Create all 6 faces
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
@@ -234,7 +237,7 @@ class DiceRenderer {
             dotsContainer.style.boxSizing = 'border-box';
             
             // Create dots with proper sizing and visibility
-            this.createDots(dotsContainer, faceValue, gameAreaWidth);
+            this.createDots(dotsContainer, faceValue, gameAreaWidth, faceClass);
             
             face.appendChild(innerFace);      
             face.appendChild(coloredSurface); 
@@ -257,9 +260,14 @@ class DiceRenderer {
         return dice;
     }
 
-    createDots(container, value, gameAreaWidth) {
+    createDots(container, value, gameAreaWidth, faceClass = '') {
         const pattern = CONFIG.DICE_FACES[value];
         container.innerHTML = '';
+        
+        // Debug: Log which pattern is being used for which face
+        if (faceClass) {
+            console.log(`Creating ${value} dots for ${faceClass} face`);
+        }
         
         // Calculate dot size - 1.8% of game area width
         const dotSize = gameAreaWidth * 0.018; // 1.8% of game area width
