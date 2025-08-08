@@ -6,14 +6,15 @@ class TwoDiceGameController {
         this.bear = new Bear();
         this.stats = new TwoDiceStats(); // Initialize stats tracking
         
+        // NEW: Level-based difficulty system
+        this.levelController = new LevelBasedDiceController();
+        
         // Game state
         this.questionsCompleted = 0;
         this.gameComplete = false;
         
-        // Current question state - will be set after dice roll
-        this.currentLeftValue = 0;
-        this.currentRightValue = 0;
-        this.currentTotal = 0;
+        // Current question state - will be set by level controller
+        this.currentQuestion = null;
         this.buttonsDisabled = false;
         
         // Track which boxes are filled
@@ -56,6 +57,10 @@ class TwoDiceGameController {
         this.gameArea = document.querySelector('.game-area');
         this.sumRow = document.getElementById('sumRow');
         
+        // NEW: Level display elements
+        this.levelDisplay = document.getElementById('levelDisplay');
+        this.roundProgress = document.getElementById('roundProgress');
+        
         // Stats display elements
         this.statsDisplay = {
             accuracy: document.getElementById('accuracyStat'),
@@ -68,6 +73,7 @@ class TwoDiceGameController {
         // Update stats display periodically
         this.statsUpdateInterval = setInterval(() => {
             this.updateStatsDisplay();
+            this.updateLevelDisplay(); // NEW: Update level info
         }, 1000);
         
         // Initialize in proper order
@@ -404,9 +410,11 @@ class TwoDiceGameController {
     }
 
     isDigitValidAnswer(number) {
-        if (!this.leftFilled && number === this.currentLeftValue) return true;
-        if (!this.rightFilled && number === this.currentRightValue) return true;
-        if (!this.totalFilled && number === this.currentTotal) return true;
+        if (!this.currentQuestion) return false;
+        
+        if (!this.leftFilled && number === this.currentQuestion.leftValue) return true;
+        if (!this.rightFilled && number === this.currentQuestion.rightValue) return true;
+        if (!this.totalFilled && number === this.currentQuestion.targetSum) return true;
         return false;
     }
 
@@ -416,6 +424,9 @@ class TwoDiceGameController {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         this.resetBoxState();
+        
+        // NEW: Reset level controller for new game
+        this.levelController = new LevelBasedDiceController();
         
         this.rainbow.reset();
         this.bear.reset();
@@ -485,6 +496,7 @@ class TwoDiceGameController {
         this.totalInputBox.classList.remove('box-flash');
     }
 
+    // NEW: Level-based question generation
     async startNewQuestion() {
         if (this.gameComplete || !this.initializationComplete) {
             return;
@@ -496,7 +508,18 @@ class TwoDiceGameController {
         // Reset hint tracking for new question
         this.hintGiven = false;
 
-        console.log(`Starting question ${this.questionsCompleted + 1}`);
+        // NEW: Generate question using level controller
+        try {
+            this.currentQuestion = this.levelController.generateNextQuestion();
+            console.log(`🎯 Generated Level ${this.currentQuestion.level} question:`, this.currentQuestion);
+        } catch (error) {
+            console.error('Error generating question:', error);
+            // Fallback to starting new round
+            this.levelController.startNewRound();
+            this.currentQuestion = this.levelController.generateNextQuestion();
+        }
+
+        console.log(`Starting question ${this.questionsCompleted + 1} - Level ${this.currentQuestion.level}`);
         
         this.resetButtonStates();
         this.giveStartingInstruction();
@@ -508,18 +531,19 @@ class TwoDiceGameController {
         }
         
         try {
-            // Roll dice - this will return the actual values based on face reading
-            const result = await this.diceRenderer.rollDice();
+            // NEW: Roll dice with controlled outcome
+            const result = await this.diceRenderer.rollControlledDice(this.currentQuestion);
             
-            // DEBUGGING: Log the exact values returned by dice renderer
-            console.log('🎲 DICE RENDERER RETURNED:', result);
+            console.log(`🎲 Controlled dice result:`, result);
             
-            // Set our target values based on what the dice actually show
-            this.currentLeftValue = result.left;
-            this.currentRightValue = result.right;
-            this.currentTotal = result.total;
-            
-            console.log(`🎯 GAME CONTROLLER SET: Left=${this.currentLeftValue}, Right=${this.currentRightValue}, Total=${this.currentTotal}`);
+            // Verify the result matches our question
+            if (result.left !== this.currentQuestion.leftValue || 
+                result.right !== this.currentQuestion.rightValue) {
+                console.warn('⚠️ Dice result doesn\'t match expected values!', {
+                    expected: { left: this.currentQuestion.leftValue, right: this.currentQuestion.rightValue },
+                    actual: result
+                });
+            }
             
             // Enable buttons and show input boxes
             this.buttonsDisabled = false;
@@ -533,12 +557,8 @@ class TwoDiceGameController {
             this.stats.startQuestionTimer();
             
         } catch (error) {
-            console.error('Error rolling dice:', error);
-            // Fallback with random values
-            this.currentLeftValue = Math.floor(Math.random() * 6) + 1;
-            this.currentRightValue = Math.floor(Math.random() * 6) + 1;
-            this.currentTotal = this.currentLeftValue + this.currentRightValue;
-            
+            console.error('Error rolling controlled dice:', error);
+            // Fallback with current question values
             this.buttonsDisabled = false;
             if (window.ButtonBar) {
                 window.ButtonBar.setButtonsEnabled(true);
@@ -555,8 +575,10 @@ class TwoDiceGameController {
         if (!this.isTabVisible || !this.initializationComplete) return;
         
         setTimeout(() => {
+            const levelInfo = this.levelController.getCurrentLevelInfo();
+            
             if (this.questionsCompleted === 0) {
-                this.speakText('Watch the dice roll and complete the three numbers in the addition sum.');
+                this.speakText(`Level ${levelInfo.level.slice(1)} - ${levelInfo.name}. Watch the dice roll and complete the three numbers in the addition sum.`);
             } else if (this.questionsCompleted === 1) {
                 this.speakText('Try again and complete the sum');
             } else {
@@ -588,18 +610,19 @@ class TwoDiceGameController {
         this.startFlashing();
     }
 
+    // MODIFIED: Enhanced answer handling with level progression
     handleNumberClick(selectedNumber, buttonElement) {
         this.clearKeyboardTimer();
         
         let correctAnswer = false;
         
-        if (!this.leftFilled && selectedNumber === this.currentLeftValue) {
+        if (!this.leftFilled && selectedNumber === this.currentQuestion.leftValue) {
             this.fillBox('left', selectedNumber, buttonElement);
             correctAnswer = true;
-        } else if (!this.rightFilled && selectedNumber === this.currentRightValue) {
+        } else if (!this.rightFilled && selectedNumber === this.currentQuestion.rightValue) {
             this.fillBox('right', selectedNumber, buttonElement);
             correctAnswer = true;
-        } else if (!this.totalFilled && selectedNumber === this.currentTotal) {
+        } else if (!this.totalFilled && selectedNumber === this.currentQuestion.targetSum) {
             this.fillBox('total', selectedNumber, buttonElement);
             correctAnswer = true;
         }
@@ -609,10 +632,18 @@ class TwoDiceGameController {
             // Check if this is the first attempt on this question
             const isFirstAttempt = !this.hasAttemptedAnswer();
             this.stats.recordQuestionAttempt(isFirstAttempt);
+            
+            // NEW: Handle level progression
+            this.levelController.handleCorrectAnswer(isFirstAttempt);
+            
             this.checkQuestionCompletion();
         } else {
             // This is an incorrect answer, so definitely not first attempt success
             this.stats.recordQuestionAttempt(false);
+            
+            // NEW: Handle level progression for incorrect answers
+            this.levelController.handleIncorrectAnswer();
+            
             this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
@@ -701,7 +732,13 @@ class TwoDiceGameController {
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}`);
             
-            const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
+            // NEW: Level-aware encouragement
+            const levelInfo = this.levelController.getCurrentLevelInfo();
+            const encouragements = [
+                `Well done on Level ${levelInfo.level.slice(1)}!`, 
+                `Excellent ${levelInfo.name} work!`, 
+                `Perfect Level ${levelInfo.level.slice(1)} answer!`
+            ];
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             this.speakText(randomEncouragement);
             
@@ -858,9 +895,12 @@ class TwoDiceGameController {
         
         this.bear.startCelebration();
         
+        // NEW: Level-aware completion message
+        const levelInfo = this.levelController.getCurrentLevelInfo();
+        
         if (this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Well done! You\'re on a roll! Try again or return to the home page.');
+                this.speakText(`Fantastic! You completed the rainbow at Level ${levelInfo.level.slice(1)} - ${levelInfo.name}! Try again or return to the home page.`);
             }, 1000);
         }
     }
@@ -899,6 +939,7 @@ class TwoDiceGameController {
         }
     }
 
+    // NEW: Enhanced stats display with level information
     updateStatsDisplay() {
         if (this.stats && this.statsDisplay.accuracy) {
             const currentStats = this.stats.getCurrentStats();
@@ -907,6 +948,37 @@ class TwoDiceGameController {
             this.statsDisplay.speed.textContent = currentStats.speed;
             this.statsDisplay.variety.textContent = currentStats.variety;
             this.statsDisplay.questions.textContent = this.stats.totalQuestions;
+        }
+    }
+
+    // NEW: Update level display
+    updateLevelDisplay() {
+        if (!this.levelController) return;
+        
+        const levelInfo = this.levelController.getCurrentLevelInfo();
+        
+        // Update level display if element exists
+        if (this.levelDisplay) {
+            this.levelDisplay.textContent = `Level ${levelInfo.level.slice(1)}: ${levelInfo.name}`;
+        }
+        
+        // Update round progress if element exists
+        if (this.roundProgress) {
+            this.roundProgress.textContent = `Question ${levelInfo.roundProgress}`;
+        }
+        
+        // Update stats display with level info if available
+        if (this.statsDisplay.level) {
+            this.statsDisplay.level.textContent = levelInfo.level.slice(1);
+        }
+        
+        // Log level changes
+        const currentDisplayedLevel = this.levelDisplay?.dataset.currentLevel;
+        if (currentDisplayedLevel !== levelInfo.level) {
+            console.log(`🎯 Level display updated: ${levelInfo.level} - ${levelInfo.name}`);
+            if (this.levelDisplay) {
+                this.levelDisplay.dataset.currentLevel = levelInfo.level;
+            }
         }
     }
 
