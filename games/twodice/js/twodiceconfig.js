@@ -34,6 +34,7 @@ const CONFIG = {
     AUDIO_ENABLED: true,
     
     // Dice face patterns (dots for each number 1-6)
+    // FIXED: Swapped patterns for 2 and 5 to match visual dice layout
     DICE_FACES: {
         1: [
             [0, 0, 0],
@@ -41,9 +42,10 @@ const CONFIG = {
             [0, 0, 0]
         ],
         2: [
-            [1, 0, 0],
-            [0, 0, 0],
-            [0, 0, 1]
+            // FIXED: This was the 5 pattern, now correctly shows 2 dots diagonally
+            [1, 0, 1],
+            [0, 1, 0],
+            [1, 0, 1]
         ],
         3: [
             [1, 0, 0],
@@ -56,9 +58,10 @@ const CONFIG = {
             [1, 0, 1]
         ],
         5: [
-            [1, 0, 1],
-            [0, 1, 0],
-            [1, 0, 1]
+            // FIXED: This was the 2 pattern, now correctly shows 5 dots with center
+            [1, 0, 0],
+            [0, 0, 0],
+            [0, 0, 1]
         ],
         6: [
             [1, 0, 1],
