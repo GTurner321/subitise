@@ -1,4 +1,59 @@
-class DiceRenderer {
+/**
+     * FALLBACK: Original random dice rolling system
+     * Used when target-driven system fails or for testing
+     */
+    async rollDice() {
+        console.log('=== STARTING RANDOM DICE ROLL ===');
+        
+        // Get random colors
+        const colors = this.getRandomDiceColors();
+        
+        // Create two dice with positioning classes
+        const leftDice = this.createDice(colors.left, true);
+        const rightDice = this.createDice(colors.right, false);
+        
+        // Add to game area (not to left/right sides - dice position themselves)
+        const gameArea = document.querySelector('.game-area');
+        gameArea.appendChild(leftDice);
+        gameArea.appendChild(rightDice);
+        this.currentDice = [leftDice, rightDice];
+        
+        // Fade in
+        setTimeout(() => {
+            [leftDice, rightDice].forEach(dice => {
+                dice.style.transition = 'opacity 1s ease-in';
+                dice.style.opacity = '1';
+                
+                const faces = dice.querySelectorAll('.dice-face');
+                faces.forEach(face => {
+                    face.style.transition = 'opacity 1s ease-in';
+                    face.style.opacity = '1';
+                });
+            });
+        }, 200);
+        
+        // Start rolling both dice
+        const leftRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
+        const rightRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
+        
+        const leftPromise = this.rollDiceNaturally(leftDice, leftRolls, 'Left');
+        const rightPromise = this.rollDiceNaturally(rightDice, rightRolls, 'Right');
+        
+        // Wait for both to complete
+        await Promise.all([leftPromise, rightPromise]);
+        
+        // Read the final faces using Z-depth detection
+        const leftValue = this.readVisibleFaceByZDepth(leftDice);
+        const rightValue = this.readVisibleFaceByZDepth(rightDice);
+        const total = leftValue + rightValue;
+        
+        console.log(`=== RANDOM DICE ROLLING COMPLETE ===`);
+        console.log(`Left dice shows: ${leftValue}`);
+        console.log(`Right dice shows: ${rightValue}`);
+        console.log(`Total: ${total}`);
+        
+        return { left: leftValue, right: rightValue, total: total };
+    }class DiceRenderer {
     constructor() {
         // SEARCH FOR THIS LINE: DICE RENDERER UPDATED 2025-01-01
         this.leftSide = document.getElementById('leftSide');
@@ -432,57 +487,257 @@ class DiceRenderer {
         return 1;
     }
 
-    async rollDice() {
-        console.log('=== STARTING NATURAL DICE ROLL ===');
+    /**
+     * NEW TARGET-DRIVEN DICE ROLLING SYSTEM
+     * Rolls dice to achieve specific target values by working backwards from desired outcome
+     */
+    async rollDiceToTarget(targetLeft, targetRight) {
+        console.log(`=== STARTING TARGET-DRIVEN DICE ROLL ===`);
+        console.log(`Target: Left=${targetLeft}, Right=${targetRight}, Total=${targetLeft + targetRight}`);
         
-        // Get random colors
-        const colors = this.getRandomDiceColors();
-        
-        // Create two dice with positioning classes
-        const leftDice = this.createDice(colors.left, true);
-        const rightDice = this.createDice(colors.right, false);
-        
-        // Add to game area (not to left/right sides - dice position themselves)
-        const gameArea = document.querySelector('.game-area');
-        gameArea.appendChild(leftDice);
-        gameArea.appendChild(rightDice);
-        this.currentDice = [leftDice, rightDice];
-        
-        // Fade in
-        setTimeout(() => {
-            [leftDice, rightDice].forEach(dice => {
-                dice.style.transition = 'opacity 1s ease-in';
-                dice.style.opacity = '1';
-                
-                const faces = dice.querySelectorAll('.dice-face');
-                faces.forEach(face => {
-                    face.style.transition = 'opacity 1s ease-in';
-                    face.style.opacity = '1';
+        try {
+            // Get random colors
+            const colors = this.getRandomDiceColors();
+            
+            // Calculate starting positions and move sequences for both dice
+            const leftPlan = this.calculateDiceRollPlan(targetLeft);
+            const rightPlan = this.calculateDiceRollPlan(targetRight);
+            
+            if (!leftPlan || !rightPlan) {
+                console.warn('Failed to calculate roll plans, falling back to random rolling');
+                return await this.rollDice(); // Fallback to random
+            }
+            
+            // Create dice with calculated starting positions
+            const leftDice = this.createDiceWithStartingState(colors.left, true, leftPlan.startingState);
+            const rightDice = this.createDiceWithStartingState(colors.right, false, rightPlan.startingState);
+            
+            // Add to game area
+            const gameArea = document.querySelector('.game-area');
+            gameArea.appendChild(leftDice);
+            gameArea.appendChild(rightDice);
+            this.currentDice = [leftDice, rightDice];
+            
+            // Fade in
+            setTimeout(() => {
+                [leftDice, rightDice].forEach(dice => {
+                    dice.style.transition = 'opacity 1s ease-in';
+                    dice.style.opacity = '1';
+                    
+                    const faces = dice.querySelectorAll('.dice-face');
+                    faces.forEach(face => {
+                        face.style.transition = 'opacity 1s ease-in';
+                        face.style.opacity = '1';
+                    });
                 });
+            }, 200);
+            
+            // Execute planned move sequences
+            const leftPromise = this.executePlannedRolls(leftDice, leftPlan.moves, 'Left');
+            const rightPromise = this.executePlannedRolls(rightDice, rightPlan.moves, 'Right');
+            
+            // Wait for both to complete
+            await Promise.all([leftPromise, rightPromise]);
+            
+            // Verify the final results match our targets
+            const leftValue = this.readVisibleFaceByZDepth(leftDice);
+            const rightValue = this.readVisibleFaceByZDepth(rightDice);
+            const total = leftValue + rightValue;
+            
+            console.log(`=== TARGET-DRIVEN ROLLING COMPLETE ===`);
+            console.log(`Target: ${targetLeft}+${targetRight}=${targetLeft + targetRight}`);
+            console.log(`Actual: ${leftValue}+${rightValue}=${total}`);
+            
+            if (leftValue === targetLeft && rightValue === targetRight) {
+                console.log(`✅ SUCCESS: Target achieved perfectly!`);
+            } else {
+                console.warn(`⚠️  MISMATCH: Expected ${targetLeft}+${targetRight}, got ${leftValue}+${rightValue}`);
+            }
+            
+            return { left: leftValue, right: rightValue, total: total };
+            
+        } catch (error) {
+            console.error('Error in target-driven rolling:', error);
+            return await this.rollDice(); // Fallback to random
+        }
+    }
+
+    /**
+     * Calculate starting position and move sequence to achieve target face
+     */
+    calculateDiceRollPlan(targetFace) {
+        console.log(`Calculating roll plan for target face: ${targetFace}`);
+        
+        // Generate random number of moves (6-15 like original system)
+        const numMoves = Math.floor(Math.random() * 10) + 6;
+        
+        // Generate random move sequence
+        const moveNames = Object.keys(CONFIG.TRANSFORM_MOVES);
+        const moves = [];
+        let lastDirection = null;
+        
+        for (let i = 0; i < numMoves; i++) {
+            const availableMoves = moveNames.filter(move => {
+                if (!lastDirection) return true;
+                return move !== CONFIG.TRANSFORM_MOVES[lastDirection].inverse;
             });
-        }, 200);
+            
+            const selectedMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+            moves.push(selectedMove);
+            lastDirection = selectedMove;
+        }
         
-        // Start rolling both dice
-        const leftRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
-        const rightRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
+        console.log(`Generated ${numMoves} moves:`, moves);
         
-        const leftPromise = this.rollDiceNaturally(leftDice, leftRolls, 'Left');
-        const rightPromise = this.rollDiceNaturally(rightDice, rightRolls, 'Right');
+        // Start with target state (face visible, rotation 0)
+        let currentState = { frontFace: targetFace, rotation: 0 };
         
-        // Wait for both to complete
-        await Promise.all([leftPromise, rightPromise]);
+        // Work backwards through moves using inverse transforms
+        for (let i = moves.length - 1; i >= 0; i--) {
+            const currentMove = moves[i];
+            const inverseMove = CONFIG.TRANSFORM_MOVES[currentMove].inverse;
+            const stateKey = `${currentState.frontFace},${currentState.rotation}`;
+            
+            const transitions = CONFIG.DICE_STATE_TRANSITIONS[stateKey];
+            if (!transitions || !transitions[inverseMove]) {
+                console.error(`No transition found for state ${stateKey} with inverse move ${inverseMove}`);
+                return null;
+            }
+            
+            currentState = transitions[inverseMove];
+            console.log(`Move ${i+1} (${currentMove}) inverse ${inverseMove}: ${stateKey} → ${currentState.frontFace},${currentState.rotation}`);
+        }
         
-        // Read the final faces using Z-depth detection
-        const leftValue = this.readVisibleFaceByZDepth(leftDice);
-        const rightValue = this.readVisibleFaceByZDepth(rightDice);
-        const total = leftValue + rightValue;
+        console.log(`Starting state calculated: face ${currentState.frontFace}, rotation ${currentState.rotation}`);
         
-        console.log(`=== DICE ROLLING COMPLETE ===`);
-        console.log(`Left dice shows: ${leftValue}`);
-        console.log(`Right dice shows: ${rightValue}`);
-        console.log(`Total: ${total}`);
+        return {
+            startingState: currentState,
+            moves: moves,
+            targetFace: targetFace
+        };
+    }
+
+    /**
+     * Create dice with specific starting state
+     */
+    createDiceWithStartingState(diceColor, isLeft, startingState) {
+        const dice = this.createDice(diceColor, isLeft);
         
-        return { left: leftValue, right: rightValue, total: total };
+        // Convert starting state to actual rotation values
+        const startingRotation = this.stateToRotation(startingState);
+        
+        // Apply starting rotation
+        dice.style.transform = `rotateX(${startingRotation.rotX}deg) rotateY(${startingRotation.rotY}deg)`;
+        
+        // Store rotation tracking
+        dice.dataset.currentRotationX = startingRotation.rotX;
+        dice.dataset.currentRotationY = startingRotation.rotY;
+        
+        console.log(`Dice created with starting state: face ${startingState.frontFace}, rotation ${startingState.rotation}`);
+        console.log(`Applied transform: rotateX(${startingRotation.rotX}deg) rotateY(${startingRotation.rotY}deg)`);
+        
+        return dice;
+    }
+
+    /**
+     * Convert dice state (frontFace, rotation) to actual 3D rotation values
+     */
+    stateToRotation(state) {
+        // Map face + rotation combinations to actual rotateX/rotateY values
+        const stateRotationMap = {
+            // Face 1 (originally front)
+            "1,0": { rotX: 0, rotY: 0 },
+            "1,90": { rotX: 0, rotY: 0 },     // Face rotated 90°
+            "1,180": { rotX: 0, rotY: 0 },   // Face rotated 180°
+            "1,270": { rotX: 0, rotY: 0 },   // Face rotated 270°
+            
+            // Face 2 (originally right)
+            "2,0": { rotX: 0, rotY: -90 },   // Right face forward
+            "2,90": { rotX: 0, rotY: -90 },
+            "2,180": { rotX: 0, rotY: -90 },
+            "2,270": { rotX: 0, rotY: -90 },
+            
+            // Face 3 (originally top)
+            "3,0": { rotX: -90, rotY: 0 },   // Top face forward
+            "3,90": { rotX: -90, rotY: 0 },
+            "3,180": { rotX: -90, rotY: 0 },
+            "3,270": { rotX: -90, rotY: 0 },
+            
+            // Face 4 (originally bottom)
+            "4,0": { rotX: 90, rotY: 0 },    // Bottom face forward
+            "4,90": { rotX: 90, rotY: 0 },
+            "4,180": { rotX: 90, rotY: 0 },
+            "4,270": { rotX: 90, rotY: 0 },
+            
+            // Face 5 (originally left)
+            "5,0": { rotX: 0, rotY: 90 },    // Left face forward
+            "5,90": { rotX: 0, rotY: 90 },
+            "5,180": { rotX: 0, rotY: 90 },
+            "5,270": { rotX: 0, rotY: 90 },
+            
+            // Face 6 (originally back)
+            "6,0": { rotX: 0, rotY: 180 },   // Back face forward
+            "6,90": { rotX: 0, rotY: 180 },
+            "6,180": { rotX: 0, rotY: 180 },
+            "6,270": { rotX: 0, rotY: 180 }
+        };
+        
+        const key = `${state.frontFace},${state.rotation}`;
+        const rotation = stateRotationMap[key];
+        
+        if (!rotation) {
+            console.warn(`No rotation mapping found for state: ${key}`);
+            return { rotX: 0, rotY: 0 };
+        }
+        
+        return rotation;
+    }
+
+    /**
+     * Execute planned sequence of moves
+     */
+    async executePlannedRolls(dice, moves, diceName) {
+        return new Promise((resolve) => {
+            let rollCount = 0;
+            let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
+            let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
+            
+            const performRoll = () => {
+                if (rollCount >= moves.length) {
+                    dice.classList.add('dice-final');
+                    console.log(`${diceName} dice completed planned rolling after ${moves.length} moves`);
+                    resolve();
+                    return;
+                }
+                
+                const moveName = moves[rollCount];
+                const move = CONFIG.TRANSFORM_MOVES[moveName];
+                const flipDuration = this.getRandomFlipDuration();
+                
+                console.log(`${diceName} dice planned roll ${rollCount + 1}: ${moveName} (duration: ${flipDuration}s)`);
+                
+                // Apply the planned rotation
+                currentRotationX += move.rotX;
+                currentRotationY += move.rotY;
+                
+                dice.style.transition = `transform ${flipDuration}s ease-in-out`;
+                dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
+                
+                // Update tracking
+                dice.dataset.currentRotationX = currentRotationX;
+                dice.dataset.currentRotationY = currentRotationY;
+                
+                rollCount++;
+                
+                // Schedule next roll
+                const nextTimeout = setTimeout(performRoll, flipDuration * 1000);
+                this.rollTimeouts.push(nextTimeout);
+            };
+            
+            // Start rolling after fade-in
+            const initialTimeout = setTimeout(performRoll, 1300);
+            this.rollTimeouts.push(initialTimeout);
+        });
     }
 
     async rollDiceNaturally(dice, numberOfRolls, diceName) {
