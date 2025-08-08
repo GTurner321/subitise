@@ -511,12 +511,15 @@ class TwoDiceGameController {
             // Roll dice - this will return the actual values based on face reading
             const result = await this.diceRenderer.rollDice();
             
+            // DEBUGGING: Log the exact values returned by dice renderer
+            console.log('🎲 DICE RENDERER RETURNED:', result);
+            
             // Set our target values based on what the dice actually show
             this.currentLeftValue = result.left;
             this.currentRightValue = result.right;
             this.currentTotal = result.total;
             
-            console.log(`Dice show: Left=${this.currentLeftValue}, Right=${this.currentRightValue}, Total=${this.currentTotal}`);
+            console.log(`🎯 GAME CONTROLLER SET: Left=${this.currentLeftValue}, Right=${this.currentRightValue}, Total=${this.currentTotal}`);
             
             // Enable buttons and show input boxes
             this.buttonsDisabled = false;
