@@ -163,13 +163,12 @@ class DiceRenderer {
         dice.style.border = 'none';
         dice.style.boxShadow = 'none';
         
-        // Standard dice face values - let's use original mapping and debug
-        // TODO: This mapping may need adjustment based on visual verification
+        // Standard dice face values - restored original mapping
         const faceValues = {
             'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4
         };
         
-        console.log('Creating dice with face values:', faceValues);
+        console.log('Creating dice with original face values:', faceValues);
         
         // Create all 6 faces
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
@@ -314,16 +313,20 @@ class DiceRenderer {
                 face.style.transform = `rotateY(180deg) translateZ(${halfSize}px)`;
                 break;
             case 'right':
-                face.style.transform = `rotateY(90deg) translateZ(${halfSize}px)`;
-                break;
-            case 'left':
+                // FIXED: Was rotateY(90deg), now swapped with left
                 face.style.transform = `rotateY(-90deg) translateZ(${halfSize}px)`;
                 break;
+            case 'left':
+                // FIXED: Was rotateY(-90deg), now swapped with right
+                face.style.transform = `rotateY(90deg) translateZ(${halfSize}px)`;
+                break;
             case 'top':
-                face.style.transform = `rotateX(90deg) translateZ(${halfSize}px)`;
+                // FIXED: Was rotateX(90deg), now swapped with bottom
+                face.style.transform = `rotateX(-90deg) translateZ(${halfSize}px)`;
                 break;
             case 'bottom':
-                face.style.transform = `rotateX(-90deg) translateZ(${halfSize}px)`;
+                // FIXED: Was rotateX(-90deg), now swapped with top
+                face.style.transform = `rotateX(90deg) translateZ(${halfSize}px)`;
                 break;
         }
     }
