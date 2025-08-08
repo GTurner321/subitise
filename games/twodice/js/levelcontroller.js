@@ -379,14 +379,3 @@ class LevelBasedDiceController {
     }
 }
 
-// Usage example:
-const levelController = new LevelBasedDiceController();
-
-// Generate a question
-const question = levelController.generateNextQuestion();
-console.log('Generated question:', question);
-
-// Handle answer
-levelController.handleCorrectAnswer(true); // First attempt correct
-// or
-// levelController.handleIncorrectAnswer(); // Wrong answer
