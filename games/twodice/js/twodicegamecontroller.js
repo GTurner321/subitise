@@ -6,11 +6,17 @@ class TwoDiceGameController {
         this.bear = new Bear();
         this.stats = new TwoDiceStats(); // Initialize stats tracking
         
+        // Educational level system
+        this.currentLevel = 1; // Start at Level 1
+        this.usedSumsThisRound = new Set(); // Track used sums to avoid repeats
+        this.questionsInCurrentRound = 0;
+        this.maxQuestionsPerRound = 10;
+        
         // Game state
         this.questionsCompleted = 0;
         this.gameComplete = false;
         
-        // Current question state - will be set after dice roll
+        // Current question state - will be set by target system
         this.currentLeftValue = 0;
         this.currentRightValue = 0;
         this.currentTotal = 0;
@@ -74,6 +80,115 @@ class TwoDiceGameController {
         this.initializeEventListeners();
         this.setupVisibilityHandling();
         this.waitForSystemsAndInitialize();
+        
+        console.log(`🎓 Educational Level System Initialized - Starting at Level ${this.currentLevel}`);
+        this.logCurrentLevelInfo();
+    }
+
+    /**
+     * Log current level information for debugging
+     */
+    logCurrentLevelInfo() {
+        const levelConfig = CONFIG.DIFFICULTY_LEVELS[this.currentLevel];
+        console.log(`📚 Current Level: ${levelConfig.name}`);
+        console.log(`📊 Dice Range: [${levelConfig.diceRange.join(', ')}]`);
+        console.log(`🎯 Possible Sums: [${levelConfig.possibleSums.join(', ')}]`);
+        console.log(`📈 Used Sums This Round: [${Array.from(this.usedSumsThisRound).sort((a,b) => a-b).join(', ')}]`);
+        console.log(`🔢 Questions in Round: ${this.questionsInCurrentRound}/${this.maxQuestionsPerRound}`);
+    }
+
+    /**
+     * Select target sum based on current level, avoiding repeats
+     */
+    selectTargetSum() {
+        const levelConfig = CONFIG.DIFFICULTY_LEVELS[this.currentLevel];
+        const availableSums = levelConfig.possibleSums.filter(sum => 
+            !this.usedSumsThisRound.has(sum)
+        );
+        
+        // If we've used all possible sums, reset for new round
+        if (availableSums.length === 0) {
+            console.log(`🔄 All sums used at Level ${this.currentLevel}, resetting round`);
+            this.usedSumsThisRound.clear();
+            this.questionsInCurrentRound = 0;
+            return this.selectTargetSum(); // Recursive call with fresh set
+        }
+        
+        // Pick random available sum
+        const targetSum = availableSums[Math.floor(Math.random() * availableSums.length)];
+        this.usedSumsThisRound.add(targetSum);
+        this.questionsInCurrentRound++;
+        
+        console.log(`🎯 Selected target sum: ${targetSum} (Level ${this.currentLevel})`);
+        return targetSum;
+    }
+
+    /**
+     * Generate dice combination for target sum within level constraints
+     */
+    generateDiceCombination(targetSum) {
+        const levelConfig = CONFIG.DIFFICULTY_LEVELS[this.currentLevel];
+        const diceRange = levelConfig.diceRange;
+        
+        // Find all valid combinations that sum to target
+        const validCombinations = [];
+        
+        for (const left of diceRange) {
+            for (const right of diceRange) {
+                if (left + right === targetSum) {
+                    validCombinations.push({ left, right });
+                }
+            }
+        }
+        
+        if (validCombinations.length === 0) {
+            console.error(`❌ No valid combination found for sum ${targetSum} at level ${this.currentLevel}`);
+            // Fallback to simple combination
+            const fallbackLeft = Math.min(targetSum - 1, Math.max(...diceRange));
+            const fallbackRight = targetSum - fallbackLeft;
+            return { left: fallbackLeft, right: fallbackRight };
+        }
+        
+        // Pick random valid combination
+        const combination = validCombinations[Math.floor(Math.random() * validCombinations.length)];
+        console.log(`🎲 Generated combination: ${combination.left} + ${combination.right} = ${targetSum}`);
+        
+        return combination;
+    }
+
+    /**
+     * Adjust difficulty level based on performance
+     */
+    adjustDifficultyLevel(correctFirstTry) {
+        const oldLevel = this.currentLevel;
+        
+        if (correctFirstTry) {
+            // Correct first try - progress level (max L3)
+            this.currentLevel = Math.min(3, this.currentLevel + 1);
+            if (this.currentLevel > oldLevel) {
+                console.log(`📈 Level UP! ${oldLevel} → ${this.currentLevel} (Correct first try)`);
+                this.speakText(`Level up! Now playing at ${CONFIG.DIFFICULTY_LEVELS[this.currentLevel].name}`);
+            }
+        } else {
+            // Incorrect first try - drop level (min L1)
+            this.currentLevel = Math.max(1, this.currentLevel - 1);
+            if (this.currentLevel < oldLevel) {
+                console.log(`📉 Level DOWN! ${oldLevel} → ${this.currentLevel} (Incorrect first try)`);
+                this.speakText(`Moving to easier questions`);
+            }
+        }
+        
+        // Log new level info if changed
+        if (this.currentLevel !== oldLevel) {
+            this.logCurrentLevelInfo();
+        }
+        
+        // Reset round if we completed maximum questions
+        if (this.questionsInCurrentRound >= this.maxQuestionsPerRound) {
+            console.log(`🔄 Completing round after ${this.maxQuestionsPerRound} questions`);
+            this.usedSumsThisRound.clear();
+            this.questionsInCurrentRound = 0;
+        }
     }
 
     /**
@@ -413,6 +528,15 @@ class TwoDiceGameController {
     startNewGame() {
         this.questionsCompleted = 0;
         this.gameComplete = false;
+        
+        // Reset educational system
+        this.currentLevel = 1;
+        this.usedSumsThisRound.clear();
+        this.questionsInCurrentRound = 0;
+        
+        console.log('🎮 New game started - Reset to Level 1');
+        this.logCurrentLevelInfo();
+        
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         this.resetBoxState();
@@ -496,7 +620,7 @@ class TwoDiceGameController {
         // Reset hint tracking for new question
         this.hintGiven = false;
 
-        console.log(`Starting question ${this.questionsCompleted + 1}`);
+        console.log(`\n🎯 Starting question ${this.questionsCompleted + 1}`);
         
         this.resetButtonStates();
         this.giveStartingInstruction();
@@ -508,18 +632,26 @@ class TwoDiceGameController {
         }
         
         try {
-            // Roll dice - this will return the actual values based on face reading
-            const result = await this.diceRenderer.rollDice();
+            // NEW: Target-driven rolling system
+            const targetSum = this.selectTargetSum();
+            const combination = this.generateDiceCombination(targetSum);
             
-            // DEBUGGING: Log the exact values returned by dice renderer
-            console.log('🎲 DICE RENDERER RETURNED:', result);
+            console.log(`🎲 Rolling dice for target: ${combination.left} + ${combination.right} = ${targetSum}`);
             
-            // Set our target values based on what the dice actually show
+            // Use target-driven rolling
+            const result = await this.diceRenderer.rollDiceToTarget(combination.left, combination.right);
+            
+            // Set our target values (should match the result if system works correctly)
             this.currentLeftValue = result.left;
             this.currentRightValue = result.right;
             this.currentTotal = result.total;
             
-            console.log(`🎯 GAME CONTROLLER SET: Left=${this.currentLeftValue}, Right=${this.currentRightValue}, Total=${this.currentTotal}`);
+            console.log(`✅ Question setup complete: Left=${this.currentLeftValue}, Right=${this.currentRightValue}, Total=${this.currentTotal}`);
+            
+            // Verify we got what we expected
+            if (result.left !== combination.left || result.right !== combination.right) {
+                console.warn(`⚠️ Target mismatch: Expected ${combination.left}+${combination.right}, got ${result.left}+${result.right}`);
+            }
             
             // Enable buttons and show input boxes
             this.buttonsDisabled = false;
@@ -533,11 +665,15 @@ class TwoDiceGameController {
             this.stats.startQuestionTimer();
             
         } catch (error) {
-            console.error('Error rolling dice:', error);
-            // Fallback with random values
-            this.currentLeftValue = Math.floor(Math.random() * 6) + 1;
-            this.currentRightValue = Math.floor(Math.random() * 6) + 1;
-            this.currentTotal = this.currentLeftValue + this.currentRightValue;
+            console.error('Error in target-driven rolling:', error);
+            
+            // Fallback to random rolling
+            console.log('🔄 Falling back to random dice rolling');
+            const result = await this.diceRenderer.rollDice();
+            
+            this.currentLeftValue = result.left;
+            this.currentRightValue = result.right;
+            this.currentTotal = result.total;
             
             this.buttonsDisabled = false;
             if (window.ButtonBar) {
@@ -592,6 +728,7 @@ class TwoDiceGameController {
         this.clearKeyboardTimer();
         
         let correctAnswer = false;
+        let isFirstAttempt = !this.hasAttemptedAnswer();
         
         if (!this.leftFilled && selectedNumber === this.currentLeftValue) {
             this.fillBox('left', selectedNumber, buttonElement);
@@ -606,13 +743,17 @@ class TwoDiceGameController {
         
         // Record stats for this question attempt
         if (correctAnswer) {
-            // Check if this is the first attempt on this question
-            const isFirstAttempt = !this.hasAttemptedAnswer();
             this.stats.recordQuestionAttempt(isFirstAttempt);
             this.checkQuestionCompletion();
         } else {
             // This is an incorrect answer, so definitely not first attempt success
             this.stats.recordQuestionAttempt(false);
+            
+            // If this was the first attempt, it affects difficulty level
+            if (isFirstAttempt) {
+                this.adjustDifficultyLevel(false); // Incorrect first try
+            }
+            
             this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
@@ -696,6 +837,10 @@ class TwoDiceGameController {
             this.clearInactivityTimer();
             this.stopFlashing();
             
+            // Check if this was completed on first attempt (for level adjustment)
+            const wasFirstAttempt = !this.hasAttemptedAnswer();
+            this.adjustDifficultyLevel(wasFirstAttempt);
+            
             this.checkMark.classList.add('visible');
             
             const pieces = this.rainbow.addPiece();
@@ -771,13 +916,13 @@ class TwoDiceGameController {
                 if (crossOverlay && crossOverlay.parentNode) {
                     crossOverlay.style.transition = 'opacity 700ms ease-out';
                     crossOverlay.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        if (buttonElement && window.ButtonBar) {
+                            window.ButtonBar.removeCrossOverlay(buttonElement);
+                        }
+                    }, 700);
                 }
-                
-                setTimeout(() => {
-                    if (buttonElement && window.ButtonBar) {
-                        window.ButtonBar.removeCrossOverlay(buttonElement);
-                    }
-                }, 700);
             }, 700);
             
             setTimeout(() => {
@@ -858,9 +1003,21 @@ class TwoDiceGameController {
         
         this.bear.startCelebration();
         
+        // Give final level summary
+        console.log(`🏆 Game completed! Final level: ${this.currentLevel}`);
+        const levelConfig = CONFIG.DIFFICULTY_LEVELS[this.currentLevel];
+        
         if (this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Well done! You\'re on a roll! Try again or return to the home page.');
+                let completionMessage = `Well done! You completed the rainbow!`;
+                if (this.currentLevel === 3) {
+                    completionMessage += ` You reached the highest level with all numbers 1 to 6!`;
+                } else {
+                    completionMessage += ` You were playing with numbers ${levelConfig.diceRange.join(' to ')}.`;
+                }
+                completionMessage += ` Try again or return to the home page.`;
+                
+                this.speakText(completionMessage);
             }, 1000);
         }
     }
