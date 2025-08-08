@@ -163,13 +163,12 @@ class DiceRenderer {
         dice.style.border = 'none';
         dice.style.boxShadow = 'none';
         
-        // Standard dice face values - fixed assignment based on testing
-        // Issue found: right/left faces had swapped values (2 and 5)
+        // Standard dice face values - reverted to original mapping
         const faceValues = {
-            'front': 1, 'back': 6, 'right': 5, 'left': 2, 'top': 3, 'bottom': 4
+            'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4
         };
         
-        console.log('Creating dice with corrected face values:', faceValues);
+        console.log('Creating dice with original face values:', faceValues);
         
         // Create all 6 faces
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
