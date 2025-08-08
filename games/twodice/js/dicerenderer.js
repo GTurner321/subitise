@@ -1,61 +1,5 @@
-/**
-     * FALLBACK: Original random dice rolling system
-     * Used when target-driven system fails or for testing
-     */
-    async rollDice() {
-        console.log('=== STARTING RANDOM DICE ROLL ===');
-        
-        // Get random colors
-        const colors = this.getRandomDiceColors();
-        
-        // Create two dice with positioning classes
-        const leftDice = this.createDice(colors.left, true);
-        const rightDice = this.createDice(colors.right, false);
-        
-        // Add to game area (not to left/right sides - dice position themselves)
-        const gameArea = document.querySelector('.game-area');
-        gameArea.appendChild(leftDice);
-        gameArea.appendChild(rightDice);
-        this.currentDice = [leftDice, rightDice];
-        
-        // Fade in
-        setTimeout(() => {
-            [leftDice, rightDice].forEach(dice => {
-                dice.style.transition = 'opacity 1s ease-in';
-                dice.style.opacity = '1';
-                
-                const faces = dice.querySelectorAll('.dice-face');
-                faces.forEach(face => {
-                    face.style.transition = 'opacity 1s ease-in';
-                    face.style.opacity = '1';
-                });
-            });
-        }, 200);
-        
-        // Start rolling both dice
-        const leftRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
-        const rightRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
-        
-        const leftPromise = this.rollDiceNaturally(leftDice, leftRolls, 'Left');
-        const rightPromise = this.rollDiceNaturally(rightDice, rightRolls, 'Right');
-        
-        // Wait for both to complete
-        await Promise.all([leftPromise, rightPromise]);
-        
-        // Read the final faces using Z-depth detection
-        const leftValue = this.readVisibleFaceByZDepth(leftDice);
-        const rightValue = this.readVisibleFaceByZDepth(rightDice);
-        const total = leftValue + rightValue;
-        
-        console.log(`=== RANDOM DICE ROLLING COMPLETE ===`);
-        console.log(`Left dice shows: ${leftValue}`);
-        console.log(`Right dice shows: ${rightValue}`);
-        console.log(`Total: ${total}`);
-        
-        return { left: leftValue, right: rightValue, total: total };
-    }class DiceRenderer {
+class DiceRenderer {
     constructor() {
-        // SEARCH FOR THIS LINE: DICE RENDERER UPDATED 2025-01-01
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
         this.currentDice = [];
@@ -738,6 +682,63 @@
             const initialTimeout = setTimeout(performRoll, 1300);
             this.rollTimeouts.push(initialTimeout);
         });
+    }
+
+    /**
+     * FALLBACK: Original random dice rolling system
+     * Used when target-driven system fails or for testing
+     */
+    async rollDice() {
+        console.log('=== STARTING RANDOM DICE ROLL ===');
+        
+        // Get random colors
+        const colors = this.getRandomDiceColors();
+        
+        // Create two dice with positioning classes
+        const leftDice = this.createDice(colors.left, true);
+        const rightDice = this.createDice(colors.right, false);
+        
+        // Add to game area (not to left/right sides - dice position themselves)
+        const gameArea = document.querySelector('.game-area');
+        gameArea.appendChild(leftDice);
+        gameArea.appendChild(rightDice);
+        this.currentDice = [leftDice, rightDice];
+        
+        // Fade in
+        setTimeout(() => {
+            [leftDice, rightDice].forEach(dice => {
+                dice.style.transition = 'opacity 1s ease-in';
+                dice.style.opacity = '1';
+                
+                const faces = dice.querySelectorAll('.dice-face');
+                faces.forEach(face => {
+                    face.style.transition = 'opacity 1s ease-in';
+                    face.style.opacity = '1';
+                });
+            });
+        }, 200);
+        
+        // Start rolling both dice
+        const leftRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
+        const rightRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
+        
+        const leftPromise = this.rollDiceNaturally(leftDice, leftRolls, 'Left');
+        const rightPromise = this.rollDiceNaturally(rightDice, rightRolls, 'Right');
+        
+        // Wait for both to complete
+        await Promise.all([leftPromise, rightPromise]);
+        
+        // Read the final faces using Z-depth detection
+        const leftValue = this.readVisibleFaceByZDepth(leftDice);
+        const rightValue = this.readVisibleFaceByZDepth(rightDice);
+        const total = leftValue + rightValue;
+        
+        console.log(`=== RANDOM DICE ROLLING COMPLETE ===`);
+        console.log(`Left dice shows: ${leftValue}`);
+        console.log(`Right dice shows: ${rightValue}`);
+        console.log(`Total: ${total}`);
+        
+        return { left: leftValue, right: rightValue, total: total };
     }
 
     async rollDiceNaturally(dice, numberOfRolls, diceName) {
