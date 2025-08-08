@@ -323,65 +323,94 @@ class DiceRenderer {
     /**
      * NEW Z-DEPTH DETECTION METHOD
      * Determines the visible face by calculating which face has the highest Z-coordinate
-     * in the transformed 3D space (closest to the viewer)
+     * after applying the dice's rotation transforms
      */
     readVisibleFaceByZDepth(dice) {
         console.log('=== Z-DEPTH FACE DETECTION ===');
+        
+        // Get the dice's current rotation from its transform
+        const diceStyle = window.getComputedStyle(dice);
+        const diceTransform = diceStyle.transform;
+        
+        if (!diceTransform || diceTransform === 'none') {
+            console.warn('No dice transform found, defaulting to 1');
+            return 1;
+        }
+        
+        // Parse the dice's rotation matrix
+        const diceMatrix = new DOMMatrix(diceTransform);
+        console.log('Dice transform matrix:', {
+            m11: diceMatrix.m11.toFixed(3),
+            m12: diceMatrix.m12.toFixed(3),
+            m13: diceMatrix.m13.toFixed(3),
+            m21: diceMatrix.m21.toFixed(3),
+            m22: diceMatrix.m22.toFixed(3),
+            m23: diceMatrix.m23.toFixed(3),
+            m31: diceMatrix.m31.toFixed(3),
+            m32: diceMatrix.m32.toFixed(3),
+            m33: diceMatrix.m33.toFixed(3)
+        });
         
         const faces = dice.querySelectorAll('.dice-face');
         let frontmostFace = null;
         let maxZ = -Infinity;
         let faceDepthInfo = [];
         
+        // Define the initial face normal vectors (pointing outward from cube center)
+        const faceNormals = {
+            'front': [0, 0, 1],    // Points toward +Z (toward viewer initially)
+            'back': [0, 0, -1],    // Points toward -Z (away from viewer initially)
+            'right': [1, 0, 0],    // Points toward +X
+            'left': [-1, 0, 0],    // Points toward -X
+            'top': [0, 1, 0],      // Points toward +Y
+            'bottom': [0, -1, 0]   // Points toward -Y
+        };
+        
         faces.forEach(face => {
             const faceClass = face.classList[1]; // 'front', 'back', etc.
             const faceValue = parseInt(face.dataset.faceValue);
+            const normal = faceNormals[faceClass];
             
-            try {
-                // Get the computed transform matrix for this face
-                const computedStyle = window.getComputedStyle(face);
-                const transform = computedStyle.transform;
-                
-                if (transform && transform !== 'none') {
-                    // Parse the transform matrix
-                    const matrix = new DOMMatrix(transform);
-                    
-                    // Extract Z-depth (m43 is the Z translation component)
-                    const zDepth = matrix.m43;
-                    
-                    faceDepthInfo.push({
-                        face: faceClass,
-                        value: faceValue,
-                        zDepth: zDepth,
-                        matrix: {
-                            m11: matrix.m11.toFixed(3),
-                            m12: matrix.m12.toFixed(3),
-                            m13: matrix.m13.toFixed(3),
-                            m43: matrix.m43.toFixed(3)
-                        }
-                    });
-                    
-                    // Track the face with highest Z (closest to viewer)
-                    if (zDepth > maxZ) {
-                        maxZ = zDepth;
-                        frontmostFace = face;
-                    }
-                } else {
-                    console.warn(`No transform found for face: ${faceClass}`);
-                }
-            } catch (error) {
-                console.warn(`Error processing face ${faceClass}:`, error);
+            if (!normal) {
+                console.warn(`Unknown face class: ${faceClass}`);
+                return;
+            }
+            
+            // Transform the face normal by the dice's rotation matrix
+            // This gives us the direction this face is pointing after rotation
+            const transformedNormal = [
+                normal[0] * diceMatrix.m11 + normal[1] * diceMatrix.m21 + normal[2] * diceMatrix.m31,
+                normal[0] * diceMatrix.m12 + normal[1] * diceMatrix.m22 + normal[2] * diceMatrix.m32,
+                normal[0] * diceMatrix.m13 + normal[1] * diceMatrix.m23 + normal[2] * diceMatrix.m33
+            ];
+            
+            // The Z-component of the transformed normal tells us how much this face
+            // is pointing toward the viewer (positive Z = toward viewer)
+            const zComponent = transformedNormal[2];
+            
+            faceDepthInfo.push({
+                face: faceClass,
+                value: faceValue,
+                originalNormal: normal,
+                transformedNormal: transformedNormal.map(n => n.toFixed(3)),
+                zComponent: zComponent.toFixed(3)
+            });
+            
+            // Track the face with highest Z-component (most toward viewer)
+            if (zComponent > maxZ) {
+                maxZ = zComponent;
+                frontmostFace = face;
             }
         });
         
-        // Log all face depth information for debugging
-        console.log('Face depth analysis:', faceDepthInfo);
+        // Log all face analysis for debugging
+        console.log('Face normal analysis:', faceDepthInfo);
         
         if (frontmostFace) {
             const finalValue = parseInt(frontmostFace.dataset.faceValue);
             const faceClass = frontmostFace.classList[1];
             
-            console.log(`Frontmost face: ${faceClass} with value ${finalValue} (Z-depth: ${maxZ.toFixed(3)})`);
+            console.log(`Frontmost face: ${faceClass} with value ${finalValue} (Z-component: ${maxZ.toFixed(3)})`);
             console.log('=== Z-DEPTH DETECTION COMPLETE ===');
             
             return Math.max(1, Math.min(6, finalValue));
