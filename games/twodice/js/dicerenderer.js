@@ -173,6 +173,9 @@ class DiceRenderer {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
             
+            // Store the face value as a data attribute for easy access
+            face.dataset.faceValue = faceValue;
+            
             // Set proper 3D positioning with calculated translateZ
             this.setFace3DPosition(face, faceClass, halfDiceSize);
             
@@ -317,121 +320,75 @@ class DiceRenderer {
         }
     }
 
-    // Face reading function - counts visible dots to determine dice value
-    readVisibleFace(dice) {
-        // Get all active dots on this dice
-        const activeDots = dice.querySelectorAll('.dice-dot.active');
-        const diceRect = dice.getBoundingClientRect();
+    /**
+     * NEW Z-DEPTH DETECTION METHOD
+     * Determines the visible face by calculating which face has the highest Z-coordinate
+     * in the transformed 3D space (closest to the viewer)
+     */
+    readVisibleFaceByZDepth(dice) {
+        console.log('=== Z-DEPTH FACE DETECTION ===');
         
-        let visibleDots = 0;
-        
-        activeDots.forEach(dot => {
-            if (this.isDotVisible(dot, dice, diceRect)) {
-                visibleDots++;
-            }
-        });
-        
-        // Ensure we return a valid dice value (1-6)
-        const finalValue = Math.max(1, Math.min(6, visibleDots));
-        
-        console.log(`Dice face reader: Found ${visibleDots} visible dots, returning value ${finalValue}`);
-        return finalValue;
-    }
-
-    // Check if a dot is visible (facing toward the viewer)
-    isDotVisible(dot, dice, diceRect) {
-        const dotRect = dot.getBoundingClientRect();
-        
-        // Check if dot is within the dice boundaries (basic sanity check)
-        if (dotRect.width === 0 || dotRect.height === 0) {
-            return false;
-        }
-        
-        // Get the face this dot belongs to
-        const face = dot.closest('.dice-face');
-        if (!face) return false;
-        
-        // Check if this face is oriented toward the front
-        return this.isFaceFacingFront(face, dice);
-    }
-
-    // Determine if a face is facing toward the viewer
-    isFaceFacingFront(face, dice) {
-        const faceRect = face.getBoundingClientRect();
-        const diceRect = dice.getBoundingClientRect();
-        
-        // If the face has no visible area, it's not facing front
-        if (faceRect.width === 0 || faceRect.height === 0) {
-            return false;
-        }
-        
-        // Check if the face is positioned in the front area of the dice
-        const faceCenterX = faceRect.left + faceRect.width / 2;
-        const faceCenterY = faceRect.top + faceRect.height / 2;
-        const diceCenterX = diceRect.left + diceRect.width / 2;
-        const diceCenterY = diceRect.top + diceRect.height / 2;
-        
-        // The face should be close to the dice center and have reasonable size
-        const maxDistance = Math.min(diceRect.width, diceRect.height) * 0.4;
-        const distance = Math.sqrt(
-            Math.pow(faceCenterX - diceCenterX, 2) + 
-            Math.pow(faceCenterY - diceCenterY, 2)
-        );
-        
-        // Also check that the face has a reasonable size (not collapsed)
-        const minFaceSize = Math.min(diceRect.width, diceRect.height) * 0.6;
-        const faceSize = Math.min(faceRect.width, faceRect.height);
-        
-        return distance < maxDistance && faceSize > minFaceSize;
-    }
-
-    // Alternative simpler approach - find the largest visible face
-    readVisibleFaceSimple(dice) {
-        console.log('=== READING DICE FACE ===');
         const faces = dice.querySelectorAll('.dice-face');
-        let candidateFaces = [];
+        let frontmostFace = null;
+        let maxZ = -Infinity;
+        let faceDepthInfo = [];
         
         faces.forEach(face => {
-            const rect = face.getBoundingClientRect();
-            const area = rect.width * rect.height;
-            const faceClass = face.classList[1];
-            const computedStyle = window.getComputedStyle(face);
+            const faceClass = face.classList[1]; // 'front', 'back', etc.
+            const faceValue = parseInt(face.dataset.faceValue);
             
-            if (area > 10) { // Only consider faces with reasonable area
-                candidateFaces.push({
-                    face: face,
-                    class: faceClass,
-                    area: area,
-                    backfaceVisibility: computedStyle.backfaceVisibility,
-                    visibility: computedStyle.visibility,
-                    transform: computedStyle.transform
-                });
+            try {
+                // Get the computed transform matrix for this face
+                const computedStyle = window.getComputedStyle(face);
+                const transform = computedStyle.transform;
+                
+                if (transform && transform !== 'none') {
+                    // Parse the transform matrix
+                    const matrix = new DOMMatrix(transform);
+                    
+                    // Extract Z-depth (m43 is the Z translation component)
+                    const zDepth = matrix.m43;
+                    
+                    faceDepthInfo.push({
+                        face: faceClass,
+                        value: faceValue,
+                        zDepth: zDepth,
+                        matrix: {
+                            m11: matrix.m11.toFixed(3),
+                            m12: matrix.m12.toFixed(3),
+                            m13: matrix.m13.toFixed(3),
+                            m43: matrix.m43.toFixed(3)
+                        }
+                    });
+                    
+                    // Track the face with highest Z (closest to viewer)
+                    if (zDepth > maxZ) {
+                        maxZ = zDepth;
+                        frontmostFace = face;
+                    }
+                } else {
+                    console.warn(`No transform found for face: ${faceClass}`);
+                }
+            } catch (error) {
+                console.warn(`Error processing face ${faceClass}:`, error);
             }
         });
         
-        console.log('Visible faces with debug info:', candidateFaces.map(f => ({ 
-            class: f.class, 
-            area: f.area.toFixed(1),
-            backfaceVisibility: f.backfaceVisibility,
-            visibility: f.visibility
-        })));
+        // Log all face depth information for debugging
+        console.log('Face depth analysis:', faceDepthInfo);
         
-        // For now, just pick the first face with maximum area
-        // TODO: Fix backface-visibility issue
-        const maxArea = Math.max(...candidateFaces.map(f => f.area));
-        const selectedFace = candidateFaces.find(f => f.area === maxArea);
-        
-        if (selectedFace) {
-            const activeDots = selectedFace.face.querySelectorAll('.dice-dot.active');
-            const value = activeDots.length;
+        if (frontmostFace) {
+            const finalValue = parseInt(frontmostFace.dataset.faceValue);
+            const faceClass = frontmostFace.classList[1];
             
-            console.log(`Selected ${selectedFace.class} face (${maxArea.toFixed(1)}px²) has ${value} dots`);
-            console.log('=== FACE READING COMPLETE ===');
-            return Math.max(1, Math.min(6, value));
+            console.log(`Frontmost face: ${faceClass} with value ${finalValue} (Z-depth: ${maxZ.toFixed(3)})`);
+            console.log('=== Z-DEPTH DETECTION COMPLETE ===');
+            
+            return Math.max(1, Math.min(6, finalValue));
         }
         
-        console.log('No visible face found, defaulting to 1');
-        console.log('=== FACE READING COMPLETE ===');
+        console.warn('No frontmost face found, defaulting to 1');
+        console.log('=== Z-DEPTH DETECTION COMPLETE ===');
         return 1;
     }
 
@@ -475,9 +432,9 @@ class DiceRenderer {
         // Wait for both to complete
         await Promise.all([leftPromise, rightPromise]);
         
-        // Read the final faces using visual detection
-        const leftValue = this.readVisibleFaceRobust(leftDice);
-        const rightValue = this.readVisibleFaceRobust(rightDice);
+        // Read the final faces using Z-depth detection
+        const leftValue = this.readVisibleFaceByZDepth(leftDice);
+        const rightValue = this.readVisibleFaceByZDepth(rightDice);
         const total = leftValue + rightValue;
         
         console.log(`=== DICE ROLLING COMPLETE ===`);
@@ -571,29 +528,10 @@ class DiceRenderer {
         });
     }
 
-    // Robust face reader that tries multiple approaches
-    readVisibleFaceRobust(dice) {
-        // Try the simple approach first (largest visible face)
-        const simpleResult = this.readVisibleFaceSimple(dice);
-        
-        // Try the complex approach for verification
-        const complexResult = this.readVisibleFace(dice);
-        
-        // If both methods agree, use that value
-        if (simpleResult === complexResult) {
-            console.log(`Both methods agree: ${simpleResult}`);
-            return simpleResult;
-        }
-        
-        // If they disagree, prefer the simple method but log the disagreement
-        console.log(`Methods disagree: simple=${simpleResult}, complex=${complexResult}, using simple`);
-        return simpleResult;
-    }
-
     getCurrentValues() {
         if (this.currentDice.length >= 2) {
-            const leftValue = this.readVisibleFaceRobust(this.currentDice[0]);
-            const rightValue = this.readVisibleFaceRobust(this.currentDice[1]);
+            const leftValue = this.readVisibleFaceByZDepth(this.currentDice[0]);
+            const rightValue = this.readVisibleFaceByZDepth(this.currentDice[1]);
             return { left: leftValue, right: rightValue, total: leftValue + rightValue };
         }
         return { left: 0, right: 0, total: 0 };
