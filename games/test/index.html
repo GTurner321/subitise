@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice Transform Test</title>
+    <link rel="stylesheet" href="dicetestmain.css">
+</head>
+<body>
+    <div class="test-container">
+        <h1>Dice Transform Test</h1>
+        <p>This test systematically checks each dice face transform to identify incorrect positioning.</p>
+        
+        <div class="controls">
+            <button id="startTest">Start Face Transform Test</button>
+            <button id="clearResults">Clear Results</button>
+        </div>
+        
+        <div class="test-area">
+            <div class="dice-container" id="diceContainer">
+                <!-- Test dice will be placed here -->
+            </div>
+        </div>
+        
+        <div class="results">
+            <h2>Test Results</h2>
+            <div id="resultsLog">
+                <p>Click "Start Face Transform Test" to begin testing each face orientation.</p>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>How to Use This Test:</h3>
+            <ol>
+                <li>Click "Start Face Transform Test"</li>
+                <li>The test will cycle through 6 face orientations</li>
+                <li>For each orientation, check:
+                    <ul>
+                        <li>Which face the algorithm detects (shown in results)</li>
+                        <li>What dots you visually see on the dice</li>
+                        <li>Whether they match</li>
+                    </ul>
+                </li>
+                <li>Results will show any mismatches between expected and detected faces</li>
+            </ol>
+        </div>
+    </div>
+    
+    <!-- Copy CONFIG from main game -->
+    <script>
+        // Two Dice Game configuration settings - copied for testing
+        const CONFIG = {
+            // Dice face patterns (dots for each number 1-6)
+            DICE_FACES: {
+                1: [
+                    [0, 0, 0],
+                    [0, 1, 0],
+                    [0, 0, 0]
+                ],
+                2: [
+                    [1, 0, 0],
+                    [0, 0, 0],
+                    [0, 0, 1]
+                ],
+                3: [
+                    [1, 0, 0],
+                    [0, 1, 0],
+                    [0, 0, 1]
+                ],
+                4: [
+                    [1, 0, 1],
+                    [0, 0, 0],
+                    [1, 0, 1]
+                ],
+                5: [
+                    [1, 0, 1],
+                    [0, 1, 0],
+                    [1, 0, 1]
+                ],
+                6: [
+                    [1, 0, 1],
+                    [1, 0, 1],
+                    [1, 0, 1]
+                ]
+            }
+        };
+    </script>
+    
+    <script src="dicetest.js"></script>
+</body>
+</html>
