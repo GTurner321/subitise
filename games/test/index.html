@@ -277,7 +277,7 @@
         function applySingleMove(direction) {
             logMove(`Rolling ${direction}...`);
             
-            // Save the current face positions before the move
+            // Save the current face positions for tracking purposes only
             const beforeMove = { ...facePositions };
             
             // Apply the transform FIRST (with current face numbers showing)
@@ -298,24 +298,39 @@
                     break;
             }
             
-            // Apply the transform immediately
+            // Apply the transform immediately - this physically moves the faces
             dice.style.transform = `rotateX(${newTransform.x}deg) rotateY(${newTransform.y}deg)`;
             currentTransform = newTransform;
             
             // Update transform display immediately
             document.getElementById('transformDisplay').textContent = 
-                `Transform: rotateX(${currentTransform.x}°) rotateY(${currentTransform.y}deg)`;
+                `Transform: rotateX(${currentTransform.x}°) rotateY(${newTransform.y}deg)`;
             
-            // WAIT for animation to complete, THEN update face positions
+            // WAIT for animation to complete, THEN update our tracking only
             setTimeout(() => {
-                // Calculate what numbers should now be where based on the CSS transform
+                // Update our internal tracking to match the new physical reality
+                // The CSS transform has physically moved the faces, so we just need to track where they are now
                 updateFacePositionsAfterTransform(beforeMove, direction);
                 
-                // Update face display after the move completes
-                updateFaceDisplay();
+                // Update the display info (but DON'T change the face numbers on the dice)
+                updateDisplayInfoOnly();
                 logMove(`Result: Face ${facePositions.front} is now on front`);
                 
             }, 500); // Wait for CSS animation to complete
+        }
+        
+        function updateDisplayInfoOnly() {
+            // Only update the info displays, NOT the face numbers on the dice
+            document.getElementById('currentDisplay').textContent = 
+                `Current Front Face: ${facePositions.front}`;
+            document.getElementById('transformDisplay').textContent = 
+                `Transform: rotateX(${currentTransform.x}°) rotateY(${currentTransform.y}deg)`;
+            document.getElementById('faceMapping').textContent = 
+                `Front: ${facePositions.front} | Back: ${facePositions.back} | Left: ${facePositions.left} | Right: ${facePositions.right} | Top: ${facePositions.top} | Bottom: ${facePositions.bottom}`;
+            
+            // DEBUGGING: Log what we think is where
+            console.log('Internal tracking updated:', facePositions);
+            console.log('(Face numbers on dice should NOT have changed)');
         }
         
         function updateFacePositionsAfterTransform(beforeMove, direction) {
@@ -371,7 +386,16 @@
             };
             currentTransform = { x: 0, y: 0 };
             dice.style.transform = 'none';
-            updateFaceDisplay();
+            
+            // Reset the actual face numbers to initial state
+            document.getElementById('frontFace').textContent = '1';
+            document.getElementById('backFace').textContent = '6';
+            document.getElementById('rightFace').textContent = '2';
+            document.getElementById('leftFace').textContent = '5';
+            document.getElementById('topFace').textContent = '3';
+            document.getElementById('bottomFace').textContent = '4';
+            
+            updateDisplayInfoOnly();
             document.getElementById('moveLog').innerHTML = '';
             logMove('Reset to initial state');
         }
