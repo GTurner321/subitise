@@ -241,60 +241,86 @@ class DiceRenderer {
     }
 
     /**
-     * Calculate which face is visible based on rotation values
-     * This is a simplified version - you may need to adjust based on your 3D setup
+     * Calculate which face is visible by applying transformation matrices step by step
+     * This matches how the actual 3D CSS transforms work
      */
     calculateVisibleFace(rotX, rotY) {
-        // Normalize rotations to 0-360 range
-        const normalizedX = ((rotX % 360) + 360) % 360;
-        const normalizedY = ((rotY % 360) + 360) % 360;
-        
-        // Map rotation combinations to faces
-        // This mapping depends on your cube's initial orientation and face assignments
-        // You may need to adjust these mappings based on testing
-        
-        const key = `${normalizedX}-${normalizedY}`;
-        
-        // Basic mapping - you'll need to expand/refine this based on your cube setup
-        const rotationToFace = {
-            '0-0': 1,    // front
-            '90-0': 3,   // top to front
-            '180-0': 6,  // back to front  
-            '270-0': 4,  // bottom to front
-            '0-90': 5,   // left to front
-            '0-270': 2,  // right to front
-            '90-90': 2,  // diagonal combinations
-            '90-270': 5,
-            // Add more combinations as needed
+        // Start with initial face directions (normal vectors pointing outward from cube center)
+        const faceNormals = {
+            1: [0, 0, 1],    // front: points toward +Z
+            6: [0, 0, -1],   // back: points toward -Z  
+            2: [1, 0, 0],    // right: points toward +X
+            5: [-1, 0, 0],   // left: points toward -X
+            3: [0, 1, 0],    // top: points toward +Y
+            4: [0, -1, 0]    // bottom: points toward -Y
         };
         
-        const face = rotationToFace[key];
-        if (face) {
-            return face;
+        // Apply cumulative rotations by breaking them into 90° steps
+        let currentNormals = { ...faceNormals };
+        
+        // Apply X rotations in 90° increments
+        const xSteps = Math.round(rotX / 90);
+        for (let i = 0; i < Math.abs(xSteps); i++) {
+            currentNormals = this.applyXRotation90(currentNormals, xSteps > 0);
         }
         
-        // Fallback: calculate based on dominant rotation
-        if (normalizedX === 0) {
-            // Pure Y rotations
-            switch (normalizedY) {
-                case 0: return 1;
-                case 90: return 5;
-                case 180: return 6;
-                case 270: return 2;
-            }
-        } else if (normalizedY === 0) {
-            // Pure X rotations
-            switch (normalizedX) {
-                case 0: return 1;
-                case 90: return 3;
-                case 180: return 6;
-                case 270: return 4;
+        // Apply Y rotations in 90° increments  
+        const ySteps = Math.round(rotY / 90);
+        for (let i = 0; i < Math.abs(ySteps); i++) {
+            currentNormals = this.applyYRotation90(currentNormals, ySteps > 0);
+        }
+        
+        // Find which face is pointing most toward the viewer (+Z direction)
+        let frontFace = 1;
+        let maxZ = -Infinity;
+        
+        for (const [face, normal] of Object.entries(currentNormals)) {
+            const zComponent = normal[2];
+            if (zComponent > maxZ) {
+                maxZ = zComponent;
+                frontFace = parseInt(face);
             }
         }
         
-        // Default fallback
-        console.warn(`Unknown rotation combination: X=${normalizedX}, Y=${normalizedY}, defaulting to face 1`);
-        return 1;
+        return frontFace;
+    }
+    
+    /**
+     * Apply a 90° rotation around X-axis to all face normals
+     */
+    applyXRotation90(normals, positive = true) {
+        const result = {};
+        const sign = positive ? 1 : -1;
+        
+        for (const [face, normal] of Object.entries(normals)) {
+            // 90° X rotation matrix: [x, y, z] -> [x, -z*sign, y*sign]
+            result[face] = [
+                normal[0],           // X unchanged
+                -normal[2] * sign,   // Y = -Z (for +90°) or +Z (for -90°)
+                normal[1] * sign     // Z = Y (for +90°) or -Y (for -90°)
+            ];
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Apply a 90° rotation around Y-axis to all face normals
+     */
+    applyYRotation90(normals, positive = true) {
+        const result = {};
+        const sign = positive ? 1 : -1;
+        
+        for (const [face, normal] of Object.entries(normals)) {
+            // 90° Y rotation matrix: [x, y, z] -> [z*sign, y, -x*sign]
+            result[face] = [
+                normal[2] * sign,    // X = Z (for +90°) or -Z (for -90°)
+                normal[1],           // Y unchanged
+                -normal[0] * sign    // Z = -X (for +90°) or +X (for -90°)
+            ];
+        }
+        
+        return result;
     }
 
     createDice(diceColor, isLeft = true) {
