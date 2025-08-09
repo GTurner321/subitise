@@ -1,6 +1,6 @@
 class DiceRenderer {
     constructor() {
-        // SEARCH FOR THIS LINE: DICE RENDERER UPDATED 2025-01-01
+        // SEARCH FOR THIS LINE: DICE RENDERER UPDATED 2025-01-09 - TARGET CONTROLLED
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
         this.currentDice = [];
@@ -45,18 +45,15 @@ class DiceRenderer {
         const halfDiceSize = diceWidthPx / 2;
         
         this.currentDice.forEach(dice => {
-            // Update dice height to match width
             dice.style.height = `${diceWidthPx}px`;
             dice.dataset.halfSize = halfDiceSize;
             
-            // Update 3D face positioning
             const faces = dice.querySelectorAll('.dice-face');
             faces.forEach(face => {
-                const faceClass = face.classList[1]; // e.g., 'front', 'back', etc.
+                const faceClass = face.classList[1];
                 this.setFace3DPosition(face, faceClass, halfDiceSize);
             });
             
-            // Update dot sizes
             const dots = dice.querySelectorAll('.dice-dot');
             const dotSize = gameAreaWidth * 0.018;
             dots.forEach(dot => {
@@ -67,7 +64,6 @@ class DiceRenderer {
     }
 
     clearDice() {
-        // Remove all existing dice from both sides
         this.currentDice.forEach(dice => {
             if (dice && dice.parentNode) {
                 dice.parentNode.removeChild(dice);
@@ -75,68 +71,192 @@ class DiceRenderer {
         });
         this.currentDice = [];
         
-        // Clear any pending timeouts
         this.rollTimeouts.forEach(timeout => clearTimeout(timeout));
         this.rollTimeouts = [];
     }
 
     getRandomDiceColors() {
-        // Get colors that weren't used in the previous set
         let availableForSelection = this.availableColors.filter(color => 
             !this.previousColors.includes(color)
         );
         
-        // If we don't have enough unused colors (need at least 2), reset and use all colors
         if (availableForSelection.length < 2) {
             availableForSelection = [...this.availableColors];
             console.log('Resetting color pool - all colors available again');
         }
         
-        // Shuffle the available colors and pick the first two
         const shuffled = [...availableForSelection].sort(() => Math.random() - 0.5);
         const selectedColors = {
             left: shuffled[0],
             right: shuffled[1]
         };
         
-        // Store these colors as the previous set for next time
         this.previousColors = [selectedColors.left, selectedColors.right];
         
         console.log(`Selected dice colors: Left=${selectedColors.left}, Right=${selectedColors.right}`);
-        console.log(`Previous colors stored: ${this.previousColors.join(', ')}`);
         
         return selectedColors;
     }
 
-    getDiagonalDirections() {
+    /**
+     * Get the three "rolling toward user" movements
+     */
+    getTowardUserMoves() {
         return [
-            { rotX: 90, rotY: 90, name: 'down-right', reverse: 'up-left' },
-            { rotX: -90, rotY: 90, name: 'up-right', reverse: 'down-left' },
-            { rotX: 90, rotY: -90, name: 'down-left', reverse: 'up-right' },
-            { rotX: -90, rotY: -90, name: 'up-left', reverse: 'down-right' }
+            { rotX: 90, rotY: 90, name: 'diagonal-right', type: 'diagonal' },   // Top-right diagonal
+            { rotX: 90, rotY: -90, name: 'diagonal-left', type: 'diagonal' },   // Top-left diagonal  
+            { rotX: 90, rotY: 0, name: 'top-to-bottom', type: 'topToBottom' }   // Forward roll
         ];
     }
 
-    getRandomDiagonalDirection(previousDirection = null) {
-        const directions = this.getDiagonalDirections();
+    /**
+     * Select random movement based on configured probabilities
+     */
+    getRandomTowardUserMove() {
+        const moves = this.getTowardUserMoves();
+        const rand = Math.random();
         
-        // If this is the first move, return any direction
-        if (!previousDirection) {
-            return directions[Math.floor(Math.random() * directions.length)];
+        // 40% for first diagonal, 40% for second diagonal, 20% for top-to-bottom
+        if (rand < CONFIG.DICE_ROLLING.DIAGONAL_PROBABILITY) {
+            return moves[0]; // diagonal-right
+        } else if (rand < CONFIG.DICE_ROLLING.DIAGONAL_PROBABILITY * 2) {
+            return moves[1]; // diagonal-left
+        } else {
+            return moves[2]; // top-to-bottom
         }
-        
-        // Filter out the reverse of the previous direction
-        const validDirections = directions.filter(dir => dir.name !== previousDirection.reverse);
-        
-        console.log(`Previous direction: ${previousDirection.name}, excluding: ${previousDirection.reverse}`);
-        console.log(`Valid directions: ${validDirections.map(d => d.name).join(', ')}`);
-        
-        return validDirections[Math.floor(Math.random() * validDirections.length)];
     }
 
-    getRandomFlipDuration() {
-        const durations = [0.35, 0.45, 0.55, 0.65];
-        return durations[Math.floor(Math.random() * durations.length)];
+    /**
+     * Generate a predetermined sequence to reach target face
+     */
+    generateSequenceForTarget(targetFace, maxMoves = CONFIG.DICE_ROLLING.MAX_MOVES) {
+        console.log(`🎯 Generating sequence to reach target face: ${targetFace}`);
+        
+        // Try to generate a sequence that hits the target
+        for (let attempt = 1; attempt <= CONFIG.DICE_ROLLING.MAX_SEQUENCE_ATTEMPTS; attempt++) {
+            console.log(`📝 Sequence attempt ${attempt}/${CONFIG.DICE_ROLLING.MAX_SEQUENCE_ATTEMPTS}`);
+            
+            const sequence = this.createRandomSequence(maxMoves);
+            const targetIndex = this.findTargetInSequence(sequence, targetFace);
+            
+            if (targetIndex >= CONFIG.DICE_ROLLING.TARGET_CHECK_START - 1) { // -1 because array is 0-indexed
+                console.log(`✅ Target found at move ${targetIndex + 1}, truncating sequence`);
+                return sequence.slice(0, targetIndex + 1);
+            }
+        }
+        
+        // Fallback: create sequence and stop at fallback move
+        console.warn(`⚠️ Could not find target ${targetFace} in ${CONFIG.DICE_ROLLING.MAX_SEQUENCE_ATTEMPTS} attempts, using fallback`);
+        const fallbackSequence = this.createRandomSequence(CONFIG.DICE_ROLLING.FALLBACK_STOP_MOVE);
+        const finalFace = this.simulateSequence(fallbackSequence);
+        console.log(`🎲 Fallback sequence will show face: ${finalFace}`);
+        return fallbackSequence;
+    }
+
+    /**
+     * Create a random sequence of moves
+     */
+    createRandomSequence(length) {
+        const sequence = [];
+        for (let i = 0; i < length; i++) {
+            sequence.push(this.getRandomTowardUserMove());
+        }
+        return sequence;
+    }
+
+    /**
+     * Find target face in a sequence (simulates the dice rolling)
+     */
+    findTargetInSequence(sequence, targetFace) {
+        let currentRotX = 0;
+        let currentRotY = 0;
+        
+        for (let i = 0; i < sequence.length; i++) {
+            const move = sequence[i];
+            currentRotX += move.rotX;
+            currentRotY += move.rotY;
+            
+            const visibleFace = this.calculateVisibleFace(currentRotX, currentRotY);
+            
+            if (i >= CONFIG.DICE_ROLLING.TARGET_CHECK_START - 1 && visibleFace === targetFace) {
+                console.log(`🎯 Target ${targetFace} found at move ${i + 1} in sequence`);
+                return i;
+            }
+        }
+        
+        return -1; // Target not found
+    }
+
+    /**
+     * Simulate entire sequence and return final face
+     */
+    simulateSequence(sequence) {
+        let currentRotX = 0;
+        let currentRotY = 0;
+        
+        sequence.forEach(move => {
+            currentRotX += move.rotX;
+            currentRotY += move.rotY;
+        });
+        
+        return this.calculateVisibleFace(currentRotX, currentRotY);
+    }
+
+    /**
+     * Calculate which face is visible based on rotation values
+     * This is a simplified version - you may need to adjust based on your 3D setup
+     */
+    calculateVisibleFace(rotX, rotY) {
+        // Normalize rotations to 0-360 range
+        const normalizedX = ((rotX % 360) + 360) % 360;
+        const normalizedY = ((rotY % 360) + 360) % 360;
+        
+        // Map rotation combinations to faces
+        // This mapping depends on your cube's initial orientation and face assignments
+        // You may need to adjust these mappings based on testing
+        
+        const key = `${normalizedX}-${normalizedY}`;
+        
+        // Basic mapping - you'll need to expand/refine this based on your cube setup
+        const rotationToFace = {
+            '0-0': 1,    // front
+            '90-0': 3,   // top to front
+            '180-0': 6,  // back to front  
+            '270-0': 4,  // bottom to front
+            '0-90': 5,   // left to front
+            '0-270': 2,  // right to front
+            '90-90': 2,  // diagonal combinations
+            '90-270': 5,
+            // Add more combinations as needed
+        };
+        
+        const face = rotationToFace[key];
+        if (face) {
+            return face;
+        }
+        
+        // Fallback: calculate based on dominant rotation
+        if (normalizedX === 0) {
+            // Pure Y rotations
+            switch (normalizedY) {
+                case 0: return 1;
+                case 90: return 5;
+                case 180: return 6;
+                case 270: return 2;
+            }
+        } else if (normalizedY === 0) {
+            // Pure X rotations
+            switch (normalizedX) {
+                case 0: return 1;
+                case 90: return 3;
+                case 180: return 6;
+                case 270: return 4;
+            }
+        }
+        
+        // Default fallback
+        console.warn(`Unknown rotation combination: X=${normalizedX}, Y=${normalizedY}, defaulting to face 1`);
+        return 1;
     }
 
     createDice(diceColor, isLeft = true) {
@@ -145,16 +265,12 @@ class DiceRenderer {
         dice.style.opacity = '0';
         dice.style.transformStyle = 'preserve-3d';
         
-        // Calculate dice size dynamically - width is 12% of game area width
         const gameArea = document.querySelector('.game-area');
         const gameAreaWidth = gameArea.offsetWidth;
-        const diceWidthPx = gameAreaWidth * 0.12; // 12% of game area width
+        const diceWidthPx = gameAreaWidth * 0.12;
         const halfDiceSize = diceWidthPx / 2;
         
-        // Set height to match width in pixels for perfect square
         dice.style.height = `${diceWidthPx}px`;
-        
-        // Store dice size for 3D transforms
         dice.dataset.halfSize = halfDiceSize;
         
         // Ensure dice container is transparent
@@ -163,22 +279,19 @@ class DiceRenderer {
         dice.style.border = 'none';
         dice.style.boxShadow = 'none';
         
-        // Standard dice face values - reverted to original mapping
+        // Standard dice face values
         const faceValues = {
             'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4
         };
         
-        console.log('Creating dice with original face values:', faceValues);
+        console.log('Creating dice with face values:', faceValues);
         
         // Create all 6 faces
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
-            
-            // Store the face value as a data attribute for easy access
             face.dataset.faceValue = faceValue;
             
-            // Set proper 3D positioning with calculated translateZ
             this.setFace3DPosition(face, faceClass, halfDiceSize);
             
             // Ensure transparent background
@@ -191,7 +304,7 @@ class DiceRenderer {
             face.style.outline = 'none';
             face.style.color = 'transparent';
             
-            // Create inner face - 90% size, same color, no rounded corners
+            // Create inner face
             const innerFace = document.createElement('div');
             innerFace.className = 'dice-face-inner';
             innerFace.style.position = 'absolute';
@@ -205,7 +318,7 @@ class DiceRenderer {
             innerFace.style.boxSizing = 'border-box';
             innerFace.style.zIndex = '0';
             
-            // Create colored surface with proper positioning
+            // Create colored surface
             const coloredSurface = document.createElement('div');
             coloredSurface.className = 'dice-face-surface';
             coloredSurface.style.position = 'absolute';
@@ -235,7 +348,6 @@ class DiceRenderer {
             dotsContainer.style.padding = '12px';
             dotsContainer.style.boxSizing = 'border-box';
             
-            // Create dots with proper sizing and visibility
             this.createDots(dotsContainer, faceValue, gameAreaWidth, faceClass);
             
             face.appendChild(innerFace);      
@@ -244,17 +356,10 @@ class DiceRenderer {
             dice.appendChild(face);
         });
         
-        // Set random starting orientation
-        const startingRotX = Math.floor(Math.random() * 4) * 90;
-        const startingRotY = Math.floor(Math.random() * 4) * 90;
-        dice.style.transform = `rotateX(${startingRotX}deg) rotateY(${startingRotY}deg)`;
-        
-        // Store initial rotation for tracking
-        dice.dataset.currentRotationX = startingRotX;
-        dice.dataset.currentRotationY = startingRotY;
-        
-        // Initialize previous direction tracking
-        dice.dataset.previousDirection = null;
+        // Set initial orientation
+        dice.style.transform = `rotateX(0deg) rotateY(0deg)`;
+        dice.dataset.currentRotationX = 0;
+        dice.dataset.currentRotationY = 0;
         
         return dice;
     }
@@ -263,21 +368,17 @@ class DiceRenderer {
         const pattern = CONFIG.DICE_FACES[value];
         container.innerHTML = '';
         
-        // Debug: Log which pattern is being used for which face
         if (faceClass) {
             console.log(`Creating ${value} dots for ${faceClass} face`);
         }
         
-        // Calculate dot size - 1.8% of game area width
-        const dotSize = gameAreaWidth * 0.018; // 1.8% of game area width
+        const dotSize = gameAreaWidth * 0.018;
         
-        // Create 9 dot positions in 3x3 grid
         for (let row = 0; row < 3; row++) {
             for (let col = 0; col < 3; col++) {
                 const dot = document.createElement('div');
                 dot.className = 'dice-dot';
                 
-                // Set dot size in pixels to match CSS percentage
                 dot.style.width = `${dotSize}px`;
                 dot.style.height = `${dotSize}px`;
                 dot.style.borderRadius = '50%';
@@ -287,10 +388,9 @@ class DiceRenderer {
                 dot.style.pointerEvents = 'none';
                 dot.style.touchAction = 'none';
                 
-                // Set visibility based on pattern and add active class
                 if (pattern[row][col] === 1) {
                     dot.classList.add('active');
-                    dot.style.opacity = '1'; // Make dots visible immediately
+                    dot.style.opacity = '1';
                 } else {
                     dot.style.opacity = '0';
                 }
@@ -301,8 +401,6 @@ class DiceRenderer {
     }
 
     setFace3DPosition(face, faceClass, halfSize) {
-        // Set 3D positioning with proper translateZ using calculated pixel values
-        // IMPORTANT: Set backface-visibility to hidden for proper face detection
         face.style.backfaceVisibility = 'hidden';
         
         switch (faceClass) {
@@ -313,33 +411,26 @@ class DiceRenderer {
                 face.style.transform = `rotateY(180deg) translateZ(${halfSize}px)`;
                 break;
             case 'right':
-                // FIXED: Was rotateY(90deg), now swapped with left
                 face.style.transform = `rotateY(-90deg) translateZ(${halfSize}px)`;
                 break;
             case 'left':
-                // FIXED: Was rotateY(-90deg), now swapped with right
                 face.style.transform = `rotateY(90deg) translateZ(${halfSize}px)`;
                 break;
             case 'top':
-                // FIXED: Was rotateX(90deg), now swapped with bottom
                 face.style.transform = `rotateX(-90deg) translateZ(${halfSize}px)`;
                 break;
             case 'bottom':
-                // FIXED: Was rotateX(-90deg), now swapped with top
                 face.style.transform = `rotateX(90deg) translateZ(${halfSize}px)`;
                 break;
         }
     }
 
     /**
-     * NEW Z-DEPTH DETECTION METHOD
-     * Determines the visible face by calculating which face has the highest Z-coordinate
-     * after applying the dice's rotation transforms
+     * Z-depth detection for final face reading
      */
     readVisibleFaceByZDepth(dice) {
         console.log('=== Z-DEPTH FACE DETECTION ===');
         
-        // Get the dice's current rotation from its transform
         const diceStyle = window.getComputedStyle(dice);
         const diceTransform = diceStyle.transform;
         
@@ -348,7 +439,6 @@ class DiceRenderer {
             return 1;
         }
         
-        // Parse the dice's rotation matrix
         const diceMatrix = new DOMMatrix(diceTransform);
         console.log('Dice transform matrix:', {
             m11: diceMatrix.m11.toFixed(3),
@@ -365,57 +455,36 @@ class DiceRenderer {
         const faces = dice.querySelectorAll('.dice-face');
         let frontmostFace = null;
         let maxZ = -Infinity;
-        let faceDepthInfo = [];
         
-        // Define the initial face normal vectors (pointing outward from cube center)
         const faceNormals = {
-            'front': [0, 0, 1],    // Points toward +Z (toward viewer initially)
-            'back': [0, 0, -1],    // Points toward -Z (away from viewer initially)
-            'right': [1, 0, 0],    // Points toward +X
-            'left': [-1, 0, 0],    // Points toward -X
-            'top': [0, 1, 0],      // Points toward +Y
-            'bottom': [0, -1, 0]   // Points toward -Y
+            'front': [0, 0, 1],
+            'back': [0, 0, -1],
+            'right': [1, 0, 0],
+            'left': [-1, 0, 0],
+            'top': [0, 1, 0],
+            'bottom': [0, -1, 0]
         };
         
         faces.forEach(face => {
-            const faceClass = face.classList[1]; // 'front', 'back', etc.
+            const faceClass = face.classList[1];
             const faceValue = parseInt(face.dataset.faceValue);
             const normal = faceNormals[faceClass];
             
-            if (!normal) {
-                console.warn(`Unknown face class: ${faceClass}`);
-                return;
-            }
+            if (!normal) return;
             
-            // Transform the face normal by the dice's rotation matrix
-            // This gives us the direction this face is pointing after rotation
             const transformedNormal = [
                 normal[0] * diceMatrix.m11 + normal[1] * diceMatrix.m21 + normal[2] * diceMatrix.m31,
                 normal[0] * diceMatrix.m12 + normal[1] * diceMatrix.m22 + normal[2] * diceMatrix.m32,
                 normal[0] * diceMatrix.m13 + normal[1] * diceMatrix.m23 + normal[2] * diceMatrix.m33
             ];
             
-            // The Z-component of the transformed normal tells us how much this face
-            // is pointing toward the viewer (positive Z = toward viewer)
             const zComponent = transformedNormal[2];
             
-            faceDepthInfo.push({
-                face: faceClass,
-                value: faceValue,
-                originalNormal: normal,
-                transformedNormal: transformedNormal.map(n => n.toFixed(3)),
-                zComponent: zComponent.toFixed(3)
-            });
-            
-            // Track the face with highest Z-component (most toward viewer)
             if (zComponent > maxZ) {
                 maxZ = zComponent;
                 frontmostFace = face;
             }
         });
-        
-        // Log all face analysis for debugging
-        console.log('Face normal analysis:', faceDepthInfo);
         
         if (frontmostFace) {
             const finalValue = parseInt(frontmostFace.dataset.faceValue);
@@ -428,21 +497,21 @@ class DiceRenderer {
         }
         
         console.warn('No frontmost face found, defaulting to 1');
-        console.log('=== Z-DEPTH DETECTION COMPLETE ===');
         return 1;
     }
 
-    async rollDice() {
-        console.log('=== STARTING NATURAL DICE ROLL ===');
+    /**
+     * Roll dice with predetermined target values
+     */
+    async rollDice(leftTarget, rightTarget) {
+        console.log('=== STARTING TARGET-CONTROLLED DICE ROLL ===');
+        console.log(`🎯 Targets: Left=${leftTarget}, Right=${rightTarget}`);
         
-        // Get random colors
         const colors = this.getRandomDiceColors();
         
-        // Create two dice with positioning classes
         const leftDice = this.createDice(colors.left, true);
         const rightDice = this.createDice(colors.right, false);
         
-        // Add to game area (not to left/right sides - dice position themselves)
         const gameArea = document.querySelector('.game-area');
         gameArea.appendChild(leftDice);
         gameArea.appendChild(rightDice);
@@ -462,76 +531,88 @@ class DiceRenderer {
             });
         }, 200);
         
-        // Start rolling both dice
-        const leftRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
-        const rightRolls = Math.floor(Math.random() * 10) + 6; // 6-15 rolls
+        // Generate sequences for both dice
+        const leftSequence = this.generateSequenceForTarget(leftTarget);
+        const rightSequence = this.generateSequenceForTarget(rightTarget);
         
-        const leftPromise = this.rollDiceNaturally(leftDice, leftRolls, 'Left');
-        const rightPromise = this.rollDiceNaturally(rightDice, rightRolls, 'Right');
+        // Assign speed sets randomly
+        const leftIsSetA = Math.random() < 0.5;
+        const leftSpeedSet = leftIsSetA ? 'A' : 'B';
+        const rightSpeedSet = leftIsSetA ? 'B' : 'A';
         
-        // Wait for both to complete
+        console.log(`🎰 Speed assignment: Left=${leftSpeedSet}, Right=${rightSpeedSet}`);
+        
+        // Roll both dice with their sequences
+        const leftPromise = this.executeSequence(leftDice, leftSequence, leftSpeedSet, 'Left');
+        const rightPromise = this.executeSequence(rightDice, rightSequence, rightSpeedSet, 'Right');
+        
         await Promise.all([leftPromise, rightPromise]);
         
-        // Read the final faces using Z-depth detection
+        // Read final faces
         const leftValue = this.readVisibleFaceByZDepth(leftDice);
         const rightValue = this.readVisibleFaceByZDepth(rightDice);
         const total = leftValue + rightValue;
         
-        console.log(`=== DICE ROLLING COMPLETE ===`);
-        console.log(`Left dice shows: ${leftValue}`);
-        console.log(`Right dice shows: ${rightValue}`);
+        console.log(`=== TARGET-CONTROLLED ROLLING COMPLETE ===`);
+        console.log(`Target: Left=${leftTarget}, Right=${rightTarget}`);
+        console.log(`Actual: Left=${leftValue}, Right=${rightValue}`);
         console.log(`Total: ${total}`);
         
         return { left: leftValue, right: rightValue, total: total };
     }
 
-    async rollDiceNaturally(dice, numberOfRolls, diceName) {
+    /**
+     * Execute a predetermined sequence on a dice
+     */
+    async executeSequence(dice, sequence, speedSet, diceName) {
         return new Promise((resolve) => {
-            let rollCount = 0;
-            let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
-            let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
-            let previousDirection = null;
+            let moveIndex = 0;
+            let currentRotationX = 0;
+            let currentRotationY = 0;
             
-            const performRoll = () => {
-                rollCount++;
+            const performMove = () => {
+                if (moveIndex >= sequence.length) {
+                    dice.classList.add('dice-final');
+                    console.log(`${diceName} dice completed sequence after ${sequence.length} moves`);
+                    resolve();
+                    return;
+                }
                 
-                // Get random direction, excluding reverse of previous move
-                const direction = this.getRandomDiagonalDirection(previousDirection);
-                const flipDuration = this.getRandomFlipDuration();
+                const move = sequence[moveIndex];
+                const isLastThreeMoves = moveIndex >= (sequence.length - 3);
                 
-                console.log(`${diceName} dice roll ${rollCount}: ${direction.name} (duration: ${flipDuration}s)`);
+                // Get timing based on speed set and move type
+                let duration;
+                const speedConfig = CONFIG.DICE_ROLLING.SPEED_SETS[speedSet];
+                
+                if (isLastThreeMoves) {
+                    duration = speedConfig.finalThreeMoves[move.type];
+                } else {
+                    duration = speedConfig[move.type];
+                }
+                
+                console.log(`${diceName} move ${moveIndex + 1}/${sequence.length}: ${move.name} (${duration}s)`);
                 
                 // Apply rotation
-                currentRotationX += direction.rotX;
-                currentRotationY += direction.rotY;
+                currentRotationX += move.rotX;
+                currentRotationY += move.rotY;
                 
-                dice.style.transition = `transform ${flipDuration}s ease-in-out`;
+                dice.style.transition = `transform ${duration}s ease-in-out`;
                 dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
                 
                 // Update tracking
                 dice.dataset.currentRotationX = currentRotationX;
                 dice.dataset.currentRotationY = currentRotationY;
                 
-                // Store this direction as the previous one for next roll
-                previousDirection = direction;
+                moveIndex++;
                 
-                // Check if done
-                if (rollCount >= numberOfRolls) {
-                    const stopTimeout = setTimeout(() => {
-                        dice.classList.add('dice-final');
-                        console.log(`${diceName} dice completed rolling after ${rollCount} moves`);
-                        resolve();
-                    }, flipDuration * 1000);
-                    this.rollTimeouts.push(stopTimeout);
-                } else {
-                    // Continue rolling
-                    const nextTimeout = setTimeout(performRoll, flipDuration * 1000);
-                    this.rollTimeouts.push(nextTimeout);
-                }
+                // Schedule next move
+                const nextTimeout = setTimeout(performMove, duration * 1000);
+                this.rollTimeouts.push(nextTimeout);
             };
             
-            // Start rolling after fade-in
-            const initialTimeout = setTimeout(performRoll, 1300);
+            // Start sequence after fade-in
+            const initialTimeout = setTimeout(performMove, 1300);
             this.rollTimeouts.push(initialTimeout);
         });
     }
@@ -539,7 +620,6 @@ class DiceRenderer {
     async fadeOutCurrentDice() {
         if (this.currentDice.length === 0) return;
         
-        // Fade out current dice
         this.currentDice.forEach(dice => {
             if (dice && dice.parentNode) {
                 dice.style.transition = 'opacity 1s ease-out';
@@ -553,7 +633,6 @@ class DiceRenderer {
             }
         });
         
-        // Wait for fade-out and remove
         return new Promise(resolve => {
             const timeout = setTimeout(() => {
                 this.currentDice.forEach(dice => {
@@ -579,10 +658,8 @@ class DiceRenderer {
 
     reset() {
         this.clearDice();
-        // Reset color tracking when game resets
         this.previousColors = [];
         
-        // Clear resize timeout
         if (this.resizeTimeout) {
             clearTimeout(this.resizeTimeout);
             this.resizeTimeout = null;
