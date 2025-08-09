@@ -46,11 +46,11 @@
             backface-visibility: hidden;
         }
         
-        /* CORRECTED face assignments based on your observations */
+        /* FIXED face assignments and labels */
         .front { background: #ff6b6b; transform: rotateY(0deg) translateZ(50px); }
         .back { background: #4ecdc4; transform: rotateY(180deg) translateZ(50px); }
-        .right { background: #45b7d1; transform: rotateY(-90deg) translateZ(50px); }  /* Was 2, testing if should be 5 */
-        .left { background: #f9ca24; transform: rotateY(90deg) translateZ(50px); }   /* Was 5, testing if should be 2 */
+        .right { background: #45b7d1; transform: rotateY(-90deg) translateZ(50px); }
+        .left { background: #f9ca24; transform: rotateY(90deg) translateZ(50px); }
         .top { background: #f0932b; transform: rotateX(-90deg) translateZ(50px); }
         .bottom { background: #6c5ce7; transform: rotateX(90deg) translateZ(50px); }
         
@@ -136,18 +136,18 @@
             <div class="test-dice" id="testDice">
                 <div class="face front">1<br>FRONT</div>
                 <div class="face back">6<br>BACK</div>
-                <div class="face right">5<br>RIGHT<br>(Was 2)</div>
-                <div class="face left">2<br>LEFT<br>(Was 5)</div>
+                <div class="face right">2<br>RIGHT</div>
+                <div class="face left">5<br>LEFT</div>
                 <div class="face top">3<br>TOP</div>
                 <div class="face bottom">4<br>BOTTOM</div>
             </div>
         </div>
         
         <div class="controls">
-            <button onclick="rotate(-90, 0)">X -90° (Forward)</button>
-            <button onclick="rotate(90, 0)">X +90° (Backward)</button>
-            <button onclick="rotate(0, -90)">Y -90° (Right)</button>
+            <button onclick="rotate(-90, 0)">X -90° (Forward/Down)</button>
+            <button onclick="rotate(90, 0)">X +90° (Backward/Up)</button>
             <button onclick="rotate(0, 90)">Y +90° (Left)</button>
+            <button onclick="rotate(0, -90)">Y -90° (Right)</button>
             
             <button onclick="rotate(-180, 0)">X -180°</button>
             <button onclick="rotate(180, 0)">X +180°</button>
@@ -246,16 +246,16 @@
             setTimeout(() => {
                 switch(direction) {
                     case 'left':
-                        rotate(0, 90);  // Should show face 5 if assignments are correct
+                        rotate(0, 90);  // FIXED: +90 Y shows left (was -90)
                         break;
                     case 'right':
-                        rotate(0, -90); // Should show face 2 if assignments are correct
+                        rotate(0, -90); // FIXED: -90 Y shows right (was +90)
                         break;
                     case 'top':
-                        rotate(90, 0);  // Should show face 3
+                        rotate(90, 0);  // FIXED: +90 X shows top (you said this shows bottom)
                         break;
                     case 'bottom':
-                        rotate(-90, 0); // Should show face 4
+                        rotate(-90, 0); // FIXED: -90 X shows bottom (you said this shows top)
                         break;
                 }
             }, 100);
