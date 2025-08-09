@@ -675,13 +675,13 @@ class DiceRenderer {
     }
 
     /**
-     * Execute a predetermined sequence on a dice
+     * Execute a predetermined sequence on a dice with real-time verification
      */
     async executeSequence(dice, sequence, speedSet, diceName) {
         const isLeftDice = diceName === 'Left';
         
         if (isLeftDice) {
-            console.log(`🎬 === LEFT DICE EXECUTION (${sequence.length} moves) ===`);
+            console.log(`🎬 === LEFT DICE EXECUTION WITH REAL-TIME VERIFICATION (${sequence.length} moves) ===`);
         }
         
         return new Promise((resolve) => {
@@ -694,7 +694,7 @@ class DiceRenderer {
                     dice.classList.add('dice-final');
                     
                     if (isLeftDice) {
-                        // Final verification - read actual face vs predicted
+                        // Final verification
                         setTimeout(() => {
                             const actualFace = this.readVisibleFaceByZDepth(dice);
                             const predictedFace = this.calculateVisibleFace(currentRotationX, currentRotationY);
@@ -749,9 +749,33 @@ class DiceRenderer {
                 
                 moveIndex++;
                 
-                // Schedule next move
-                const nextTimeout = setTimeout(performMove, duration * 1000);
-                this.rollTimeouts.push(nextTimeout);
+                // REAL-TIME VERIFICATION: Check prediction vs reality after this move completes
+                if (isLeftDice) {
+                    const verificationTimeout = setTimeout(() => {
+                        const actualFace = this.readVisibleFaceByZDepth(dice);
+                        const predictedFace = this.calculateVisibleFace(currentRotationX, currentRotationY);
+                        const isMatch = predictedFace === actualFace;
+                        
+                        console.log(`🔍 MOVE ${moveIndex} VERIFICATION:`);
+                        console.log(`   Rotation: X=${currentRotationX}° Y=${currentRotationY}°`);
+                        console.log(`   Predicted: ${predictedFace} | Actual: ${actualFace} | Match: ${isMatch ? '✅' : '❌'}`);
+                        
+                        if (!isMatch) {
+                            console.error(`❌ MISMATCH DETECTED AT MOVE ${moveIndex}!`);
+                            console.error(`   This is the first mismatch in this sequence.`);
+                        }
+                        
+                        // Schedule next move after verification
+                        const nextTimeout = setTimeout(performMove, 100); // Small delay after verification
+                        this.rollTimeouts.push(nextTimeout);
+                        
+                    }, duration * 1000 + 50); // Wait for transform to complete + 50ms buffer
+                    this.rollTimeouts.push(verificationTimeout);
+                } else {
+                    // For right dice, just schedule next move normally
+                    const nextTimeout = setTimeout(performMove, duration * 1000);
+                    this.rollTimeouts.push(nextTimeout);
+                }
             };
             
             // Start sequence after fade-in
