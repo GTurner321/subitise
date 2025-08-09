@@ -330,25 +330,25 @@ class DiceRenderer {
     
     /**
      * Apply a 90° rotation around Y-axis to all face normals  
-     * FIXED: Match CSS 3D transform behavior
+     * FIXED: Corrected signs to match actual CSS 3D behavior
      */
     applyYRotation90(normals, positive = true) {
         const result = {};
         
         for (const [face, normal] of Object.entries(normals)) {
             if (positive) {
-                // +90° Y rotation: rotates X→-Z, Z→X (left roll) 
+                // +90° Y rotation: CSS rotateY(90deg) behavior
                 result[face] = [
-                    normal[2],     // X = Z
+                    -normal[2],    // X = -Z (FIXED: was +Z)
                     normal[1],     // Y unchanged
-                    -normal[0]     // Z = -X
+                    normal[0]      // Z = X (FIXED: was -X)
                 ];
             } else {
-                // -90° Y rotation: rotates X→Z, Z→-X (right roll)
+                // -90° Y rotation: CSS rotateY(-90deg) behavior
                 result[face] = [
-                    -normal[2],    // X = -Z
+                    normal[2],     // X = Z (FIXED: was -Z)
                     normal[1],     // Y unchanged  
-                    normal[0]      // Z = X
+                    -normal[0]     // Z = -X (FIXED: was +X)
                 ];
             }
         }
