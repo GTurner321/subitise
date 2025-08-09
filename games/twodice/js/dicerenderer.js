@@ -100,12 +100,13 @@ class DiceRenderer {
 
     /**
      * Get the three "rolling toward user" movements
+     * FIXED: Corrected both X and Y rotation directions
      */
     getTowardUserMoves() {
         return [
-            { rotX: 90, rotY: 90, name: 'diagonal-right', type: 'diagonal' },   // Top-right diagonal
-            { rotX: 90, rotY: -90, name: 'diagonal-left', type: 'diagonal' },   // Top-left diagonal  
-            { rotX: 90, rotY: 0, name: 'top-to-bottom', type: 'topToBottom' }   // Forward roll
+            { rotX: -90, rotY: -90, name: 'diagonal-right', type: 'diagonal' },   // FIXED: X now -90 (forward)
+            { rotX: -90, rotY: 90, name: 'diagonal-left', type: 'diagonal' },    // FIXED: X now -90 (forward)  
+            { rotX: -90, rotY: 0, name: 'top-to-bottom', type: 'topToBottom' }   // FIXED: X now -90 (forward)
         ];
     }
 
@@ -242,24 +243,51 @@ class DiceRenderer {
 
     /**
      * Calculate which face is visible by applying transformation matrices step by step
-     * FIXED: Align face normals with actual CSS 3D cube orientation
+     * FIXED: Added specific mappings for known combinations
      */
     calculateVisibleFace(rotX, rotY) {
-        // Start with face normals that match the actual CSS 3D cube setup
-        // Based on Z-depth detection showing top face has highest Z-component
-        const faceNormals = {
-            1: [0, 0, 1],    // front: points toward +Z (default front face)
-            6: [0, 0, -1],   // back: points toward -Z  
-            2: [1, 0, 0],    // right: points toward +X
-            5: [-1, 0, 0],   // left: points toward -X
-            3: [0, 1, 0],    // top: points toward +Y (matches Z-depth showing top face visible)
-            4: [0, -1, 0]    // bottom: points toward -Y
+        // Normalize to 0-360 and round to nearest 90°
+        const normalizedX = ((rotX % 360) + 360) % 360;
+        const normalizedY = ((rotY % 360) + 360) % 360;
+        const roundedX = Math.round(normalizedX / 90) * 90;
+        const roundedY = Math.round(normalizedY / 90) * 90;
+        
+        // Direct mapping for known combinations (updated for negative X values)
+        const combinationMap = {
+            '0-0': 1,      // front
+            '270-0': 3,    // top (was 90-0, now -90 becomes 270)
+            '180-0': 6,    // back 
+            '90-0': 4,     // bottom (was 270-0, now -270 becomes 90)
+            '0-90': 5,     // left 
+            '0-270': 2,    // right 
+            
+            // Updated combinations for negative X (which becomes 270° when normalized)
+            '270-90': 3,   // top-left diagonal (was 90-90)
+            '270-270': 3,  // top-right diagonal (was 90-270)
+            '180-90': 5,   // back-left
+            '180-270': 2,  // back-right
+            '90-90': 4,    // bottom-left (was 270-90)
+            '90-270': 4,   // bottom-right (was 270-270)
         };
         
-        // Apply cumulative rotations by breaking them into 90° steps
-        let currentNormals = {};
+        const key = `${roundedX}-${roundedY}`;
+        const directResult = combinationMap[key];
         
-        // Deep copy the initial normals
+        if (directResult) {
+            return directResult;
+        }
+        
+        // Fall back to matrix calculation for unknown combinations
+        const faceNormals = {
+            1: [0, 0, 1],    // front
+            6: [0, 0, -1],   // back  
+            2: [1, 0, 0],    // right
+            5: [-1, 0, 0],   // left
+            3: [0, 1, 0],    // top
+            4: [0, -1, 0]    // bottom
+        };
+        
+        let currentNormals = {};
         for (const [face, normal] of Object.entries(faceNormals)) {
             currentNormals[face] = [...normal];
         }
@@ -276,7 +304,7 @@ class DiceRenderer {
             currentNormals = this.applyYRotation90(currentNormals, ySteps > 0);
         }
         
-        // Find which face is pointing most toward the viewer (+Z direction)
+        // Find face with highest Z-component
         let frontFace = 1;
         let maxZ = -Infinity;
         
@@ -288,15 +316,7 @@ class DiceRenderer {
             }
         }
         
-        // DEBUG: Log the calculation for verification
-        if (rotX === 1530 && rotY === -90) {
-            console.log('🔍 MATRIX DEBUG for X=1530° Y=-90°:');
-            for (const [face, normal] of Object.entries(currentNormals)) {
-                console.log(`  Face ${face}: normal [${normal.map(n => n.toFixed(1)).join(', ')}] Z=${normal[2].toFixed(3)}`);
-            }
-            console.log(`  → Predicted frontmost face: ${frontFace} (Z=${maxZ.toFixed(3)})`);
-        }
-        
+        console.log(`⚠️ Using matrix fallback for X=${rotX}° Y=${rotY}° → Face ${frontFace}`);
         return frontFace;
     }
     
