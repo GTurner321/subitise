@@ -689,6 +689,37 @@ class DiceRenderer {
             let currentRotationX = 0;
             let currentRotationY = 0;
             
+            // INITIAL VERIFICATION: Check what face is showing before any movement
+            if (isLeftDice) {
+                const initialVerificationTimeout = setTimeout(() => {
+                    const initialActualFace = this.readVisibleFaceByZDepth(dice);
+                    const initialPredictedFace = this.calculateVisibleFace(0, 0); // Should be face 1 (front)
+                    
+                    console.log(`🔍 === INITIAL STATE VERIFICATION ===`);
+                    console.log(`   Initial Rotation: X=0° Y=0°`);
+                    console.log(`   Expected Front Face: 1`);
+                    console.log(`   Matrix Predicted: ${initialPredictedFace}`);
+                    console.log(`   Z-Depth Actual: ${initialActualFace}`);
+                    console.log(`   Initial Match: ${initialPredictedFace === initialActualFace ? '✅' : '❌'}`);
+                    
+                    if (initialPredictedFace !== 1) {
+                        console.error(`❌ MATRIX ERROR: Initial state should predict face 1, but predicts ${initialPredictedFace}`);
+                    }
+                    if (initialActualFace !== 1) {
+                        console.error(`❌ FACE ASSIGNMENT ERROR: Initial dice shows face ${initialActualFace}, but should show face 1 (front)`);
+                    }
+                    console.log(`🔍 === END INITIAL VERIFICATION ===`);
+                    
+                    // Start the actual movement sequence
+                    setTimeout(performMove, 200);
+                    
+                }, 1500); // Wait for dice to fully fade in and settle
+                this.rollTimeouts.push(initialVerificationTimeout);
+            } else {
+                // For right dice, start normally
+                setTimeout(performMove, 1300);
+            }
+            
             const performMove = () => {
                 if (moveIndex >= sequence.length) {
                     dice.classList.add('dice-final');
@@ -777,10 +808,6 @@ class DiceRenderer {
                     this.rollTimeouts.push(nextTimeout);
                 }
             };
-            
-            // Start sequence after fade-in
-            const initialTimeout = setTimeout(performMove, 1300);
-            this.rollTimeouts.push(initialTimeout);
         });
     }
 
