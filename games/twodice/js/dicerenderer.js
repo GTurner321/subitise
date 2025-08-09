@@ -129,27 +129,39 @@ class DiceRenderer {
     /**
      * Generate a predetermined sequence to reach target face
      */
-    generateSequenceForTarget(targetFace, maxMoves = CONFIG.DICE_ROLLING.MAX_MOVES) {
-        console.log(`🎯 Generating sequence to reach target face: ${targetFace}`);
+    generateSequenceForTarget(targetFace, maxMoves = CONFIG.DICE_ROLLING.MAX_MOVES, isLeftDice = false) {
+        if (isLeftDice) {
+            console.log(`🎯 === GENERATING LEFT DICE SEQUENCE (Target: ${targetFace}) ===`);
+        }
         
         // Try to generate a sequence that hits the target
         for (let attempt = 1; attempt <= CONFIG.DICE_ROLLING.MAX_SEQUENCE_ATTEMPTS; attempt++) {
-            console.log(`📝 Sequence attempt ${attempt}/${CONFIG.DICE_ROLLING.MAX_SEQUENCE_ATTEMPTS}`);
+            if (isLeftDice) {
+                console.log(`📝 LEFT DICE: Sequence attempt ${attempt}/${CONFIG.DICE_ROLLING.MAX_SEQUENCE_ATTEMPTS}`);
+            }
             
             const sequence = this.createRandomSequence(maxMoves);
-            const targetIndex = this.findTargetInSequence(sequence, targetFace);
+            const targetIndex = this.findTargetInSequence(sequence, targetFace, isLeftDice);
             
             if (targetIndex >= CONFIG.DICE_ROLLING.TARGET_CHECK_START - 1) { // -1 because array is 0-indexed
-                console.log(`✅ Target found at move ${targetIndex + 1}, truncating sequence`);
+                if (isLeftDice) {
+                    console.log(`✅ LEFT DICE: Target found at move ${targetIndex + 1}, truncating sequence`);
+                    console.log(`🎲 LEFT DICE: Final sequence (${targetIndex + 1} moves):`, sequence.slice(0, targetIndex + 1).map(m => m.name));
+                }
                 return sequence.slice(0, targetIndex + 1);
             }
         }
         
         // Fallback: create sequence and stop at fallback move
-        console.warn(`⚠️ Could not find target ${targetFace} in ${CONFIG.DICE_ROLLING.MAX_SEQUENCE_ATTEMPTS} attempts, using fallback`);
+        if (isLeftDice) {
+            console.warn(`⚠️ LEFT DICE: Could not find target ${targetFace} in ${CONFIG.DICE_ROLLING.MAX_SEQUENCE_ATTEMPTS} attempts, using fallback`);
+        }
         const fallbackSequence = this.createRandomSequence(CONFIG.DICE_ROLLING.FALLBACK_STOP_MOVE);
-        const finalFace = this.simulateSequence(fallbackSequence);
-        console.log(`🎲 Fallback sequence will show face: ${finalFace}`);
+        const finalFace = this.simulateSequence(fallbackSequence, isLeftDice);
+        if (isLeftDice) {
+            console.log(`🎲 LEFT DICE: Fallback sequence will show face: ${finalFace}`);
+            console.log(`🎲 LEFT DICE: Fallback sequence:`, fallbackSequence.map(m => m.name));
+        }
         return fallbackSequence;
     }
 
@@ -167,9 +179,13 @@ class DiceRenderer {
     /**
      * Find target face in a sequence (simulates the dice rolling)
      */
-    findTargetInSequence(sequence, targetFace) {
+    findTargetInSequence(sequence, targetFace, isLeftDice = false) {
         let currentRotX = 0;
         let currentRotY = 0;
+        
+        if (isLeftDice) {
+            console.log(`🔍 === LEFT DICE SEQUENCE SIMULATION (Target: ${targetFace}) ===`);
+        }
         
         for (let i = 0; i < sequence.length; i++) {
             const move = sequence[i];
@@ -178,28 +194,50 @@ class DiceRenderer {
             
             const visibleFace = this.calculateVisibleFace(currentRotX, currentRotY);
             
+            if (isLeftDice) {
+                console.log(`Move ${i + 1}: ${move.name} | RotX: ${currentRotX}° RotY: ${currentRotY}° | Predicted Face: ${visibleFace}`);
+            }
+            
             if (i >= CONFIG.DICE_ROLLING.TARGET_CHECK_START - 1 && visibleFace === targetFace) {
-                console.log(`🎯 Target ${targetFace} found at move ${i + 1} in sequence`);
+                if (isLeftDice) {
+                    console.log(`🎯 LEFT DICE: Target ${targetFace} found at move ${i + 1} in sequence`);
+                }
                 return i;
             }
         }
         
+        if (isLeftDice) {
+            console.log(`❌ LEFT DICE: Target ${targetFace} NOT found in sequence`);
+        }
         return -1; // Target not found
     }
 
     /**
      * Simulate entire sequence and return final face
      */
-    simulateSequence(sequence) {
+    simulateSequence(sequence, isLeftDice = false) {
         let currentRotX = 0;
         let currentRotY = 0;
         
-        sequence.forEach(move => {
+        if (isLeftDice) {
+            console.log(`🔍 === LEFT DICE FULL SEQUENCE SIMULATION ===`);
+        }
+        
+        sequence.forEach((move, index) => {
             currentRotX += move.rotX;
             currentRotY += move.rotY;
+            
+            if (isLeftDice) {
+                const face = this.calculateVisibleFace(currentRotX, currentRotY);
+                console.log(`Sim Move ${index + 1}: ${move.name} | RotX: ${currentRotX}° RotY: ${currentRotY}° | Face: ${face}`);
+            }
         });
         
-        return this.calculateVisibleFace(currentRotX, currentRotY);
+        const finalFace = this.calculateVisibleFace(currentRotX, currentRotY);
+        if (isLeftDice) {
+            console.log(`🎲 LEFT DICE: Final simulation result: Face ${finalFace}`);
+        }
+        return finalFace;
     }
 
     /**
@@ -531,9 +569,9 @@ class DiceRenderer {
             });
         }, 200);
         
-        // Generate sequences for both dice
-        const leftSequence = this.generateSequenceForTarget(leftTarget);
-        const rightSequence = this.generateSequenceForTarget(rightTarget);
+        // Generate sequences for both dice (with detailed logging for left only)
+        const leftSequence = this.generateSequenceForTarget(leftTarget, CONFIG.DICE_ROLLING.MAX_MOVES, true);
+        const rightSequence = this.generateSequenceForTarget(rightTarget, CONFIG.DICE_ROLLING.MAX_MOVES, false);
         
         // Assign speed sets randomly
         const leftIsSetA = Math.random() < 0.5;
@@ -565,6 +603,12 @@ class DiceRenderer {
      * Execute a predetermined sequence on a dice
      */
     async executeSequence(dice, sequence, speedSet, diceName) {
+        const isLeftDice = diceName === 'Left';
+        
+        if (isLeftDice) {
+            console.log(`🎬 === LEFT DICE EXECUTION (${sequence.length} moves) ===`);
+        }
+        
         return new Promise((resolve) => {
             let moveIndex = 0;
             let currentRotationX = 0;
@@ -573,6 +617,21 @@ class DiceRenderer {
             const performMove = () => {
                 if (moveIndex >= sequence.length) {
                     dice.classList.add('dice-final');
+                    
+                    if (isLeftDice) {
+                        // Final verification - read actual face vs predicted
+                        setTimeout(() => {
+                            const actualFace = this.readVisibleFaceByZDepth(dice);
+                            const predictedFace = this.calculateVisibleFace(currentRotationX, currentRotationY);
+                            console.log(`🔬 === LEFT DICE FINAL VERIFICATION ===`);
+                            console.log(`Final Rotation: X=${currentRotationX}° Y=${currentRotationY}°`);
+                            console.log(`Predicted Face: ${predictedFace}`);
+                            console.log(`Actual Face (Z-depth): ${actualFace}`);
+                            console.log(`Match: ${predictedFace === actualFace ? '✅' : '❌'}`);
+                            console.log(`🔬 === END VERIFICATION ===`);
+                        }, 100);
+                    }
+                    
                     console.log(`${diceName} dice completed sequence after ${sequence.length} moves`);
                     resolve();
                     return;
@@ -591,11 +650,20 @@ class DiceRenderer {
                     duration = speedConfig[move.type];
                 }
                 
-                console.log(`${diceName} move ${moveIndex + 1}/${sequence.length}: ${move.name} (${duration}s)`);
+                if (isLeftDice) {
+                    console.log(`🎬 LEFT MOVE ${moveIndex + 1}/${sequence.length}: ${move.name} (${duration}s)`);
+                    console.log(`   Before: X=${currentRotationX}° Y=${currentRotationY}°`);
+                }
                 
                 // Apply rotation
                 currentRotationX += move.rotX;
                 currentRotationY += move.rotY;
+                
+                if (isLeftDice) {
+                    console.log(`   After: X=${currentRotationX}° Y=${currentRotationY}°`);
+                    const predictedFace = this.calculateVisibleFace(currentRotationX, currentRotationY);
+                    console.log(`   Predicted Face: ${predictedFace}`);
+                }
                 
                 dice.style.transition = `transform ${duration}s ease-in-out`;
                 dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
