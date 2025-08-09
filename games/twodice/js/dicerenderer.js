@@ -348,7 +348,10 @@ class DiceRenderer {
             'front': 1, 'back': 6, 'right': 2, 'left': 5, 'top': 3, 'bottom': 4
         };
         
-        console.log('Creating dice with face values:', faceValues);
+        console.log('🎲 Creating dice with face assignments:');
+        Object.entries(faceValues).forEach(([faceClass, value]) => {
+            console.log(`  ${faceClass} face = ${value}`);
+        });
         
         // Create all 6 faces
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
@@ -519,6 +522,7 @@ class DiceRenderer {
         const faces = dice.querySelectorAll('.dice-face');
         let frontmostFace = null;
         let maxZ = -Infinity;
+        let faceDepthInfo = [];
         
         const faceNormals = {
             'front': [0, 0, 1],
@@ -544,17 +548,29 @@ class DiceRenderer {
             
             const zComponent = transformedNormal[2];
             
+            faceDepthInfo.push({
+                faceClass: faceClass,
+                faceValue: faceValue,
+                zComponent: zComponent.toFixed(3)
+            });
+            
             if (zComponent > maxZ) {
                 maxZ = zComponent;
                 frontmostFace = face;
             }
         });
         
+        // Log all face analysis for debugging
+        console.log('🔍 All face Z-depth analysis:');
+        faceDepthInfo.forEach(info => {
+            console.log(`  ${info.faceClass} (value ${info.faceValue}): Z-component ${info.zComponent}`);
+        });
+        
         if (frontmostFace) {
             const finalValue = parseInt(frontmostFace.dataset.faceValue);
             const faceClass = frontmostFace.classList[1];
             
-            console.log(`Frontmost face: ${faceClass} with value ${finalValue} (Z-component: ${maxZ.toFixed(3)})`);
+            console.log(`🎯 Frontmost face: ${faceClass} with value ${finalValue} (Z-component: ${maxZ.toFixed(3)})`);
             console.log('=== Z-DEPTH DETECTION COMPLETE ===');
             
             return Math.max(1, Math.min(6, finalValue));
