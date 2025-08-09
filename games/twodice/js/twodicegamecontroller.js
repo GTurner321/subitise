@@ -839,20 +839,20 @@ class TwoDiceGameController {
         }
     }
 
-    fadeInAllButtons() {
-        if (window.ButtonBar && window.ButtonBar.buttons) {
+fadeInAllButtons() {
+    if (window.ButtonBar && window.ButtonBar.buttons) {
+        window.ButtonBar.buttons.forEach(btn => {
+            btn.style.transition = 'opacity 700ms ease-in-out';
+            btn.style.opacity = '1';
+        });
+        
+        setTimeout(() => {
             window.ButtonBar.buttons.forEach(btn => {
-                btn.style.transition = 'opacity 700ms ease-in-out';
-                btn.style.opacity = '1';
+                btn.style.transition = '';
             });
-            
-            setTimeout(() => {
-                window.ButtonBar.buttons.forEach(btn => {
-                    btn.style.transition = '';
-                });
-            }, 700);
-        }
+        }, 700);
     }
+}
 
     async fadeOutDice() {
         console.log('Starting dice transition');
