@@ -277,6 +277,9 @@
         function applySingleMove(direction) {
             logMove(`Rolling ${direction}...`);
             
+            // Save the current face positions before the move
+            const beforeMove = { ...facePositions };
+            
             // Apply the transform FIRST (with current face numbers showing)
             let newTransform = { x: 0, y: 0 };
             
@@ -288,10 +291,10 @@
                     newTransform = { x: 90, y: 0 };
                     break;
                 case 'left':
-                    newTransform = { x: 0, y: -90 };  // FIXED: was +90
+                    newTransform = { x: 0, y: -90 };
                     break;
                 case 'right':
-                    newTransform = { x: 0, y: 90 };   // FIXED: was -90
+                    newTransform = { x: 0, y: 90 };
                     break;
             }
             
@@ -301,31 +304,64 @@
             
             // Update transform display immediately
             document.getElementById('transformDisplay').textContent = 
-                `Transform: rotateX(${currentTransform.x}°) rotateY(${currentTransform.y}°)`;
+                `Transform: rotateX(${currentTransform.x}°) rotateY(${currentTransform.y}deg)`;
             
             // WAIT for animation to complete, THEN update face positions
             setTimeout(() => {
-                // Now update face positions to match the new orientation
-                switch(direction) {
-                    case 'forward':
-                        rotateFacesForward();
-                        break;
-                    case 'backward':
-                        rotateFacesBackward();
-                        break;
-                    case 'left':
-                        rotateFacesLeft();
-                        break;
-                    case 'right':
-                        rotateFacesRight();
-                        break;
-                }
+                // Calculate what numbers should now be where based on the CSS transform
+                updateFacePositionsAfterTransform(beforeMove, direction);
                 
                 // Update face display after the move completes
                 updateFaceDisplay();
                 logMove(`Result: Face ${facePositions.front} is now on front`);
                 
             }, 500); // Wait for CSS animation to complete
+        }
+        
+        function updateFacePositionsAfterTransform(beforeMove, direction) {
+            // Based on CSS transform, calculate where each number ended up
+            switch(direction) {
+                case 'forward':
+                    // rotateX(-90°): top→front, front→bottom, bottom→back, back→top
+                    facePositions.front = beforeMove.top;
+                    facePositions.bottom = beforeMove.front;
+                    facePositions.back = beforeMove.bottom;
+                    facePositions.top = beforeMove.back;
+                    // left and right unchanged
+                    facePositions.left = beforeMove.left;
+                    facePositions.right = beforeMove.right;
+                    break;
+                case 'backward':
+                    // rotateX(90°): front→top, top→back, back→bottom, bottom→front
+                    facePositions.top = beforeMove.front;
+                    facePositions.back = beforeMove.top;
+                    facePositions.bottom = beforeMove.back;
+                    facePositions.front = beforeMove.bottom;
+                    // left and right unchanged
+                    facePositions.left = beforeMove.left;
+                    facePositions.right = beforeMove.right;
+                    break;
+                case 'left':
+                    // rotateY(-90°): right→front, front→left, left→back, back→right
+                    facePositions.front = beforeMove.right;
+                    facePositions.left = beforeMove.front;
+                    facePositions.back = beforeMove.left;
+                    facePositions.right = beforeMove.back;
+                    // top and bottom unchanged
+                    facePositions.top = beforeMove.top;
+                    facePositions.bottom = beforeMove.bottom;
+                    break;
+                case 'right':
+                    // rotateY(90°): front→right, right→back, back→left, left→front
+                    facePositions.right = beforeMove.front;
+                    facePositions.back = beforeMove.right;
+                    facePositions.left = beforeMove.back;
+                    facePositions.front = beforeMove.left;
+                    // top and bottom unchanged
+                    facePositions.top = beforeMove.top;
+                    facePositions.bottom = beforeMove.bottom;
+                    break;
+            }
         }
         
         function reset() {
