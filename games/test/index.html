@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Dice - Rotation Mapping</title>
+    <title>Corrected Test Dice</title>
     <style>
         body {
             margin: 0;
@@ -40,24 +40,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
             color: white;
             backface-visibility: hidden;
         }
         
+        /* CORRECTED face assignments based on your observations */
         .front { background: #ff6b6b; transform: rotateY(0deg) translateZ(50px); }
         .back { background: #4ecdc4; transform: rotateY(180deg) translateZ(50px); }
-        .right { background: #45b7d1; transform: rotateY(-90deg) translateZ(50px); }
-        .left { background: #f9ca24; transform: rotateY(90deg) translateZ(50px); }
+        .right { background: #45b7d1; transform: rotateY(-90deg) translateZ(50px); }  /* Was 2, testing if should be 5 */
+        .left { background: #f9ca24; transform: rotateY(90deg) translateZ(50px); }   /* Was 5, testing if should be 2 */
         .top { background: #f0932b; transform: rotateX(-90deg) translateZ(50px); }
         .bottom { background: #6c5ce7; transform: rotateX(90deg) translateZ(50px); }
         
         .controls {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
-            max-width: 300px;
+            max-width: 400px;
         }
         
         button {
@@ -83,53 +84,20 @@
             text-align: center;
         }
         
-        .rotation-display {
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .visible-face {
-            font-size: 16px;
-            color: #666;
-        }
-        
-        .test-sequence {
+        .game-test {
             margin-top: 20px;
             padding: 15px;
             background: #e8f4f8;
             border-radius: 10px;
         }
         
-        .test-sequence h3 {
-            margin-top: 0;
-            color: #333;
-        }
-        
-        .test-btn {
+        .game-btn {
             background: #28a745;
             margin: 5px;
         }
         
-        .test-btn:hover {
+        .game-btn:hover {
             background: #1e7e34;
-        }
-        
-        .step-sequence {
-            margin-top: 20px;
-            padding: 15px;
-            background: #fff3cd;
-            border-radius: 10px;
-        }
-        
-        .step-btn {
-            background: #dc3545;
-            margin: 5px;
-        }
-        
-        .step-btn:hover {
-            background: #c82333;
         }
         
         .sequence-log {
@@ -142,69 +110,86 @@
             max-height: 200px;
             overflow-y: auto;
         }
+        
+        .face-test {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 10px;
+        }
+        
+        .face-btn {
+            background: #dc3545;
+            margin: 5px;
+        }
+        
+        .face-btn:hover {
+            background: #c82333;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Test Dice - CSS 3D Rotation Mapping</h1>
+        <h1>Corrected Test Dice - Face Assignment Test</h1>
         
         <div class="dice-container">
             <div class="test-dice" id="testDice">
                 <div class="face front">1<br>FRONT</div>
                 <div class="face back">6<br>BACK</div>
-                <div class="face right">2<br>RIGHT</div>
-                <div class="face left">5<br>LEFT</div>
+                <div class="face right">5<br>RIGHT<br>(Was 2)</div>
+                <div class="face left">2<br>LEFT<br>(Was 5)</div>
                 <div class="face top">3<br>TOP</div>
                 <div class="face bottom">4<br>BOTTOM</div>
             </div>
         </div>
         
         <div class="controls">
-            <button onclick="rotate(90, 0)">+90° X</button>
-            <button onclick="rotate(-90, 0)">-90° X</button>
+            <button onclick="rotate(-90, 0)">X -90° (Forward)</button>
+            <button onclick="rotate(90, 0)">X +90° (Backward)</button>
+            <button onclick="rotate(0, -90)">Y -90° (Right)</button>
+            <button onclick="rotate(0, 90)">Y +90° (Left)</button>
+            
+            <button onclick="rotate(-180, 0)">X -180°</button>
+            <button onclick="rotate(180, 0)">X +180°</button>
+            <button onclick="rotate(0, -180)">Y -180°</button>
+            <button onclick="rotate(0, 180)">Y +180°</button>
+            
             <button onclick="rotate(0, 0)">RESET</button>
-            
-            <button onclick="rotate(0, 90)">+90° Y</button>
-            <button onclick="rotate(0, -90)">-90° Y</button>
-            <button onclick="rotate(180, 0)">180° X</button>
-            
-            <button onclick="rotate(90, 90)">+90° X, +90° Y</button>
-            <button onclick="rotate(90, -90)">+90° X, -90° Y</button>
-            <button onclick="rotate(180, 180)">180° X, 180° Y</button>
+            <button onclick="testSequentialMoves()">Test Sequential</button>
+            <button onclick="testCumulativeMoves()">Test Cumulative</button>
+            <button onclick="logCurrentState()">Log State</button>
         </div>
         
         <div class="info">
-            <div class="rotation-display" id="rotationDisplay">Rotation: X=0°, Y=0°</div>
-            <div class="visible-face" id="visibleFace">Visible Face: 1 (FRONT)</div>
+            <div id="rotationDisplay">Rotation: X=0°, Y=0°</div>
+            <div id="visibleFace">Visible Face: 1 (FRONT)</div>
         </div>
         
-        <div class="test-sequence">
-            <h3>Test Our Game Movements</h3>
-            <button class="test-btn" onclick="testMovement('diagonal-right')">Diagonal Right (X+90°, Y+90°)</button>
-            <button class="test-btn" onclick="testMovement('diagonal-left')">Diagonal Left (X+90°, Y-90°)</button>
-            <button class="test-btn" onclick="testMovement('top-to-bottom')">Top to Bottom (X+90°, Y+0°)</button>
+        <div class="face-test">
+            <h3>Face Assignment Verification</h3>
+            <p>Test if left/right faces are swapped (2 ↔ 5):</p>
+            <button class="face-btn" onclick="testFaceAssignment('left')">Show Left Face (should be 5)</button>
+            <button class="face-btn" onclick="testFaceAssignment('right')">Show Right Face (should be 2)</button>
+            <button class="face-btn" onclick="testFaceAssignment('top')">Show Top Face (should be 3)</button>
+            <button class="face-btn" onclick="testFaceAssignment('bottom')">Show Bottom Face (should be 4)</button>
         </div>
         
-        <div class="step-sequence">
-            <h3>Step-by-Step Game Simulation</h3>
-            <button class="step-btn" onclick="startStepSequence()">Start Game Sequence</button>
-            <button class="step-btn" onclick="addStep(-90, 0)">Add: X=-90° (Forward)</button>
-            <button class="step-btn" onclick="addStep(0, -90)">Add: Y=-90° (Right)</button>
-            <button class="step-btn" onclick="addStep(0, 90)">Add: Y=90° (Left)</button>
-            <button class="step-btn" onclick="resetSequence()">Reset</button>
-            <div class="sequence-log" id="sequenceLog"></div>
+        <div class="game-test">
+            <h3>Game Movement Simulation</h3>
+            <button class="game-btn" onclick="simulateGameMovement('diagonal-right')">Diagonal Right (X-90°, Y-90°)</button>
+            <button class="game-btn" onclick="simulateGameMovement('diagonal-left')">Diagonal Left (X-90°, Y+90°)</button>
+            <button class="game-btn" onclick="simulateGameMovement('top-to-bottom')">Top to Bottom (X-90°)</button>
+            <div class="sequence-log" id="gameLog"></div>
         </div>
     </div>
 
     <script>
         let currentRotX = 0;
         let currentRotY = 0;
-        let stepSequence = [];
         const dice = document.getElementById('testDice');
         
         function rotate(deltaX, deltaY) {
             if (deltaX === 0 && deltaY === 0) {
-                // Reset
                 currentRotX = 0;
                 currentRotY = 0;
             } else {
@@ -213,116 +198,154 @@
             }
             
             dice.style.transform = `rotateX(${currentRotX}deg) rotateY(${currentRotY}deg)`;
-            
-            // Update display
-            document.getElementById('rotationDisplay').textContent = 
-                `Rotation: X=${currentRotX}°, Y=${currentRotY}°`;
-            
-            // Determine visible face (simplified)
+            updateDisplay();
             setTimeout(checkVisibleFace, 600);
         }
         
-        function testMovement(movementName) {
-            rotate(0, 0); // Reset first
-            setTimeout(() => {
-                switch(movementName) {
-                    case 'diagonal-right':
-                        rotate(90, 90);
-                        break;
-                    case 'diagonal-left':
-                        rotate(90, -90);
-                        break;
-                    case 'top-to-bottom':
-                        rotate(90, 0);
-                        break;
-                }
-            }, 100);
-        }
-        
-        // NEW: Step-by-step sequence simulation
-        function startStepSequence() {
-            resetSequence();
-            addLogEntry('🎮 Starting step-by-step game sequence simulation');
-            addLogEntry('Use buttons above to add moves step by step');
-        }
-        
-        function addStep(deltaX, deltaY) {
-            stepSequence.push({deltaX, deltaY});
-            
-            // Apply this step
-            currentRotX += deltaX;
-            currentRotY += deltaY;
-            
-            dice.style.transform = `rotateX(${currentRotX}deg) rotateY(${currentRotY}deg)`;
-            
-            addLogEntry(`Step ${stepSequence.length}: X${deltaX >= 0 ? '+' : ''}${deltaX}° Y${deltaY >= 0 ? '+' : ''}${deltaY}° → Total: X=${currentRotX}° Y=${currentRotY}°`);
-            
-            // Update display
+        function updateDisplay() {
             document.getElementById('rotationDisplay').textContent = 
                 `Rotation: X=${currentRotX}°, Y=${currentRotY}°`;
-            
-            // Check face after each step
-            setTimeout(() => {
-                checkVisibleFace();
-                const visibleText = document.getElementById('visibleFace').textContent;
-                addLogEntry(`   Result: ${visibleText}`);
-            }, 600);
-        }
-        
-        function resetSequence() {
-            stepSequence = [];
-            currentRotX = 0;
-            currentRotY = 0;
-            dice.style.transform = `rotateX(0deg) rotateY(0deg)`;
-            document.getElementById('rotationDisplay').textContent = 'Rotation: X=0°, Y=0°';
-            document.getElementById('sequenceLog').innerHTML = '';
-            setTimeout(checkVisibleFace, 100);
-        }
-        
-        function addLogEntry(text) {
-            const log = document.getElementById('sequenceLog');
-            log.innerHTML += text + '<br>';
-            log.scrollTop = log.scrollHeight;
         }
         
         function checkVisibleFace() {
-            // Simple detection - check which face is most forward
-            const faces = {
-                1: 'FRONT',
-                2: 'RIGHT', 
-                3: 'TOP',
-                4: 'BOTTOM',
-                5: 'LEFT',
-                6: 'BACK'
-            };
-            
-            // Normalize rotations
+            // Based on your observations: X rotations work, Y rotations after X don't change face
             const normX = ((currentRotX % 360) + 360) % 360;
             const normY = ((currentRotY % 360) + 360) % 360;
             
             let visibleFace = 1;
             let faceName = 'FRONT';
             
-            // Basic mapping - extend this based on what you observe
-            if (normX === 0 && normY === 0) {
+            // Primary face determination based on X rotation
+            if (normX === 0) {
                 visibleFace = 1; faceName = 'FRONT';
-            } else if (normX === 90 && normY === 0) {
+            } else if (normX === 90) {
                 visibleFace = 3; faceName = 'TOP';
-            } else if (normX === 180 && normY === 0) {
+            } else if (normX === 180) {
                 visibleFace = 6; faceName = 'BACK';
-            } else if (normX === 270 && normY === 0) {
+            } else if (normX === 270) {
                 visibleFace = 4; faceName = 'BOTTOM';
-            } else if (normX === 0 && normY === 90) {
-                visibleFace = 5; faceName = 'LEFT';
-            } else if (normX === 0 && normY === 270) {
-                visibleFace = 2; faceName = 'RIGHT';
-            } else {
-                // For combinations, you'll need to observe and update
-                visibleFace = '?'; faceName = 'OBSERVE & RECORD';
+            }
+            
+            // Y rotation only matters if X = 0 (front/back axis)
+            if (normX === 0) {
+                if (normY === 90) {
+                    visibleFace = 2; faceName = 'LEFT (Testing: was 5)';  // Swapped for test
+                } else if (normY === 270) {
+                    visibleFace = 5; faceName = 'RIGHT (Testing: was 2)'; // Swapped for test
+                } else if (normY === 180) {
+                    visibleFace = 6; faceName = 'BACK';
+                }
             }
             
             document.getElementById('visibleFace').textContent = 
                 `Visible Face: ${visibleFace} (${faceName})`;
+        }
+        
+        function testFaceAssignment(direction) {
+            rotate(0, 0); // Reset first
+            setTimeout(() => {
+                switch(direction) {
+                    case 'left':
+                        rotate(0, 90);  // Should show face 5 if assignments are correct
+                        break;
+                    case 'right':
+                        rotate(0, -90); // Should show face 2 if assignments are correct
+                        break;
+                    case 'top':
+                        rotate(90, 0);  // Should show face 3
+                        break;
+                    case 'bottom':
+                        rotate(-90, 0); // Should show face 4
+                        break;
+                }
+            }, 100);
+        }
+        
+        function simulateGameMovement(movementType) {
+            const log = document.getElementById('gameLog');
+            log.innerHTML = `<strong>Testing ${movementType}:</strong><br>`;
+            
+            rotate(0, 0); // Reset
+            
+            setTimeout(() => {
+                switch(movementType) {
+                    case 'diagonal-right':
+                        log.innerHTML += 'Step 1: X-90° (forward)<br>';
+                        rotate(-90, 0);
+                        setTimeout(() => {
+                            const face1 = document.getElementById('visibleFace').textContent;
+                            log.innerHTML += `Result: ${face1}<br>`;
+                            log.innerHTML += 'Step 2: Y-90° (right)<br>';
+                            rotate(0, -90);
+                            setTimeout(() => {
+                                const face2 = document.getElementById('visibleFace').textContent;
+                                log.innerHTML += `Final Result: ${face2}<br><br>`;
+                            }, 600);
+                        }, 600);
+                        break;
+                    case 'diagonal-left':
+                        log.innerHTML += 'Step 1: X-90° (forward)<br>';
+                        rotate(-90, 0);
+                        setTimeout(() => {
+                            const face1 = document.getElementById('visibleFace').textContent;
+                            log.innerHTML += `Result: ${face1}<br>`;
+                            log.innerHTML += 'Step 2: Y+90° (left)<br>';
+                            rotate(0, 90);
+                            setTimeout(() => {
+                                const face2 = document.getElementById('visibleFace').textContent;
+                                log.innerHTML += `Final Result: ${face2}<br><br>`;
+                            }, 600);
+                        }, 600);
+                        break;
+                    case 'top-to-bottom':
+                        log.innerHTML += 'Single move: X-90° (forward)<br>';
+                        rotate(-90, 0);
+                        setTimeout(() => {
+                            const face1 = document.getElementById('visibleFace').textContent;
+                            log.innerHTML += `Result: ${face1}<br><br>`;
+                        }, 600);
+                        break;
+                }
+            }, 100);
+        }
+        
+        function testSequentialMoves() {
+            // Test applying moves one at a time vs all at once
+            const log = document.getElementById('gameLog');
+            log.innerHTML = '<strong>Sequential vs Cumulative Test:</strong><br>';
+            
+            // Sequential approach
+            log.innerHTML += 'Sequential: Reset → X-90° → Y-90°<br>';
+            rotate(0, 0);
+            setTimeout(() => {
+                rotate(-90, 0);
+                setTimeout(() => {
+                    const midResult = document.getElementById('visibleFace').textContent;
+                    log.innerHTML += `After X-90°: ${midResult}<br>`;
+                    rotate(0, -90);
+                    setTimeout(() => {
+                        const finalResult = document.getElementById('visibleFace').textContent;
+                        log.innerHTML += `After Y-90°: ${finalResult}<br><br>`;
+                    }, 600);
+                }, 600);
+            }, 100);
+        }
+        
+        function testCumulativeMoves() {
+            // Test applying both moves at once
+            const log = document.getElementById('gameLog');
+            log.innerHTML += 'Cumulative: Reset → X-90° Y-90° (together)<br>';
+            rotate(-90, -90);
+            setTimeout(() => {
+                const result = document.getElementById('visibleFace').textContent;
+                log.innerHTML += `Result: ${result}<br><br>`;
+            }, 600);
+        }
+        
+        function logCurrentState() {
+            const face = document.getElementById('visibleFace').textContent;
+            const rotation = document.getElementById('rotationDisplay').textContent;
+            console.log(`${rotation} → ${face}`);
         }
         
         // Initialize
