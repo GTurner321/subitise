@@ -199,21 +199,41 @@
         const dice = document.getElementById('testDice');
         
         function updateFaceDisplay() {
-            // Update the actual face elements with current numbers
-            document.getElementById('frontFace').textContent = facePositions.front;
-            document.getElementById('backFace').textContent = facePositions.back;
-            document.getElementById('rightFace').textContent = facePositions.right;
-            document.getElementById('leftFace').textContent = facePositions.left;
-            document.getElementById('topFace').textContent = facePositions.top;
-            document.getElementById('bottomFace').textContent = facePositions.bottom;
+            // Force DOM update by setting textContent explicitly
+            const frontEl = document.getElementById('frontFace');
+            const backEl = document.getElementById('backFace');
+            const rightEl = document.getElementById('rightFace');
+            const leftEl = document.getElementById('leftFace');
+            const topEl = document.getElementById('topFace');
+            const bottomEl = document.getElementById('bottomFace');
             
-            // Update display
+            // Update with current face positions
+            frontEl.textContent = facePositions.front;
+            backEl.textContent = facePositions.back;
+            rightEl.textContent = facePositions.right;
+            leftEl.textContent = facePositions.left;
+            topEl.textContent = facePositions.top;
+            bottomEl.textContent = facePositions.bottom;
+            
+            // Force reflow to ensure DOM updates
+            frontEl.offsetHeight;
+            
+            // Update display info
             document.getElementById('currentDisplay').textContent = 
                 `Current Front Face: ${facePositions.front}`;
             document.getElementById('transformDisplay').textContent = 
                 `Transform: rotateX(${currentTransform.x}°) rotateY(${currentTransform.y}°)`;
             document.getElementById('faceMapping').textContent = 
                 `Front: ${facePositions.front} | Back: ${facePositions.back} | Left: ${facePositions.left} | Right: ${facePositions.right} | Top: ${facePositions.top} | Bottom: ${facePositions.bottom}`;
+            
+            // DEBUGGING: Log what we're setting
+            console.log('Updating face display:');
+            console.log(`- Front element gets: ${facePositions.front}`);
+            console.log(`- Back element gets: ${facePositions.back}`);
+            console.log(`- Right element gets: ${facePositions.right}`);
+            console.log(`- Left element gets: ${facePositions.left}`);
+            console.log(`- Top element gets: ${facePositions.top}`);
+            console.log(`- Bottom element gets: ${facePositions.bottom}`);
         }
         
         function rotateFacesForward() {
