@@ -99,20 +99,39 @@ class DiceRenderer {
     }
 
     /**
-     * Get the three "rolling toward user" movements
-     * FIXED: Corrected both X and Y rotation directions
+     * Get the three "rolling toward user" movements as sequential atomic steps
+     * Each diagonal movement is broken into X-90° THEN Y±90°
      */
     getTowardUserMoves() {
         return [
-            { rotX: -90, rotY: -90, name: 'diagonal-right', type: 'diagonal' },   // FIXED: X now -90 (forward)
-            { rotX: -90, rotY: 90, name: 'diagonal-left', type: 'diagonal' },    // FIXED: X now -90 (forward)  
-            { rotX: -90, rotY: 0, name: 'top-to-bottom', type: 'topToBottom' }   // FIXED: X now -90 (forward)
+            { 
+                name: 'diagonal-right', 
+                type: 'diagonal',
+                steps: [
+                    { rotX: -90, rotY: 0 },   // Step 1: Forward
+                    { rotX: 0, rotY: -90 }    // Step 2: Right
+                ]
+            },
+            { 
+                name: 'diagonal-left', 
+                type: 'diagonal',
+                steps: [
+                    { rotX: -90, rotY: 0 },   // Step 1: Forward
+                    { rotX: 0, rotY: 90 }     // Step 2: Left
+                ]
+            },
+            { 
+                name: 'top-to-bottom', 
+                type: 'topToBottom',
+                steps: [
+                    { rotX: -90, rotY: 0 }    // Single step: Forward
+                ]
+            }
         ];
     }
 
     /**
      * Select random movement based on configured probabilities
-     * FIXED: Corrected probability logic
      */
     getRandomTowardUserMove() {
         const moves = this.getTowardUserMoves();
@@ -248,97 +267,93 @@ class DiceRenderer {
     }
 
     /**
-     * Calculate which face is visible by applying transformation matrices step by step
-     * FIXED: Better normalization and expanded mappings
+     * Calculate which face is visible using sequential step-by-step simulation
+     * This matches the order dependency of CSS transforms
      */
-    calculateVisibleFace(rotX, rotY) {
-        // Normalize to 0-360 and round to nearest 90°
-        const normalizedX = ((rotX % 360) + 360) % 360;
-        const normalizedY = ((rotY % 360) + 360) % 360;
-        const roundedX = Math.round(normalizedX / 90) * 90;
-        const roundedY = Math.round(normalizedY / 90) * 90;
-        
-        // Ensure we're in 0-360 range
-        const finalX = roundedX % 360;
-        const finalY = roundedY % 360;
-        
-        console.log(`🔢 Rotation normalization: X=${rotX}° → ${finalX}°, Y=${rotY}° → ${finalY}°`);
-        
-        // Direct mapping for known combinations
-        const combinationMap = {
-            // Basic single-axis rotations
-            '0-0': 1,      // front
-            '90-0': 4,     // bottom  
-            '180-0': 6,    // back 
-            '270-0': 3,    // top
-            '0-90': 5,     // left 
-            '0-180': 6,    // back (180° Y)
-            '0-270': 2,    // right 
-            
-            // Diagonal combinations (-90° X becomes 270°, -90° Y becomes 270°)
-            '270-270': 4,  // diagonal-right: X=-90°, Y=-90° → FIXED: bottom face (was 3)
-            '270-90': 3,   // diagonal-left: X=-90°, Y=90° → top face  
-            '270-0': 3,    // top-to-bottom: X=-90°, Y=0° → top face
-            
-            // More combinations for cumulative rotations
-            '180-90': 5,   // back + left
-            '180-180': 1,  // back + back = front
-            '180-270': 2,  // back + right
-            '90-90': 4,    // bottom + left
-            '90-180': 4,   // bottom + back  
-            '90-270': 4,   // bottom + right
+    calculateVisibleFace(totalRotX, totalRotY) {
+        // This method is now deprecated - we use step-by-step simulation instead
+        console.warn('⚠️ calculateVisibleFace() is deprecated - use simulateSequenceSteps() instead');
+        return 1;
+    }
+
+    /**
+     * Simulate a sequence of moves using step-by-step face position tracking
+     */
+    simulateSequenceSteps(sequence) {
+        // Start with initial face positions
+        let facePositions = {
+            front: 1, back: 6, left: 5, right: 2, top: 3, bottom: 4
         };
+
+        console.log(`🔍 === SEQUENTIAL SIMULATION (${sequence.length} moves) ===`);
+        console.log(`Initial: Front=${facePositions.front}, Top=${facePositions.top}, Right=${facePositions.right}`);
+
+        let totalSteps = 0;
+
+        // Process each move in the sequence
+        sequence.forEach((move, moveIndex) => {
+            console.log(`\n📝 Move ${moveIndex + 1}: ${move.name} (${move.steps.length} steps)`);
+            
+            // Execute each atomic step within this move
+            move.steps.forEach((step, stepIndex) => {
+                totalSteps++;
+                const beforeStep = { ...facePositions };
+                
+                // Apply this single atomic transformation
+                facePositions = this.applyAtomicTransform(facePositions, step.rotX, step.rotY);
+                
+                console.log(`  Step ${stepIndex + 1}: rotX=${step.rotX}° rotY=${step.rotY}° → Front=${facePositions.front}`);
+            });
+        });
+
+        console.log(`\n✅ Simulation complete: ${sequence.length} moves, ${totalSteps} atomic steps`);
+        console.log(`Final result: Front=${facePositions.front}`);
         
-        const key = `${finalX}-${finalY}`;
-        const directResult = combinationMap[key];
-        
-        if (directResult) {
-            console.log(`✅ Direct mapping: ${key} → Face ${directResult}`);
-            return directResult;
+        return facePositions.front;
+    }
+
+    /**
+     * Apply a single atomic transformation (X±90° OR Y±90°, never both)
+     */
+    applyAtomicTransform(facePositions, rotX, rotY) {
+        const newPositions = { ...facePositions };
+
+        if (rotX !== 0 && rotY !== 0) {
+            console.error('❌ Invalid atomic transform: both X and Y rotations provided');
+            return facePositions;
         }
-        
-        // Fall back to matrix calculation for unknown combinations
-        console.log(`⚠️ Using matrix fallback for X=${rotX}° Y=${rotY}° (normalized: ${finalX}-${finalY})`);
-        
-        const faceNormals = {
-            1: [0, 0, 1],    // front
-            6: [0, 0, -1],   // back  
-            2: [1, 0, 0],    // right
-            5: [-1, 0, 0],   // left
-            3: [0, 1, 0],    // top
-            4: [0, -1, 0]    // bottom
-        };
-        
-        let currentNormals = {};
-        for (const [face, normal] of Object.entries(faceNormals)) {
-            currentNormals[face] = [...normal];
+
+        if (rotX === -90) {
+            // Forward roll: top→front, front→bottom, bottom→back, back→top
+            newPositions.front = facePositions.top;
+            newPositions.bottom = facePositions.front;
+            newPositions.back = facePositions.bottom;
+            newPositions.top = facePositions.back;
+            // left and right unchanged
+        } else if (rotX === 90) {
+            // Backward roll: front→top, top→back, back→bottom, bottom→front
+            newPositions.top = facePositions.front;
+            newPositions.back = facePositions.top;
+            newPositions.bottom = facePositions.back;
+            newPositions.front = facePositions.bottom;
+            // left and right unchanged
+        } else if (rotY === -90) {
+            // Right roll: right→front, front→left, left→back, back→right
+            newPositions.front = facePositions.right;
+            newPositions.left = facePositions.front;
+            newPositions.back = facePositions.left;
+            newPositions.right = facePositions.back;
+            // top and bottom unchanged
+        } else if (rotY === 90) {
+            // Left roll: front→right, right→back, back→left, left→front
+            newPositions.right = facePositions.front;
+            newPositions.back = facePositions.right;
+            newPositions.left = facePositions.back;
+            newPositions.front = facePositions.left;
+            // top and bottom unchanged
         }
-        
-        // Apply X rotations in 90° increments
-        const xSteps = Math.round(rotX / 90);
-        for (let i = 0; i < Math.abs(xSteps); i++) {
-            currentNormals = this.applyXRotation90(currentNormals, xSteps > 0);
-        }
-        
-        // Apply Y rotations in 90° increments  
-        const ySteps = Math.round(rotY / 90);
-        for (let i = 0; i < Math.abs(ySteps); i++) {
-            currentNormals = this.applyYRotation90(currentNormals, ySteps > 0);
-        }
-        
-        // Find face with highest Z-component
-        let frontFace = 1;
-        let maxZ = -Infinity;
-        
-        for (const [face, normal] of Object.entries(currentNormals)) {
-            const zComponent = normal[2];
-            if (zComponent > maxZ) {
-                maxZ = zComponent;
-                frontFace = parseInt(face);
-            }
-        }
-        
-        return frontFace;
+
+        return newPositions;
     }
     
     /**
