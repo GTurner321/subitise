@@ -242,21 +242,27 @@ class DiceRenderer {
 
     /**
      * Calculate which face is visible by applying transformation matrices step by step
-     * This matches how the actual 3D CSS transforms work
+     * FIXED: Align face normals with actual CSS 3D cube orientation
      */
     calculateVisibleFace(rotX, rotY) {
-        // Start with initial face directions (normal vectors pointing outward from cube center)
+        // Start with face normals that match the actual CSS 3D cube setup
+        // Based on Z-depth detection showing top face has highest Z-component
         const faceNormals = {
-            1: [0, 0, 1],    // front: points toward +Z
+            1: [0, 0, 1],    // front: points toward +Z (default front face)
             6: [0, 0, -1],   // back: points toward -Z  
             2: [1, 0, 0],    // right: points toward +X
             5: [-1, 0, 0],   // left: points toward -X
-            3: [0, 1, 0],    // top: points toward +Y
+            3: [0, 1, 0],    // top: points toward +Y (matches Z-depth showing top face visible)
             4: [0, -1, 0]    // bottom: points toward -Y
         };
         
         // Apply cumulative rotations by breaking them into 90° steps
-        let currentNormals = { ...faceNormals };
+        let currentNormals = {};
+        
+        // Deep copy the initial normals
+        for (const [face, normal] of Object.entries(faceNormals)) {
+            currentNormals[face] = [...normal];
+        }
         
         // Apply X rotations in 90° increments
         const xSteps = Math.round(rotX / 90);
@@ -280,6 +286,15 @@ class DiceRenderer {
                 maxZ = zComponent;
                 frontFace = parseInt(face);
             }
+        }
+        
+        // DEBUG: Log the calculation for verification
+        if (rotX === 1530 && rotY === -90) {
+            console.log('🔍 MATRIX DEBUG for X=1530° Y=-90°:');
+            for (const [face, normal] of Object.entries(currentNormals)) {
+                console.log(`  Face ${face}: normal [${normal.map(n => n.toFixed(1)).join(', ')}] Z=${normal[2].toFixed(3)}`);
+            }
+            console.log(`  → Predicted frontmost face: ${frontFace} (Z=${maxZ.toFixed(3)})`);
         }
         
         return frontFace;
