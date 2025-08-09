@@ -4,13 +4,13 @@ class TwoDiceGameController {
         this.diceRenderer = new DiceRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
-        this.stats = new TwoDiceStats(); // Initialize stats tracking
+        this.stats = new TwoDiceStats();
         
         // Game state
         this.questionsCompleted = 0;
         this.gameComplete = false;
         
-        // Current question state - will be set after dice roll
+        // Current question state
         this.currentLeftValue = 0;
         this.currentRightValue = 0;
         this.currentTotal = 0;
@@ -41,6 +41,11 @@ class TwoDiceGameController {
         this.initializationComplete = false;
         this.buttonBarReady = false;
         this.gameAreaReady = false;
+        
+        // Level system
+        this.currentLevel = CONFIG.LEVEL_SYSTEM.STARTING_LEVEL;
+        this.usedSumsThisRound = new Set();
+        this.roundQuestionCount = 0;
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
@@ -74,6 +79,8 @@ class TwoDiceGameController {
         this.initializeEventListeners();
         this.setupVisibilityHandling();
         this.waitForSystemsAndInitialize();
+        
+        console.log(`🎮 Game started at ${this.currentLevel}: ${CONFIG.LEVEL_SYSTEM[this.currentLevel].description}`);
     }
 
     /**
@@ -82,10 +89,7 @@ class TwoDiceGameController {
     waitForSystemsAndInitialize() {
         console.log('🎲 Checking system readiness...');
         
-        // Check if ButtonBar is available and functional
         const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
-        
-        // Check if game area containers exist
         const gameAreaReady = this.gameArea && this.leftSide && this.rightSide && this.sumRow;
         
         if (buttonBarReady && gameAreaReady) {
@@ -93,13 +97,9 @@ class TwoDiceGameController {
             this.buttonBarReady = true;
             this.gameAreaReady = true;
             
-            // Create buttons first - this will trigger game area margin/sizing changes
             this.createButtons();
-            
-            // Set up ButtonBar coordination for CSS custom properties
             this.setupButtonBarCoordination();
             
-            // Wait for ButtonBar to fully coordinate with game area
             setTimeout(() => {
                 console.log('🎲 ButtonBar coordination complete, initializing game');
                 this.initializeGame();
@@ -113,7 +113,6 @@ class TwoDiceGameController {
     }
 
     setupButtonBarCoordination() {
-        // Register with ButtonBar to be notified of dimension changes
         if (window.ButtonBar) {
             window.ButtonBar.addObserver((dimensionData) => {
                 console.log('🎯 ButtonBar dimensions updated:', dimensionData);
@@ -128,13 +127,10 @@ class TwoDiceGameController {
             return;
         }
         
-        // Force a reflow to ensure we get accurate dimensions
         this.gameArea.offsetHeight;
         
-        // Get the actual game area dimensions after ButtonBar has set them
         const gameAreaRect = this.gameArea.getBoundingClientRect();
         
-        // Validate that we have reasonable dimensions
         if (gameAreaRect.width < 100 || gameAreaRect.height < 100) {
             console.warn('⚠️ Game area dimensions seem too small, retrying...', gameAreaRect);
             setTimeout(() => {
@@ -143,18 +139,13 @@ class TwoDiceGameController {
             return;
         }
         
-        // CRITICAL FIX: Update CSS custom property with actual game area width in pixels
         document.documentElement.style.setProperty('--game-area-width', `${gameAreaRect.width}px`);
         
         console.log('📏 Game area dimensions updated and CSS custom property set:', gameAreaRect.width, 'px');
         
-        // Force a style recalculation for all elements using CSS custom properties
         this.forceStyleRecalculation();
     }
     
-    /**
-     * Force recalculation of styles for elements that depend on --game-area-width
-     */
     forceStyleRecalculation() {
         const elementsToUpdate = [
             document.querySelector('.plus-sign'),
@@ -166,10 +157,9 @@ class TwoDiceGameController {
         
         elementsToUpdate.forEach(element => {
             if (element) {
-                // Force recalculation by temporarily changing and restoring a property
                 const originalDisplay = element.style.display;
                 element.style.display = 'none';
-                element.offsetHeight; // Trigger reflow
+                element.offsetHeight;
                 element.style.display = originalDisplay;
             }
         });
@@ -180,17 +170,14 @@ class TwoDiceGameController {
     initializeGame() {
         console.log('🎲 Starting game initialization with loading sequence');
         
-        // Hide all elements initially (except ButtonBar)
         this.hideGameElements();
         
-        // Wait for elements to be hidden, then start fade-in
         setTimeout(() => {
             console.log('🎲 Starting fade-in sequence');
             this.showGameElements();
             this.isLoading = false;
             this.initializationComplete = true;
             
-            // Start the first question after fade-in completes
             setTimeout(() => {
                 this.startNewQuestion();
             }, 1000);
@@ -199,13 +186,11 @@ class TwoDiceGameController {
     }
 
     hideGameElements() {
-        // Hide game area and sum row (but NOT button bar)
         if (this.gameArea) this.gameArea.classList.remove('loaded');
         if (this.sumRow) this.sumRow.classList.remove('loaded');
     }
 
     showGameElements() {
-        // Fade in game area and sum row (ButtonBar handles its own timing)
         if (this.gameArea) {
             this.gameArea.classList.add('loaded');
         }
@@ -218,7 +203,6 @@ class TwoDiceGameController {
     }
 
     createButtons() {
-        // Create button colors and numbers arrays for 1-12
         const colors = [
             '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
             '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894',
@@ -226,18 +210,16 @@ class TwoDiceGameController {
         ];
         const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         
-        // Use the universal button bar system
         if (window.ButtonBar && this.buttonBarReady) {
             window.ButtonBar.create(
-                12,                    // number of buttons (1-12 for dice sums)
-                6.7,                   // button width as % of button panel width (12 × 6.7% + 11 × 1.5% = 96.9%)
-                6.7,                   // button height as % of button panel width (square buttons)
-                colors,                // array of button colors
-                numbers,               // array of button numbers/labels
-                (selectedNumber, buttonElement) => {  // click handler
+                12,
+                6.7,
+                6.7,
+                colors,
+                numbers,
+                (selectedNumber, buttonElement) => {
                     if (this.buttonsDisabled || !this.initializationComplete) return;
                     
-                    // Clear inactivity timer on user interaction
                     this.clearInactivityTimer();
                     this.startInactivityTimer();
                     
@@ -251,18 +233,15 @@ class TwoDiceGameController {
     }
 
     setupVisibilityHandling() {
-        // Handle tab visibility changes
         document.addEventListener('visibilitychange', () => {
             this.isTabVisible = !document.hidden;
             
             if (!this.isTabVisible) {
-                // Tab is hidden - stop all audio and clear timers
                 this.clearInactivityTimer();
                 if (window.AudioSystem) {
                     window.AudioSystem.stopAllAudio();
                 }
             } else {
-                // Tab is visible again - restart inactivity timer if game is active
                 if (!this.gameComplete && !this.buttonsDisabled && this.initializationComplete) {
                     this.startInactivityTimer();
                 }
@@ -289,7 +268,6 @@ class TwoDiceGameController {
     }
 
     startInactivityTimer() {
-        // Only start timer if tab is visible, game is initialized, and hint hasn't been given
         if (!this.isTabVisible || this.hintGiven || !this.initializationComplete) {
             return;
         }
@@ -318,17 +296,15 @@ class TwoDiceGameController {
     giveInactivityHint() {
         if (this.buttonsDisabled || this.gameComplete || !this.isTabVisible || !this.initializationComplete) return;
         
-        // Mark that hint has been given for this question
         this.hintGiven = true;
         
-        // Determine which hint to give based on current flashing box
         let hintText = '';
         if (!this.leftFilled) {
-            hintText = 'Count the dots on the left dice';
+            hintText = CONFIG.AUDIO.MESSAGES.HINT_LEFT_DICE;
         } else if (!this.rightFilled) {
-            hintText = 'Count the dots on the right dice';
+            hintText = CONFIG.AUDIO.MESSAGES.HINT_RIGHT_DICE;
         } else if (!this.totalFilled) {
-            hintText = 'Add the two dice numbers together';
+            hintText = CONFIG.AUDIO.MESSAGES.HINT_TOTAL;
         }
         
         if (hintText) {
@@ -341,17 +317,14 @@ class TwoDiceGameController {
             this.startNewGame();
         });
 
-        // Add keyboard event listener
         document.addEventListener('keydown', (e) => {
             if (this.buttonsDisabled || this.gameComplete || !this.initializationComplete) {
                 return;
             }
             
-            // Handle number keys 0-9
             if (e.key >= '0' && e.key <= '9') {
                 e.preventDefault();
                 
-                // Clear inactivity timer on user interaction
                 this.clearInactivityTimer();
                 this.startInactivityTimer();
                 
@@ -360,14 +333,12 @@ class TwoDiceGameController {
             }
         });
 
-        // Setup cleanup when user navigates away
         window.addEventListener('beforeunload', () => {
             this.destroy();
         });
     }
 
     handleKeyboardDigit(digit) {
-        // Handle two-digit numbers 10, 11, 12
         if (this.keyboardBuffer === '1' && (digit === 0 || digit === 1 || digit === 2)) {
             this.clearKeyboardTimer();
             const number = parseInt('1' + digit);
@@ -380,13 +351,11 @@ class TwoDiceGameController {
         this.clearKeyboardTimer();
         
         if (digit === 1) {
-            // Check if 1 is a valid answer first
             if (this.isDigitValidAnswer(1)) {
                 this.handleNumberClick(1, null);
                 return;
             }
             
-            // If 1 is not valid but 10, 11, or 12 could be valid, wait for second digit
             if (this.isDigitValidAnswer(10) || this.isDigitValidAnswer(11) || this.isDigitValidAnswer(12)) {
                 this.keyboardBuffer = '1';
                 this.keyboardTimer = setTimeout(() => {
@@ -397,7 +366,6 @@ class TwoDiceGameController {
             }
         }
         
-        // Handle normal single digit input
         if (digit >= 1 && digit <= 9) {
             this.handleNumberClick(digit, null);
         }
@@ -410,6 +378,68 @@ class TwoDiceGameController {
         return false;
     }
 
+    /**
+     * Generate target values based on current level
+     */
+    generateTargetValues() {
+        const levelConfig = CONFIG.LEVEL_SYSTEM[this.currentLevel];
+        const range = levelConfig.diceRange;
+        
+        for (let attempt = 0; attempt < CONFIG.LEVEL_SYSTEM.MAX_SUM_GENERATION_ATTEMPTS; attempt++) {
+            // Pick random values from the level's range
+            const leftValue = range[Math.floor(Math.random() * range.length)];
+            const rightValue = range[Math.floor(Math.random() * range.length)];
+            const total = leftValue + rightValue;
+            
+            // Check if this sum has been used this round
+            if (!this.usedSumsThisRound.has(total)) {
+                this.usedSumsThisRound.add(total);
+                console.log(`🎯 Generated targets: Left=${leftValue}, Right=${rightValue}, Total=${total} (${this.currentLevel})`);
+                console.log(`📝 Used sums this round: [${Array.from(this.usedSumsThisRound).sort((a,b) => a-b).join(', ')}]`);
+                return { leftValue, rightValue, total };
+            }
+        }
+        
+        // Fallback: allow repeat
+        const leftValue = range[Math.floor(Math.random() * range.length)];
+        const rightValue = range[Math.floor(Math.random() * range.length)];
+        const total = leftValue + rightValue;
+        this.usedSumsThisRound.add(total);
+        
+        console.warn(`⚠️ Allowing repeat sum ${total} after ${CONFIG.LEVEL_SYSTEM.MAX_SUM_GENERATION_ATTEMPTS} attempts`);
+        return { leftValue, rightValue, total };
+    }
+
+    /**
+     * Update level based on question result
+     */
+    updateLevel(wasCorrectFirstAttempt) {
+        const levels = ['L1', 'L2', 'L3'];
+        const currentIndex = levels.indexOf(this.currentLevel);
+        
+        if (wasCorrectFirstAttempt && currentIndex < levels.length - 1) {
+            // Level up
+            this.currentLevel = levels[currentIndex + 1];
+            console.log(`📈 Level up to ${this.currentLevel}: ${CONFIG.LEVEL_SYSTEM[this.currentLevel].description}`);
+            
+            if (CONFIG.AUDIO.MESSAGES.LEVEL_UP && this.isTabVisible) {
+                setTimeout(() => {
+                    this.speakText(CONFIG.AUDIO.MESSAGES.LEVEL_UP);
+                }, 1500);
+            }
+        } else if (!wasCorrectFirstAttempt && currentIndex > 0) {
+            // Level down
+            this.currentLevel = levels[currentIndex - 1];
+            console.log(`📉 Level down to ${this.currentLevel}: ${CONFIG.LEVEL_SYSTEM[this.currentLevel].description}`);
+            
+            if (CONFIG.AUDIO.MESSAGES.LEVEL_DOWN && this.isTabVisible) {
+                setTimeout(() => {
+                    this.speakText(CONFIG.AUDIO.MESSAGES.LEVEL_DOWN);
+                }, 1500);
+            }
+        }
+    }
+
     startNewGame() {
         this.questionsCompleted = 0;
         this.gameComplete = false;
@@ -417,15 +447,20 @@ class TwoDiceGameController {
         this.clearKeyboardTimer();
         this.resetBoxState();
         
+        // Reset level system for new game
+        this.currentLevel = CONFIG.LEVEL_SYSTEM.STARTING_LEVEL;
+        this.usedSumsThisRound = new Set();
+        this.roundQuestionCount = 0;
+        
         this.rainbow.reset();
         this.bear.reset();
         this.diceRenderer.reset();
         this.modal.classList.add('hidden');
         this.hideAllInputBoxes();
         
-        // Keep initialization flags - systems should stay ready
         this.initializationComplete = true;
         
+        console.log(`🔄 New game started at ${this.currentLevel}`);
         this.startNewQuestion();
     }
 
@@ -492,14 +527,25 @@ class TwoDiceGameController {
 
         this.resetBoxState();
         this.hideAllInputBoxes();
-
-        // Reset hint tracking for new question
         this.hintGiven = false;
 
-        console.log(`Starting question ${this.questionsCompleted + 1}`);
+        // Check if we need to start a new round
+        if (this.roundQuestionCount >= CONFIG.RAINBOW_PIECES) {
+            this.usedSumsThisRound.clear();
+            this.roundQuestionCount = 0;
+            console.log('🆕 Starting new round - cleared used sums');
+        }
+
+        console.log(`Starting question ${this.questionsCompleted + 1} (round question ${this.roundQuestionCount + 1})`);
         
         this.resetButtonStates();
         this.giveStartingInstruction();
+        
+        // Generate target values based on current level
+        const targets = this.generateTargetValues();
+        this.currentLeftValue = targets.leftValue;
+        this.currentRightValue = targets.rightValue;
+        this.currentTotal = targets.total;
         
         // Disable buttons during dice roll
         this.buttonsDisabled = true;
@@ -508,18 +554,11 @@ class TwoDiceGameController {
         }
         
         try {
-            // Roll dice - this will return the actual values based on face reading
-            const result = await this.diceRenderer.rollDice();
+            // Roll dice with target values
+            const result = await this.diceRenderer.rollDice(this.currentLeftValue, this.currentRightValue);
             
-            // DEBUGGING: Log the exact values returned by dice renderer
             console.log('🎲 DICE RENDERER RETURNED:', result);
-            
-            // Set our target values based on what the dice actually show
-            this.currentLeftValue = result.left;
-            this.currentRightValue = result.right;
-            this.currentTotal = result.total;
-            
-            console.log(`🎯 GAME CONTROLLER SET: Left=${this.currentLeftValue}, Right=${this.currentRightValue}, Total=${this.currentTotal}`);
+            console.log(`🎯 TARGET vs ACTUAL: Target(${this.currentLeftValue}, ${this.currentRightValue}) vs Actual(${result.left}, ${result.right})`);
             
             // Enable buttons and show input boxes
             this.buttonsDisabled = false;
@@ -534,11 +573,7 @@ class TwoDiceGameController {
             
         } catch (error) {
             console.error('Error rolling dice:', error);
-            // Fallback with random values
-            this.currentLeftValue = Math.floor(Math.random() * 6) + 1;
-            this.currentRightValue = Math.floor(Math.random() * 6) + 1;
-            this.currentTotal = this.currentLeftValue + this.currentRightValue;
-            
+            // Fallback with the target values
             this.buttonsDisabled = false;
             if (window.ButtonBar) {
                 window.ButtonBar.setButtonsEnabled(true);
@@ -546,7 +581,6 @@ class TwoDiceGameController {
             this.showInputBoxes();
             this.startInactivityTimer();
             
-            // Start question timer for stats tracking
             this.stats.startQuestionTimer();
         }
     }
@@ -555,13 +589,15 @@ class TwoDiceGameController {
         if (!this.isTabVisible || !this.initializationComplete) return;
         
         setTimeout(() => {
+            let message;
             if (this.questionsCompleted === 0) {
-                this.speakText('Watch the dice roll and complete the three numbers in the addition sum.');
+                message = CONFIG.AUDIO.MESSAGES.FIRST_QUESTION;
             } else if (this.questionsCompleted === 1) {
-                this.speakText('Try again and complete the sum');
+                message = CONFIG.AUDIO.MESSAGES.SECOND_QUESTION;
             } else {
-                this.speakText('Complete the sum');
+                message = CONFIG.AUDIO.MESSAGES.CONTINUE_QUESTION;
             }
+            this.speakText(message);
         }, 500);
     }
 
@@ -592,6 +628,7 @@ class TwoDiceGameController {
         this.clearKeyboardTimer();
         
         let correctAnswer = false;
+        const wasFirstAttempt = !this.hasAttemptedAnswer();
         
         if (!this.leftFilled && selectedNumber === this.currentLeftValue) {
             this.fillBox('left', selectedNumber, buttonElement);
@@ -606,31 +643,25 @@ class TwoDiceGameController {
         
         // Record stats for this question attempt
         if (correctAnswer) {
-            // Check if this is the first attempt on this question
-            const isFirstAttempt = !this.hasAttemptedAnswer();
-            this.stats.recordQuestionAttempt(isFirstAttempt);
+            this.stats.recordQuestionAttempt(wasFirstAttempt);
             this.checkQuestionCompletion();
         } else {
-            // This is an incorrect answer, so definitely not first attempt success
             this.stats.recordQuestionAttempt(false);
             this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
 
     fillBox(boxType, selectedNumber, buttonElement) {
-        // Find button element if not provided (for keyboard input)
         if (!buttonElement && window.ButtonBar) {
             buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
         }
         
-        // Flash green on correct answer
         if (buttonElement && window.ButtonBar) {
             window.ButtonBar.animateButton(buttonElement, 'correct');
         }
 
         this.playCompletionSound();
 
-        // Create celebration stars
         if (buttonElement) {
             this.createCelebrationStars(buttonElement);
         }
@@ -656,12 +687,10 @@ class TwoDiceGameController {
                 break;
         }
 
-        // Check if this was the final box
         const boxesFilledBefore = [this.leftFilled, this.rightFilled, this.totalFilled].filter(Boolean).length - 1;
         const wasLastBox = boxesFilledBefore === 2;
         
         if (wasLastBox) {
-            // Final box filled - disable buttons
             this.buttonsDisabled = true;
             if (window.ButtonBar) {
                 window.ButtonBar.setButtonsEnabled(false);
@@ -669,7 +698,6 @@ class TwoDiceGameController {
             console.log('🔒 Final box filled - buttons disabled');
         }
 
-        // Update flashing if not the final box
         if (!wasLastBox) {
             this.updateFlashingBoxes();
         }
@@ -701,14 +729,19 @@ class TwoDiceGameController {
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}`);
             
-            const encouragements = ['Well done!', 'Excellent!', 'Perfect!'];
+            // Determine if this was answered correctly on first attempt for level progression
+            const wasCorrectFirstAttempt = !this.hasAttemptedAnswer();
+            this.updateLevel(wasCorrectFirstAttempt);
+            
+            // Random encouragement
+            const encouragements = CONFIG.AUDIO.MESSAGES.CORRECT_ANSWERS;
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             this.speakText(randomEncouragement);
             
             this.questionsCompleted++;
+            this.roundQuestionCount++;
             
             if (this.rainbow.isComplete()) {
-                // Record round completion for stats
                 this.stats.recordRoundCompletion();
                 
                 setTimeout(() => {
@@ -724,7 +757,6 @@ class TwoDiceGameController {
     }
 
     handleIncorrectAnswer(buttonElement, selectedNumber) {
-        // Find button element if not provided (for keyboard input)
         if (!buttonElement && selectedNumber && window.ButtonBar) {
             buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
         }
@@ -735,7 +767,7 @@ class TwoDiceGameController {
         
         if (this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Try again');
+                this.speakText(CONFIG.AUDIO.MESSAGES.INCORRECT_ANSWER);
             }, 800);
         }
         
@@ -746,12 +778,10 @@ class TwoDiceGameController {
         
         this.stopFlashing();
         
-        // Flash red on the clicked button
         if (buttonElement && window.ButtonBar) {
             window.ButtonBar.animateButton(buttonElement, 'incorrect');
         }
 
-        // Add cross overlay
         let crossOverlay = null;
         if (buttonElement && window.ButtonBar) {
             crossOverlay = window.ButtonBar.addCrossOverlay(buttonElement);
@@ -761,7 +791,6 @@ class TwoDiceGameController {
             buttonElement.dataset.attempted = 'true';
         }
         
-        // Fade other buttons
         this.fadeOtherButtons(buttonElement);
 
         setTimeout(() => {
@@ -860,7 +889,7 @@ class TwoDiceGameController {
         
         if (this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Well done! You\'re on a roll! Try again or return to the home page.');
+                this.speakText(CONFIG.AUDIO.MESSAGES.GAME_COMPLETE);
             }, 1000);
         }
     }
@@ -914,7 +943,6 @@ class TwoDiceGameController {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         
-        // Clear stats update interval
         if (this.statsUpdateInterval) {
             clearInterval(this.statsUpdateInterval);
         }
@@ -923,7 +951,6 @@ class TwoDiceGameController {
             window.AudioSystem.stopAllAudio();
         }
         
-        // Cleanup stats tracking
         if (this.stats) {
             this.stats.destroy();
         }
