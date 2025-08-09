@@ -3,89 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dice Transform Test</title>
-    <link rel="stylesheet" href="dicetestmain.css">
+    <title>Test Dice - Rotation Mapping</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .dice-container {
+            perspective: 1000px;
+            margin: 20px;
+        }
+        
+        .test-dice {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+        
+        .face {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            backface-visibility: hidden;
+        }
+        
+        .front { background: #ff6b6b; transform: rotateY(0deg) translateZ(50px); }
+        .back { background: #4ecdc4; transform: rotateY(180deg) translateZ(50px); }
+        .right { background: #45b7d1; transform: rotateY(-90deg) translateZ(50px); }
+        .left { background: #f9ca24; transform: rotateY(90deg) translateZ(50px); }
+        .top { background: #f0932b; transform: rotateX(-90deg) translateZ(50px); }
+        .bottom { background: #6c5ce7; transform: rotateX(90deg) translateZ(50px); }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 300px;
+        }
+        
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .rotation-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .visible-face {
+            font-size: 16px;
+            color: #666;
+        }
+        
+        .test-sequence {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4f8;
+            border-radius: 10px;
+        }
+        
+        .test-sequence h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .test-btn {
+            background: #28a745;
+            margin: 5px;
+        }
+        
+        .test-btn:hover {
+            background: #1e7e34;
+        }
+    </style>
 </head>
 <body>
-    <div class="test-container">
-        <h1>Dice Transform Test</h1>
-        <p>This test systematically checks each dice face transform to identify incorrect positioning.</p>
+    <div class="container">
+        <h1>Test Dice - CSS 3D Rotation Mapping</h1>
+        
+        <div class="dice-container">
+            <div class="test-dice" id="testDice">
+                <div class="face front">1<br>FRONT</div>
+                <div class="face back">6<br>BACK</div>
+                <div class="face right">2<br>RIGHT</div>
+                <div class="face left">5<br>LEFT</div>
+                <div class="face top">3<br>TOP</div>
+                <div class="face bottom">4<br>BOTTOM</div>
+            </div>
+        </div>
         
         <div class="controls">
-            <button id="startTest">Start Face Transform Test</button>
-            <button id="clearResults">Clear Results</button>
+            <button onclick="rotate(90, 0)">+90° X</button>
+            <button onclick="rotate(-90, 0)">-90° X</button>
+            <button onclick="rotate(0, 0)">RESET</button>
+            
+            <button onclick="rotate(0, 90)">+90° Y</button>
+            <button onclick="rotate(0, -90)">-90° Y</button>
+            <button onclick="rotate(180, 0)">180° X</button>
+            
+            <button onclick="rotate(90, 90)">+90° X, +90° Y</button>
+            <button onclick="rotate(90, -90)">+90° X, -90° Y</button>
+            <button onclick="rotate(180, 180)">180° X, 180° Y</button>
         </div>
         
-        <div class="test-area">
-            <div class="dice-container" id="diceContainer">
-                <!-- Test dice will be placed here -->
-            </div>
+        <div class="info">
+            <div class="rotation-display" id="rotationDisplay">Rotation: X=0°, Y=0°</div>
+            <div class="visible-face" id="visibleFace">Visible Face: 1 (FRONT)</div>
         </div>
         
-        <div class="results">
-            <h2>Test Results</h2>
-            <div id="resultsLog">
-                <p>Click "Start Face Transform Test" to begin testing each face orientation.</p>
-            </div>
-        </div>
-        
-        <div class="instructions">
-            <h3>How to Use This Test:</h3>
-            <ol>
-                <li>Click "Start Face Transform Test"</li>
-                <li>The test will cycle through 6 face orientations</li>
-                <li>For each orientation, check:
-                    <ul>
-                        <li>Which face the algorithm detects (shown in results)</li>
-                        <li>What dots you visually see on the dice</li>
-                        <li>Whether they match</li>
-                    </ul>
-                </li>
-                <li>Results will show any mismatches between expected and detected faces</li>
-            </ol>
+        <div class="test-sequence">
+            <h3>Test Our Game Movements</h3>
+            <button class="test-btn" onclick="testMovement('diagonal-right')">Diagonal Right (X+90°, Y+90°)</button>
+            <button class="test-btn" onclick="testMovement('diagonal-left')">Diagonal Left (X+90°, Y-90°)</button>
+            <button class="test-btn" onclick="testMovement('top-to-bottom')">Top to Bottom (X+90°, Y+0°)</button>
         </div>
     </div>
-    
-    <!-- Copy CONFIG from main game -->
+
     <script>
-        // Two Dice Game configuration settings - copied for testing
-        const CONFIG = {
-            // Dice face patterns (dots for each number 1-6)
-            DICE_FACES: {
-                1: [
-                    [0, 0, 0],
-                    [0, 1, 0],
-                    [0, 0, 0]
-                ],
-                2: [
-                    [1, 0, 0],
-                    [0, 0, 0],
-                    [0, 0, 1]
-                ],
-                3: [
-                    [1, 0, 0],
-                    [0, 1, 0],
-                    [0, 0, 1]
-                ],
-                4: [
-                    [1, 0, 1],
-                    [0, 0, 0],
-                    [1, 0, 1]
-                ],
-                5: [
-                    [1, 0, 1],
-                    [0, 1, 0],
-                    [1, 0, 1]
-                ],
-                6: [
-                    [1, 0, 1],
-                    [1, 0, 1],
-                    [1, 0, 1]
-                ]
+        let currentRotX = 0;
+        let currentRotY = 0;
+        const dice = document.getElementById('testDice');
+        
+        function rotate(deltaX, deltaY) {
+            if (deltaX === 0 && deltaY === 0) {
+                // Reset
+                currentRotX = 0;
+                currentRotY = 0;
+            } else {
+                currentRotX += deltaX;
+                currentRotY += deltaY;
             }
-        };
+            
+            dice.style.transform = `rotateX(${currentRotX}deg) rotateY(${currentRotY}deg)`;
+            
+            // Update display
+            document.getElementById('rotationDisplay').textContent = 
+                `Rotation: X=${currentRotX}°, Y=${currentRotY}°`;
+            
+            // Determine visible face (simplified)
+            setTimeout(checkVisibleFace, 600);
+        }
+        
+        function testMovement(movementName) {
+            rotate(0, 0); // Reset first
+            setTimeout(() => {
+                switch(movementName) {
+                    case 'diagonal-right':
+                        rotate(90, 90);
+                        break;
+                    case 'diagonal-left':
+                        rotate(90, -90);
+                        break;
+                    case 'top-to-bottom':
+                        rotate(90, 0);
+                        break;
+                }
+            }, 100);
+        }
+        
+        function checkVisibleFace() {
+            // Simple detection - check which face is most forward
+            const faces = {
+                1: 'FRONT',
+                2: 'RIGHT', 
+                3: 'TOP',
+                4: 'BOTTOM',
+                5: 'LEFT',
+                6: 'BACK'
+            };
+            
+            // Normalize rotations
+            const normX = ((currentRotX % 360) + 360) % 360;
+            const normY = ((currentRotY % 360) + 360) % 360;
+            
+            let visibleFace = 1;
+            let faceName = 'FRONT';
+            
+            // Basic mapping - extend this based on what you observe
+            if (normX === 0 && normY === 0) {
+                visibleFace = 1; faceName = 'FRONT';
+            } else if (normX === 90 && normY === 0) {
+                visibleFace = 3; faceName = 'TOP';
+            } else if (normX === 180 && normY === 0) {
+                visibleFace = 6; faceName = 'BACK';
+            } else if (normX === 270 && normY === 0) {
+                visibleFace = 4; faceName = 'BOTTOM';
+            } else if (normX === 0 && normY === 90) {
+                visibleFace = 5; faceName = 'LEFT';
+            } else if (normX === 0 && normY === 270) {
+                visibleFace = 2; faceName = 'RIGHT';
+            } else if (normX === 90 && normY === 90) {
+                // This is what we need to test!
+                visibleFace = '?'; faceName = 'UNKNOWN - TEST THIS';
+            } else if (normX === 90 && normY === 270) {
+                // This too!
+                visibleFace = '?'; faceName = 'UNKNOWN - TEST THIS';
+            } else {
+                visibleFace = '?'; faceName = 'UNKNOWN';
+            }
+            
+            document.getElementById('visibleFace').textContent = 
+                `Visible Face: ${visibleFace} (${faceName})`;
+        }
+        
+        // Initialize
+        checkVisibleFace();
     </script>
-    
-    <script src="dicetest.js"></script>
 </body>
 </html>
