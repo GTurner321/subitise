@@ -112,17 +112,23 @@ class DiceRenderer {
 
     /**
      * Select random movement based on configured probabilities
+     * FIXED: Corrected probability logic
      */
     getRandomTowardUserMove() {
         const moves = this.getTowardUserMoves();
         const rand = Math.random();
         
+        console.log(`🎲 Random selection: ${rand.toFixed(3)} | Thresholds: 0.4 (diag1), 0.8 (diag2), 1.0 (top-bottom)`);
+        
         // 40% for first diagonal, 40% for second diagonal, 20% for top-to-bottom
         if (rand < CONFIG.DICE_ROLLING.DIAGONAL_PROBABILITY) {
+            console.log(`   Selected: ${moves[0].name}`);
             return moves[0]; // diagonal-right
         } else if (rand < CONFIG.DICE_ROLLING.DIAGONAL_PROBABILITY * 2) {
+            console.log(`   Selected: ${moves[1].name}`);
             return moves[1]; // diagonal-left
         } else {
+            console.log(`   Selected: ${moves[2].name}`);
             return moves[2]; // top-to-bottom
         }
     }
@@ -243,7 +249,7 @@ class DiceRenderer {
 
     /**
      * Calculate which face is visible by applying transformation matrices step by step
-     * FIXED: Added specific mappings for known combinations
+     * FIXED: Better normalization and expanded mappings
      */
     calculateVisibleFace(rotX, rotY) {
         // Normalize to 0-360 and round to nearest 90°
@@ -252,32 +258,48 @@ class DiceRenderer {
         const roundedX = Math.round(normalizedX / 90) * 90;
         const roundedY = Math.round(normalizedY / 90) * 90;
         
-        // Direct mapping for known combinations (updated for negative X values)
+        // Ensure we're in 0-360 range
+        const finalX = roundedX % 360;
+        const finalY = roundedY % 360;
+        
+        console.log(`🔢 Rotation normalization: X=${rotX}° → ${finalX}°, Y=${rotY}° → ${finalY}°`);
+        
+        // Direct mapping for known combinations
         const combinationMap = {
+            // Basic single-axis rotations
             '0-0': 1,      // front
-            '270-0': 3,    // top (was 90-0, now -90 becomes 270)
+            '90-0': 4,     // bottom  
             '180-0': 6,    // back 
-            '90-0': 4,     // bottom (was 270-0, now -270 becomes 90)
+            '270-0': 3,    // top
             '0-90': 5,     // left 
+            '0-180': 6,    // back (180° Y)
             '0-270': 2,    // right 
             
-            // Updated combinations for negative X (which becomes 270° when normalized)
-            '270-90': 3,   // top-left diagonal (was 90-90)
-            '270-270': 3,  // top-right diagonal (was 90-270)
-            '180-90': 5,   // back-left
-            '180-270': 2,  // back-right
-            '90-90': 4,    // bottom-left (was 270-90)
-            '90-270': 4,   // bottom-right (was 270-270)
+            // Diagonal combinations (-90° X becomes 270°, -90° Y becomes 270°)
+            '270-270': 4,  // diagonal-right: X=-90°, Y=-90° → FIXED: bottom face (was 3)
+            '270-90': 3,   // diagonal-left: X=-90°, Y=90° → top face  
+            '270-0': 3,    // top-to-bottom: X=-90°, Y=0° → top face
+            
+            // More combinations for cumulative rotations
+            '180-90': 5,   // back + left
+            '180-180': 1,  // back + back = front
+            '180-270': 2,  // back + right
+            '90-90': 4,    // bottom + left
+            '90-180': 4,   // bottom + back  
+            '90-270': 4,   // bottom + right
         };
         
-        const key = `${roundedX}-${roundedY}`;
+        const key = `${finalX}-${finalY}`;
         const directResult = combinationMap[key];
         
         if (directResult) {
+            console.log(`✅ Direct mapping: ${key} → Face ${directResult}`);
             return directResult;
         }
         
         // Fall back to matrix calculation for unknown combinations
+        console.log(`⚠️ Using matrix fallback for X=${rotX}° Y=${rotY}° (normalized: ${finalX}-${finalY})`);
+        
         const faceNormals = {
             1: [0, 0, 1],    // front
             6: [0, 0, -1],   // back  
@@ -316,7 +338,6 @@ class DiceRenderer {
             }
         }
         
-        console.log(`⚠️ Using matrix fallback for X=${rotX}° Y=${rotY}° → Face ${frontFace}`);
         return frontFace;
     }
     
