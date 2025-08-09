@@ -115,6 +115,33 @@
         .test-btn:hover {
             background: #1e7e34;
         }
+        
+        .step-sequence {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 10px;
+        }
+        
+        .step-btn {
+            background: #dc3545;
+            margin: 5px;
+        }
+        
+        .step-btn:hover {
+            background: #c82333;
+        }
+        
+        .sequence-log {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -157,11 +184,22 @@
             <button class="test-btn" onclick="testMovement('diagonal-left')">Diagonal Left (X+90°, Y-90°)</button>
             <button class="test-btn" onclick="testMovement('top-to-bottom')">Top to Bottom (X+90°, Y+0°)</button>
         </div>
+        
+        <div class="step-sequence">
+            <h3>Step-by-Step Game Simulation</h3>
+            <button class="step-btn" onclick="startStepSequence()">Start Game Sequence</button>
+            <button class="step-btn" onclick="addStep(-90, 0)">Add: X=-90° (Forward)</button>
+            <button class="step-btn" onclick="addStep(0, -90)">Add: Y=-90° (Right)</button>
+            <button class="step-btn" onclick="addStep(0, 90)">Add: Y=90° (Left)</button>
+            <button class="step-btn" onclick="resetSequence()">Reset</button>
+            <div class="sequence-log" id="sequenceLog"></div>
+        </div>
     </div>
 
     <script>
         let currentRotX = 0;
         let currentRotY = 0;
+        let stepSequence = [];
         const dice = document.getElementById('testDice');
         
         function rotate(deltaX, deltaY) {
@@ -201,6 +239,52 @@
             }, 100);
         }
         
+        // NEW: Step-by-step sequence simulation
+        function startStepSequence() {
+            resetSequence();
+            addLogEntry('🎮 Starting step-by-step game sequence simulation');
+            addLogEntry('Use buttons above to add moves step by step');
+        }
+        
+        function addStep(deltaX, deltaY) {
+            stepSequence.push({deltaX, deltaY});
+            
+            // Apply this step
+            currentRotX += deltaX;
+            currentRotY += deltaY;
+            
+            dice.style.transform = `rotateX(${currentRotX}deg) rotateY(${currentRotY}deg)`;
+            
+            addLogEntry(`Step ${stepSequence.length}: X${deltaX >= 0 ? '+' : ''}${deltaX}° Y${deltaY >= 0 ? '+' : ''}${deltaY}° → Total: X=${currentRotX}° Y=${currentRotY}°`);
+            
+            // Update display
+            document.getElementById('rotationDisplay').textContent = 
+                `Rotation: X=${currentRotX}°, Y=${currentRotY}°`;
+            
+            // Check face after each step
+            setTimeout(() => {
+                checkVisibleFace();
+                const visibleText = document.getElementById('visibleFace').textContent;
+                addLogEntry(`   Result: ${visibleText}`);
+            }, 600);
+        }
+        
+        function resetSequence() {
+            stepSequence = [];
+            currentRotX = 0;
+            currentRotY = 0;
+            dice.style.transform = `rotateX(0deg) rotateY(0deg)`;
+            document.getElementById('rotationDisplay').textContent = 'Rotation: X=0°, Y=0°';
+            document.getElementById('sequenceLog').innerHTML = '';
+            setTimeout(checkVisibleFace, 100);
+        }
+        
+        function addLogEntry(text) {
+            const log = document.getElementById('sequenceLog');
+            log.innerHTML += text + '<br>';
+            log.scrollTop = log.scrollHeight;
+        }
+        
         function checkVisibleFace() {
             // Simple detection - check which face is most forward
             const faces = {
@@ -232,14 +316,9 @@
                 visibleFace = 5; faceName = 'LEFT';
             } else if (normX === 0 && normY === 270) {
                 visibleFace = 2; faceName = 'RIGHT';
-            } else if (normX === 90 && normY === 90) {
-                // This is what we need to test!
-                visibleFace = '?'; faceName = 'UNKNOWN - TEST THIS';
-            } else if (normX === 90 && normY === 270) {
-                // This too!
-                visibleFace = '?'; faceName = 'UNKNOWN - TEST THIS';
             } else {
-                visibleFace = '?'; faceName = 'UNKNOWN';
+                // For combinations, you'll need to observe and update
+                visibleFace = '?'; faceName = 'OBSERVE & RECORD';
             }
             
             document.getElementById('visibleFace').textContent = 
