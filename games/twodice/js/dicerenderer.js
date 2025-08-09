@@ -302,37 +302,55 @@ class DiceRenderer {
     
     /**
      * Apply a 90° rotation around X-axis to all face normals
+     * FIXED: Match CSS 3D transform behavior
      */
     applyXRotation90(normals, positive = true) {
         const result = {};
-        const sign = positive ? 1 : -1;
         
         for (const [face, normal] of Object.entries(normals)) {
-            // 90° X rotation matrix: [x, y, z] -> [x, -z*sign, y*sign]
-            result[face] = [
-                normal[0],           // X unchanged
-                -normal[2] * sign,   // Y = -Z (for +90°) or +Z (for -90°)
-                normal[1] * sign     // Z = Y (for +90°) or -Y (for -90°)
-            ];
+            if (positive) {
+                // +90° X rotation: rotates Y→Z, Z→-Y (forward roll)
+                result[face] = [
+                    normal[0],     // X unchanged
+                    -normal[2],    // Y = -Z
+                    normal[1]      // Z = Y
+                ];
+            } else {
+                // -90° X rotation: rotates Y→-Z, Z→Y (backward roll)
+                result[face] = [
+                    normal[0],     // X unchanged  
+                    normal[2],     // Y = Z
+                    -normal[1]     // Z = -Y
+                ];
+            }
         }
         
         return result;
     }
     
     /**
-     * Apply a 90° rotation around Y-axis to all face normals
+     * Apply a 90° rotation around Y-axis to all face normals  
+     * FIXED: Match CSS 3D transform behavior
      */
     applyYRotation90(normals, positive = true) {
         const result = {};
-        const sign = positive ? 1 : -1;
         
         for (const [face, normal] of Object.entries(normals)) {
-            // 90° Y rotation matrix: [x, y, z] -> [z*sign, y, -x*sign]
-            result[face] = [
-                normal[2] * sign,    // X = Z (for +90°) or -Z (for -90°)
-                normal[1],           // Y unchanged
-                -normal[0] * sign    // Z = -X (for +90°) or +X (for -90°)
-            ];
+            if (positive) {
+                // +90° Y rotation: rotates X→-Z, Z→X (left roll) 
+                result[face] = [
+                    normal[2],     // X = Z
+                    normal[1],     // Y unchanged
+                    -normal[0]     // Z = -X
+                ];
+            } else {
+                // -90° Y rotation: rotates X→Z, Z→-X (right roll)
+                result[face] = [
+                    -normal[2],    // X = -Z
+                    normal[1],     // Y unchanged  
+                    normal[0]      // Z = X
+                ];
+            }
         }
         
         return result;
