@@ -19,6 +19,12 @@ class DiceRenderer {
         // Track previously used colors to avoid repeats
         this.previousColors = [];
         
+        // UPDATED: Predetermined sequence (coordinated with game controller)
+        this.targetSequence = [
+            [1,1], [2,2], [3,3], [2,4], [5,6], 
+            [5,1], [6,6], [6,3], [4,3], [3,1]
+        ];
+        
         // Physical dice rendering - standard dice face positions for visual display
         this.physicalFacePositions = {
             front: 1,
@@ -505,21 +511,22 @@ class DiceRenderer {
         }
     }
 
-    async rollDice() {
-        console.log('\n🎲🎲🎲 STARTING TARGET-BASED DICE ROLL 🎲🎲🎲');
+    /**
+     * UPDATED: New method that accepts sequence index and uses predetermined targets
+     */
+    async rollDiceForSequence(sequenceIndex) {
+        console.log('\n🎲🎲🎲 STARTING PREDETERMINED SEQUENCE DICE ROLL 🎲🎲🎲');
         
-        // Define the target sequence (left dice, right dice)
-        const targetSequence = [
-            [1,1], [2,2], [3,3], [2,4], [5,6], 
-            [5,1], [6,6], [6,3], [4,3], [3,1]
-        ];
+        // Validate sequence index
+        if (sequenceIndex >= this.targetSequence.length) {
+            console.error(`❌ Invalid sequence index: ${sequenceIndex}. Max index: ${this.targetSequence.length - 1}`);
+            return { left: 1, right: 1, total: 2 }; // Fallback
+        }
         
-        // Get the current question index (you'll need to pass this from the game controller)
-        // For now, let's use the first target pair [1,1]
-        const currentQuestionIndex = 0; // This should come from game state
-        const [leftTarget, rightTarget] = targetSequence[currentQuestionIndex];
+        // Get target values from predetermined sequence
+        const [leftTarget, rightTarget] = this.targetSequence[sequenceIndex];
         
-        console.log(`🎯 TARGET: Left dice = ${leftTarget}, Right dice = ${rightTarget}`);
+        console.log(`🎯 SEQUENCE ${sequenceIndex + 1}/${this.targetSequence.length}: Left dice = ${leftTarget}, Right dice = ${rightTarget}`);
         
         // Get random colors
         const colors = this.getRandomDiceColors();
@@ -571,8 +578,26 @@ class DiceRenderer {
         const total = leftValue + rightValue;
         
         console.log(`\n🎯 FINAL RESULT: Left=${leftValue}, Right=${rightValue}, Total=${total}`);
+        console.log(`🎯 EXPECTED: Left=${leftTarget}, Right=${rightTarget}, Total=${leftTarget + rightTarget}`);
+        
+        // Verify results match expectations
+        if (leftValue !== leftTarget || rightValue !== rightTarget) {
+            console.warn(`⚠️ MISMATCH! Expected (${leftTarget}, ${rightTarget}) but got (${leftValue}, ${rightValue})`);
+        } else {
+            console.log(`✅ SUCCESS! Dice landed on expected values`);
+        }
         
         return { left: leftValue, right: rightValue, total: total };
+    }
+
+    /**
+     * LEGACY: Keep original rollDice method for backward compatibility
+     */
+    async rollDice() {
+        console.log('\n🎲🎲🎲 STARTING LEGACY DICE ROLL (using first sequence target) 🎲🎲🎲');
+        
+        // Use the first target in the sequence for legacy support
+        return this.rollDiceForSequence(0);
     }
 
     // Separate method to log predicted sequence for any dice
