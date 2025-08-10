@@ -1,6 +1,6 @@
 class DiceRenderer {
     constructor() {
-        // SEARCH FOR THIS LINE: DICE RENDERER UPDATED 2025-01-01-TRACKING
+        // SEARCH FOR THIS LINE: DICE RENDERER PREDICTIVE 2025-01-01
         this.leftSide = document.getElementById('leftSide');
         this.rightSide = document.getElementById('rightSide');
         this.currentDice = [];
@@ -127,7 +127,7 @@ class DiceRenderer {
         return selectedColors;
     }
 
-    // New restricted movement system - using -90X for forwards, Y-then-X order
+    // Movement system - generates intended movements
     getAvailableMoves() {
         return [
             { rotX: -90, rotY: 90, name: 'forwards-right', probability: 0.4 },
@@ -152,21 +152,70 @@ class DiceRenderer {
         return moves[0];
     }
 
-    // Face tracking system - applies transformation to face positions
-    // Apply Y movement first, then X movement (component moves)
-    applyTransformToFaces(currentFaces, rotX, rotY) {
+    // Generate a complete sequence of intended movements
+    generateMovementSequence(numberOfMoves) {
+        const sequence = [];
+        for (let i = 0; i < numberOfMoves; i++) {
+            const move = this.getRandomMove();
+            sequence.push({
+                moveNumber: i + 1,
+                ...move
+            });
+        }
+        console.log('🎯 Generated movement sequence:', sequence);
+        return sequence;
+    }
+
+    // Apply CSS pattern corrections to make physical dice match intended sequence
+    applyCSSPatternCorrections(intendedMove) {
+        const { moveNumber, rotX, rotY, name } = intendedMove;
+        
+        // Pattern corrections for CSS transforms
+        let cssRotX = rotX;
+        let cssRotY = rotY;
+        let cssOrder = 'Y-then-X'; // Default order
+        
+        // PATTERN 1: Y-flip on moves 2,3,6,7,10,11,14,15,18,19... (4n-2 and 4n-1)
+        const shouldFlipY = this.shouldFlipYRotation(moveNumber);
+        if (shouldFlipY && rotY !== 0) {
+            cssRotY = -rotY; // Flip Y rotation for CSS
+        }
+        
+        // PATTERN 2: Order-flip on even moves
+        const shouldFlipOrder = (moveNumber % 2 === 0);
+        if (shouldFlipOrder) {
+            cssOrder = 'X-then-Y'; // Flip order for CSS
+        }
+        
+        if (shouldFlipY || shouldFlipOrder) {
+            console.log(`🔧 CSS corrections for move ${moveNumber}: ${shouldFlipY ? `Y-flip (${rotY} → ${cssRotY})` : ''} ${shouldFlipY && shouldFlipOrder ? ' + ' : ''}${shouldFlipOrder ? 'Order-flip (X-then-Y)' : ''}`);
+        }
+        
+        return {
+            cssRotX,
+            cssRotY,
+            cssOrder,
+            shouldFlipY,
+            shouldFlipOrder
+        };
+    }
+
+    // Simple face tracking without pattern corrections
+    applyLogicalTransform(currentFaces, rotX, rotY) {
         let newFaces = { ...currentFaces };
         
-        // Apply Y rotation FIRST (around Y-axis) - left/right movement
+        // Always apply Y rotation first, then X rotation (logical order)
+        
+        // Apply Y rotation first
         if (rotY === 90) {
-            // +90Y rotation: roll right (left->front, front->right, right->back, back->left)
+            // +90Y rotation: roll right
             const temp = newFaces.left;
             newFaces.left = newFaces.back;
             newFaces.back = newFaces.right;
             newFaces.right = newFaces.front;
             newFaces.front = temp;
         } else if (rotY === -90) {
-            // -90Y rotation: roll left (left->back, back->right, right->front, front->left)
+            // -90Y rotation: roll left
             const temp = newFaces.left;
             newFaces.left = newFaces.front;
             newFaces.front = newFaces.right;
@@ -174,16 +223,16 @@ class DiceRenderer {
             newFaces.back = temp;
         }
         
-        // Apply X rotation SECOND (around X-axis) - forward/backward movement
+        // Apply X rotation second
         if (rotX === 90) {
-            // +90X rotation: roll backwards (front->top, top->back, back->bottom, bottom->front)
+            // +90X rotation: roll backwards
             const temp = newFaces.front;
             newFaces.front = newFaces.bottom;
             newFaces.bottom = newFaces.back;
             newFaces.back = newFaces.top;
             newFaces.top = temp;
         } else if (rotX === -90) {
-            // -90X rotation: roll forwards (front->bottom, top->front, back->top, bottom->back)
+            // -90X rotation: roll forwards
             const temp = newFaces.front;
             newFaces.front = newFaces.top;
             newFaces.top = newFaces.back;
@@ -194,144 +243,11 @@ class DiceRenderer {
         return newFaces;
     }
 
-    // New method for component-wise transformation with logging
-    applyComponentTransforms(currentFaces, rotX, rotY, moveNumber, moveName) {
-        let intermediateFaces = { ...currentFaces };
-        
-        // PATTERN FIX 1: On moves 2,3,6,7,10,11,14,15,18,19 (4n-2 and 4n-1), flip Y rotation
-        let adjustedRotY = rotY;
-        const isYFlipMove = this.shouldFlipYRotation(moveNumber);
-        if (isYFlipMove && rotY !== 0) {
-            adjustedRotY = -rotY; // Flip the Y rotation
-        }
-        
-        // PATTERN FIX 2: On even moves only, change order to X-then-Y
-        const isOrderFlipMove = (moveNumber % 2 === 0);
-        
-        if (isYFlipMove || isOrderFlipMove) {
-            console.log(`🔄 MOVE ${moveNumber}: ${isYFlipMove ? `Y-flip (${rotY} → ${adjustedRotY})` : ''} ${isYFlipMove && isOrderFlipMove ? ' + ' : ''}${isOrderFlipMove ? 'Order-flip (X-then-Y)' : ''}`);
-        }
-        
-        // Determine the order of operations
-        if (isOrderFlipMove) {
-            // EVEN MOVES: Apply X rotation FIRST, then Y rotation
-            
-            // Step 1: Apply X rotation first if it exists
-            if (rotX !== 0) {
-                if (rotX === 90) {
-                    // +90X rotation: roll backwards (front->top, top->back, back->bottom, bottom->front)
-                    const temp = intermediateFaces.front;
-                    intermediateFaces.front = intermediateFaces.bottom;
-                    intermediateFaces.bottom = intermediateFaces.back;
-                    intermediateFaces.back = intermediateFaces.top;
-                    intermediateFaces.top = temp;
-                } else if (rotX === -90) {
-                    // -90X rotation: roll forwards (front->bottom, top->front, back->top, bottom->back)
-                    const temp = intermediateFaces.front;
-                    intermediateFaces.front = intermediateFaces.top;
-                    intermediateFaces.top = intermediateFaces.back;
-                    intermediateFaces.back = intermediateFaces.bottom;
-                    intermediateFaces.bottom = temp;
-                }
-                
-                // Log intermediate state after X rotation
-                console.log(`\n=== MOVE ${moveNumber}A: ${moveName} - STEP 1: rotX: ${rotX} (X-FIRST) ===`);
-                console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
-            }
-            
-            // Step 2: Apply Y rotation second if it exists
-            if (adjustedRotY !== 0) {
-                if (adjustedRotY === 90) {
-                    // +90Y rotation: roll right
-                    const temp = intermediateFaces.left;
-                    intermediateFaces.left = intermediateFaces.back;
-                    intermediateFaces.back = intermediateFaces.right;
-                    intermediateFaces.right = intermediateFaces.front;
-                    intermediateFaces.front = temp;
-                } else if (adjustedRotY === -90) {
-                    // -90Y rotation: roll left
-                    const temp = intermediateFaces.left;
-                    intermediateFaces.left = intermediateFaces.front;
-                    intermediateFaces.front = intermediateFaces.right;
-                    intermediateFaces.right = intermediateFaces.back;
-                    intermediateFaces.back = temp;
-                }
-                
-                // Log final state after Y rotation
-                console.log(`\n=== MOVE ${moveNumber}B: ${moveName} - STEP 2: rotY: ${adjustedRotY} ${isYFlipMove ? '(FLIPPED)' : ''} (Y-SECOND) ===`);
-                console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
-            }
-            
-        } else {
-            // ODD MOVES: Apply Y rotation first, then X rotation (original order)
-            
-            // Step 1: Apply Y rotation first if it exists
-            if (adjustedRotY !== 0) {
-                if (adjustedRotY === 90) {
-                    // +90Y rotation: roll right
-                    const temp = intermediateFaces.left;
-                    intermediateFaces.left = intermediateFaces.back;
-                    intermediateFaces.back = intermediateFaces.right;
-                    intermediateFaces.right = intermediateFaces.front;
-                    intermediateFaces.front = temp;
-                } else if (adjustedRotY === -90) {
-                    // -90Y rotation: roll left
-                    const temp = intermediateFaces.left;
-                    intermediateFaces.left = intermediateFaces.front;
-                    intermediateFaces.front = intermediateFaces.right;
-                    intermediateFaces.right = intermediateFaces.back;
-                    intermediateFaces.back = temp;
-                }
-                
-                // Log intermediate state after Y rotation
-                console.log(`\n=== MOVE ${moveNumber}A: ${moveName} - STEP 1: rotY: ${adjustedRotY} ${isYFlipMove ? '(FLIPPED)' : ''} (Y-FIRST) ===`);
-                console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
-            }
-            
-            // Step 2: Apply X rotation second if it exists
-            if (rotX !== 0) {
-                if (rotX === 90) {
-                    // +90X rotation: roll backwards (front->top, top->back, back->bottom, bottom->front)
-                    const temp = intermediateFaces.front;
-                    intermediateFaces.front = intermediateFaces.bottom;
-                    intermediateFaces.bottom = intermediateFaces.back;
-                    intermediateFaces.back = intermediateFaces.top;
-                    intermediateFaces.top = temp;
-                } else if (rotX === -90) {
-                    // -90X rotation: roll forwards (front->bottom, top->front, back->top, bottom->back)
-                    const temp = intermediateFaces.front;
-                    intermediateFaces.front = intermediateFaces.top;
-                    intermediateFaces.top = intermediateFaces.back;
-                    intermediateFaces.back = intermediateFaces.bottom;
-                    intermediateFaces.bottom = temp;
-                }
-                
-                // Log final state after X rotation
-                console.log(`\n=== MOVE ${moveNumber}B: ${moveName} - STEP 2: rotX: ${rotX} (X-SECOND) ===`);
-                console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
-            }
-        }
-        
-        // If it's a single-component move, still log it properly
-        if (adjustedRotY === 0 || rotX === 0) {
-            console.log(`\n=== MOVE ${moveNumber}: ${moveName} ${isYFlipMove && rotY !== 0 ? '(Y-FLIPPED)' : ''} ===`);
-            console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
-        }
-        
-        return intermediateFaces;
-    }
-
-    // Helper method to determine if we should flip Y rotation based on move number
     shouldFlipYRotation(moveNumber) {
         // Pattern: moves 2,3,6,7,10,11,14,15,18,19 etc.
         // These are 4n-2 and 4n-1 moves (where n starts from 1)
         const remainder = moveNumber % 4;
         return remainder === 2 || remainder === 3;
-    }
-
-    logFacePositions(faces, moveNumber, moveName, rotX, rotY) {
-        console.log(`\n=== MOVE ${moveNumber}: ${moveName} (rotY: ${rotY} FIRST, then rotX: ${rotX}) ===`);
-        console.log(`Front: ${faces.front} | Back: ${faces.back} | Left: ${faces.left} | Right: ${faces.right} | Top: ${faces.top} | Bottom: ${faces.bottom}`);
     }
 
     createDice(diceColor, isLeft = true) {
@@ -524,7 +440,7 @@ class DiceRenderer {
     }
 
     async rollDice() {
-        console.log('\n🎲🎲🎲 STARTING RESTRICTED MOVEMENT DICE ROLL 🎲🎲🎲');
+        console.log('\n🎲🎲🎲 STARTING PREDICTIVE DICE ROLL 🎲🎲🎲');
         
         // Get random colors
         const colors = this.getRandomDiceColors();
@@ -553,12 +469,13 @@ class DiceRenderer {
             });
         }, 200);
         
-        // Roll both dice using the same tracking logic
-        const leftRolls = 20; // Increased to 20 rolls for more testing
-        const rightRolls = 20; // Increased to 20 rolls for more testing
+        // Generate movement sequences for both dice
+        const leftSequence = this.generateMovementSequence(20);
+        const rightSequence = this.generateMovementSequence(20);
         
-        const leftPromise = this.rollDiceWithTracking(leftDice, leftRolls, 'Left');
-        const rightPromise = this.rollDiceWithTracking(rightDice, rightRolls, 'Right');
+        // Execute both sequences
+        const leftPromise = this.executeMovementSequence(leftDice, leftSequence, 'Left');
+        const rightPromise = this.executeMovementSequence(rightDice, rightSequence, 'Right');
         
         // Wait for both to complete
         await Promise.all([leftPromise, rightPromise]);
@@ -573,29 +490,46 @@ class DiceRenderer {
         return { left: leftValue, right: rightValue, total: total };
     }
 
-    async rollDiceWithTracking(dice, numberOfRolls, diceName) {
+    async executeMovementSequence(dice, movementSequence, diceName) {
         return new Promise((resolve) => {
-            let rollCount = 0;
+            let sequenceIndex = 0;
             let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
             let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
             let currentFaces = JSON.parse(dice.dataset.currentFaces);
             
             console.log(`\n🎲 ${diceName} dice starting with logical tracking positions:`);
-            this.logFacePositions(currentFaces, 0, 'INITIAL', 0, 0);
+            console.log(`Front: ${currentFaces.front} | Back: ${currentFaces.back} | Left: ${currentFaces.left} | Right: ${currentFaces.right} | Top: ${currentFaces.top} | Bottom: ${currentFaces.bottom}`);
             
-            const performRoll = () => {
-                rollCount++;
+            const executeNextMove = () => {
+                if (sequenceIndex >= movementSequence.length) {
+                    dice.classList.add('dice-final');
+                    console.log(`\n✅ ${diceName} dice completed ${movementSequence.length} moves`);
+                    console.log(`Final front face: ${currentFaces.front}`);
+                    resolve();
+                    return;
+                }
                 
-                // Get random move from our restricted set
-                const move = this.getRandomMove();
-                const flipDuration = 0.5; // Sped up to 0.5 seconds per move
+                const intendedMove = movementSequence[sequenceIndex];
+                const { moveNumber, rotX, rotY, name } = intendedMove;
                 
-                // Apply the transformation to face tracking using component-wise method
-                const newFaces = this.applyComponentTransforms(currentFaces, move.rotX, move.rotY, rollCount, move.name);
+                // Apply logical transformation (no corrections)
+                const newFaces = this.applyLogicalTransform(currentFaces, rotX, rotY);
                 
-                // Apply rotation to the physical dice
-                currentRotationX += move.rotX;
-                currentRotationY += move.rotY;
+                // Apply CSS pattern corrections
+                const cssCorrections = this.applyCSSPatternCorrections(intendedMove);
+                const { cssRotX, cssRotY, cssOrder, shouldFlipY, shouldFlipOrder } = cssCorrections;
+                
+                // Log the move
+                console.log(`\n=== ${diceName} MOVE ${moveNumber}: ${name} ===`);
+                console.log(`Intended: rotX=${rotX}, rotY=${rotY}`);
+                console.log(`CSS Applied: rotX=${cssRotX}, rotY=${cssRotY}, order=${cssOrder} ${shouldFlipY ? '(Y-FLIPPED)' : ''} ${shouldFlipOrder ? '(ORDER-FLIPPED)' : ''}`);
+                console.log(`Result: Front: ${newFaces.front} | Back: ${newFaces.back} | Left: ${newFaces.left} | Right: ${newFaces.right} | Top: ${newFaces.top} | Bottom: ${newFaces.bottom}`);
+                
+                // Apply CSS transform with corrections
+                currentRotationX += cssRotX;
+                currentRotationY += cssRotY;
+                
+                const flipDuration = 0.5;
                 
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
                 dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
@@ -604,66 +538,18 @@ class DiceRenderer {
                 dice.dataset.currentRotationX = currentRotationX;
                 dice.dataset.currentRotationY = currentRotationY;
                 dice.dataset.currentFaces = JSON.stringify(newFaces);
-                dice.dataset.moveCount = rollCount;
+                dice.dataset.moveCount = moveNumber;
                 currentFaces = newFaces;
                 
-                // Check if done
-                if (rollCount >= numberOfRolls) {
-                    const stopTimeout = setTimeout(() => {
-                        dice.classList.add('dice-final');
-                        console.log(`\n✅ ${diceName} dice completed ${rollCount} moves`);
-                        console.log(`Final front face should be: ${newFaces.front}`);
-                        resolve();
-                    }, flipDuration * 1000);
-                    this.rollTimeouts.push(stopTimeout);
-                } else {
-                    // Continue rolling
-                    const nextTimeout = setTimeout(performRoll, flipDuration * 1000);
-                    this.rollTimeouts.push(nextTimeout);
-                }
+                sequenceIndex++;
+                
+                // Schedule next move
+                const nextTimeout = setTimeout(executeNextMove, flipDuration * 1000);
+                this.rollTimeouts.push(nextTimeout);
             };
             
-            // Start rolling after fade-in
-            const initialTimeout = setTimeout(performRoll, 1300);
-            this.rollTimeouts.push(initialTimeout);
-        });
-    }
-
-    async rollDiceSimple(dice, numberOfRolls, diceName) {
-        return new Promise((resolve) => {
-            let rollCount = 0;
-            let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
-            let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
-            
-            const performRoll = () => {
-                rollCount++;
-                
-                const move = this.getRandomMove();
-                const flipDuration = 0.5;
-                
-                currentRotationX += move.rotX;
-                currentRotationY += move.rotY;
-                
-                dice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
-                
-                dice.dataset.currentRotationX = currentRotationX;
-                dice.dataset.currentRotationY = currentRotationY;
-                dice.dataset.moveCount = rollCount;
-                
-                if (rollCount >= numberOfRolls) {
-                    const stopTimeout = setTimeout(() => {
-                        dice.classList.add('dice-final');
-                        resolve();
-                    }, flipDuration * 1000);
-                    this.rollTimeouts.push(stopTimeout);
-                } else {
-                    const nextTimeout = setTimeout(performRoll, flipDuration * 1000);
-                    this.rollTimeouts.push(nextTimeout);
-                }
-            };
-            
-            const initialTimeout = setTimeout(performRoll, 1300);
+            // Start sequence after fade-in
+            const initialTimeout = setTimeout(executeNextMove, 1300);
             this.rollTimeouts.push(initialTimeout);
         });
     }
