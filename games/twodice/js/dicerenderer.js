@@ -19,14 +19,14 @@ class DiceRenderer {
         // Track previously used colors to avoid repeats
         this.previousColors = [];
         
-        // Face tracking system - standard dice starting position
+        // Face tracking system - standard dice starting position (corrected top/bottom)
         this.standardFacePositions = {
             front: 1,
             back: 6,
             left: 5,
             right: 2,
-            top: 3,
-            bottom: 4
+            top: 4,      // Swapped: was 3
+            bottom: 3    // Swapped: was 4
         };
         
         // Setup resize handling for responsive dice
@@ -117,12 +117,12 @@ class DiceRenderer {
         return selectedColors;
     }
 
-    // New restricted movement system
+    // New restricted movement system - using -90X for forwards, Y-then-X order
     getAvailableMoves() {
         return [
-            { rotX: 90, rotY: 90, name: 'down-right', probability: 0.4 },
-            { rotX: 90, rotY: -90, name: 'down-left', probability: 0.4 },
-            { rotX: 90, rotY: 0, name: 'down', probability: 0.2 }
+            { rotX: -90, rotY: 90, name: 'forwards-right', probability: 0.4 },
+            { rotX: -90, rotY: -90, name: 'forwards-left', probability: 0.4 },
+            { rotX: -90, rotY: 0, name: 'forwards', probability: 0.2 }
         ];
     }
 
@@ -143,27 +143,11 @@ class DiceRenderer {
     }
 
     // Face tracking system - applies transformation to face positions
+    // Apply Y movement first, then X movement (component moves)
     applyTransformToFaces(currentFaces, rotX, rotY) {
         let newFaces = { ...currentFaces };
         
-        // Apply X rotation first (around X-axis)
-        if (rotX === 90) {
-            // +90X rotation: roll backwards (top->front, front->bottom, bottom->back, back->top)
-            const temp = newFaces.top;
-            newFaces.top = newFaces.back;
-            newFaces.back = newFaces.bottom;
-            newFaces.bottom = newFaces.front;
-            newFaces.front = temp;
-        } else if (rotX === -90) {
-            // -90X rotation: roll forwards (top->back, back->bottom, bottom->front, front->top)
-            const temp = newFaces.top;
-            newFaces.top = newFaces.front;
-            newFaces.front = newFaces.bottom;
-            newFaces.bottom = newFaces.back;
-            newFaces.back = temp;
-        }
-        
-        // Apply Y rotation second (around Y-axis)
+        // Apply Y rotation FIRST (around Y-axis) - left/right movement
         if (rotY === 90) {
             // +90Y rotation: roll right (left->front, front->right, right->back, back->left)
             const temp = newFaces.left;
@@ -180,11 +164,28 @@ class DiceRenderer {
             newFaces.back = temp;
         }
         
+        // Apply X rotation SECOND (around X-axis) - forward/backward movement
+        if (rotX === 90) {
+            // +90X rotation: roll backwards (top->front, front->bottom, bottom->back, back->top)
+            const temp = newFaces.top;
+            newFaces.top = newFaces.back;
+            newFaces.back = newFaces.bottom;
+            newFaces.bottom = newFaces.front;
+            newFaces.front = temp;
+        } else if (rotX === -90) {
+            // -90X rotation: roll forwards (top->back, back->bottom, bottom->front, front->top)
+            const temp = newFaces.top;
+            newFaces.top = newFaces.front;
+            newFaces.front = newFaces.bottom;
+            newFaces.bottom = newFaces.back;
+            newFaces.back = temp;
+        }
+        
         return newFaces;
     }
 
     logFacePositions(faces, moveNumber, moveName, rotX, rotY) {
-        console.log(`\n=== MOVE ${moveNumber}: ${moveName} (rotX: ${rotX}, rotY: ${rotY}) ===`);
+        console.log(`\n=== MOVE ${moveNumber}: ${moveName} (rotY: ${rotY} FIRST, then rotX: ${rotX}) ===`);
         console.log(`Front: ${faces.front} | Back: ${faces.back} | Left: ${faces.left} | Right: ${faces.right} | Top: ${faces.top} | Bottom: ${faces.bottom}`);
     }
 
