@@ -19,14 +19,24 @@ class DiceRenderer {
         // Track previously used colors to avoid repeats
         this.previousColors = [];
         
-        // Face tracking system - standard dice starting position (corrected back to original)
-        this.standardFacePositions = {
+        // Physical dice rendering - standard dice face positions for visual display
+        this.physicalFacePositions = {
             front: 1,
             back: 6,
             left: 5,
             right: 2,
-            top: 3,      // Back to 3
-            bottom: 4    // Back to 4
+            top: 3,
+            bottom: 4
+        };
+        
+        // Face tracking system - logical positions for movement calculations (3 and 4 swapped)
+        this.logicalFacePositions = {
+            front: 1,
+            back: 6,
+            left: 5,
+            right: 2,
+            top: 4,      // Swapped for tracking logic
+            bottom: 3    // Swapped for tracking logic
         };
         
         // Setup resize handling for responsive dice
@@ -213,21 +223,22 @@ class DiceRenderer {
         dice.style.border = 'none';
         dice.style.boxShadow = 'none';
         
-        // Initialize with standard face positions
-        dice.dataset.currentFaces = JSON.stringify(this.standardFacePositions);
+        // Initialize with logical face positions for tracking
+        dice.dataset.currentFaces = JSON.stringify(this.logicalFacePositions);
         
-        // Standard dice face values - using our standard mapping
+        // Standard dice face values - using PHYSICAL positions for rendering
         const faceValues = {
-            'front': this.standardFacePositions.front,
-            'back': this.standardFacePositions.back, 
-            'right': this.standardFacePositions.right,
-            'left': this.standardFacePositions.left,
-            'top': this.standardFacePositions.top,
-            'bottom': this.standardFacePositions.bottom
+            'front': this.physicalFacePositions.front,
+            'back': this.physicalFacePositions.back, 
+            'right': this.physicalFacePositions.right,
+            'left': this.physicalFacePositions.left,
+            'top': this.physicalFacePositions.top,
+            'bottom': this.physicalFacePositions.bottom
         };
         
         console.log('\n=== CREATING DICE ===');
-        console.log('Starting face positions:', this.standardFacePositions);
+        console.log('Physical rendering positions:', this.physicalFacePositions);
+        console.log('Logical tracking positions:', this.logicalFacePositions);
         
         // Create all 6 faces
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
@@ -434,7 +445,7 @@ class DiceRenderer {
             let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
             let currentFaces = JSON.parse(dice.dataset.currentFaces);
             
-            console.log(`\n🎲 ${diceName} dice starting with standard positions:`);
+            console.log(`\n🎲 ${diceName} dice starting with logical tracking positions:`);
             this.logFacePositions(currentFaces, 0, 'INITIAL', 0, 0);
             
             const performRoll = () => {
