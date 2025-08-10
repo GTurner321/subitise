@@ -198,16 +198,24 @@ class DiceRenderer {
     applyComponentTransforms(currentFaces, rotX, rotY, moveNumber, moveName) {
         let intermediateFaces = { ...currentFaces };
         
+        // PATTERN FIX: On moves 2,3,6,7,10,11,14,15,18,19 (4n-2 and 4n-1), flip Y rotation
+        let adjustedRotY = rotY;
+        const isFlipMove = this.shouldFlipYRotation(moveNumber);
+        if (isFlipMove && rotY !== 0) {
+            adjustedRotY = -rotY; // Flip the Y rotation
+            console.log(`🔄 MOVE ${moveNumber}: Flipping Y rotation from ${rotY} to ${adjustedRotY} (pattern fix)`);
+        }
+        
         // Step 1: Apply Y rotation first if it exists
-        if (rotY !== 0) {
-            if (rotY === 90) {
+        if (adjustedRotY !== 0) {
+            if (adjustedRotY === 90) {
                 // +90Y rotation: roll right
                 const temp = intermediateFaces.left;
                 intermediateFaces.left = intermediateFaces.back;
                 intermediateFaces.back = intermediateFaces.right;
                 intermediateFaces.right = intermediateFaces.front;
                 intermediateFaces.front = temp;
-            } else if (rotY === -90) {
+            } else if (adjustedRotY === -90) {
                 // -90Y rotation: roll left
                 const temp = intermediateFaces.left;
                 intermediateFaces.left = intermediateFaces.front;
@@ -217,7 +225,7 @@ class DiceRenderer {
             }
             
             // Log intermediate state after Y rotation
-            console.log(`\n=== MOVE ${moveNumber}A: ${moveName} - STEP 1: rotY: ${rotY} ===`);
+            console.log(`\n=== MOVE ${moveNumber}A: ${moveName} - STEP 1: rotY: ${adjustedRotY} ${isFlipMove ? '(FLIPPED)' : ''} ===`);
             console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
         }
         
@@ -245,12 +253,20 @@ class DiceRenderer {
         }
         
         // If it's a single-component move, still log it properly
-        if (rotY === 0 || rotX === 0) {
-            console.log(`\n=== MOVE ${moveNumber}: ${moveName} ===`);
+        if (adjustedRotY === 0 || rotX === 0) {
+            console.log(`\n=== MOVE ${moveNumber}: ${moveName} ${isFlipMove && rotY !== 0 ? '(Y-FLIPPED)' : ''} ===`);
             console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
         }
         
         return intermediateFaces;
+    }
+
+    // Helper method to determine if we should flip Y rotation based on move number
+    shouldFlipYRotation(moveNumber) {
+        // Pattern: moves 2,3,6,7,10,11,14,15,18,19 etc.
+        // These are 4n-2 and 4n-1 moves (where n starts from 1)
+        const remainder = moveNumber % 4;
+        return remainder === 2 || remainder === 3;
     }
 
     logFacePositions(faces, moveNumber, moveName, rotX, rotY) {
