@@ -553,17 +553,17 @@ class DiceRenderer {
             });
         }, 200);
         
-        // Roll both dice (but only log the left one for now)
+        // Roll both dice using the same tracking logic
         const leftRolls = 8; // Fixed number for testing
         const rightRolls = 8; // Fixed number for testing
         
         const leftPromise = this.rollDiceWithTracking(leftDice, leftRolls, 'Left');
-        const rightPromise = this.rollDiceSimple(rightDice, rightRolls, 'Right');
+        const rightPromise = this.rollDiceWithTracking(rightDice, rightRolls, 'Right');
         
         // Wait for both to complete
         await Promise.all([leftPromise, rightPromise]);
         
-        // Read the final faces
+        // Read the final faces using tracking data
         const leftValue = this.getCurrentFrontFace(leftDice);
         const rightValue = this.getCurrentFrontFace(rightDice);
         const total = leftValue + rightValue;
@@ -588,7 +588,7 @@ class DiceRenderer {
                 
                 // Get random move from our restricted set
                 const move = this.getRandomMove();
-                const flipDuration = 2.0; // Slowed down to 2 seconds per move for easier observation
+                const flipDuration = 0.5; // Sped up to 0.5 seconds per move
                 
                 // Apply the transformation to face tracking using component-wise method
                 const newFaces = this.applyComponentTransforms(currentFaces, move.rotX, move.rotY, rollCount, move.name);
