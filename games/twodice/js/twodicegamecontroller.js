@@ -10,6 +10,13 @@ class TwoDiceGameController {
         this.questionsCompleted = 0;
         this.gameComplete = false;
         
+        // UPDATED: Predetermined sequence tracking
+        this.targetSequence = [
+            [1,1], [2,2], [3,3], [2,4], [5,6], 
+            [5,1], [6,6], [6,3], [4,3], [3,1]
+        ];
+        this.currentSequenceIndex = 0;
+        
         // Current question state
         this.currentLeftValue = 0;
         this.currentRightValue = 0;
@@ -42,10 +49,10 @@ class TwoDiceGameController {
         this.buttonBarReady = false;
         this.gameAreaReady = false;
         
-        // Level system
-        this.currentLevel = CONFIG.LEVEL_SYSTEM.STARTING_LEVEL;
-        this.usedSumsThisRound = new Set();
-        this.roundQuestionCount = 0;
+        // UPDATED: Remove old level system variables (keep for future enhancement)
+        // this.currentLevel = CONFIG.LEVEL_SYSTEM.STARTING_LEVEL;
+        // this.usedSumsThisRound = new Set();
+        // this.roundQuestionCount = 0;
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
@@ -80,7 +87,7 @@ class TwoDiceGameController {
         this.setupVisibilityHandling();
         this.waitForSystemsAndInitialize();
         
-        console.log(`🎮 Game started at ${this.currentLevel}: ${CONFIG.LEVEL_SYSTEM[this.currentLevel].description}`);
+        console.log(`🎮 Game started with predetermined sequence of ${this.targetSequence.length} questions`);
     }
 
     /**
@@ -379,65 +386,29 @@ class TwoDiceGameController {
     }
 
     /**
-     * Generate target values based on current level
+     * UPDATED: Get target values from predetermined sequence
      */
-    generateTargetValues() {
-        const levelConfig = CONFIG.LEVEL_SYSTEM[this.currentLevel];
-        const range = levelConfig.diceRange;
-        
-        for (let attempt = 0; attempt < CONFIG.LEVEL_SYSTEM.MAX_SUM_GENERATION_ATTEMPTS; attempt++) {
-            // Pick random values from the level's range
-            const leftValue = range[Math.floor(Math.random() * range.length)];
-            const rightValue = range[Math.floor(Math.random() * range.length)];
-            const total = leftValue + rightValue;
-            
-            // Check if this sum has been used this round
-            if (!this.usedSumsThisRound.has(total)) {
-                this.usedSumsThisRound.add(total);
-                console.log(`🎯 Generated targets: Left=${leftValue}, Right=${rightValue}, Total=${total} (${this.currentLevel})`);
-                console.log(`📝 Used sums this round: [${Array.from(this.usedSumsThisRound).sort((a,b) => a-b).join(', ')}]`);
-                return { leftValue, rightValue, total };
-            }
+    getCurrentTargetValues() {
+        // Check if we've completed all questions in the sequence
+        if (this.currentSequenceIndex >= this.targetSequence.length) {
+            console.log('🎉 All predetermined questions completed!');
+            return null; // Signal that we're done
         }
         
-        // Fallback: allow repeat
-        const leftValue = range[Math.floor(Math.random() * range.length)];
-        const rightValue = range[Math.floor(Math.random() * range.length)];
+        const [leftValue, rightValue] = this.targetSequence[this.currentSequenceIndex];
         const total = leftValue + rightValue;
-        this.usedSumsThisRound.add(total);
         
-        console.warn(`⚠️ Allowing repeat sum ${total} after ${CONFIG.LEVEL_SYSTEM.MAX_SUM_GENERATION_ATTEMPTS} attempts`);
+        console.log(`🎯 Question ${this.currentSequenceIndex + 1}/${this.targetSequence.length}: Left=${leftValue}, Right=${rightValue}, Total=${total}`);
+        
         return { leftValue, rightValue, total };
     }
 
     /**
-     * Update level based on question result
+     * UPDATED: Progress to next question in sequence
      */
-    updateLevel(wasCorrectFirstAttempt) {
-        const levels = ['L1', 'L2', 'L3'];
-        const currentIndex = levels.indexOf(this.currentLevel);
-        
-        if (wasCorrectFirstAttempt && currentIndex < levels.length - 1) {
-            // Level up
-            this.currentLevel = levels[currentIndex + 1];
-            console.log(`📈 Level up to ${this.currentLevel}: ${CONFIG.LEVEL_SYSTEM[this.currentLevel].description}`);
-            
-            if (CONFIG.AUDIO.MESSAGES.LEVEL_UP && this.isTabVisible) {
-                setTimeout(() => {
-                    this.speakText(CONFIG.AUDIO.MESSAGES.LEVEL_UP);
-                }, 1500);
-            }
-        } else if (!wasCorrectFirstAttempt && currentIndex > 0) {
-            // Level down
-            this.currentLevel = levels[currentIndex - 1];
-            console.log(`📉 Level down to ${this.currentLevel}: ${CONFIG.LEVEL_SYSTEM[this.currentLevel].description}`);
-            
-            if (CONFIG.AUDIO.MESSAGES.LEVEL_DOWN && this.isTabVisible) {
-                setTimeout(() => {
-                    this.speakText(CONFIG.AUDIO.MESSAGES.LEVEL_DOWN);
-                }, 1500);
-            }
-        }
+    advanceToNextQuestion() {
+        this.currentSequenceIndex++;
+        console.log(`📈 Advanced to question ${this.currentSequenceIndex + 1}/${this.targetSequence.length}`);
     }
 
     startNewGame() {
@@ -447,10 +418,8 @@ class TwoDiceGameController {
         this.clearKeyboardTimer();
         this.resetBoxState();
         
-        // Reset level system for new game
-        this.currentLevel = CONFIG.LEVEL_SYSTEM.STARTING_LEVEL;
-        this.usedSumsThisRound = new Set();
-        this.roundQuestionCount = 0;
+        // UPDATED: Reset sequence tracking
+        this.currentSequenceIndex = 0;
         
         this.rainbow.reset();
         this.bear.reset();
@@ -460,7 +429,7 @@ class TwoDiceGameController {
         
         this.initializationComplete = true;
         
-        console.log(`🔄 New game started at ${this.currentLevel}`);
+        console.log(`🔄 New game started with predetermined sequence`);
         this.startNewQuestion();
     }
 
@@ -525,24 +494,24 @@ class TwoDiceGameController {
             return;
         }
 
+        // UPDATED: Get target values from sequence
+        const targets = this.getCurrentTargetValues();
+        if (!targets) {
+            // We've completed all questions in the sequence
+            this.completeGame();
+            return;
+        }
+
         this.resetBoxState();
         this.hideAllInputBoxes();
         this.hintGiven = false;
 
-        // Check if we need to start a new round
-        if (this.roundQuestionCount >= CONFIG.RAINBOW_PIECES) {
-            this.usedSumsThisRound.clear();
-            this.roundQuestionCount = 0;
-            console.log('🆕 Starting new round - cleared used sums');
-        }
-
-        console.log(`Starting question ${this.questionsCompleted + 1} (round question ${this.roundQuestionCount + 1})`);
+        console.log(`🎲 Starting question ${this.questionsCompleted + 1}: sequence index ${this.currentSequenceIndex}`);
         
         this.resetButtonStates();
         this.giveStartingInstruction();
         
-        // Generate target values based on current level
-        const targets = this.generateTargetValues();
+        // UPDATED: Use predetermined target values
         this.currentLeftValue = targets.leftValue;
         this.currentRightValue = targets.rightValue;
         this.currentTotal = targets.total;
@@ -554,11 +523,16 @@ class TwoDiceGameController {
         }
         
         try {
-            // Roll dice with target values
-            const result = await this.diceRenderer.rollDice(this.currentLeftValue, this.currentRightValue);
+            // UPDATED: Pass current sequence index to dice renderer
+            const result = await this.diceRenderer.rollDiceForSequence(this.currentSequenceIndex);
             
             console.log('🎲 DICE RENDERER RETURNED:', result);
             console.log(`🎯 TARGET vs ACTUAL: Target(${this.currentLeftValue}, ${this.currentRightValue}) vs Actual(${result.left}, ${result.right})`);
+            
+            // Verify the dice landed on the expected values
+            if (result.left !== this.currentLeftValue || result.right !== this.currentRightValue) {
+                console.warn(`⚠️ Dice mismatch! Expected (${this.currentLeftValue}, ${this.currentRightValue}) but got (${result.left}, ${result.right})`);
+            }
             
             // Enable buttons and show input boxes
             this.buttonsDisabled = false;
@@ -729,17 +703,15 @@ class TwoDiceGameController {
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}`);
             
-            // Determine if this was answered correctly on first attempt for level progression
-            const wasCorrectFirstAttempt = !this.hasAttemptedAnswer();
-            this.updateLevel(wasCorrectFirstAttempt);
-            
             // Random encouragement
             const encouragements = CONFIG.AUDIO.MESSAGES.CORRECT_ANSWERS;
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             this.speakText(randomEncouragement);
             
             this.questionsCompleted++;
-            this.roundQuestionCount++;
+            
+            // UPDATED: Advance to next question in sequence
+            this.advanceToNextQuestion();
             
             if (this.rainbow.isComplete()) {
                 this.stats.recordRoundCompletion();
