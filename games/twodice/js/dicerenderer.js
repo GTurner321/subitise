@@ -504,8 +504,8 @@ class DiceRenderer {
         }, 200);
         
         // Generate movement sequences for both dice
-        const leftSequence = this.generateMovementSequence(8);
-        const rightSequence = this.generateMovementSequence(8);
+        const leftSequence = this.generateMovementSequence(20);
+        const rightSequence = this.generateMovementSequence(20);
         
         // Execute both sequences (only log left dice in detail)
         const leftPromise = this.executeMovementSequence(leftDice, leftSequence, 'Left');
@@ -614,7 +614,7 @@ class DiceRenderer {
                 currentRotationX += cssRotX;
                 currentRotationY += cssRotY;
                 
-                const flipDuration = diceName === 'Left' ? 3.0 : 0.5; // 3 seconds for left, 0.5 for right
+                const flipDuration = 0.5; // 0.5 seconds for both dice
                 
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
                 dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
