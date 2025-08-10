@@ -19,14 +19,14 @@ class DiceRenderer {
         // Track previously used colors to avoid repeats
         this.previousColors = [];
         
-        // Face tracking system - standard dice starting position (corrected top/bottom)
+        // Face tracking system - standard dice starting position (corrected back to original)
         this.standardFacePositions = {
             front: 1,
             back: 6,
             left: 5,
             right: 2,
-            top: 4,      // Swapped: was 3
-            bottom: 3    // Swapped: was 4
+            top: 3,      // Back to 3
+            bottom: 4    // Back to 4
         };
         
         // Setup resize handling for responsive dice
