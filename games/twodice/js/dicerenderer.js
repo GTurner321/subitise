@@ -152,17 +152,49 @@ class DiceRenderer {
         return moves[0];
     }
 
-    // Generate a complete sequence of intended movements
-    generateMovementSequence(numberOfMoves) {
+    // Generate movement sequence until target is reached (minimum 4 moves)
+    generateTargetBasedSequence(targetNumber, diceName) {
+        console.log(`🎯 Generating sequence for ${diceName} dice to reach ${targetNumber}`);
+        
         const sequence = [];
-        for (let i = 0; i < numberOfMoves; i++) {
+        let currentFaces = { ...this.logicalFacePositions }; // Start with initial position
+        let moveCount = 0;
+        const maxAttempts = 100; // Safety limit to prevent infinite loops
+        
+        while (moveCount < maxAttempts) {
+            moveCount++;
+            
+            // Generate a random move
             const move = this.getRandomMove();
-            sequence.push({
-                moveNumber: i + 1,
+            const moveData = {
+                moveNumber: moveCount,
                 ...move
-            });
+            };
+            
+            // Apply the move to see the result
+            const newFaces = this.applyLogicalTransform(currentFaces, move.rotX, move.rotY, moveCount);
+            
+            // Add move to sequence
+            sequence.push(moveData);
+            currentFaces = newFaces;
+            
+            // Check if we've reached the target (but only after minimum 4 moves)
+            if (moveCount >= 4 && newFaces.front === targetNumber) {
+                console.log(`✅ ${diceName} dice will reach target ${targetNumber} after ${moveCount} moves`);
+                break;
+            }
+            
+            // Log progress every 10 moves
+            if (moveCount % 10 === 0) {
+                console.log(`⏳ ${diceName} dice: ${moveCount} moves, current front: ${newFaces.front}, target: ${targetNumber}`);
+            }
         }
-        console.log('🎯 Generated movement sequence:', sequence);
+        
+        if (moveCount >= maxAttempts) {
+            console.warn(`⚠️ ${diceName} dice hit maximum attempts (${maxAttempts}) without reaching target ${targetNumber}`);
+            console.warn(`Final front face: ${currentFaces.front}`);
+        }
+        
         return sequence;
     }
 
@@ -474,7 +506,20 @@ class DiceRenderer {
     }
 
     async rollDice() {
-        console.log('\n🎲🎲🎲 STARTING PREDICTIVE DICE ROLL 🎲🎲🎲');
+        console.log('\n🎲🎲🎲 STARTING TARGET-BASED DICE ROLL 🎲🎲🎲');
+        
+        // Define the target sequence (left dice, right dice)
+        const targetSequence = [
+            [1,1], [2,2], [3,3], [2,4], [5,6], 
+            [5,1], [6,6], [6,3], [4,3], [3,1]
+        ];
+        
+        // Get the current question index (you'll need to pass this from the game controller)
+        // For now, let's use the first target pair [1,1]
+        const currentQuestionIndex = 0; // This should come from game state
+        const [leftTarget, rightTarget] = targetSequence[currentQuestionIndex];
+        
+        console.log(`🎯 TARGET: Left dice = ${leftTarget}, Right dice = ${rightTarget}`);
         
         // Get random colors
         const colors = this.getRandomDiceColors();
@@ -503,9 +548,9 @@ class DiceRenderer {
             });
         }, 200);
         
-        // Generate movement sequences for both dice
-        const leftSequence = this.generateMovementSequence(20);
-        const rightSequence = this.generateMovementSequence(20);
+        // Generate movement sequences until targets are reached
+        const leftSequence = this.generateTargetBasedSequence(leftTarget, 'Left');
+        const rightSequence = this.generateTargetBasedSequence(rightTarget, 'Right');
         
         // Pre-log predictions for BOTH dice before any physical execution
         console.log('\n🎯🎯🎯 COMPLETE PREDICTIONS FOR BOTH DICE 🎯🎯🎯');
