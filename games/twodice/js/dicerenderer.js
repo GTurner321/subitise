@@ -554,8 +554,8 @@ class DiceRenderer {
         }, 200);
         
         // Roll both dice using the same tracking logic
-        const leftRolls = 8; // Fixed number for testing
-        const rightRolls = 8; // Fixed number for testing
+        const leftRolls = 20; // Increased to 20 rolls for more testing
+        const rightRolls = 20; // Increased to 20 rolls for more testing
         
         const leftPromise = this.rollDiceWithTracking(leftDice, leftRolls, 'Left');
         const rightPromise = this.rollDiceWithTracking(rightDice, rightRolls, 'Right');
