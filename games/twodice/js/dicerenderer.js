@@ -194,6 +194,65 @@ class DiceRenderer {
         return newFaces;
     }
 
+    // New method for component-wise transformation with logging
+    applyComponentTransforms(currentFaces, rotX, rotY, moveNumber, moveName) {
+        let intermediateFaces = { ...currentFaces };
+        
+        // Step 1: Apply Y rotation first if it exists
+        if (rotY !== 0) {
+            if (rotY === 90) {
+                // +90Y rotation: roll right
+                const temp = intermediateFaces.left;
+                intermediateFaces.left = intermediateFaces.back;
+                intermediateFaces.back = intermediateFaces.right;
+                intermediateFaces.right = intermediateFaces.front;
+                intermediateFaces.front = temp;
+            } else if (rotY === -90) {
+                // -90Y rotation: roll left
+                const temp = intermediateFaces.left;
+                intermediateFaces.left = intermediateFaces.front;
+                intermediateFaces.front = intermediateFaces.right;
+                intermediateFaces.right = intermediateFaces.back;
+                intermediateFaces.back = temp;
+            }
+            
+            // Log intermediate state after Y rotation
+            console.log(`\n=== MOVE ${moveNumber}A: ${moveName} - STEP 1: rotY: ${rotY} ===`);
+            console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
+        }
+        
+        // Step 2: Apply X rotation second if it exists
+        if (rotX !== 0) {
+            if (rotX === 90) {
+                // +90X rotation: roll backwards
+                const temp = intermediateFaces.top;
+                intermediateFaces.top = intermediateFaces.back;
+                intermediateFaces.back = intermediateFaces.bottom;
+                intermediateFaces.bottom = intermediateFaces.front;
+                intermediateFaces.front = temp;
+            } else if (rotX === -90) {
+                // -90X rotation: roll forwards
+                const temp = intermediateFaces.top;
+                intermediateFaces.top = intermediateFaces.front;
+                intermediateFaces.front = intermediateFaces.bottom;
+                intermediateFaces.bottom = intermediateFaces.back;
+                intermediateFaces.back = temp;
+            }
+            
+            // Log final state after X rotation
+            console.log(`\n=== MOVE ${moveNumber}B: ${moveName} - STEP 2: rotX: ${rotX} ===`);
+            console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
+        }
+        
+        // If it's a single-component move, still log it properly
+        if (rotY === 0 || rotX === 0) {
+            console.log(`\n=== MOVE ${moveNumber}: ${moveName} ===`);
+            console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
+        }
+        
+        return intermediateFaces;
+    }
+
     logFacePositions(faces, moveNumber, moveName, rotX, rotY) {
         console.log(`\n=== MOVE ${moveNumber}: ${moveName} (rotY: ${rotY} FIRST, then rotX: ${rotX}) ===`);
         console.log(`Front: ${faces.front} | Back: ${faces.back} | Left: ${faces.left} | Right: ${faces.right} | Top: ${faces.top} | Bottom: ${faces.bottom}`);
@@ -455,11 +514,8 @@ class DiceRenderer {
                 const move = this.getRandomMove();
                 const flipDuration = 0.5; // Fixed duration for easier observation
                 
-                // Apply the transformation to face tracking
-                const newFaces = this.applyTransformToFaces(currentFaces, move.rotX, move.rotY);
-                
-                // Log the transformation and result
-                this.logFacePositions(newFaces, rollCount, move.name, move.rotX, move.rotY);
+                // Apply the transformation to face tracking using component-wise method
+                const newFaces = this.applyComponentTransforms(currentFaces, move.rotX, move.rotY, rollCount, move.name);
                 
                 // Apply rotation to the physical dice
                 currentRotationX += move.rotX;
