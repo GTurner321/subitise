@@ -541,34 +541,28 @@ class DiceRenderer {
                     if (isOddMove) {
                         // ODD MOVES: CSS does Y-then-X
                         if (rotY !== 0) {
-                            const stepAFaces = this.applyLogicalTransform({ ...predictedFaces }, 0, rotY, moveNumber);
-                            console.log(`MOVE ${moveNumber}A (${name}): rotY=${rotY} → Front: ${stepAFaces.front} | Back: ${stepAFaces.back} | Left: ${stepAFaces.left} | Right: ${stepAFaces.right} | Top: ${stepAFaces.top} | Bottom: ${stepAFaces.bottom}`);
-                            predictedFaces = stepAFaces;
+                            predictedFaces = this.applyLogicalTransform({ ...predictedFaces }, 0, rotY, moveNumber);
+                            console.log(`MOVE ${moveNumber}A (${name}): rotY=${rotY} → Front: ${predictedFaces.front} | Back: ${predictedFaces.back} | Left: ${predictedFaces.left} | Right: ${predictedFaces.right} | Top: ${predictedFaces.top} | Bottom: ${predictedFaces.bottom}`);
                         }
                         if (rotX !== 0) {
-                            const stepBFaces = this.applyLogicalTransform({ ...predictedFaces }, rotX, 0, moveNumber);
-                            console.log(`MOVE ${moveNumber}B (${name}): rotX=${rotX} → Front: ${stepBFaces.front} | Back: ${stepBFaces.back} | Left: ${stepBFaces.left} | Right: ${stepBFaces.right} | Top: ${stepBFaces.top} | Bottom: ${stepBFaces.bottom}`);
-                            predictedFaces = stepBFaces;
+                            predictedFaces = this.applyLogicalTransform({ ...predictedFaces }, rotX, 0, moveNumber);
+                            console.log(`MOVE ${moveNumber}B (${name}): rotX=${rotX} → Front: ${predictedFaces.front} | Back: ${predictedFaces.back} | Left: ${predictedFaces.left} | Right: ${predictedFaces.right} | Top: ${predictedFaces.top} | Bottom: ${predictedFaces.bottom}`);
                         }
                     } else {
                         // EVEN MOVES: CSS does X-then-Y
                         if (rotX !== 0) {
-                            const stepAFaces = this.applyLogicalTransform({ ...predictedFaces }, rotX, 0, moveNumber);
-                            console.log(`MOVE ${moveNumber}A (${name}): rotX=${rotX} → Front: ${stepAFaces.front} | Back: ${stepAFaces.back} | Left: ${stepAFaces.left} | Right: ${stepAFaces.right} | Top: ${stepAFaces.top} | Bottom: ${stepAFaces.bottom}`);
-                            predictedFaces = stepAFaces;
+                            predictedFaces = this.applyLogicalTransform({ ...predictedFaces }, rotX, 0, moveNumber);
+                            console.log(`MOVE ${moveNumber}A (${name}): rotX=${rotX} → Front: ${predictedFaces.front} | Back: ${predictedFaces.back} | Left: ${predictedFaces.left} | Right: ${predictedFaces.right} | Top: ${predictedFaces.top} | Bottom: ${predictedFaces.bottom}`);
                         }
                         if (rotY !== 0) {
-                            const stepBFaces = this.applyLogicalTransform({ ...predictedFaces }, 0, rotY, moveNumber);
-                            console.log(`MOVE ${moveNumber}B (${name}): rotY=${rotY} → Front: ${stepBFaces.front} | Back: ${stepBFaces.back} | Left: ${stepBFaces.left} | Right: ${stepBFaces.right} | Top: ${stepBFaces.top} | Bottom: ${stepBFaces.bottom}`);
-                            predictedFaces = stepBFaces;
+                            predictedFaces = this.applyLogicalTransform({ ...predictedFaces }, 0, rotY, moveNumber);
+                            console.log(`MOVE ${moveNumber}B (${name}): rotY=${rotY} → Front: ${predictedFaces.front} | Back: ${predictedFaces.back} | Left: ${predictedFaces.left} | Right: ${predictedFaces.right} | Top: ${predictedFaces.top} | Bottom: ${predictedFaces.bottom}`);
                         }
                     }
                     
-                    // If single component move, show complete result
+                    // For single component moves, the result is already in predictedFaces from above
                     if (rotY === 0 || rotX === 0) {
-                        const finalFaces = this.applyLogicalTransform(JSON.parse(dice.dataset.currentFaces), rotX, rotY, moveNumber);
-                        console.log(`MOVE ${moveNumber} (${name}): Complete → Front: ${finalFaces.front} | Back: ${finalFaces.back} | Left: ${finalFaces.left} | Right: ${finalFaces.right} | Top: ${finalFaces.top} | Bottom: ${finalFaces.bottom}`);
-                        predictedFaces = finalFaces;
+                        console.log(`MOVE ${moveNumber} (${name}): Complete → Front: ${predictedFaces.front} | Back: ${predictedFaces.back} | Left: ${predictedFaces.left} | Right: ${predictedFaces.right} | Top: ${predictedFaces.top} | Bottom: ${predictedFaces.bottom}`);
                     }
                 });
                 console.log(`\n🎬 STARTING PHYSICAL EXECUTION FOR ${diceName} DICE:\n`);
