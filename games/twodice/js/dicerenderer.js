@@ -198,58 +198,112 @@ class DiceRenderer {
     applyComponentTransforms(currentFaces, rotX, rotY, moveNumber, moveName) {
         let intermediateFaces = { ...currentFaces };
         
-        // PATTERN FIX: On moves 2,3,6,7,10,11,14,15,18,19 (4n-2 and 4n-1), flip Y rotation
+        // PATTERN FIX: On moves 2,3,6,7,10,11,14,15,18,19 (4n-2 and 4n-1), flip Y rotation AND order
         let adjustedRotY = rotY;
         const isFlipMove = this.shouldFlipYRotation(moveNumber);
         if (isFlipMove && rotY !== 0) {
             adjustedRotY = -rotY; // Flip the Y rotation
-            console.log(`🔄 MOVE ${moveNumber}: Flipping Y rotation from ${rotY} to ${adjustedRotY} (pattern fix)`);
+            console.log(`🔄 MOVE ${moveNumber}: Flipping Y rotation from ${rotY} to ${adjustedRotY} AND changing order to X-then-Y (pattern fix)`);
         }
         
-        // Step 1: Apply Y rotation first if it exists
-        if (adjustedRotY !== 0) {
-            if (adjustedRotY === 90) {
-                // +90Y rotation: roll right
-                const temp = intermediateFaces.left;
-                intermediateFaces.left = intermediateFaces.back;
-                intermediateFaces.back = intermediateFaces.right;
-                intermediateFaces.right = intermediateFaces.front;
-                intermediateFaces.front = temp;
-            } else if (adjustedRotY === -90) {
-                // -90Y rotation: roll left
-                const temp = intermediateFaces.left;
-                intermediateFaces.left = intermediateFaces.front;
-                intermediateFaces.front = intermediateFaces.right;
-                intermediateFaces.right = intermediateFaces.back;
-                intermediateFaces.back = temp;
+        // Determine the order of operations
+        if (isFlipMove) {
+            // FLIPPED MOVES: Apply X rotation FIRST, then Y rotation
+            
+            // Step 1: Apply X rotation first if it exists
+            if (rotX !== 0) {
+                if (rotX === 90) {
+                    // +90X rotation: roll backwards (front->top, top->back, back->bottom, bottom->front)
+                    const temp = intermediateFaces.front;
+                    intermediateFaces.front = intermediateFaces.bottom;
+                    intermediateFaces.bottom = intermediateFaces.back;
+                    intermediateFaces.back = intermediateFaces.top;
+                    intermediateFaces.top = temp;
+                } else if (rotX === -90) {
+                    // -90X rotation: roll forwards (front->bottom, top->front, back->top, bottom->back)
+                    const temp = intermediateFaces.front;
+                    intermediateFaces.front = intermediateFaces.top;
+                    intermediateFaces.top = intermediateFaces.back;
+                    intermediateFaces.back = intermediateFaces.bottom;
+                    intermediateFaces.bottom = temp;
+                }
+                
+                // Log intermediate state after X rotation
+                console.log(`\n=== MOVE ${moveNumber}A: ${moveName} - STEP 1: rotX: ${rotX} (X-FIRST) ===`);
+                console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
             }
             
-            // Log intermediate state after Y rotation
-            console.log(`\n=== MOVE ${moveNumber}A: ${moveName} - STEP 1: rotY: ${adjustedRotY} ${isFlipMove ? '(FLIPPED)' : ''} ===`);
-            console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
-        }
-        
-        // Step 2: Apply X rotation second if it exists
-        if (rotX !== 0) {
-            if (rotX === 90) {
-                // +90X rotation: roll backwards (front->top, top->back, back->bottom, bottom->front)
-                const temp = intermediateFaces.front;
-                intermediateFaces.front = intermediateFaces.bottom;
-                intermediateFaces.bottom = intermediateFaces.back;
-                intermediateFaces.back = intermediateFaces.top;
-                intermediateFaces.top = temp;
-            } else if (rotX === -90) {
-                // -90X rotation: roll forwards (front->bottom, top->front, back->top, bottom->back)
-                const temp = intermediateFaces.front;
-                intermediateFaces.front = intermediateFaces.top;
-                intermediateFaces.top = intermediateFaces.back;
-                intermediateFaces.back = intermediateFaces.bottom;
-                intermediateFaces.bottom = temp;
+            // Step 2: Apply Y rotation second if it exists
+            if (adjustedRotY !== 0) {
+                if (adjustedRotY === 90) {
+                    // +90Y rotation: roll right
+                    const temp = intermediateFaces.left;
+                    intermediateFaces.left = intermediateFaces.back;
+                    intermediateFaces.back = intermediateFaces.right;
+                    intermediateFaces.right = intermediateFaces.front;
+                    intermediateFaces.front = temp;
+                } else if (adjustedRotY === -90) {
+                    // -90Y rotation: roll left
+                    const temp = intermediateFaces.left;
+                    intermediateFaces.left = intermediateFaces.front;
+                    intermediateFaces.front = intermediateFaces.right;
+                    intermediateFaces.right = intermediateFaces.back;
+                    intermediateFaces.back = temp;
+                }
+                
+                // Log final state after Y rotation
+                console.log(`\n=== MOVE ${moveNumber}B: ${moveName} - STEP 2: rotY: ${adjustedRotY} (FLIPPED, Y-SECOND) ===`);
+                console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
             }
             
-            // Log final state after X rotation
-            console.log(`\n=== MOVE ${moveNumber}B: ${moveName} - STEP 2: rotX: ${rotX} ===`);
-            console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
+        } else {
+            // NORMAL MOVES: Apply Y rotation first, then X rotation (original order)
+            
+            // Step 1: Apply Y rotation first if it exists
+            if (adjustedRotY !== 0) {
+                if (adjustedRotY === 90) {
+                    // +90Y rotation: roll right
+                    const temp = intermediateFaces.left;
+                    intermediateFaces.left = intermediateFaces.back;
+                    intermediateFaces.back = intermediateFaces.right;
+                    intermediateFaces.right = intermediateFaces.front;
+                    intermediateFaces.front = temp;
+                } else if (adjustedRotY === -90) {
+                    // -90Y rotation: roll left
+                    const temp = intermediateFaces.left;
+                    intermediateFaces.left = intermediateFaces.front;
+                    intermediateFaces.front = intermediateFaces.right;
+                    intermediateFaces.right = intermediateFaces.back;
+                    intermediateFaces.back = temp;
+                }
+                
+                // Log intermediate state after Y rotation
+                console.log(`\n=== MOVE ${moveNumber}A: ${moveName} - STEP 1: rotY: ${adjustedRotY} (Y-FIRST) ===`);
+                console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
+            }
+            
+            // Step 2: Apply X rotation second if it exists
+            if (rotX !== 0) {
+                if (rotX === 90) {
+                    // +90X rotation: roll backwards (front->top, top->back, back->bottom, bottom->front)
+                    const temp = intermediateFaces.front;
+                    intermediateFaces.front = intermediateFaces.bottom;
+                    intermediateFaces.bottom = intermediateFaces.back;
+                    intermediateFaces.back = intermediateFaces.top;
+                    intermediateFaces.top = temp;
+                } else if (rotX === -90) {
+                    // -90X rotation: roll forwards (front->bottom, top->front, back->top, bottom->back)
+                    const temp = intermediateFaces.front;
+                    intermediateFaces.front = intermediateFaces.top;
+                    intermediateFaces.top = intermediateFaces.back;
+                    intermediateFaces.back = intermediateFaces.bottom;
+                    intermediateFaces.bottom = temp;
+                }
+                
+                // Log final state after X rotation
+                console.log(`\n=== MOVE ${moveNumber}B: ${moveName} - STEP 2: rotX: ${rotX} (X-SECOND) ===`);
+                console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
+            }
         }
         
         // If it's a single-component move, still log it properly
