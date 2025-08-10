@@ -200,44 +200,78 @@ class DiceRenderer {
         };
     }
 
-    // Simple face tracking without pattern corrections
-    applyLogicalTransform(currentFaces, rotX, rotY) {
+    // Apply logical transforms in the same order CSS will execute them
+    applyLogicalTransform(currentFaces, rotX, rotY, moveNumber) {
         let newFaces = { ...currentFaces };
         
-        // Always apply Y rotation first, then X rotation (logical order)
+        // Determine order based on move number (matching CSS behavior)
+        const isOddMove = (moveNumber % 2 === 1);
         
-        // Apply Y rotation first
-        if (rotY === 90) {
-            // +90Y rotation: roll right
-            const temp = newFaces.left;
-            newFaces.left = newFaces.back;
-            newFaces.back = newFaces.right;
-            newFaces.right = newFaces.front;
-            newFaces.front = temp;
-        } else if (rotY === -90) {
-            // -90Y rotation: roll left
-            const temp = newFaces.left;
-            newFaces.left = newFaces.front;
-            newFaces.front = newFaces.right;
-            newFaces.right = newFaces.back;
-            newFaces.back = temp;
-        }
-        
-        // Apply X rotation second
-        if (rotX === 90) {
-            // +90X rotation: roll backwards
-            const temp = newFaces.front;
-            newFaces.front = newFaces.bottom;
-            newFaces.bottom = newFaces.back;
-            newFaces.back = newFaces.top;
-            newFaces.top = temp;
-        } else if (rotX === -90) {
-            // -90X rotation: roll forwards
-            const temp = newFaces.front;
-            newFaces.front = newFaces.top;
-            newFaces.top = newFaces.back;
-            newFaces.back = newFaces.bottom;
-            newFaces.bottom = temp;
+        if (isOddMove) {
+            // ODD MOVES: CSS does Y-then-X, so we predict Y-then-X
+            
+            // Apply Y rotation first
+            if (rotY === 90) {
+                const temp = newFaces.left;
+                newFaces.left = newFaces.back;
+                newFaces.back = newFaces.right;
+                newFaces.right = newFaces.front;
+                newFaces.front = temp;
+            } else if (rotY === -90) {
+                const temp = newFaces.left;
+                newFaces.left = newFaces.front;
+                newFaces.front = newFaces.right;
+                newFaces.right = newFaces.back;
+                newFaces.back = temp;
+            }
+            
+            // Apply X rotation second
+            if (rotX === 90) {
+                const temp = newFaces.front;
+                newFaces.front = newFaces.bottom;
+                newFaces.bottom = newFaces.back;
+                newFaces.back = newFaces.top;
+                newFaces.top = temp;
+            } else if (rotX === -90) {
+                const temp = newFaces.front;
+                newFaces.front = newFaces.top;
+                newFaces.top = newFaces.back;
+                newFaces.back = newFaces.bottom;
+                newFaces.bottom = temp;
+            }
+            
+        } else {
+            // EVEN MOVES: CSS does X-then-Y, so we predict X-then-Y
+            
+            // Apply X rotation first
+            if (rotX === 90) {
+                const temp = newFaces.front;
+                newFaces.front = newFaces.bottom;
+                newFaces.bottom = newFaces.back;
+                newFaces.back = newFaces.top;
+                newFaces.top = temp;
+            } else if (rotX === -90) {
+                const temp = newFaces.front;
+                newFaces.front = newFaces.top;
+                newFaces.top = newFaces.back;
+                newFaces.back = newFaces.bottom;
+                newFaces.bottom = temp;
+            }
+            
+            // Apply Y rotation second
+            if (rotY === 90) {
+                const temp = newFaces.left;
+                newFaces.left = newFaces.back;
+                newFaces.back = newFaces.right;
+                newFaces.right = newFaces.front;
+                newFaces.front = temp;
+            } else if (rotY === -90) {
+                const temp = newFaces.left;
+                newFaces.left = newFaces.front;
+                newFaces.front = newFaces.right;
+                newFaces.right = newFaces.back;
+                newFaces.back = temp;
+            }
         }
         
         return newFaces;
@@ -501,23 +535,38 @@ class DiceRenderer {
                 movementSequence.forEach((move, index) => {
                     const { moveNumber, rotX, rotY, name } = move;
                     
-                    // Predict step A (Y movement if present)
-                    if (rotY !== 0) {
-                        const stepAFaces = this.applyLogicalTransform({ ...predictedFaces }, 0, rotY);
-                        console.log(`MOVE ${moveNumber}A (${name}): rotY=${rotY} → Front: ${stepAFaces.front} | Back: ${stepAFaces.back} | Left: ${stepAFaces.left} | Right: ${stepAFaces.right} | Top: ${stepAFaces.top} | Bottom: ${stepAFaces.bottom}`);
-                        predictedFaces = stepAFaces;
-                    }
+                    // Predict step A and B based on CSS execution order
+                    const isOddMove = (moveNumber % 2 === 1);
                     
-                    // Predict step B (X movement if present)
-                    if (rotX !== 0) {
-                        const stepBFaces = this.applyLogicalTransform({ ...predictedFaces }, rotX, 0);
-                        console.log(`MOVE ${moveNumber}B (${name}): rotX=${rotX} → Front: ${stepBFaces.front} | Back: ${stepBFaces.back} | Left: ${stepBFaces.left} | Right: ${stepBFaces.right} | Top: ${stepBFaces.top} | Bottom: ${stepBFaces.bottom}`);
-                        predictedFaces = stepBFaces;
+                    if (isOddMove) {
+                        // ODD MOVES: CSS does Y-then-X
+                        if (rotY !== 0) {
+                            const stepAFaces = this.applyLogicalTransform({ ...predictedFaces }, 0, rotY, moveNumber);
+                            console.log(`MOVE ${moveNumber}A (${name}): rotY=${rotY} → Front: ${stepAFaces.front} | Back: ${stepAFaces.back} | Left: ${stepAFaces.left} | Right: ${stepAFaces.right} | Top: ${stepAFaces.top} | Bottom: ${stepAFaces.bottom}`);
+                            predictedFaces = stepAFaces;
+                        }
+                        if (rotX !== 0) {
+                            const stepBFaces = this.applyLogicalTransform({ ...predictedFaces }, rotX, 0, moveNumber);
+                            console.log(`MOVE ${moveNumber}B (${name}): rotX=${rotX} → Front: ${stepBFaces.front} | Back: ${stepBFaces.back} | Left: ${stepBFaces.left} | Right: ${stepBFaces.right} | Top: ${stepBFaces.top} | Bottom: ${stepBFaces.bottom}`);
+                            predictedFaces = stepBFaces;
+                        }
+                    } else {
+                        // EVEN MOVES: CSS does X-then-Y
+                        if (rotX !== 0) {
+                            const stepAFaces = this.applyLogicalTransform({ ...predictedFaces }, rotX, 0, moveNumber);
+                            console.log(`MOVE ${moveNumber}A (${name}): rotX=${rotX} → Front: ${stepAFaces.front} | Back: ${stepAFaces.back} | Left: ${stepAFaces.left} | Right: ${stepAFaces.right} | Top: ${stepAFaces.top} | Bottom: ${stepAFaces.bottom}`);
+                            predictedFaces = stepAFaces;
+                        }
+                        if (rotY !== 0) {
+                            const stepBFaces = this.applyLogicalTransform({ ...predictedFaces }, 0, rotY, moveNumber);
+                            console.log(`MOVE ${moveNumber}B (${name}): rotY=${rotY} → Front: ${stepBFaces.front} | Back: ${stepBFaces.back} | Left: ${stepBFaces.left} | Right: ${stepBFaces.right} | Top: ${stepBFaces.top} | Bottom: ${stepBFaces.bottom}`);
+                            predictedFaces = stepBFaces;
+                        }
                     }
                     
                     // If single component move, show complete result
                     if (rotY === 0 || rotX === 0) {
-                        const finalFaces = this.applyLogicalTransform(JSON.parse(dice.dataset.currentFaces), rotX, rotY);
+                        const finalFaces = this.applyLogicalTransform(JSON.parse(dice.dataset.currentFaces), rotX, rotY, moveNumber);
                         console.log(`MOVE ${moveNumber} (${name}): Complete → Front: ${finalFaces.front} | Back: ${finalFaces.back} | Left: ${finalFaces.left} | Right: ${finalFaces.right} | Top: ${finalFaces.top} | Bottom: ${finalFaces.bottom}`);
                         predictedFaces = finalFaces;
                     }
@@ -544,8 +593,8 @@ class DiceRenderer {
                 const intendedMove = movementSequence[sequenceIndex];
                 const { moveNumber, rotX, rotY, name } = intendedMove;
                 
-                // Apply logical transformation (no corrections)
-                const newFaces = this.applyLogicalTransform(currentFaces, rotX, rotY);
+                // Apply logical transformation (using CSS execution order)
+                const newFaces = this.applyLogicalTransform(currentFaces, rotX, rotY, moveNumber);
                 
                 // Apply CSS pattern corrections
                 const cssCorrections = this.applyCSSPatternCorrections(intendedMove);
