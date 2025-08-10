@@ -470,10 +470,10 @@ class DiceRenderer {
         }, 200);
         
         // Generate movement sequences for both dice
-        const leftSequence = this.generateMovementSequence(20);
-        const rightSequence = this.generateMovementSequence(20);
+        const leftSequence = this.generateMovementSequence(8);
+        const rightSequence = this.generateMovementSequence(8);
         
-        // Execute both sequences
+        // Execute both sequences (only log left dice in detail)
         const leftPromise = this.executeMovementSequence(leftDice, leftSequence, 'Left');
         const rightPromise = this.executeMovementSequence(rightDice, rightSequence, 'Right');
         
@@ -492,19 +492,51 @@ class DiceRenderer {
 
     async executeMovementSequence(dice, movementSequence, diceName) {
         return new Promise((resolve) => {
+            // Pre-log the complete predicted sequence for left dice only
+            if (diceName === 'Left') {
+                console.log(`\n🎯 PREDICTED SEQUENCE FOR ${diceName} DICE:`);
+                let predictedFaces = JSON.parse(dice.dataset.currentFaces);
+                console.log(`INITIAL: Front: ${predictedFaces.front} | Back: ${predictedFaces.back} | Left: ${predictedFaces.left} | Right: ${predictedFaces.right} | Top: ${predictedFaces.top} | Bottom: ${predictedFaces.bottom}`);
+                
+                movementSequence.forEach((move, index) => {
+                    const { moveNumber, rotX, rotY, name } = move;
+                    
+                    // Predict step A (Y movement if present)
+                    if (rotY !== 0) {
+                        const stepAFaces = this.applyLogicalTransform({ ...predictedFaces }, 0, rotY);
+                        console.log(`MOVE ${moveNumber}A (${name}): rotY=${rotY} → Front: ${stepAFaces.front} | Back: ${stepAFaces.back} | Left: ${stepAFaces.left} | Right: ${stepAFaces.right} | Top: ${stepAFaces.top} | Bottom: ${stepAFaces.bottom}`);
+                        predictedFaces = stepAFaces;
+                    }
+                    
+                    // Predict step B (X movement if present)
+                    if (rotX !== 0) {
+                        const stepBFaces = this.applyLogicalTransform({ ...predictedFaces }, rotX, 0);
+                        console.log(`MOVE ${moveNumber}B (${name}): rotX=${rotX} → Front: ${stepBFaces.front} | Back: ${stepBFaces.back} | Left: ${stepBFaces.left} | Right: ${stepBFaces.right} | Top: ${stepBFaces.top} | Bottom: ${stepBFaces.bottom}`);
+                        predictedFaces = stepBFaces;
+                    }
+                    
+                    // If single component move, show complete result
+                    if (rotY === 0 || rotX === 0) {
+                        const finalFaces = this.applyLogicalTransform(JSON.parse(dice.dataset.currentFaces), rotX, rotY);
+                        console.log(`MOVE ${moveNumber} (${name}): Complete → Front: ${finalFaces.front} | Back: ${finalFaces.back} | Left: ${finalFaces.left} | Right: ${finalFaces.right} | Top: ${finalFaces.top} | Bottom: ${finalFaces.bottom}`);
+                        predictedFaces = finalFaces;
+                    }
+                });
+                console.log(`\n🎬 STARTING PHYSICAL EXECUTION FOR ${diceName} DICE:\n`);
+            }
+            
             let sequenceIndex = 0;
             let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
             let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
             let currentFaces = JSON.parse(dice.dataset.currentFaces);
             
-            console.log(`\n🎲 ${diceName} dice starting with logical tracking positions:`);
-            console.log(`Front: ${currentFaces.front} | Back: ${currentFaces.back} | Left: ${currentFaces.left} | Right: ${currentFaces.right} | Top: ${currentFaces.top} | Bottom: ${currentFaces.bottom}`);
-            
             const executeNextMove = () => {
                 if (sequenceIndex >= movementSequence.length) {
                     dice.classList.add('dice-final');
-                    console.log(`\n✅ ${diceName} dice completed ${movementSequence.length} moves`);
-                    console.log(`Final front face: ${currentFaces.front}`);
+                    if (diceName === 'Left') {
+                        console.log(`\n✅ ${diceName} dice completed ${movementSequence.length} moves`);
+                        console.log(`Final front face: ${currentFaces.front}`);
+                    }
                     resolve();
                     return;
                 }
@@ -519,17 +551,21 @@ class DiceRenderer {
                 const cssCorrections = this.applyCSSPatternCorrections(intendedMove);
                 const { cssRotX, cssRotY, cssOrder, shouldFlipY, shouldFlipOrder } = cssCorrections;
                 
-                // Log the move
-                console.log(`\n=== ${diceName} MOVE ${moveNumber}: ${name} ===`);
-                console.log(`Intended: rotX=${rotX}, rotY=${rotY}`);
-                console.log(`CSS Applied: rotX=${cssRotX}, rotY=${cssRotY}, order=${cssOrder} ${shouldFlipY ? '(Y-FLIPPED)' : ''} ${shouldFlipOrder ? '(ORDER-FLIPPED)' : ''}`);
-                console.log(`Result: Front: ${newFaces.front} | Back: ${newFaces.back} | Left: ${newFaces.left} | Right: ${newFaces.right} | Top: ${newFaces.top} | Bottom: ${newFaces.bottom}`);
+                // Log CSS execution details for left dice only
+                if (diceName === 'Left') {
+                    console.log(`📱 CSS EXECUTION - MOVE ${moveNumber}: ${name}`);
+                    console.log(`   Intended: rotX=${rotX}, rotY=${rotY}`);
+                    console.log(`   CSS: rotX=${cssRotX}, rotY=${cssRotY}`);
+                    console.log(`   Order: ${cssOrder} ${shouldFlipOrder ? '(ORDER-FLIPPED)' : '(NORMAL)'}`);
+                    console.log(`   Y-Direction: ${shouldFlipY ? 'FLIPPED' : 'NORMAL'}`);
+                    console.log(`   Result: Front=${newFaces.front}\n`);
+                }
                 
                 // Apply CSS transform with corrections
                 currentRotationX += cssRotX;
                 currentRotationY += cssRotY;
                 
-                const flipDuration = 0.5;
+                const flipDuration = diceName === 'Left' ? 3.0 : 0.5; // 3 seconds for left, 0.5 for right
                 
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
                 dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
