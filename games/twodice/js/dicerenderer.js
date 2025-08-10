@@ -198,17 +198,23 @@ class DiceRenderer {
     applyComponentTransforms(currentFaces, rotX, rotY, moveNumber, moveName) {
         let intermediateFaces = { ...currentFaces };
         
-        // PATTERN FIX: On moves 2,3,6,7,10,11,14,15,18,19 (4n-2 and 4n-1), flip Y rotation AND order
+        // PATTERN FIX 1: On moves 2,3,6,7,10,11,14,15,18,19 (4n-2 and 4n-1), flip Y rotation
         let adjustedRotY = rotY;
-        const isFlipMove = this.shouldFlipYRotation(moveNumber);
-        if (isFlipMove && rotY !== 0) {
+        const isYFlipMove = this.shouldFlipYRotation(moveNumber);
+        if (isYFlipMove && rotY !== 0) {
             adjustedRotY = -rotY; // Flip the Y rotation
-            console.log(`🔄 MOVE ${moveNumber}: Flipping Y rotation from ${rotY} to ${adjustedRotY} AND changing order to X-then-Y (pattern fix)`);
+        }
+        
+        // PATTERN FIX 2: On even moves only, change order to X-then-Y
+        const isOrderFlipMove = (moveNumber % 2 === 0);
+        
+        if (isYFlipMove || isOrderFlipMove) {
+            console.log(`🔄 MOVE ${moveNumber}: ${isYFlipMove ? `Y-flip (${rotY} → ${adjustedRotY})` : ''} ${isYFlipMove && isOrderFlipMove ? ' + ' : ''}${isOrderFlipMove ? 'Order-flip (X-then-Y)' : ''}`);
         }
         
         // Determine the order of operations
-        if (isFlipMove) {
-            // FLIPPED MOVES: Apply X rotation FIRST, then Y rotation
+        if (isOrderFlipMove) {
+            // EVEN MOVES: Apply X rotation FIRST, then Y rotation
             
             // Step 1: Apply X rotation first if it exists
             if (rotX !== 0) {
@@ -252,12 +258,12 @@ class DiceRenderer {
                 }
                 
                 // Log final state after Y rotation
-                console.log(`\n=== MOVE ${moveNumber}B: ${moveName} - STEP 2: rotY: ${adjustedRotY} (FLIPPED, Y-SECOND) ===`);
+                console.log(`\n=== MOVE ${moveNumber}B: ${moveName} - STEP 2: rotY: ${adjustedRotY} ${isYFlipMove ? '(FLIPPED)' : ''} (Y-SECOND) ===`);
                 console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
             }
             
         } else {
-            // NORMAL MOVES: Apply Y rotation first, then X rotation (original order)
+            // ODD MOVES: Apply Y rotation first, then X rotation (original order)
             
             // Step 1: Apply Y rotation first if it exists
             if (adjustedRotY !== 0) {
@@ -278,7 +284,7 @@ class DiceRenderer {
                 }
                 
                 // Log intermediate state after Y rotation
-                console.log(`\n=== MOVE ${moveNumber}A: ${moveName} - STEP 1: rotY: ${adjustedRotY} (Y-FIRST) ===`);
+                console.log(`\n=== MOVE ${moveNumber}A: ${moveName} - STEP 1: rotY: ${adjustedRotY} ${isYFlipMove ? '(FLIPPED)' : ''} (Y-FIRST) ===`);
                 console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
             }
             
@@ -308,7 +314,7 @@ class DiceRenderer {
         
         // If it's a single-component move, still log it properly
         if (adjustedRotY === 0 || rotX === 0) {
-            console.log(`\n=== MOVE ${moveNumber}: ${moveName} ${isFlipMove && rotY !== 0 ? '(Y-FLIPPED)' : ''} ===`);
+            console.log(`\n=== MOVE ${moveNumber}: ${moveName} ${isYFlipMove && rotY !== 0 ? '(Y-FLIPPED)' : ''} ===`);
             console.log(`Front: ${intermediateFaces.front} | Back: ${intermediateFaces.back} | Left: ${intermediateFaces.left} | Right: ${intermediateFaces.right} | Top: ${intermediateFaces.top} | Bottom: ${intermediateFaces.bottom}`);
         }
         
