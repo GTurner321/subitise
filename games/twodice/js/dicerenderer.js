@@ -528,7 +528,7 @@ class DiceRenderer {
                 
                 // Get random move from our restricted set
                 const move = this.getRandomMove();
-                const flipDuration = 0.5; // Fixed duration for easier observation
+                const flipDuration = 1.0; // Slowed down to 1 second per move for easier observation
                 
                 // Apply the transformation to face tracking using component-wise method
                 const newFaces = this.applyComponentTransforms(currentFaces, move.rotX, move.rotY, rollCount, move.name);
