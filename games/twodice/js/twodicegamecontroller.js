@@ -10,12 +10,10 @@ class TwoDiceGameController {
         this.questionsCompleted = 0;
         this.gameComplete = false;
         
-        // UPDATED: Predetermined sequence tracking
-        this.targetSequence = [
-            [1,1], [2,2], [3,3], [2,4], [5,6], 
-            [5,1], [6,6], [6,3], [4,3], [3,1]
-        ];
-        this.currentSequenceIndex = 0;
+        // UPDATED: Level-based system
+        this.currentLevel = 'L1'; // Always start at L1
+        this.usedSumsThisRound = new Set(); // Track used sums for current round
+        this.roundQuestionCount = 0; // Questions completed in current round
         
         // Current question state
         this.currentLeftValue = 0;
@@ -48,11 +46,6 @@ class TwoDiceGameController {
         this.initializationComplete = false;
         this.buttonBarReady = false;
         this.gameAreaReady = false;
-        
-        // UPDATED: Remove old level system variables (keep for future enhancement)
-        // this.currentLevel = CONFIG.LEVEL_SYSTEM.STARTING_LEVEL;
-        // this.usedSumsThisRound = new Set();
-        // this.roundQuestionCount = 0;
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
@@ -87,7 +80,51 @@ class TwoDiceGameController {
         this.setupVisibilityHandling();
         this.waitForSystemsAndInitialize();
         
-        console.log(`🎮 Game started with predetermined sequence of ${this.targetSequence.length} questions`);
+        console.log(`🎮 Game started at ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+    }
+
+    /**
+     * Get human-readable description of level
+     */
+    getLevelDescription(level) {
+        const descriptions = {
+            L1: 'Easy (1-3)',
+            L2: 'Medium (2-4)', 
+            L3: 'Hard (1-6)'
+        };
+        return descriptions[level] || level;
+    }
+
+    /**
+     * Update level based on question performance
+     */
+    updateLevel(wasCorrectFirstAttempt) {
+        const levels = ['L1', 'L2', 'L3'];
+        const currentIndex = levels.indexOf(this.currentLevel);
+        
+        if (wasCorrectFirstAttempt && currentIndex < levels.length - 1) {
+            // Level up for correct first attempt
+            this.currentLevel = levels[currentIndex + 1];
+            console.log(`📈 Level up to ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+            
+            if (CONFIG.AUDIO.MESSAGES.LEVEL_UP && this.isTabVisible) {
+                setTimeout(() => {
+                    this.speakText(CONFIG.AUDIO.MESSAGES.LEVEL_UP);
+                }, 1500);
+            }
+        } else if (!wasCorrectFirstAttempt && currentIndex > 0) {
+            // Level down for any mistake
+            this.currentLevel = levels[currentIndex - 1];
+            console.log(`📉 Level down to ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+            
+            if (CONFIG.AUDIO.MESSAGES.LEVEL_DOWN && this.isTabVisible) {
+                setTimeout(() => {
+                    this.speakText(CONFIG.AUDIO.MESSAGES.LEVEL_DOWN);
+                }, 1500);
+            }
+        } else {
+            console.log(`📊 Level remains ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+        }
     }
 
     /**
@@ -385,32 +422,6 @@ class TwoDiceGameController {
         return false;
     }
 
-    /**
-     * UPDATED: Get target values from predetermined sequence
-     */
-    getCurrentTargetValues() {
-        // Check if we've completed all questions in the sequence
-        if (this.currentSequenceIndex >= this.targetSequence.length) {
-            console.log('🎉 All predetermined questions completed!');
-            return null; // Signal that we're done
-        }
-        
-        const [leftValue, rightValue] = this.targetSequence[this.currentSequenceIndex];
-        const total = leftValue + rightValue;
-        
-        console.log(`🎯 Question ${this.currentSequenceIndex + 1}/${this.targetSequence.length}: Left=${leftValue}, Right=${rightValue}, Total=${total}`);
-        
-        return { leftValue, rightValue, total };
-    }
-
-    /**
-     * UPDATED: Progress to next question in sequence
-     */
-    advanceToNextQuestion() {
-        this.currentSequenceIndex++;
-        console.log(`📈 Advanced to question ${this.currentSequenceIndex + 1}/${this.targetSequence.length}`);
-    }
-
     startNewGame() {
         this.questionsCompleted = 0;
         this.gameComplete = false;
@@ -418,8 +429,10 @@ class TwoDiceGameController {
         this.clearKeyboardTimer();
         this.resetBoxState();
         
-        // UPDATED: Reset sequence tracking
-        this.currentSequenceIndex = 0;
+        // UPDATED: Reset level system for new game
+        this.currentLevel = 'L1'; // Always start at L1
+        this.usedSumsThisRound = new Set(); // Clear used sums
+        this.roundQuestionCount = 0; // Reset question count
         
         this.rainbow.reset();
         this.bear.reset();
@@ -429,7 +442,7 @@ class TwoDiceGameController {
         
         this.initializationComplete = true;
         
-        console.log(`🔄 New game started with predetermined sequence`);
+        console.log(`🔄 New game started at ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
         this.startNewQuestion();
     }
 
@@ -494,27 +507,23 @@ class TwoDiceGameController {
             return;
         }
 
-        // UPDATED: Get target values from sequence
-        const targets = this.getCurrentTargetValues();
-        if (!targets) {
-            // We've completed all questions in the sequence
-            this.completeGame();
-            return;
+        // Check if we need to start a new round (after 10 questions)
+        if (this.roundQuestionCount >= CONFIG.RAINBOW_PIECES) {
+            this.usedSumsThisRound.clear();
+            this.roundQuestionCount = 0;
+            console.log('🆕 Starting new round - cleared used sums');
         }
 
         this.resetBoxState();
         this.hideAllInputBoxes();
         this.hintGiven = false;
 
-        console.log(`🎲 Starting question ${this.questionsCompleted + 1}: sequence index ${this.currentSequenceIndex}`);
+        console.log(`🎲 Starting question ${this.questionsCompleted + 1} (round question ${this.roundQuestionCount + 1})`);
+        console.log(`📊 Current level: ${this.currentLevel} (${this.getLevelDescription(this.currentLevel)})`);
+        console.log(`🚫 Used sums this round: [${Array.from(this.usedSumsThisRound).sort((a,b) => a-b).join(', ')}]`);
         
         this.resetButtonStates();
         this.giveStartingInstruction();
-        
-        // UPDATED: Use predetermined target values
-        this.currentLeftValue = targets.leftValue;
-        this.currentRightValue = targets.rightValue;
-        this.currentTotal = targets.total;
         
         // Disable buttons during dice roll
         this.buttonsDisabled = true;
@@ -523,16 +532,21 @@ class TwoDiceGameController {
         }
         
         try {
-            // UPDATED: Pass current sequence index to dice renderer
-            const result = await this.diceRenderer.rollDiceForSequence(this.currentSequenceIndex);
+            // UPDATED: Use level-based dice rolling
+            const result = await this.diceRenderer.rollDiceForLevel(this.currentLevel, this.usedSumsThisRound);
             
             console.log('🎲 DICE RENDERER RETURNED:', result);
-            console.log(`🎯 TARGET vs ACTUAL: Target(${this.currentLeftValue}, ${this.currentRightValue}) vs Actual(${result.left}, ${result.right})`);
             
-            // Verify the dice landed on the expected values
-            if (result.left !== this.currentLeftValue || result.right !== this.currentRightValue) {
-                console.warn(`⚠️ Dice mismatch! Expected (${this.currentLeftValue}, ${this.currentRightValue}) but got (${result.left}, ${result.right})`);
-            }
+            // Store the target values from the dice result
+            this.currentLeftValue = result.left;
+            this.currentRightValue = result.right;
+            this.currentTotal = result.total;
+            
+            // Add this sum to used sums for this round
+            this.usedSumsThisRound.add(result.total);
+            
+            console.log(`🎯 TARGET VALUES: Left=${this.currentLeftValue}, Right=${this.currentRightValue}, Total=${this.currentTotal}`);
+            console.log(`📝 Updated used sums: [${Array.from(this.usedSumsThisRound).sort((a,b) => a-b).join(', ')}]`);
             
             // Enable buttons and show input boxes
             this.buttonsDisabled = false;
@@ -547,7 +561,11 @@ class TwoDiceGameController {
             
         } catch (error) {
             console.error('Error rolling dice:', error);
-            // Fallback with the target values
+            // Fallback values
+            this.currentLeftValue = 1;
+            this.currentRightValue = 1;
+            this.currentTotal = 2;
+            
             this.buttonsDisabled = false;
             if (window.ButtonBar) {
                 window.ButtonBar.setButtonsEnabled(true);
@@ -703,15 +721,20 @@ class TwoDiceGameController {
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}`);
             
+            // UPDATED: Determine if this was answered correctly on first attempt for level progression
+            const wasCorrectFirstAttempt = !this.hasAttemptedAnswer();
+            console.log(`📊 Question completed - First attempt: ${wasCorrectFirstAttempt ? 'Yes' : 'No'}`);
+            
+            // Update level based on performance
+            this.updateLevel(wasCorrectFirstAttempt);
+            
             // Random encouragement
             const encouragements = CONFIG.AUDIO.MESSAGES.CORRECT_ANSWERS;
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             this.speakText(randomEncouragement);
             
             this.questionsCompleted++;
-            
-            // UPDATED: Advance to next question in sequence
-            this.advanceToNextQuestion();
+            this.roundQuestionCount++;
             
             if (this.rainbow.isComplete()) {
                 this.stats.recordRoundCompletion();
