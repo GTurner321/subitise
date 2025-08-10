@@ -181,10 +181,10 @@ class DiceRenderer {
             cssRotY = -rotY; // Flip Y rotation for CSS
         }
         
-        // PATTERN 2: Order-flip on even moves
-        const shouldFlipOrder = (moveNumber % 2 === 0);
+        // PATTERN 2: Order-flip on odd moves 
+        const shouldFlipOrder = (moveNumber % 2 === 1);
         if (shouldFlipOrder) {
-            cssOrder = 'X-then-Y'; // Flip order for CSS
+            cssOrder = 'X-then-Y'; // Flip order for CSS on odd moves
         }
         
         if (shouldFlipY || shouldFlipOrder) {
