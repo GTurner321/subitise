@@ -176,19 +176,19 @@ class DiceRenderer {
         
         // Apply X rotation SECOND (around X-axis) - forward/backward movement
         if (rotX === 90) {
-            // +90X rotation: roll backwards (top->front, front->bottom, bottom->back, back->top)
-            const temp = newFaces.top;
-            newFaces.top = newFaces.back;
-            newFaces.back = newFaces.bottom;
-            newFaces.bottom = newFaces.front;
-            newFaces.front = temp;
-        } else if (rotX === -90) {
-            // -90X rotation: roll forwards (top->back, back->bottom, bottom->front, front->top)
-            const temp = newFaces.top;
-            newFaces.top = newFaces.front;
+            // +90X rotation: roll backwards (front->top, top->back, back->bottom, bottom->front)
+            const temp = newFaces.front;
             newFaces.front = newFaces.bottom;
             newFaces.bottom = newFaces.back;
-            newFaces.back = temp;
+            newFaces.back = newFaces.top;
+            newFaces.top = temp;
+        } else if (rotX === -90) {
+            // -90X rotation: roll forwards (front->bottom, top->front, back->top, bottom->back)
+            const temp = newFaces.front;
+            newFaces.front = newFaces.top;
+            newFaces.top = newFaces.back;
+            newFaces.back = newFaces.bottom;
+            newFaces.bottom = temp;
         }
         
         return newFaces;
@@ -224,19 +224,19 @@ class DiceRenderer {
         // Step 2: Apply X rotation second if it exists
         if (rotX !== 0) {
             if (rotX === 90) {
-                // +90X rotation: roll backwards
-                const temp = intermediateFaces.top;
-                intermediateFaces.top = intermediateFaces.back;
-                intermediateFaces.back = intermediateFaces.bottom;
-                intermediateFaces.bottom = intermediateFaces.front;
-                intermediateFaces.front = temp;
-            } else if (rotX === -90) {
-                // -90X rotation: roll forwards
-                const temp = intermediateFaces.top;
-                intermediateFaces.top = intermediateFaces.front;
+                // +90X rotation: roll backwards (front->top, top->back, back->bottom, bottom->front)
+                const temp = intermediateFaces.front;
                 intermediateFaces.front = intermediateFaces.bottom;
                 intermediateFaces.bottom = intermediateFaces.back;
-                intermediateFaces.back = temp;
+                intermediateFaces.back = intermediateFaces.top;
+                intermediateFaces.top = temp;
+            } else if (rotX === -90) {
+                // -90X rotation: roll forwards (front->bottom, top->front, back->top, bottom->back)
+                const temp = intermediateFaces.front;
+                intermediateFaces.front = intermediateFaces.top;
+                intermediateFaces.top = intermediateFaces.back;
+                intermediateFaces.back = intermediateFaces.bottom;
+                intermediateFaces.bottom = temp;
             }
             
             // Log final state after X rotation
