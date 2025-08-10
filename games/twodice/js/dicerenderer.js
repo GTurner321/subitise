@@ -19,11 +19,28 @@ class DiceRenderer {
         // Track previously used colors to avoid repeats
         this.previousColors = [];
         
-        // UPDATED: Predetermined sequence (coordinated with game controller)
-        this.targetSequence = [
-            [1,1], [2,2], [3,3], [2,4], [5,6], 
-            [5,1], [6,6], [6,3], [4,3], [3,1]
-        ];
+        // UPDATED: Level-based dice ranges
+        this.levelRanges = {
+            L1: [1, 2, 3],
+            L2: [2, 3, 4], 
+            L3: [1, 2, 3, 4, 5, 6]
+        };
+        
+        // UPDATED: Speed sets for movement timing
+        this.speedSets = {
+            A: {
+                diagonal: 0.55,
+                forward: 0.4,
+                penultimate: { diagonal: 0.7, forward: 0.53 },
+                last: { diagonal: 0.95, forward: 0.75 }
+            },
+            B: {
+                diagonal: 0.58,
+                forward: 0.42,
+                penultimate: { diagonal: 0.7, forward: 0.53 },
+                last: { diagonal: 0.95, forward: 0.75 }
+            }
+        };
         
         // Physical dice rendering - standard dice face positions for visual display
         this.physicalFacePositions = {
@@ -133,12 +150,87 @@ class DiceRenderer {
         return selectedColors;
     }
 
+    /**
+     * UPDATED: Generate targets based on level and used sums
+     */
+    generateLevelBasedTargets(level, usedSums) {
+        const range = this.levelRanges[level];
+        if (!range) {
+            console.error(`Invalid level: ${level}`);
+            return { leftValue: 1, rightValue: 1, total: 2 };
+        }
+        
+        console.log(`🎯 Generating targets for ${level} with range [${range.join(', ')}]`);
+        console.log(`🚫 Avoiding used sums: [${Array.from(usedSums).sort((a,b) => a-b).join(', ')}]`);
+        
+        // Try up to 10 times to find a non-repeated sum
+        for (let attempt = 1; attempt <= 10; attempt++) {
+            const leftValue = range[Math.floor(Math.random() * range.length)];
+            const rightValue = range[Math.floor(Math.random() * range.length)];
+            const total = leftValue + rightValue;
+            
+            if (!usedSums.has(total)) {
+                console.log(`✅ Found unique sum on attempt ${attempt}: (${leftValue}, ${rightValue}) = ${total}`);
+                return { leftValue, rightValue, total };
+            }
+            
+            console.log(`🔄 Attempt ${attempt}: sum ${total} already used, trying again...`);
+        }
+        
+        // After 10 attempts, just use the last generated values
+        const leftValue = range[Math.floor(Math.random() * range.length)];
+        const rightValue = range[Math.floor(Math.random() * range.length)];
+        const total = leftValue + rightValue;
+        
+        console.warn(`⚠️ Using repeat sum after 10 attempts: (${leftValue}, ${rightValue}) = ${total}`);
+        return { leftValue, rightValue, total };
+    }
+
+    /**
+     * UPDATED: Assign random speed sets ensuring they're different
+     */
+    assignSpeedSets() {
+        const sets = ['A', 'B'];
+        const shuffled = [...sets].sort(() => Math.random() - 0.5);
+        
+        const assignment = {
+            left: shuffled[0],
+            right: shuffled[1]
+        };
+        
+        console.log(`🏃‍♀️ Speed assignment: Left dice = Set ${assignment.left}, Right dice = Set ${assignment.right}`);
+        
+        return assignment;
+    }
+
+    /**
+     * UPDATED: Get movement duration based on speed set and position in sequence
+     */
+    getMovementDuration(speedSet, moveNumber, totalMoves, moveType) {
+        const set = this.speedSets[speedSet];
+        let duration;
+        
+        if (moveNumber === totalMoves) {
+            // Last move
+            duration = moveType === 'diagonal' ? set.last.diagonal : set.last.forward;
+        } else if (moveNumber === totalMoves - 1) {
+            // Penultimate move
+            duration = moveType === 'diagonal' ? set.penultimate.diagonal : set.penultimate.forward;
+        } else {
+            // Regular moves
+            duration = moveType === 'diagonal' ? set.diagonal : set.forward;
+        }
+        
+        console.log(`⏱️ Set ${speedSet} move ${moveNumber}/${totalMoves} (${moveType}): ${duration}s`);
+        return duration;
+    }
+
     // Movement system - generates intended movements
     getAvailableMoves() {
         return [
-            { rotX: -90, rotY: 90, name: 'forwards-right', probability: 0.4 },
-            { rotX: -90, rotY: -90, name: 'forwards-left', probability: 0.4 },
-            { rotX: -90, rotY: 0, name: 'forwards', probability: 0.2 }
+            { rotX: -90, rotY: 90, name: 'forwards-right', probability: 0.4, type: 'diagonal' },
+            { rotX: -90, rotY: -90, name: 'forwards-left', probability: 0.4, type: 'diagonal' },
+            { rotX: -90, rotY: 0, name: 'forwards', probability: 0.2, type: 'forward' }
         ];
     }
 
@@ -158,50 +250,58 @@ class DiceRenderer {
         return moves[0];
     }
 
-    // Generate movement sequence until target is reached (minimum 4 moves)
-    generateTargetBasedSequence(targetNumber, diceName) {
-        console.log(`🎯 Generating sequence for ${diceName} dice to reach ${targetNumber}`);
+    /**
+     * UPDATED: Generate movement sequence with new constraints
+     */
+    generateTargetBasedSequence(targetNumber, diceName, maxAttempts = 10) {
+        console.log(`🎯 Generating sequence for ${diceName} dice to reach ${targetNumber} (max ${maxAttempts} attempts)`);
         
-        const sequence = [];
-        let currentFaces = { ...this.logicalFacePositions }; // Start with initial position
-        let moveCount = 0;
-        const maxAttempts = 100; // Safety limit to prevent infinite loops
-        
-        while (moveCount < maxAttempts) {
-            moveCount++;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            console.log(`🔄 Attempt ${attempt}/${maxAttempts} for ${diceName} dice`);
             
-            // Generate a random move
-            const move = this.getRandomMove();
-            const moveData = {
-                moveNumber: moveCount,
-                ...move
-            };
+            const sequence = [];
+            let currentFaces = { ...this.logicalFacePositions }; // Start with initial position
+            let moveCount = 0;
+            const maxMoves = 18;
+            const minMoves = 8;
+            const checkFromMove = 9; // Start checking on 9th move
             
-            // Apply the move to see the result
-            const newFaces = this.applyLogicalTransform(currentFaces, move.rotX, move.rotY, moveCount);
-            
-            // Add move to sequence
-            sequence.push(moveData);
-            currentFaces = newFaces;
-            
-            // Check if we've reached the target (but only after minimum 4 moves)
-            if (moveCount >= 4 && newFaces.front === targetNumber) {
-                console.log(`✅ ${diceName} dice will reach target ${targetNumber} after ${moveCount} moves`);
-                break;
+            while (moveCount < maxMoves) {
+                moveCount++;
+                
+                // Generate a random move
+                const move = this.getRandomMove();
+                const moveData = {
+                    moveNumber: moveCount,
+                    ...move
+                };
+                
+                // Apply the move to see the result
+                const newFaces = this.applyLogicalTransform(currentFaces, move.rotX, move.rotY, moveCount);
+                
+                // Add move to sequence
+                sequence.push(moveData);
+                currentFaces = newFaces;
+                
+                // Check if we've reached the target (but only after minimum moves)
+                if (moveCount >= checkFromMove && newFaces.front === targetNumber) {
+                    console.log(`✅ ${diceName} dice reached target ${targetNumber} after ${moveCount} moves (attempt ${attempt})`);
+                    return sequence;
+                }
             }
             
-            // Log progress every 10 moves
-            if (moveCount % 10 === 0) {
-                console.log(`⏳ ${diceName} dice: ${moveCount} moves, current front: ${newFaces.front}, target: ${targetNumber}`);
+            console.log(`❌ Attempt ${attempt}: ${diceName} dice completed ${maxMoves} moves without reaching target ${targetNumber} (final: ${currentFaces.front})`);
+            
+            // If this is the last attempt, return the sequence anyway
+            if (attempt === maxAttempts) {
+                console.warn(`⚠️ ${diceName} dice using final sequence after ${maxAttempts} attempts (target: ${targetNumber}, actual: ${currentFaces.front})`);
+                return sequence;
             }
         }
         
-        if (moveCount >= maxAttempts) {
-            console.warn(`⚠️ ${diceName} dice hit maximum attempts (${maxAttempts}) without reaching target ${targetNumber}`);
-            console.warn(`Final front face: ${currentFaces.front}`);
-        }
-        
-        return sequence;
+        // This should never be reached, but just in case
+        console.error(`❌ Failed to generate sequence for ${diceName} dice`);
+        return [];
     }
 
     // Apply CSS pattern corrections to make physical dice match intended sequence
@@ -512,21 +612,20 @@ class DiceRenderer {
     }
 
     /**
-     * UPDATED: New method that accepts sequence index and uses predetermined targets
+     * UPDATED: New level-based dice rolling method
      */
-    async rollDiceForSequence(sequenceIndex) {
-        console.log('\n🎲🎲🎲 STARTING PREDETERMINED SEQUENCE DICE ROLL 🎲🎲🎲');
+    async rollDiceForLevel(level, usedSums) {
+        console.log('\n🎲🎲🎲 STARTING LEVEL-BASED DICE ROLL 🎲🎲🎲');
+        console.log(`📊 Level: ${level}`);
         
-        // Validate sequence index
-        if (sequenceIndex >= this.targetSequence.length) {
-            console.error(`❌ Invalid sequence index: ${sequenceIndex}. Max index: ${this.targetSequence.length - 1}`);
-            return { left: 1, right: 1, total: 2 }; // Fallback
-        }
+        // Generate targets based on level
+        const targets = this.generateLevelBasedTargets(level, usedSums);
+        const { leftValue: leftTarget, rightValue: rightTarget } = targets;
         
-        // Get target values from predetermined sequence
-        const [leftTarget, rightTarget] = this.targetSequence[sequenceIndex];
+        console.log(`🎯 TARGETS: Left dice = ${leftTarget}, Right dice = ${rightTarget}, Total = ${targets.total}`);
         
-        console.log(`🎯 SEQUENCE ${sequenceIndex + 1}/${this.targetSequence.length}: Left dice = ${leftTarget}, Right dice = ${rightTarget}`);
+        // Assign speed sets randomly (ensuring they're different)
+        const speedAssignment = this.assignSpeedSets();
         
         // Get random colors
         const colors = this.getRandomDiceColors();
@@ -535,7 +634,11 @@ class DiceRenderer {
         const leftDice = this.createDice(colors.left, true);
         const rightDice = this.createDice(colors.right, false);
         
-        // Add to game area (not to left/right sides - dice position themselves)
+        // Store speed assignments in dice data
+        leftDice.dataset.speedSet = speedAssignment.left;
+        rightDice.dataset.speedSet = speedAssignment.right;
+        
+        // Add to game area
         const gameArea = document.querySelector('.game-area');
         gameArea.appendChild(leftDice);
         gameArea.appendChild(rightDice);
@@ -565,7 +668,7 @@ class DiceRenderer {
         this.logPredictedSequence(rightDice, rightSequence, 'Right');
         console.log('\n🎬🎬🎬 STARTING PHYSICAL EXECUTION 🎬🎬🎬\n');
         
-        // Execute both sequences (only log left dice in detail)
+        // Execute both sequences with speed-based timing
         const leftPromise = this.executeMovementSequence(leftDice, leftSequence, 'Left');
         const rightPromise = this.executeMovementSequence(rightDice, rightSequence, 'Right');
         
@@ -580,7 +683,7 @@ class DiceRenderer {
         console.log(`\n🎯 FINAL RESULT: Left=${leftValue}, Right=${rightValue}, Total=${total}`);
         console.log(`🎯 EXPECTED: Left=${leftTarget}, Right=${rightTarget}, Total=${leftTarget + rightTarget}`);
         
-        // Verify results match expectations
+        // Verify results
         if (leftValue !== leftTarget || rightValue !== rightTarget) {
             console.warn(`⚠️ MISMATCH! Expected (${leftTarget}, ${rightTarget}) but got (${leftValue}, ${rightValue})`);
         } else {
@@ -591,13 +694,16 @@ class DiceRenderer {
     }
 
     /**
-     * LEGACY: Keep original rollDice method for backward compatibility
+     * LEGACY: Keep original methods for backward compatibility
      */
+    async rollDiceForSequence(sequenceIndex) {
+        console.warn('⚠️ rollDiceForSequence is deprecated - use rollDiceForLevel instead');
+        return this.rollDiceForLevel('L1', new Set());
+    }
+
     async rollDice() {
-        console.log('\n🎲🎲🎲 STARTING LEGACY DICE ROLL (using first sequence target) 🎲🎲🎲');
-        
-        // Use the first target in the sequence for legacy support
-        return this.rollDiceForSequence(0);
+        console.warn('⚠️ rollDice is deprecated - use rollDiceForLevel instead');
+        return this.rollDiceForLevel('L1', new Set());
     }
 
     // Separate method to log predicted sequence for any dice
@@ -641,12 +747,17 @@ class DiceRenderer {
         });
     }
 
+    /**
+     * UPDATED: Execute movement sequence with speed-based timing
+     */
     async executeMovementSequence(dice, movementSequence, diceName) {
         return new Promise((resolve) => {
             let sequenceIndex = 0;
             let currentRotationX = parseInt(dice.dataset.currentRotationX) || 0;
             let currentRotationY = parseInt(dice.dataset.currentRotationY) || 0;
             let currentFaces = JSON.parse(dice.dataset.currentFaces);
+            const speedSet = dice.dataset.speedSet;
+            const totalMoves = movementSequence.length;
             
             const executeNextMove = () => {
                 if (sequenceIndex >= movementSequence.length) {
@@ -658,7 +769,7 @@ class DiceRenderer {
                 }
                 
                 const intendedMove = movementSequence[sequenceIndex];
-                const { moveNumber, rotX, rotY, name } = intendedMove;
+                const { moveNumber, rotX, rotY, name, type } = intendedMove;
                 
                 // Apply logical transformation (using CSS execution order)
                 const newFaces = this.applyLogicalTransform(currentFaces, rotX, rotY, moveNumber);
@@ -667,9 +778,12 @@ class DiceRenderer {
                 const cssCorrections = this.applyCSSPatternCorrections(intendedMove);
                 const { cssRotX, cssRotY, cssOrder, shouldFlipY, shouldFlipOrder } = cssCorrections;
                 
+                // Get movement duration based on speed set and position
+                const flipDuration = this.getMovementDuration(speedSet, moveNumber, totalMoves, type);
+                
                 // Log CSS execution details for left dice only during execution
                 if (diceName === 'Left') {
-                    console.log(`📱 CSS EXECUTION - MOVE ${moveNumber}: ${name}`);
+                    console.log(`📱 CSS EXECUTION - MOVE ${moveNumber}: ${name} (${flipDuration}s)`);
                     console.log(`   Intended: rotX=${rotX}, rotY=${rotY}`);
                     console.log(`   CSS: rotX=${cssRotX}, rotY=${cssRotY}`);
                     console.log(`   Order: ${cssOrder} ${shouldFlipOrder ? '(ORDER-FLIPPED)' : '(NORMAL)'}`);
@@ -680,8 +794,6 @@ class DiceRenderer {
                 // Apply CSS transform with corrections
                 currentRotationX += cssRotX;
                 currentRotationY += cssRotY;
-                
-                const flipDuration = 0.5; // 0.5 seconds for both dice
                 
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
                 dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
