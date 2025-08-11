@@ -731,6 +731,10 @@ class MultiDiceRenderer {
         dice.dataset.currentRotationY = 0;
         dice.dataset.moveCount = 0;
         
+        // Store initial rotation for inner dice separately
+        innerDice.dataset.currentRotationX = 0;
+        innerDice.dataset.currentRotationY = 0;
+        
         return dice;
     }
 
@@ -1031,21 +1035,32 @@ class MultiDiceRenderer {
                     console.log(`   Result: Front=${newFaces.front}\n`);
                 }
                 
-                // RESTORED: Apply EXACT same corrected transforms to both outer and inner dice
+                // FIXED: Apply different transforms - outer gets corrected, inner gets intended
                 currentRotationX += cssRotX;
                 currentRotationY += cssRotY;
                 
-                const correctedTransform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
-                
-                // Apply to outer dice
+                // Outer dice gets corrected transform (for CSS browser quirks)
+                const outerTransform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                dice.style.transform = correctedTransform;
+                dice.style.transform = outerTransform;
                 
-                // Apply EXACT SAME corrected transform to inner dice for perfect sync
+                // Inner dice gets the ORIGINAL intended transform (no corrections)
                 const innerDice = dice.querySelector('.dice-inner');
                 if (innerDice) {
+                    let innerRotationX = parseInt(innerDice.dataset.currentRotationX || '0');
+                    let innerRotationY = parseInt(innerDice.dataset.currentRotationY || '0');
+                    
+                    // Apply the RAW intended rotations (before CSS corrections)
+                    innerRotationX += rotX;
+                    innerRotationY += rotY;
+                    
+                    const innerTransform = `rotateX(${innerRotationX}deg) rotateY(${innerRotationY}deg)`;
                     innerDice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                    innerDice.style.transform = correctedTransform; // Same corrected transform
+                    innerDice.style.transform = innerTransform;
+                    
+                    // Store inner dice rotation separately
+                    innerDice.dataset.currentRotationX = innerRotationX;
+                    innerDice.dataset.currentRotationY = innerRotationY;
                 }
                 
                 // Update tracking
