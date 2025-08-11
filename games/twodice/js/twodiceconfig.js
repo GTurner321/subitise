@@ -31,22 +31,22 @@ const CONFIG = {
             right: { x: 77, y: 50 }      // (77%, 50%)
         },
         THREE_DICE: {
-            left: { x: 23, y: 40 },      // (23%, 40%) 
-            right: { x: 77, y: 40 },     // (77%, 40%)
-            bottom: { x: 50, y: 80 }     // (50%, 80%)
+            left: { x: 23, y: 45 },      // UPDATED: (23%, 45%) 
+            right: { x: 77, y: 45 },     // UPDATED: (77%, 45%)
+            bottom: { x: 50, y: 65 }     // UPDATED: (50%, 65%)
         },
         FOUR_DICE: {
-            topLeft: { x: 24, y: 24 },       // (24%, 24%)
-            topRight: { x: 77, y: 25 },      // (77%, 25%)
-            bottomLeft: { x: 22, y: 76 },    // (22%, 76%)
-            bottomRight: { x: 78, y: 75 }    // (78%, 75%)
+            topLeft: { x: 23, y: 35 },       // UPDATED: (23%, 35%)
+            topRight: { x: 77, y: 35 },      // UPDATED: (77%, 35%)
+            bottomLeft: { x: 23, y: 65 },    // UPDATED: (23%, 65%)
+            bottomRight: { x: 77, y: 65 }    // UPDATED: (77%, 65%)
         }
     },
     
-    // FIXED: Plus symbol positioning for all modes with proper coordinates
+    // UPDATED: Plus symbol positioning for all modes with new coordinates
     PLUS_POSITIONS: {
         TWO_DICE: { x: 50, y: 50 },    // Center between two dice
-        THREE_DICE: { x: 50, y: 30 },  // Upper center above the triangle
+        THREE_DICE: { x: 50, y: 35 },  // UPDATED: Upper center at (50%, 35%)
         FOUR_DICE: { x: 50, y: 50 }    // Center of the four dice square
     },
     
