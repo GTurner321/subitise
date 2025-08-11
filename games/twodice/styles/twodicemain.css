@@ -203,7 +203,7 @@ body {
     right: 0;
     bottom: 0;
     border: 3px solid #333;
-    border-radius: 15%; /* 15% of dice width instead of fixed 15px */
+    border-radius: 20%; /* CHANGED: 20% of dice width instead of 15% */
     box-sizing: border-box;
     z-index: 3;
     /* Background color will be set by JavaScript */
@@ -220,7 +220,7 @@ body {
     width: 90%;
     height: 90%;
     border: none; /* No border outline */
-    border-radius: 15%; /* 15% of inner face width instead of fixed 15px */
+    border-radius: 20%; /* CHANGED: 20% of inner face width instead of 15% */
     box-sizing: border-box;
     z-index: 1;
     /* Background color will be set by JavaScript */
@@ -270,7 +270,7 @@ body {
     transition: transform 0.8s ease-out !important;
 }
 
-/* Sum row at bottom with proper sizing and positioning */
+/* Sum row at bottom - HIDDEN until proper measurements ready */
 .sum-row {
     position: absolute;
     bottom: 3%; /* 3% of game area height */
@@ -295,8 +295,9 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 2px solid #e0e0e0;
     box-sizing: border-box;
-    opacity: 0;
-    transition: opacity 1s ease-in-out;
+    opacity: 0; /* CHANGED: Start hidden until measurements ready */
+    visibility: hidden; /* CHANGED: Start hidden until measurements ready */
+    transition: opacity 1s ease-in-out, visibility 1s ease-in-out;
     
     /* Re-enable touch for sum row interactions */
     touch-action: manipulation;
