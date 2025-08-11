@@ -59,12 +59,12 @@ const CONFIG = {
         },
         THREE_DICE: {
             boxes: 3,
-            widthMultiplier: 8.1,
+            widthMultiplier: 8.5, // Updated from 8.1
             inputOrder: ['left', 'bottom', 'right'] // Box1=left, Box2=bottom, Box3=right
         },
         FOUR_DICE: {
             boxes: 4,
-            widthMultiplier: 9.7,
+            widthMultiplier: 10.5, // Updated from 9.7
             inputOrder: ['topLeft', 'bottomLeft', 'topRight', 'bottomRight'] // As specified
         }
     },
@@ -159,9 +159,9 @@ const CONFIG = {
             HINT_TOTAL_FOUR: 'Add the four dice numbers together',
             
             // UPDATED: Completion messages for different modes
-            GAME_TWODICE_COMPLETE: 'Well done! You\'re on a roll! Play again, or try the game with 3 dice, or return to the home page.',
+            GAME_TWODICE_COMPLETE: 'Well done! You\'re on a roll! Play again, or try the game with 3 dice.',
             GAME_THREEDICE_COMPLETE: 'Well done! You\'re on a roll! Play again, return to 2 dice, or try the game with 4 dice.',
-            GAME_FOURDICE_COMPLETE: 'Well done! You\'ve completed all the games! Play again, return to 2 or 3 dice, or return to the home page.'
+            GAME_FOURDICE_COMPLETE: 'Well done! You\'ve completed all the games! Play again, return to 2 or 3 dice.'
         }
     },
     
