@@ -207,42 +207,69 @@ body {
     border: 3px solid #333;
     border-radius: 15px;
     box-sizing: border-box;
-    z-index: 1;
+    z-index: 3; /* Above thickness */
     /* Disable touch interactions */
     pointer-events: none;
     touch-action: none;
 }
 
-/* NEW: Inner dice - 95% smaller, same color, no borders, 100% opacity, rotates with main dice */
-.dice-inner {
-    position: absolute;
-    top: 2.5%;
-    left: 2.5%;
-    width: 95%;
-    height: 95%;
-    transform-style: preserve-3d;
-    transform-origin: center center;
-    /* Disable touch interactions */
-    pointer-events: none;
-    touch-action: none;
-}
-
-.dice-inner-face {
+/* NEW: Face thickness - 5% depth extending inward with transparent borders */
+.dice-face-thickness {
     position: absolute;
     width: 100%;
-    height: 100%;
-    background-color: inherit; /* Will inherit from parent dice color */
-    border: none !important; /* FIXED: No borders */
-    border-radius: 8px;
+    height: 5%; /* 5% of dice width for thickness */
+    border: none; /* Transparent borders as discussed */
     box-sizing: border-box;
-    backface-visibility: hidden;
-    opacity: 1; /* 100% opacity as requested */
-    /* Disable touch interactions */
+    z-index: 2; /* Below surface but above inner face */
     pointer-events: none;
     touch-action: none;
+    /* Background will be set to slightly darker version of face color */
 }
 
-/* Inner face - fills gaps during rotation - UPDATED: smaller z-index */
+/* Position thickness elements for each face direction */
+.dice-face.front .dice-face-thickness {
+    bottom: 0;
+    transform-origin: bottom center;
+    transform: rotateX(-90deg);
+}
+
+.dice-face.back .dice-face-thickness {
+    bottom: 0;
+    transform-origin: bottom center;
+    transform: rotateX(90deg);
+}
+
+.dice-face.left .dice-face-thickness {
+    right: 0;
+    width: 5%;
+    height: 100%;
+    transform-origin: right center;
+    transform: rotateY(90deg);
+}
+
+.dice-face.right .dice-face-thickness {
+    left: 0;
+    width: 5%;
+    height: 100%;
+    transform-origin: left center;
+    transform: rotateY(-90deg);
+}
+
+.dice-face.top .dice-face-thickness {
+    bottom: 0;
+    transform-origin: bottom center;
+    transform: rotateX(90deg);
+}
+
+.dice-face.bottom .dice-face-thickness {
+    top: 0;
+    transform-origin: top center;
+    transform: rotateX(-90deg);
+}
+
+/* REMOVED: Inner dice classes - no longer needed with thickness approach */
+
+/* Inner face - fills gaps during rotation - UPDATED: lower z-index */
 .dice-face-inner {
     position: absolute;
     top: 5%;
@@ -252,7 +279,7 @@ body {
     border: none;
     border-radius: 0;
     box-sizing: border-box;
-    z-index: 0; /* Below inner dice */
+    z-index: 1; /* Lowest - just fills gaps */
     /* Disable touch interactions */
     pointer-events: none;
     touch-action: none;
