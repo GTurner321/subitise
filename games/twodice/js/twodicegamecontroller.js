@@ -425,35 +425,81 @@ class MultiDiceGameController {
         console.log('🎲 Game elements faded in');
     }
 
-createButtons() {
-    const colors = [
-        '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
-        '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894',
-        '#00cec9', '#e17055'
-    ];
-    const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    
-    if (window.ButtonBar && this.buttonBarReady) {
-        window.ButtonBar.create(
-            12,
-            6.7,
-            6.7,
-            colors,
-            numbers,
-            (selectedNumber, buttonElement) => {
-                if (this.buttonsDisabled || !this.initializationComplete) return;
-                
-                this.clearInactivityTimer();
-                this.startInactivityTimer();
-                
-                this.handleNumberClick(selectedNumber, buttonElement);
-            }
-        );
-        console.log('✅ Button bar created successfully');
-    } else {
-        console.warn('ButtonBar not available - using fallback');
+    createButtons() {
+        const colors = [
+            '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+            '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894',
+            '#00cec9', '#e17055'
+        ];
+        const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        
+        if (window.ButtonBar && this.buttonBarReady) {
+            window.ButtonBar.create(
+                12,
+                6.7,
+                6.7,
+                colors,
+                numbers,
+                (selectedNumber, buttonElement) => {
+                    if (this.buttonsDisabled || !this.initializationComplete) return;
+                    
+                    this.clearInactivityTimer();
+                    this.startInactivityTimer();
+                    
+                    this.handleNumberClick(selectedNumber, buttonElement);
+                }
+            );
+            console.log('✅ Button bar created successfully');
+        } else {
+            console.warn('ButtonBar not available - using fallback');
+        }
     }
-}  
+
+    setupVisibilityHandling() {
+        document.addEventListener('visibilitychange', () => {
+            this.isTabVisible = !document.hidden;
+            
+            if (!this.isTabVisible) {
+                this.clearInactivityTimer();
+                if (window.AudioSystem) {
+                    window.AudioSystem.stopAllAudio();
+                }
+            } else {
+                if (!this.gameComplete && !this.buttonsDisabled && this.initializationComplete) {
+                    this.startInactivityTimer();
+                }
+            }
+        });
+    }
+
+    speakText(text, options = {}) {
+        if (window.AudioSystem) {
+            window.AudioSystem.speakText(text, options);
+        }
+    }
+
+    playCompletionSound() {
+        if (window.AudioSystem) {
+            window.AudioSystem.playCompletionSound();
+        }
+    }
+
+    playFailureSound() {
+        if (window.AudioSystem) {
+            window.AudioSystem.playFailureSound();
+        }
+    }
+
+startInactivityTimer() {
+        if (!this.isTabVisible || this.hintGiven || !this.initializationComplete) {
+            return;
+        }
+        
+        this.clearInactivityTimer();
+        this.inactivityTimer = setTimeout(() => {
+            this.giveInactivityHint();
+        }, this.inactivityDuration);
+    }
 
     clearInactivityTimer() {
         if (this.inactivityTimer) {
