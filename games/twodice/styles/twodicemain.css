@@ -48,9 +48,7 @@ body {
     opacity: 1;
 }
 
-/* UPDATED: Remove left/right side areas - replaced with circular flashing */
-
-/* UPDATED: Middle section - only visible for 2-dice mode */
+/* UPDATED: Middle section - only visible for 2-dice mode with lower z-index */
 .middle-section {
     position: absolute;
     left: 46%;
@@ -63,7 +61,7 @@ body {
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
     border-left: 1px dashed rgba(0, 0, 0, 0.3);
     border-right: 1px dashed rgba(0, 0, 0, 0.3);
-    z-index: 0; /* Below game area background and rainbow */
+    z-index: 0; /* Below everything else */
     padding: 0; /* Ensure no padding */
 }
 
@@ -73,7 +71,7 @@ body {
     display: none;
 }
 
-/* UPDATED: Plus sign positioning - now flexible based on mode */
+/* FIXED: Plus sign positioning with higher z-index and always visible */
 .plus-sign {
     display: flex;
     justify-content: center;
@@ -86,7 +84,7 @@ body {
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    z-index: 15; /* Higher than dice (10) and sum row (15) */
+    z-index: 20; /* Higher than dice (10) and sum row (15) - always visible */
     position: absolute; /* Change to absolute for flexible positioning */
     margin: 0; /* Ensure no margin */
     padding: 0; /* Ensure no padding */
@@ -248,7 +246,7 @@ body {
     transition: transform 0.8s ease-out !important;
 }
 
-/* UPDATED: Sum row at bottom - dynamic width based on mode */
+/* FIXED: Sum row at bottom with proper sizing timing */
 .sum-row {
     position: absolute;
     bottom: 3%; /* 3% of game area height */
@@ -258,6 +256,10 @@ body {
     align-items: center;
     gap: 2%;
     z-index: 15;
+    
+    /* FIXED: Ensure minimum size during initialization */
+    min-width: 200px;
+    min-height: 60px;
     
     /* Responsive sizing based on game area - width will be updated dynamically */
     width: calc(var(--sum-box-size) * var(--sum-bar-width-multiplier));
@@ -298,13 +300,18 @@ body {
     min-width: calc(var(--sum-box-size) * 0.75); /* 75% of box size */
     text-align: center;
     flex-shrink: 0;
+    /* FIXED: Ensure minimum font size during initialization */
+    min-font-size: 20px;
 }
 
-/* UPDATED: Input boxes for different numbers of dice */
+/* FIXED: Input boxes for different numbers of dice with minimum sizing */
 .dice-input-box {
     width: var(--sum-box-size); /* 8% of game area width */
     height: var(--sum-box-size); /* Same as width - perfect squares */
     flex-shrink: 0;
+    /* FIXED: Ensure minimum size during initialization */
+    min-width: 40px;
+    min-height: 40px;
 }
 
 /* Input boxes for sum row */
@@ -320,6 +327,8 @@ body {
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
     transition: all 0.3s ease;
+    /* FIXED: Ensure minimum font size during initialization */
+    min-font-size: 16px;
 }
 
 .input-box.flashing {
@@ -358,6 +367,8 @@ body {
     text-align: center;
     flex-shrink: 0;
     margin-left: 1.5%;
+    /* FIXED: Ensure minimum font size during initialization */
+    min-font-size: 16px;
 }
 
 .check-mark.visible {
@@ -395,26 +406,27 @@ body {
     }
 }
 
-/* UPDATED: Game completion modal styles for multiple buttons */
+/* FIXED: Simplified modal styles with consistent button sizing */
 .modal-buttons {
     display: flex;
-    flex-direction: column;
-    gap: 15px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-top: 20px;
+    justify-content: center;
 }
 
 .modal-button {
-    padding: 12px 24px;
+    padding: 12px 20px;
     border: none;
     border-radius: 8px;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
+    /* FIXED: Consistent button width */
+    min-width: 120px;
+    text-align: center;
 }
 
 .modal-button.primary {
@@ -445,11 +457,6 @@ body {
 .modal-button.success:hover {
     background: #1e7e34;
     transform: translateY(-2px);
-}
-
-/* Button icons */
-.button-icon {
-    font-size: 18px;
 }
 
 /* Star celebration animation */
