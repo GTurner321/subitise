@@ -1,650 +1,553 @@
-class PlusOneGameController {
+class MultiDiceGameController {
     constructor() {
-        console.log('🎮 Plus One Game Controller - Dual Mode Version');
-        
-        // Initialize components
-        this.contentRenderer = new PlusOneContentRenderer();
+        // Initialize components in proper order
+        this.diceRenderer = new MultiDiceRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
+        this.stats = new TwoDiceStats();
         
-        // Initialize statistics tracking
-        this.stats = new PlusOneStats();
-        // Load total rounds completed from previous sessions
-        this.stats.loadTotalRoundsCompleted();
-        
-        // Game mode and progression
-        this.gameMode = CONFIG.GAME_MODES.PLUS_ONE; // Default to plus one
-        this.currentLevel = this.loadStoredLevel(this.gameMode);
+        // Game state
         this.questionsCompleted = 0;
         this.gameComplete = false;
+        this.currentMode = CONFIG.GAME_MODES.TWO_DICE; // Start with 2 dice
         
-        // Track used numbers per level to avoid repetition
-        this.usedNumbersInLevel = new Set();
+        // Level-based system
+        this.currentLevel = 'L1'; // Always start at L1
+        this.usedSumsThisRound = new Set(); // Track used combinations for current round
+        this.roundQuestionCount = 0; // Questions completed in current round
         
-        // Level progression tracking for redemption system
-        this.failedAtCurrentLevel = false;
+        // Current question state
+        this.currentValues = []; // Array of dice values
+        this.currentTotal = 0;
+        this.buttonsDisabled = false;
+        
+        // Track which boxes are filled
+        this.filledBoxes = new Set(); // Track by position key
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
+        this.inactivityDuration = 20000; // 20 seconds
         this.hintGiven = false;
         this.isTabVisible = true;
         
-        // Enhanced keyboard handling with fixed algorithm
+        // Keyboard handling for two-digit numbers
         this.keyboardBuffer = '';
         this.keyboardTimer = null;
-        this.lastKeyTime = 0;
-        this.isTypingSequence = false;
-        this.usedAnswersInCurrentQuestion = new Set();
-        
-        // Game state
-        this.currentNumber = 0; // The 'n' in n+1 or n-1
-        this.currentAnswer = 0; // n+1 or n-1
-        this.buttonsDisabled = false;
-        this.hasAttemptedAnyAnswer = false;
-        
-        // Box state tracking
-        this.leftFilled = false;
-        this.rightFilled = false;
-        this.totalFilled = false;
+        this.keyboardWaitDuration = 4000; // 4 seconds
         
         // Flashing intervals
         this.flashingInterval = null;
         this.flashingTimeout = null;
         
-        // System readiness and initial fade control
-        this.systemsReady = false;
+        // Loading state and initialization tracking
+        this.isLoading = true;
         this.initializationComplete = false;
-        this.readyCheckCount = 0;
-        this.initialFadeStarted = false;
-        
-        // Track current question type for smooth transitions
-        this.currentQuestionType = null; // 'picture' or 'number'
-        this.previousQuestionType = null;
+        this.buttonBarReady = false;
+        this.gameAreaReady = false;
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
-        this.playAgainBtn = document.getElementById('playAgainBtn');
-        this.leftInputBox = document.getElementById('leftInputBox');
-        this.rightInputBox = document.getElementById('rightInputBox');
-        this.sumRow = document.getElementById('sumRow');
-        this.totalInputBox = document.getElementById('totalInputBox');
-        this.checkMark = document.getElementById('checkMark');
-        this.leftSide = document.getElementById('leftSide');
-        this.rightSide = document.getElementById('rightSide');
         this.gameArea = document.querySelector('.game-area');
-        this.leftPulseArea = document.getElementById('leftPulseArea');
-        this.rightPulseArea = document.getElementById('rightPulseArea');
+        this.sumRow = document.getElementById('sumRow');
         
-        // Initialize
-        this.initializeEventListeners();
-        this.setupVisibilityHandling();
-        this.setupTouchProtection();
-        this.waitForSystemsAndInitialize();
-    }
-
-    // Game mode and level management
-    loadStoredLevel(gameMode) {
-        try {
-            const key = gameMode === CONFIG.GAME_MODES.MINUS_ONE ? 
-                CONFIG.STORAGE_KEYS.MINUS_ONE_LEVEL : CONFIG.STORAGE_KEYS.PLUS_ONE_LEVEL;
-            const stored = sessionStorage.getItem(key); // Use sessionStorage instead of localStorage
-            return stored ? parseInt(stored, 10) : 1;
-        } catch (error) {
-            console.warn('Could not load stored level:', error);
-            return 1;
-        }
-    }
-
-    saveCurrentLevel() {
-        try {
-            const key = this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ? 
-                CONFIG.STORAGE_KEYS.MINUS_ONE_LEVEL : CONFIG.STORAGE_KEYS.PLUS_ONE_LEVEL;
-            sessionStorage.setItem(key, this.currentLevel.toString()); // Use sessionStorage instead of localStorage
-        } catch (error) {
-            console.warn('Could not save current level:', error);
-        }
-    }
-
-    switchGameMode(newGameMode) {
-        this.gameMode = newGameMode;
-        this.currentLevel = Math.min(this.loadStoredLevel(newGameMode), 4); // Start at saved level or level 4, whichever is lowest
-        this.questionsCompleted = 0;
-        this.gameComplete = false;
-        this.usedNumbersInLevel.clear();
-        this.failedAtCurrentLevel = false;
-        this.resetQuestionState();
-        
-        // Update the operator symbol in the middle section
-        this.updateOperatorSymbol();
-        
-        // Register activity for mode switch
-        this.stats.registerActivity();
-        
-        console.log(`🔄 Switched to ${newGameMode} mode, starting at level ${this.currentLevel}`);
-    }
-
-    // Helper functions
-    shouldUsePictureFormat() {
-        return CONFIG.usesPictureFormat(this.currentLevel, this.gameMode);
-    }
-
-    shouldUseNumberFormat() {
-        return !this.shouldUsePictureFormat();
-    }
-
-    getCurrentLevels() {
-        return CONFIG.getLevels(this.gameMode);
-    }
-
-    getCurrentAudio() {
-        return this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ? 
-            CONFIG.AUDIO.MINUS_ONE : CONFIG.AUDIO.PLUS_ONE;
-    }
-
-    calculateAnswer(number) {
-        return this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ? 
-            number - 1 : number + 1;
-    }
-
-    getOperatorSymbol() {
-        return this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ? '-' : '+';
-    }
-
-    getOperatorValue() {
-        return 1; // Always adding or subtracting 1
-    }
-
-    waitForSystemsAndInitialize() {
-        console.log('🎮 Checking system readiness...');
-        
-        const checkSystemsReady = () => {
-            this.readyCheckCount++;
-            
-            const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
-            const gameAreaReady = this.gameArea && this.leftSide && this.rightSide && this.sumRow;
-            
-            if (buttonBarReady && gameAreaReady) {
-                console.log(`🎮 Systems ready after ${this.readyCheckCount} checks`);
-                this.systemsReady = true;
-                
-                if (this.contentRenderer && typeof this.contentRenderer.setupButtonBarCoordination === 'function') {
-                    this.contentRenderer.setupButtonBarCoordination();
-                }
-                
-                this.createButtons();
-                
-                setTimeout(() => {
-                    this.initializeGame();
-                }, CONFIG.BUTTON_SETUP_DELAY);
-                
-                return;
-            }
-            
-            if (this.readyCheckCount >= CONFIG.MAX_READY_CHECKS) {
-                console.warn('⚠️ Systems not ready, forcing initialization');
-                this.systemsReady = true;
-                this.forceInitialization();
-                return;
-            }
-            
-            setTimeout(checkSystemsReady, CONFIG.SYSTEM_CHECK_INTERVAL);
+        // Stats display elements
+        this.statsDisplay = {
+            accuracy: document.getElementById('accuracyStat'),
+            resilience: document.getElementById('resilienceStat'),
+            speed: document.getElementById('speedStat'),
+            variety: document.getElementById('varietyStat'),
+            questions: document.getElementById('questionsStat')
         };
         
-        checkSystemsReady();
+        // Update stats display periodically
+        this.statsUpdateInterval = setInterval(() => {
+            this.updateStatsDisplay();
+        }, 1000);
+        
+        // Initialize in proper order
+        this.initializeEventListeners();
+        this.setupVisibilityHandling();
+        this.waitForSystemsAndInitialize();
+        
+        console.log(`🎮 Game started in ${this.currentMode} mode at ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
     }
 
-    forceInitialization() {
-        console.log('🚨 Force initializing game systems');
-        this.systemsReady = true;
+    /**
+     * Set the current game mode and update renderer
+     */
+    setGameMode(mode) {
+        const previousMode = this.currentMode;
+        this.currentMode = mode;
+        this.diceRenderer.setGameMode(mode);
+        this.updateSumRow();
         
-        if (this.contentRenderer && typeof this.contentRenderer.setupButtonBarCoordination === 'function') {
-            try {
-                this.contentRenderer.setupButtonBarCoordination();
-            } catch (error) {
-                console.warn('Content renderer setup failed:', error);
+        // UPDATED: Recreate buttons if switching between different button systems
+        const previousUseNumberFormat = previousMode === CONFIG.GAME_MODES.THREE_DICE || previousMode === CONFIG.GAME_MODES.FOUR_DICE;
+        const currentUseNumberFormat = this.shouldUseNumberFormat();
+        
+        if (previousUseNumberFormat !== currentUseNumberFormat && this.buttonBarReady) {
+            console.log(`🔄 Button system change detected, recreating buttons for ${mode}`);
+            if (window.ButtonBar) {
+                window.ButtonBar.destroy();
             }
-        }
-        
-        if (window.ButtonBar && typeof window.ButtonBar.create === 'function') {
-            try {
+            setTimeout(() => {
                 this.createButtons();
-            } catch (error) {
-                console.warn('Button creation failed:', error);
+            }, 100);
+        }
+        
+        console.log(`🎯 Game mode set to: ${mode}`);
+    }
+
+    /**
+     * Get human-readable description of level
+     */
+    getLevelDescription(level) {
+        const descriptions = {
+            L1: 'Easy (1-3)',
+            L2: 'Medium (2-4)', 
+            L3: 'Hard (1-6)'
+        };
+        return descriptions[level] || level;
+    }
+
+    /**
+     * Update level based on question performance
+     */
+    updateLevel(wasCorrectFirstAttempt) {
+        const levels = ['L1', 'L2', 'L3'];
+        const currentIndex = levels.indexOf(this.currentLevel);
+        
+        if (wasCorrectFirstAttempt && currentIndex < levels.length - 1) {
+            // Level up for correct first attempt
+            this.currentLevel = levels[currentIndex + 1];
+            console.log(`📈 Level up to ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+        } else if (!wasCorrectFirstAttempt && currentIndex > 0) {
+            // Level down for any mistake
+            this.currentLevel = levels[currentIndex - 1];
+            console.log(`📉 Level down to ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+        } else {
+            console.log(`📊 Level remains ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+        }
+    }
+
+    /**
+     * Create and update sum row based on current mode
+     */
+    updateSumRow() {
+        if (!this.sumRow) return;
+        
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return;
+        
+        // Clear existing content
+        this.sumRow.innerHTML = '';
+        
+        // Create input boxes and symbols
+        for (let i = 0; i < config.boxes; i++) {
+            // Create input box
+            const inputBox = document.createElement('div');
+            inputBox.className = 'input-box dice-input-box';
+            inputBox.id = `diceInput${i}`;
+            inputBox.dataset.position = config.inputOrder[i];
+            this.sumRow.appendChild(inputBox);
+            
+            // Add plus sign (except after last box)
+            if (i < config.boxes - 1) {
+                const plusSign = document.createElement('div');
+                plusSign.className = 'sum-plus-sign';
+                plusSign.textContent = '+';
+                this.sumRow.appendChild(plusSign);
             }
         }
         
-        setTimeout(() => {
-            this.initializeGame();
-        }, CONFIG.BUTTON_SETUP_DELAY);
+        // Add equals sign
+        const equalsSign = document.createElement('div');
+        equalsSign.className = 'sum-equals-sign';
+        equalsSign.textContent = '=';
+        this.sumRow.appendChild(equalsSign);
+        
+        // Add total input box
+        const totalBox = document.createElement('div');
+        totalBox.className = 'input-box dice-input-box';
+        totalBox.id = 'totalInputBox';
+        totalBox.dataset.position = 'total';
+        this.sumRow.appendChild(totalBox);
+        
+        // Add check mark
+        const checkMark = document.createElement('div');
+        checkMark.className = 'check-mark';
+        checkMark.id = 'checkMark';
+        checkMark.innerHTML = '✓';
+        this.sumRow.appendChild(checkMark);
+    }
+
+    /**
+     * Get the appropriate hint message for current mode and position
+     */
+    getHintMessage(position) {
+        const messages = {
+            left: CONFIG.AUDIO.MESSAGES.HINT_LEFT_DICE,
+            right: CONFIG.AUDIO.MESSAGES.HINT_RIGHT_DICE,
+            bottom: CONFIG.AUDIO.MESSAGES.HINT_BOTTOM_DICE,
+            topLeft: CONFIG.AUDIO.MESSAGES.HINT_TOP_LEFT_DICE,
+            topRight: CONFIG.AUDIO.MESSAGES.HINT_TOP_RIGHT_DICE,
+            bottomLeft: CONFIG.AUDIO.MESSAGES.HINT_BOTTOM_LEFT_DICE,
+            bottomRight: CONFIG.AUDIO.MESSAGES.HINT_BOTTOM_RIGHT_DICE
+        };
+        
+        return messages[position] || CONFIG.AUDIO.MESSAGES.HINT_LEFT_DICE;
+    }
+
+    /**
+     * Get the appropriate total hint for current mode
+     */
+    getTotalHint() {
+        switch (this.currentMode) {
+            case CONFIG.GAME_MODES.TWO_DICE:
+                return CONFIG.AUDIO.MESSAGES.HINT_TOTAL;
+            case CONFIG.GAME_MODES.THREE_DICE:
+                return CONFIG.AUDIO.MESSAGES.HINT_TOTAL_THREE;
+            case CONFIG.GAME_MODES.FOUR_DICE:
+                return CONFIG.AUDIO.MESSAGES.HINT_TOTAL_FOUR;
+            default:
+                return CONFIG.AUDIO.MESSAGES.HINT_TOTAL;
+        }
+    }
+
+    /**
+     * FIXED: Create completion modal with brief text and simple buttons
+     */
+    createCompletionModal() {
+        if (!this.modal) return;
+        
+        // Clear existing content
+        this.modal.innerHTML = '';
+        
+        // Create modal content
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content';
+        
+        // FIXED: Simple title only
+        const title = document.createElement('h2');
+        title.textContent = CONFIG.AUDIO.MESSAGES.GAME_MODAL_TITLE; // Just "Well done!"
+        modalContent.appendChild(title);
+        
+        // Button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'modal-buttons';
+        
+        // Play Again button (always present)
+        const playAgainBtn = document.createElement('button');
+        playAgainBtn.className = 'modal-button primary';
+        playAgainBtn.textContent = 'Play again'; // FIXED: Simple text
+        playAgainBtn.addEventListener('click', () => {
+            this.startNewGame();
+        });
+        buttonContainer.appendChild(playAgainBtn);
+        
+        // FIXED: Mode-specific buttons with simple text
+        if (this.currentMode === CONFIG.GAME_MODES.TWO_DICE) {
+            // 3 Dice button
+            const threeDiceBtn = document.createElement('button');
+            threeDiceBtn.className = 'modal-button success';
+            threeDiceBtn.textContent = '3 dice'; // FIXED: Simple text
+            threeDiceBtn.addEventListener('click', () => {
+                this.switchToMode(CONFIG.GAME_MODES.THREE_DICE);
+            });
+            buttonContainer.appendChild(threeDiceBtn);
+            
+        } else if (this.currentMode === CONFIG.GAME_MODES.THREE_DICE) {
+            // 4 Dice button
+            const fourDiceBtn = document.createElement('button');
+            fourDiceBtn.className = 'modal-button success';
+            fourDiceBtn.textContent = '4 dice'; // FIXED: Simple text
+            fourDiceBtn.addEventListener('click', () => {
+                this.switchToMode(CONFIG.GAME_MODES.FOUR_DICE);
+            });
+            buttonContainer.appendChild(fourDiceBtn);
+            
+            // 2 Dice button
+            const twoDiceBtn = document.createElement('button');
+            twoDiceBtn.className = 'modal-button secondary';
+            twoDiceBtn.textContent = '2 dice'; // FIXED: Simple text
+            twoDiceBtn.addEventListener('click', () => {
+                this.switchToMode(CONFIG.GAME_MODES.TWO_DICE);
+            });
+            buttonContainer.appendChild(twoDiceBtn);
+            
+        } else if (this.currentMode === CONFIG.GAME_MODES.FOUR_DICE) {
+            // 3 Dice button
+            const threeDiceBtn = document.createElement('button');
+            threeDiceBtn.className = 'modal-button secondary';
+            threeDiceBtn.textContent = '3 dice'; // FIXED: Simple text
+            threeDiceBtn.addEventListener('click', () => {
+                this.switchToMode(CONFIG.GAME_MODES.THREE_DICE);
+            });
+            buttonContainer.appendChild(threeDiceBtn);
+            
+            // 2 Dice button
+            const twoDiceBtn = document.createElement('button');
+            twoDiceBtn.className = 'modal-button secondary';
+            twoDiceBtn.textContent = '2 dice'; // FIXED: Simple text
+            twoDiceBtn.addEventListener('click', () => {
+                this.switchToMode(CONFIG.GAME_MODES.TWO_DICE);
+            });
+            buttonContainer.appendChild(twoDiceBtn);
+        }
+        
+        modalContent.appendChild(buttonContainer);
+        this.modal.appendChild(modalContent);
+    }
+
+    /**
+     * Switch to a different game mode
+     */
+    switchToMode(newMode) {
+        this.setGameMode(newMode);
+        this.startNewGame();
+    }
+
+    /**
+     * Wait for both ButtonBar AND proper game area setup
+     */
+    waitForSystemsAndInitialize() {
+        console.log('🎲 Checking system readiness...');
+        
+        const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
+        const gameAreaReady = this.gameArea && this.sumRow;
+        
+        if (buttonBarReady && gameAreaReady) {
+            console.log('🎲 All systems ready, proceeding with initialization');
+            this.buttonBarReady = true;
+            this.gameAreaReady = true;
+            
+            this.createButtons();
+            this.setupButtonBarCoordination();
+            
+            setTimeout(() => {
+                console.log('🎲 ButtonBar coordination complete, initializing game');
+                this.initializeGame();
+            }, 800);
+        } else {
+            console.log(`⏳ Waiting for systems... ButtonBar: ${buttonBarReady}, GameArea: ${gameAreaReady}`);
+            setTimeout(() => {
+                this.waitForSystemsAndInitialize();
+            }, 100);
+        }
+    }
+
+    setupButtonBarCoordination() {
+        if (window.ButtonBar) {
+            window.ButtonBar.addObserver((dimensionData) => {
+                console.log('🎯 ButtonBar dimensions updated:', dimensionData);
+                this.updateGameAreaDimensions();
+            });
+        }
+    }
+
+    updateGameAreaDimensions() {
+        if (!this.gameArea) {
+            console.error('❌ Game area not found when trying to update dimensions');
+            return;
+        }
+        
+        this.gameArea.offsetHeight;
+        
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+        
+        if (gameAreaRect.width < 100 || gameAreaRect.height < 100) {
+            console.warn('⚠️ Game area dimensions seem too small, retrying...', gameAreaRect);
+            setTimeout(() => {
+                this.updateGameAreaDimensions();
+            }, 100);
+            return;
+        }
+        
+        document.documentElement.style.setProperty('--game-area-width', `${gameAreaRect.width}px`);
+        
+        console.log('📏 Game area dimensions updated and CSS custom property set:', gameAreaRect.width, 'px');
+        
+        this.forceStyleRecalculation();
+    }
+    
+    forceStyleRecalculation() {
+        const elementsToUpdate = [
+            document.querySelector('.plus-sign'),
+            document.querySelector('.sum-row'),
+            ...document.querySelectorAll('.input-box'),
+            ...document.querySelectorAll('.sum-plus-sign, .sum-equals-sign'),
+            document.querySelector('.check-mark')
+        ];
+        
+        elementsToUpdate.forEach(element => {
+            if (element) {
+                const originalDisplay = element.style.display;
+                element.style.display = 'none';
+                element.offsetHeight;
+                element.style.display = originalDisplay;
+            }
+        });
+        
+        console.log('🔄 Forced style recalculation for CSS custom property dependent elements');
     }
 
     initializeGame() {
-        console.log('🎮 Starting game initialization');
+        console.log('🎲 Starting game initialization with loading sequence');
         
-        // Set the correct operator symbol from the start
-        this.updateOperatorSymbol();
+        this.hideGameElements();
         
-        // Start all elements at 0% opacity
-        this.hideAllElements();
-        
-        // Set up game area for controlled fade-in
         setTimeout(() => {
-            if (this.sumRow) {
-                this.sumRow.classList.add('sum-bar-ready');
-            }
-        }, CONFIG.INITIAL_FADE_DELAY);
-        
-        // Wait for initial delay, then fade everything in together
-        setTimeout(() => {
-            this.controlledFadeIn();
+            console.log('🎲 Starting fade-in sequence');
+            this.showGameElements();
+            this.isLoading = false;
             this.initializationComplete = true;
             
             setTimeout(() => {
                 this.startNewQuestion();
-            }, 500);
+            }, 1000);
             
-        }, CONFIG.INITIAL_FADE_DELAY);
+        }, 500);
     }
 
-    updateOperatorSymbol() {
-        // Update the operator symbol in the middle section
-        const operatorIcon = document.getElementById('operatorIcon');
-        if (operatorIcon) {
-            if (this.gameMode === CONFIG.GAME_MODES.MINUS_ONE) {
-                operatorIcon.className = 'fas fa-minus';
-            } else {
-                operatorIcon.className = 'fas fa-plus';
+    hideGameElements() {
+        if (this.gameArea) this.gameArea.classList.remove('loaded');
+        if (this.sumRow) this.sumRow.classList.remove('loaded');
+    }
+
+    showGameElements() {
+        if (this.gameArea) {
+            this.gameArea.classList.add('loaded');
+        }
+        
+        if (this.sumRow) {
+            this.sumRow.classList.add('loaded');
+        }
+        
+        console.log('🎲 Game elements faded in');
+    }
+
+    /**
+     * UPDATED: Determine if should use number format (4 buttons) for 3 and 4 dice games
+     */
+    shouldUseNumberFormat() {
+        return this.currentMode === CONFIG.GAME_MODES.THREE_DICE || 
+               this.currentMode === CONFIG.GAME_MODES.FOUR_DICE;
+    }
+
+    /**
+     * UPDATED: Generate 4 button numbers for 3 and 4 dice games
+     */
+    updateButtonsForNumberFormat() {
+        if (!this.shouldUseNumberFormat()) return null;
+        
+        const correctAnswer = this.currentTotal;
+        const numbers = [];
+        
+        // 1) The correct answer
+        numbers.push(correctAnswer);
+        
+        // 2) Random choice between n+1 and n-1
+        const option2Choices = [correctAnswer + 1, correctAnswer - 1].filter(n => n > 0);
+        if (option2Choices.length > 0) {
+            const option2 = option2Choices[Math.floor(Math.random() * option2Choices.length)];
+            numbers.push(option2);
+        }
+        
+        // 3) Random choice between n+2 and n-2
+        const option3Choices = [correctAnswer + 2, correctAnswer - 2].filter(n => n > 0 && !numbers.includes(n));
+        if (option3Choices.length > 0) {
+            const option3 = option3Choices[Math.floor(Math.random() * option3Choices.length)];
+            numbers.push(option3);
+        }
+        
+        // 4) Random different number from appropriate range
+        const isThreeDice = this.currentMode === CONFIG.GAME_MODES.THREE_DICE;
+        const rangeMin = isThreeDice ? 3 : 4;
+        const rangeMax = isThreeDice ? 18 : 24;
+        
+        // Generate candidates from range, excluding already chosen numbers
+        const candidates = [];
+        for (let i = rangeMin; i <= rangeMax; i++) {
+            if (!numbers.includes(i)) {
+                candidates.push(i);
             }
         }
-    }
-
-    hideAllElements() {
-        // Set all elements to 0% opacity initially
-        if (this.gameArea) {
-            this.gameArea.style.opacity = '0';
-            this.gameArea.classList.remove('loaded');
+        
+        if (candidates.length > 0) {
+            const option4 = candidates[Math.floor(Math.random() * candidates.length)];
+            numbers.push(option4);
         }
         
-        const buttonContainer = document.querySelector('.number-buttons');
-        if (buttonContainer) {
-            buttonContainer.style.opacity = '0';
-            buttonContainer.classList.remove('loaded');
-        }
-    }
-
-    controlledFadeIn() {
-        console.log('🎭 Starting controlled fade-in');
-        this.initialFadeStarted = true;
-        
-        // Fade in game area
-        if (this.gameArea) {
-            this.gameArea.classList.add('dimensions-ready', 'loaded');
-            this.gameArea.style.transition = 'opacity 1s ease-in-out';
-            this.gameArea.style.opacity = '1';
+        // Pad with additional numbers if needed (shouldn't happen but safety)
+        while (numbers.length < 4) {
+            for (let i = rangeMin; i <= rangeMax && numbers.length < 4; i++) {
+                if (!numbers.includes(i)) {
+                    numbers.push(i);
+                }
+            }
         }
         
-        // Fade in button container
-        const buttonContainer = document.querySelector('.number-buttons');
-        if (buttonContainer) {
-            buttonContainer.classList.add('loaded');
-            buttonContainer.style.transition = 'opacity 1s ease-in-out';
-            buttonContainer.style.opacity = '1';
-        }
+        // Shuffle the numbers randomly
+        const shuffledNumbers = [...numbers].sort(() => Math.random() - 0.5);
+        
+        console.log(`🎯 Generated 4 buttons for ${this.currentMode}: [${shuffledNumbers.join(', ')}] (correct: ${correctAnswer})`);
+        
+        return shuffledNumbers.slice(0, 4); // Ensure exactly 4 numbers
     }
 
     createButtons() {
-        const isPictureFormat = this.shouldUsePictureFormat();
-        const config = isPictureFormat ? CONFIG.BUTTON_CONFIGS.PICTURE_FORMAT : CONFIG.BUTTON_CONFIGS.NUMBER_FORMAT;
-        
-        console.log(`Creating buttons: ${isPictureFormat ? 'Picture' : 'Number'} format (${config.count} buttons) for ${this.gameMode}`);
-        
-        const colors = CONFIG.COLORS.slice(0, config.count);
-        let numbers = isPictureFormat ? [...config.numbers] : [1, 2, 3, 4];
-        
-        if (window.ButtonBar) {
-            window.ButtonBar.destroy();
-        }
-        
-        setTimeout(() => {
-            if (window.ButtonBar) {
+        if (window.ButtonBar && this.buttonBarReady) {
+            if (this.shouldUseNumberFormat()) {
+                // For 3 and 4 dice games - use 4 button format
+                // Numbers will be set dynamically when question starts
+                const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24'];
+                const placeholderNumbers = [1, 2, 3, 4]; // Will be updated dynamically
+                
                 window.ButtonBar.create(
-                    config.count,
-                    config.width,
-                    config.height,
+                    4,      // 4 buttons
+                    14,     // 14% width
+                    8,      // 8% height
                     colors,
-                    numbers,
+                    placeholderNumbers,
                     (selectedNumber, buttonElement) => {
-                        if (this.buttonsDisabled || this.gameComplete) return;
+                        if (this.buttonsDisabled || !this.initializationComplete) return;
                         
                         this.clearInactivityTimer();
                         this.startInactivityTimer();
+                        
                         this.handleNumberClick(selectedNumber, buttonElement);
                     }
                 );
-            }
-        }, 50);
-    }
-
-    // SMOOTH TRANSITION SYSTEM - Updated to prevent flashing
-    startNewQuestion() {
-        if (this.gameComplete) return;
-        
-        if (!this.systemsReady) {
-            setTimeout(() => this.startNewQuestion(), 100);
-            return;
-        }
-
-        // Track question types for smooth transitions
-        this.previousQuestionType = this.currentQuestionType;
-        this.currentQuestionType = this.shouldUsePictureFormat() ? 'picture' : 'number';
-        
-        this.resetQuestionState();
-        this.generateQuestion();
-        
-        console.log(`🎮 NEW QUESTION: ${this.currentNumber} ${this.getOperatorSymbol()} 1 = ${this.currentAnswer}, Level: ${this.currentLevel}, Mode: ${this.gameMode}`);
-        
-        // Update sum row operator display
-        this.updateSumRowOperator();
-        
-        // Handle transitions based on question type changes
-        if (this.previousQuestionType !== this.currentQuestionType) {
-            // Different question types - need button recreation
-            this.handleQuestionTypeChange();
-        } else {
-            // Same question type - smooth content update only
-            this.handleSameQuestionType();
-        }
-    }
-
-    updateSumRowOperator() {
-        // Update the operator symbol in the sum row
-        const operatorElement = this.sumRow.querySelector('.sum-plus-sign');
-        if (operatorElement) {
-            operatorElement.textContent = this.getOperatorSymbol();
-        }
-    }
-
-    handleQuestionTypeChange() {
-        console.log(`🔄 Question type change: ${this.previousQuestionType} → ${this.currentQuestionType}`);
-        
-        // Fade out only the content that needs to change
-        this.fadeOutChangingElements();
-        
-        // Recreate buttons for new format
-        this.createButtons();
-        
-        setTimeout(() => {
-            // Update buttons for number format
-            if (this.shouldUseNumberFormat()) {
-                this.updateButtonsForNumberFormat(this.currentAnswer);
-            }
-            
-            this.setupQuestionElements();
-            this.renderNewContent();
-            
-            setTimeout(() => {
-                this.fadeInChangingElements();
-                this.finalizeNewQuestion();
-            }, 200);
-            
-        }, 400); // Wait for button recreation
-    }
-
-    handleSameQuestionType() {
-        console.log(`✨ Same question type: ${this.currentQuestionType} - smooth transition`);
-        
-        // Smooth content transition - no button recreation needed
-        this.fadeOutChangingElements();
-        
-        setTimeout(() => {
-            // Update button numbers if needed (number format)
-            if (this.shouldUseNumberFormat()) {
-                this.updateButtonsForNumberFormat(this.currentAnswer);
-            }
-            
-            this.setupQuestionElements();
-            this.renderNewContent();
-            
-            setTimeout(() => {
-                this.fadeInChangingElements();
-                this.finalizeNewQuestion();
-            }, 100);
-            
-        }, 600); // Wait for fade out
-    }
-
-    fadeOutChangingElements() {
-        // Only fade out content that changes, not persistent elements
-        const currentContent = [...this.contentRenderer.currentContent];
-        currentContent.forEach(element => {
-            if (element) {
-                element.classList.add('fade-out');
-            }
-        });
-        
-        // Fade out buttons (they may change)
-        const buttonContainer = document.querySelector('.number-buttons');
-        if (buttonContainer) {
-            buttonContainer.style.transition = 'opacity 0.6s ease';
-            buttonContainer.style.opacity = '0.3';
-        }
-    }
-
-    fadeInChangingElements() {
-        // Fade in new content
-        const newContent = [...this.contentRenderer.currentContent];
-        newContent.forEach(element => {
-            if (element) {
-                element.classList.remove('fade-out');
-                element.classList.add('fade-in');
-            }
-        });
-        
-        // Fade in buttons
-        const buttonContainer = document.querySelector('.number-buttons');
-        if (buttonContainer) {
-            buttonContainer.style.transition = 'opacity 0.8s ease';
-            buttonContainer.style.opacity = '1';
-        }
-        
-        setTimeout(() => {
-            newContent.forEach(element => {
-                if (element) {
-                    element.classList.remove('fade-in');
-                }
-            });
-        }, 800);
-    }
-
-    setupQuestionElements() {
-        this.setupInputBoxesForQuestion();
-        this.resetButtonStates();
-        this.buttonsDisabled = false;
-        if (window.ButtonBar) {
-            window.ButtonBar.setButtonsEnabled(true);
-        }
-    }
-
-    renderNewContent() {
-        this.contentRenderer.renderContent(this.currentNumber, this.currentLevel, this.gameMode);
-    }
-
-    finalizeNewQuestion() {
-        this.showInputBoxes();
-        this.giveStartingInstruction();
-        this.startInactivityTimer();
-        
-        // Start timing for statistics
-        this.stats.startQuestionTimer();
-    }
-
-    resetQuestionState() {
-        this.resetBoxState();
-        this.hintGiven = false;
-        this.hasAttemptedAnyAnswer = false;
-        this.usedAnswersInCurrentQuestion.clear();
-        this.resetKeyboardState();
-    }
-
-    generateQuestion() {
-        const levelNumbers = this.getCurrentLevels()[this.currentLevel].numbers;
-        const availableNumbers = levelNumbers.filter(num => !this.usedNumbersInLevel.has(num));
-        
-        if (availableNumbers.length === 0) {
-            this.usedNumbersInLevel.clear();
-            this.currentNumber = levelNumbers[Math.floor(Math.random() * levelNumbers.length)];
-        } else {
-            this.currentNumber = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
-        }
-        
-        this.usedNumbersInLevel.add(this.currentNumber);
-        this.currentAnswer = this.calculateAnswer(this.currentNumber);
-    }
-
-    setupInputBoxesForQuestion() {
-        this.checkMark.classList.remove('visible');
-        
-        this.leftInputBox.textContent = '';
-        this.rightInputBox.textContent = '';
-        this.totalInputBox.textContent = '';
-        
-        this.leftInputBox.classList.remove('flashing', 'filled', 'fixed-one');
-        this.rightInputBox.classList.remove('flashing', 'filled', 'fixed-one');
-        this.totalInputBox.classList.remove('flashing', 'filled');
-        
-        if (this.shouldUsePictureFormat()) {
-            this.leftFilled = false;
-            this.rightFilled = false;
-            this.totalFilled = false;
-        } else {
-            this.leftInputBox.textContent = this.currentNumber;
-            this.leftInputBox.classList.add('filled');
-            this.leftFilled = true;
-            
-            this.rightInputBox.textContent = this.getOperatorValue();
-            this.rightInputBox.classList.add('filled', 'fixed-one');
-            this.rightFilled = true;
-            
-            this.totalFilled = false;
-        }
-        
-        this.updateSumRowWidth();
-    }
-
-    updateSumRowWidth() {
-        if (!this.sumRow) return;
-        
-        const leftDigits = this.currentNumber.toString().length;
-        const rightDigits = 1;
-        const totalDigits = this.currentAnswer.toString().length;
-        
-        const baseBoxSize = 'calc(var(--game-area-width) * 0.07)';
-        let leftBoxWidth, totalBoxWidth;
-        
-        // PICTURE FORMAT: Keep all boxes same size
-        if (this.shouldUsePictureFormat()) {
-            leftBoxWidth = baseBoxSize;
-            totalBoxWidth = baseBoxSize;
-        } else {
-            // NUMBER FORMAT: Size boxes based on digit count
-            if (leftDigits === 1) {
-                leftBoxWidth = baseBoxSize;
-            } else if (leftDigits === 2) {
-                leftBoxWidth = `calc(${baseBoxSize} * 1.4)`;
+                console.log(`✅ Button bar created for ${this.currentMode} with 4 buttons`);
             } else {
-                leftBoxWidth = `calc(${baseBoxSize} * 1.8)`;
+                // For 2 dice game - use 12 button format
+                const colors = [
+                    '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+                    '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894',
+                    '#00cec9', '#e17055'
+                ];
+                const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                
+                window.ButtonBar.create(
+                    12,
+                    6.7,
+                    6.7,
+                    colors,
+                    numbers,
+                    (selectedNumber, buttonElement) => {
+                        if (this.buttonsDisabled || !this.initializationComplete) return;
+                        
+                        this.clearInactivityTimer();
+                        this.startInactivityTimer();
+                        
+                        this.handleNumberClick(selectedNumber, buttonElement);
+                    }
+                );
+                console.log('✅ Button bar created for 2 dice with 12 buttons');
             }
-            
-            if (totalDigits === 1) {
-                totalBoxWidth = baseBoxSize;
-            } else if (totalDigits === 2) {
-                totalBoxWidth = `calc(${baseBoxSize} * 1.4)`;
-            } else {
-                totalBoxWidth = `calc(${baseBoxSize} * 1.8)`;
-            }
-        }
-        
-        this.leftInputBox.style.width = leftBoxWidth;
-        this.rightInputBox.style.width = baseBoxSize;
-        this.totalInputBox.style.width = totalBoxWidth;
-        
-        const boxHeight = baseBoxSize;
-        const combinedBoxWidth = `calc(${leftBoxWidth} + ${baseBoxSize} + ${totalBoxWidth})`;
-        const sumRowWidth = `calc(${combinedBoxWidth} + ${boxHeight} * 3.5)`;
-        this.sumRow.style.width = sumRowWidth;
-    }
-
-    updateButtonsForNumberFormat(correctAnswer) {
-        const options = new Set();
-        
-        options.add(correctAnswer);
-        
-        // Add contextually appropriate wrong answers based on game mode
-        if (this.gameMode === CONFIG.GAME_MODES.MINUS_ONE) {
-            options.add(this.currentNumber); // Original number
-            options.add(Math.max(0, this.currentNumber - 2)); // Two less
         } else {
-            options.add(Math.max(1, this.currentNumber - 1)); // One less
-            options.add(this.currentNumber + 2); // Two more
+            console.warn('ButtonBar not available - using fallback');
         }
-        
-        const levelNumbers = this.getCurrentLevels()[this.currentLevel].numbers;
-        let randomFromLevel;
-        let attempts = 0;
-        do {
-            const randomBase = levelNumbers[Math.floor(Math.random() * levelNumbers.length)];
-            randomFromLevel = this.calculateAnswer(randomBase);
-            attempts++;
-        } while (options.has(randomFromLevel) && attempts < 50);
-        options.add(randomFromLevel);
-        
-        const shuffledOptions = Array.from(options).slice(0, 4);
-        this.shuffleArray(shuffledOptions);
-        
-        if (window.ButtonBar) {
-            window.ButtonBar.shuffleNumbers(shuffledOptions);
-        }
-        
-        return shuffledOptions;
-    }
-
-    shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-    }
-
-    // EVENT LISTENERS AND INTERACTION HANDLING
-    initializeEventListeners() {
-        this.playAgainBtn.addEventListener('click', () => {
-            this.startNewGame();
-        });
-
-        const keyboardHandler = (e) => {
-            if (this.buttonsDisabled || this.gameComplete) return;
-            
-            if (!this.systemsReady) return;
-            
-            if (e.key >= '0' && e.key <= '9') {
-                e.preventDefault();
-                console.log('⌨️ Keyboard digit accepted:', e.key);
-                
-                this.clearInactivityTimer();
-                this.startInactivityTimer();
-                
-                const digit = parseInt(e.key);
-                this.handleKeyboardDigit(digit);
-            }
-        };
-        
-        document.addEventListener('keydown', keyboardHandler);
-        
-        if (document.activeElement !== document.body) {
-            document.body.focus();
-        }
-        
-        this.keyboardHandler = keyboardHandler;
     }
 
     setupVisibilityHandling() {
@@ -664,394 +567,6 @@ class PlusOneGameController {
         });
     }
 
-    setupTouchProtection() {
-        const gameAreaElements = [this.gameArea, this.leftSide, this.rightSide];
-        
-        gameAreaElements.forEach(element => {
-            if (element) {
-                element.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                });
-                
-                element.addEventListener('touchstart', (e) => {
-                    if (e.target.closest('.number-btn, .back-button, .audio-button-container')) {
-                        return;
-                    }
-                });
-                
-                element.addEventListener('touchend', (e) => {
-                    if (e.target.closest('.number-btn, .back-button, .audio-button-container')) {
-                        return;
-                    }
-                    e.preventDefault();
-                });
-            }
-        });
-    }
-
-    // FIXED KEYBOARD ALGORITHM - Based on unfilled boxes only
-    handleKeyboardDigit(digit) {
-        const currentTime = Date.now();
-        
-        if (this.isTypingSequence && (currentTime - this.lastKeyTime) > CONFIG.MULTI_DIGIT_TIMEOUT) {
-            this.resetKeyboardState();
-        }
-        
-        this.lastKeyTime = currentTime;
-        this.keyboardBuffer += digit.toString();
-        this.isTypingSequence = true;
-        
-        console.log(`Keyboard buffer: "${this.keyboardBuffer}"`);
-        
-        this.clearKeyboardTimer();
-        
-        const unfilledBoxAnswers = this.getUnfilledBoxAnswers();
-        console.log(`Unfilled box answers: [${unfilledBoxAnswers.join(', ')}]`);
-        
-        this.processKeyboardBufferWithFixedAlgorithm(unfilledBoxAnswers);
-    }
-
-    getUnfilledBoxAnswers() {
-        const answers = [];
-        
-        // Only include answers for unfilled boxes
-        if (!this.leftFilled) {
-            answers.push(this.currentNumber);
-        }
-        if (!this.rightFilled) {
-            answers.push(this.getOperatorValue()); // Always 1
-        }
-        if (!this.totalFilled) {
-            answers.push(this.currentAnswer);
-        }
-        
-        // Remove already used answers in current question
-        return answers.filter(answer => !this.usedAnswersInCurrentQuestion.has(answer));
-    }
-
-    processKeyboardBufferWithFixedAlgorithm(availableAnswers) {
-        const bufferLength = this.keyboardBuffer.length;
-        const currentBufferNumber = parseInt(this.keyboardBuffer);
-        
-        // Step 1: Check for exact matches of current buffer length
-        const exactMatches = availableAnswers.filter(answer => 
-            answer.toString().length === bufferLength && 
-            parseInt(answer.toString()) === currentBufferNumber
-        );
-        
-        if (exactMatches.length > 0) {
-            console.log(`✅ EXACT MATCH: Buffer "${this.keyboardBuffer}" matches ${bufferLength}-digit number`);
-            this.submitKeyboardInput(currentBufferNumber);
-            return;
-        }
-        
-        // Step 2: Check if any longer numbers exist
-        const longerNumbers = availableAnswers.filter(answer => 
-            answer.toString().length > bufferLength
-        );
-        
-        if (longerNumbers.length === 0) {
-            console.log(`❌ NO LONGER NUMBERS: Submitting buffer`);
-            this.submitKeyboardInput(currentBufferNumber);
-            return;
-        }
-        
-        // Step 3: Check if buffer matches start of any longer numbers
-        const matchingPrefixes = longerNumbers.filter(answer => 
-            answer.toString().startsWith(this.keyboardBuffer)
-        );
-        
-        if (matchingPrefixes.length === 0) {
-            console.log(`❌ NO PREFIX MATCHES: Submitting buffer`);
-            this.submitKeyboardInput(currentBufferNumber);
-            return;
-        }
-        
-        // Buffer could lead to valid longer numbers - wait
-        console.log(`⏳ WAITING: Could become: [${matchingPrefixes.join(', ')}]`);
-        this.keyboardTimer = setTimeout(() => {
-            const timeoutBufferValue = this.keyboardBuffer;
-            const timeoutBufferNumber = parseInt(timeoutBufferValue);
-            this.resetKeyboardState();
-            
-            if (!isNaN(timeoutBufferNumber)) {
-                this.handleNumberClick(timeoutBufferNumber, null);
-            }
-        }, CONFIG.MULTI_DIGIT_TIMEOUT);
-    }
-
-    submitKeyboardInput(number) {
-        this.resetKeyboardState();
-        this.handleNumberClick(number, null);
-    }
-
-    resetKeyboardState() {
-        this.keyboardBuffer = '';
-        this.isTypingSequence = false;
-        this.lastKeyTime = 0;
-        this.clearKeyboardTimer();
-    }
-
-    clearKeyboardTimer() {
-        if (this.keyboardTimer) {
-            clearTimeout(this.keyboardTimer);
-            this.keyboardTimer = null;
-        }
-    }
-
-    // GAME INTERACTION HANDLING
-    handleNumberClick(selectedNumber, buttonElement) {
-        this.clearKeyboardTimer();
-        
-        let correctAnswer = false;
-        
-        if (!this.leftFilled && selectedNumber === this.currentNumber) {
-            this.fillBox('left', selectedNumber, buttonElement);
-            correctAnswer = true;
-        } else if (!this.rightFilled && selectedNumber === this.getOperatorValue()) {
-            this.fillBox('right', selectedNumber, buttonElement);
-            correctAnswer = true;
-        } else if (!this.totalFilled && selectedNumber === this.currentAnswer) {
-            this.fillBox('total', selectedNumber, buttonElement);
-            correctAnswer = true;
-        }
-        
-        // Record statistics for first attempt only
-        if (!this.hasAttemptedAnyAnswer) {
-            this.stats.recordQuestionAttempt(correctAnswer);
-            this.stats.registerActivity();
-        }
-        
-        if (correctAnswer) {
-            this.usedAnswersInCurrentQuestion.add(selectedNumber);
-            console.log(`✅ Used answer: ${selectedNumber}. Used: [${Array.from(this.usedAnswersInCurrentQuestion).join(', ')}]`);
-            this.checkQuestionCompletion();
-        } else {
-            this.handleIncorrectAnswer(buttonElement, selectedNumber);
-        }
-    }
-
-    fillBox(boxType, selectedNumber, buttonElement) {
-        if (!buttonElement && window.ButtonBar) {
-            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
-        }
-        
-        if (buttonElement && window.ButtonBar) {
-            window.ButtonBar.animateButton(buttonElement, 'correct');
-        }
-
-        this.playCompletionSound();
-
-        if (buttonElement && window.ButtonBar) {
-            window.ButtonBar.createCelebrationStars(buttonElement);
-        }
-
-        switch (boxType) {
-            case 'left':
-                this.leftInputBox.textContent = selectedNumber;
-                this.leftInputBox.classList.remove('flashing');
-                this.leftInputBox.classList.add('filled');
-                this.leftFilled = true;
-                break;
-            case 'right':
-                this.rightInputBox.textContent = selectedNumber;
-                this.rightInputBox.classList.remove('flashing');
-                this.rightInputBox.classList.add('filled');
-                this.rightFilled = true;
-                break;
-            case 'total':
-                this.totalInputBox.textContent = selectedNumber;
-                this.totalInputBox.classList.remove('flashing');
-                this.totalInputBox.classList.add('filled');
-                this.totalFilled = true;
-                break;
-        }
-
-        const boxesFilledBefore = [this.leftFilled, this.rightFilled, this.totalFilled].filter(Boolean).length - 1;
-        const wasLastBox = boxesFilledBefore === 2;
-        
-        if (wasLastBox) {
-            this.buttonsDisabled = true;
-            if (window.ButtonBar) {
-                window.ButtonBar.setButtonsEnabled(false);
-            }
-        }
-
-        if (!wasLastBox) {
-            this.updateFlashingBoxes();
-        }
-    }
-
-    updateFlashingBoxes() {
-        this.leftInputBox.classList.remove('flashing');
-        this.rightInputBox.classList.remove('flashing');
-        this.totalInputBox.classList.remove('flashing');
-        
-        if (!this.leftFilled) {
-            this.leftInputBox.classList.add('flashing');
-        } else if (!this.rightFilled) {
-            this.rightInputBox.classList.add('flashing');
-        } else if (!this.totalFilled) {
-            this.totalInputBox.classList.add('flashing');
-        }
-        
-        this.startFlashing();
-    }
-
-    checkQuestionCompletion() {
-        const questionComplete = this.leftFilled && this.totalFilled;
-        
-        if (questionComplete) {
-            this.clearInactivityTimer();
-            this.stopFlashing();
-            
-            this.checkMark.classList.add('visible');
-            
-            const wasFirstAttempt = !this.hasAttemptedAnyAnswer;
-            this.handleLevelProgression(wasFirstAttempt);
-            
-            const pieces = this.rainbow.addPiece();
-            
-            if (this.shouldUsePictureFormat() || wasFirstAttempt) {
-                this.giveCompletionFeedback(wasFirstAttempt);
-            }
-            
-            this.questionsCompleted++;
-            
-            // Save current level progress
-            this.saveCurrentLevel();
-            
-            // Register activity for statistics
-            this.stats.registerActivity();
-            
-            if (this.rainbow.isComplete()) {
-                // Record round completion for statistics
-                this.stats.recordRoundCompletion();
-                
-                setTimeout(() => {
-                    this.completeGame();
-                }, 3000);
-                return;
-            }
-
-            const delay = this.shouldUsePictureFormat() ? 3000 : 1500;
-            setTimeout(() => {
-                this.startNewQuestion();
-            }, delay);
-        }
-    }
-
-    giveCompletionFeedback(wasFirstAttempt = true) {
-        const audioConfig = this.getCurrentAudio();
-        
-        if (this.shouldUsePictureFormat()) {
-            const encouragements = CONFIG.AUDIO.ENCOURAGEMENTS;
-            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-            
-            this.speakText(randomEncouragement);
-            
-            setTimeout(() => {
-                const sumMessage = audioConfig.SUM_REPETITION(this.currentNumber, this.currentAnswer);
-                this.speakText(sumMessage);
-            }, 1500);
-        } else {
-            const encouragements = CONFIG.AUDIO.ENCOURAGEMENTS;
-            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-            this.speakText(randomEncouragement);
-        }
-    }
-
-    handleLevelProgression(wasFirstAttempt) {
-        const oldLevel = this.currentLevel;
-        
-        if (wasFirstAttempt) {
-            if (this.currentLevel < 10) {
-                this.currentLevel++;
-            }
-            this.failedAtCurrentLevel = false;
-        } else {
-            if (this.failedAtCurrentLevel) {
-                if (this.currentLevel > 1) {
-                    this.currentLevel--;
-                }
-                this.failedAtCurrentLevel = false;
-            } else {
-                this.failedAtCurrentLevel = true;
-            }
-        }
-    }
-
-    handleIncorrectAnswer(buttonElement, selectedNumber) {
-        if (!buttonElement && selectedNumber && window.ButtonBar) {
-            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
-        }
-        
-        this.hasAttemptedAnyAnswer = true;
-        this.clearInactivityTimer();
-        this.playFailureSound();
-        
-        // Register activity for statistics
-        this.stats.registerActivity();
-        
-        const audioConfig = this.getCurrentAudio();
-        
-        if (this.isTabVisible) {
-            setTimeout(() => {
-                if (this.shouldUseNumberFormat()) {
-                    const hintMessage = this.gameMode === CONFIG.GAME_MODES.MINUS_ONE ?
-                        audioConfig.NUMBER_HINTS.WHAT_COMES_BEFORE(this.currentNumber) :
-                        audioConfig.NUMBER_HINTS.WHAT_COMES_AFTER(this.currentNumber);
-                    this.speakText(hintMessage);
-                } else {
-                    this.speakText(CONFIG.AUDIO.TRY_AGAIN);
-                }
-            }, 800);
-        }
-        
-        this.buttonsDisabled = true;
-        if (window.ButtonBar) {
-            window.ButtonBar.setButtonsEnabled(false);
-        }
-        
-        this.stopFlashing();
-        
-        if (window.ButtonBar) {
-            window.ButtonBar.showIncorrectFeedback(selectedNumber, buttonElement);
-        }
-
-        if (buttonElement) {
-            buttonElement.dataset.attempted = 'true';
-        }
-        
-        setTimeout(() => {
-            this.buttonsDisabled = false;
-            if (window.ButtonBar) {
-                window.ButtonBar.setButtonsEnabled(true);
-            }
-            this.startFlashing();
-            this.startInactivityTimer();
-        }, 2100);
-    }
-
-    resetButtonStates() {
-        this.buttonsDisabled = false;
-        
-        if (window.ButtonBar && window.ButtonBar.buttons) {
-            window.ButtonBar.setButtonsEnabled(true);
-            window.ButtonBar.buttons.forEach(btn => {
-                btn.dataset.attempted = 'false';
-                btn.classList.remove('correct', 'incorrect');
-                btn.style.opacity = '1';
-                btn.style.transition = '';
-                
-                window.ButtonBar.removeCrossOverlay(btn);
-            });
-        }
-    }
-
-    // AUDIO AND INTERACTION HELPERS
     speakText(text, options = {}) {
         if (window.AudioSystem) {
             window.AudioSystem.speakText(text, options);
@@ -1070,42 +585,7 @@ class PlusOneGameController {
         }
     }
 
-    giveStartingInstruction() {
-        if (!window.AudioSystem || !this.isTabVisible || !this.initializationComplete) return;
-        
-        const audioConfig = this.getCurrentAudio();
-        
-        setTimeout(() => {
-            if (this.shouldUsePictureFormat()) {
-                if (this.questionsCompleted === 0) {
-                    this.speakText(audioConfig.FIRST_QUESTION);
-                } else if (this.questionsCompleted === 1) {
-                    this.speakText(audioConfig.SECOND_QUESTION);
-                } else {
-                    this.speakText(audioConfig.LATER_QUESTIONS);
-                }
-            } else {
-                // For number format questions
-                if (this.gameMode === CONFIG.GAME_MODES.MINUS_ONE) {
-                    if (this.questionsCompleted === 0) {
-                        // First question uses specific format
-                        this.speakText(audioConfig.FIRST_NUMBER_FORMAT_QUESTION(this.currentNumber));
-                    } else {
-                        // Subsequent questions use random format
-                        const randomQuestions = audioConfig.NUMBER_FORMAT_QUESTIONS;
-                        const randomQuestion = randomQuestions[Math.floor(Math.random() * randomQuestions.length)];
-                        this.speakText(randomQuestion(this.currentNumber));
-                    }
-                } else {
-                    // Plus one always uses the same format
-                    this.speakText(audioConfig.NUMBER_FORMAT_QUESTION(this.currentNumber));
-                }
-            }
-        }, 500);
-    }
-
-    // INACTIVITY AND HINT SYSTEM
-    startInactivityTimer() {
+startInactivityTimer() {
         if (!this.isTabVisible || this.hintGiven || !this.initializationComplete) {
             return;
         }
@@ -1113,7 +593,7 @@ class PlusOneGameController {
         this.clearInactivityTimer();
         this.inactivityTimer = setTimeout(() => {
             this.giveInactivityHint();
-        }, CONFIG.INACTIVITY_DURATION);
+        }, this.inactivityDuration);
     }
 
     clearInactivityTimer() {
@@ -1121,40 +601,38 @@ class PlusOneGameController {
             clearTimeout(this.inactivityTimer);
             this.inactivityTimer = null;
         }
-        
-        // Register activity when clearing timer (user did something)
-        if (this.stats && this.initializationComplete) {
-            this.stats.registerActivity();
+    }
+
+    clearKeyboardTimer() {
+        if (this.keyboardTimer) {
+            clearTimeout(this.keyboardTimer);
+            this.keyboardTimer = null;
         }
+        this.keyboardBuffer = '';
     }
 
     giveInactivityHint() {
         if (this.buttonsDisabled || this.gameComplete || !this.isTabVisible || !this.initializationComplete) return;
         
         this.hintGiven = true;
-        const audioConfig = this.getCurrentAudio();
+        
+        // Find the first unfilled position to give a hint for
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return;
         
         let hintText = '';
-        if (this.shouldUsePictureFormat()) {
-            if (!this.leftFilled) {
-                hintText = audioConfig.HINTS.COUNT_LEFT;
-            } else if (!this.rightFilled) {
-                hintText = audioConfig.HINTS.COUNT_RIGHT;
-            } else if (!this.totalFilled) {
-                if (this.gameMode === CONFIG.GAME_MODES.MINUS_ONE) {
-                    hintText = audioConfig.HINTS.WHAT_IS_MINUS_ONE(this.currentNumber);
-                } else {
-                    hintText = audioConfig.HINTS.WHAT_IS_PLUS_ONE(this.currentNumber);
-                }
+        
+        // Check dice input boxes first
+        for (const position of config.inputOrder) {
+            if (!this.filledBoxes.has(position)) {
+                hintText = this.getHintMessage(position);
+                break;
             }
-        } else {
-            if (!this.totalFilled) {
-                if (this.gameMode === CONFIG.GAME_MODES.MINUS_ONE) {
-                    hintText = audioConfig.NUMBER_HINTS.WHAT_COMES_BEFORE(this.currentNumber);
-                } else {
-                    hintText = audioConfig.NUMBER_HINTS.WHAT_COMES_AFTER(this.currentNumber);
-                }
-            }
+        }
+        
+        // If all dice boxes are filled, check total
+        if (!hintText && !this.filledBoxes.has('total')) {
+            hintText = this.getTotalHint();
         }
         
         if (hintText) {
@@ -1162,49 +640,174 @@ class PlusOneGameController {
         }
     }
 
-    // FLASHING SYSTEM
-    showInputBoxes() {
-        if (!this.leftFilled) {
-            this.leftInputBox.classList.add('flashing');
-        } else if (!this.rightFilled) {
-            this.rightInputBox.classList.add('flashing');
-        } else if (!this.totalFilled) {
-            this.totalInputBox.classList.add('flashing');
+    initializeEventListeners() {
+        document.addEventListener('keydown', (e) => {
+            if (this.buttonsDisabled || this.gameComplete || !this.initializationComplete) {
+                return;
+            }
+            
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                
+                this.clearInactivityTimer();
+                this.startInactivityTimer();
+                
+                const digit = parseInt(e.key);
+                this.handleKeyboardDigit(digit);
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            this.destroy();
+        });
+    }
+
+    handleKeyboardDigit(digit) {
+        // UPDATED: For 3 and 4 dice games with 4-button system, disable complex keyboard handling
+        if (this.shouldUseNumberFormat()) {
+            // Simple digit handling for 4-button system
+            if (digit >= 1 && digit <= 4 && window.ButtonBar && window.ButtonBar.buttons) {
+                const buttonIndex = digit - 1;
+                const button = window.ButtonBar.buttons[buttonIndex];
+                if (button) {
+                    const buttonNumber = parseInt(button.textContent);
+                    this.handleNumberClick(buttonNumber, button);
+                }
+            }
+            return;
         }
-        this.startFlashing();
+        
+        // Original keyboard handling for 2-dice game with 12 buttons
+        if (this.keyboardBuffer === '1' && (digit === 0 || digit === 1 || digit === 2)) {
+            this.clearKeyboardTimer();
+            const number = parseInt('1' + digit);
+            if (number >= 10 && number <= 12) {
+                this.handleNumberClick(number, null);
+            }
+            return;
+        }
+        
+        this.clearKeyboardTimer();
+        
+        if (digit === 1) {
+            if (this.isDigitValidAnswer(1)) {
+                this.handleNumberClick(1, null);
+                return;
+            }
+            
+            if (this.isDigitValidAnswer(10) || this.isDigitValidAnswer(11) || this.isDigitValidAnswer(12)) {
+                this.keyboardBuffer = '1';
+                this.keyboardTimer = setTimeout(() => {
+                    this.clearKeyboardTimer();
+                    this.handleNumberClick(1, null);
+                }, this.keyboardWaitDuration);
+                return;
+            }
+        }
+        
+        if (digit >= 1 && digit <= 9) {
+            this.handleNumberClick(digit, null);
+        }
+    }
+
+    isDigitValidAnswer(number) {
+        // Check if number matches any unfilled dice value
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return false;
+        
+        for (let i = 0; i < config.inputOrder.length; i++) {
+            const position = config.inputOrder[i];
+            if (!this.filledBoxes.has(position) && this.currentValues[i] === number) {
+                return true;
+            }
+        }
+        
+        // Check total
+        if (!this.filledBoxes.has('total') && this.currentTotal === number) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    startNewGame() {
+        this.questionsCompleted = 0;
+        this.gameComplete = false;
+        this.clearInactivityTimer();
+        this.clearKeyboardTimer();
+        this.resetBoxState();
+        
+        // Reset level system for new game
+        this.currentLevel = 'L1'; // Always start at L1
+        this.usedSumsThisRound = new Set(); // Clear used combinations
+        this.roundQuestionCount = 0; // Reset question count
+        
+        this.rainbow.reset();
+        this.bear.reset();
+        this.diceRenderer.reset();
+        
+        // Set up for current mode
+        this.diceRenderer.setGameMode(this.currentMode);
+        this.updateSumRow();
+        
+        this.modal.classList.add('hidden');
+        this.hideAllInputBoxes();
+        
+        this.initializationComplete = true;
+        
+        console.log(`🔄 New game started in ${this.currentMode} mode at ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+        this.startNewQuestion();
+    }
+
+    resetBoxState() {
+        this.filledBoxes.clear();
+        this.stopFlashing();
     }
 
     startFlashing() {
         this.stopFlashing();
         
         const flashElements = () => {
-            if (this.shouldUsePictureFormat()) {
-                if (!this.leftFilled) {
-                    if (this.leftPulseArea) this.leftPulseArea.classList.add('area-flash');
-                    if (this.leftInputBox) this.leftInputBox.classList.add('box-flash');
-                } else if (!this.rightFilled) {
-                    if (this.rightPulseArea) this.rightPulseArea.classList.add('area-flash');
-                    if (this.rightInputBox) this.rightInputBox.classList.add('box-flash');
-                } else if (!this.totalFilled) {
-                    if (this.leftPulseArea) this.leftPulseArea.classList.add('area-flash');
-                    if (this.rightPulseArea) this.rightPulseArea.classList.add('area-flash');
-                    if (this.totalInputBox) this.totalInputBox.classList.add('box-flash');
-                }
-            } else {
-                if (!this.totalFilled) {
-                    if (this.leftPulseArea) this.leftPulseArea.classList.add('area-flash');
-                    if (this.rightPulseArea) this.rightPulseArea.classList.add('area-flash');
-                    if (this.totalInputBox) this.totalInputBox.classList.add('box-flash');
+            // Find first unfilled position
+            const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+            if (!config) return;
+            
+            let flashPosition = null;
+            
+            // Check dice positions first
+            for (const position of config.inputOrder) {
+                if (!this.filledBoxes.has(position)) {
+                    flashPosition = position;
+                    break;
                 }
             }
             
-            setTimeout(() => {
-                if (this.leftPulseArea) this.leftPulseArea.classList.remove('area-flash');
-                if (this.rightPulseArea) this.rightPulseArea.classList.remove('area-flash');
-                if (this.leftInputBox) this.leftInputBox.classList.remove('box-flash');
-                if (this.rightInputBox) this.rightInputBox.classList.remove('box-flash');
-                if (this.totalInputBox) this.totalInputBox.classList.remove('box-flash');
-            }, 1000);
+            // If all dice filled, check total
+            if (!flashPosition && !this.filledBoxes.has('total')) {
+                flashPosition = 'total';
+            }
+            
+            if (flashPosition) {
+                // Flash the corresponding input box
+                const inputBox = document.querySelector(`[data-position="${flashPosition}"]`);
+                if (inputBox) {
+                    inputBox.classList.add('box-flash');
+                }
+                
+                // Flash the corresponding dice circle (not for total)
+                if (flashPosition !== 'total') {
+                    this.diceRenderer.showFlashForPosition(flashPosition);
+                }
+                
+                setTimeout(() => {
+                    if (inputBox) {
+                        inputBox.classList.remove('box-flash');
+                    }
+                    if (flashPosition !== 'total') {
+                        this.diceRenderer.hideFlashForPosition(flashPosition);
+                    }
+                }, 1000);
+            }
         };
         
         this.flashingTimeout = setTimeout(() => {
@@ -1224,261 +827,558 @@ class PlusOneGameController {
             this.flashingTimeout = null;
         }
         
-        if (this.leftPulseArea) this.leftPulseArea.classList.remove('area-flash');
-        if (this.rightPulseArea) this.rightPulseArea.classList.remove('area-flash');
-        if (this.leftInputBox) this.leftInputBox.classList.remove('box-flash');
-        if (this.rightInputBox) this.rightInputBox.classList.remove('box-flash');
-        if (this.totalInputBox) this.totalInputBox.classList.remove('box-flash');
+        // Remove all flashing
+        const inputBoxes = document.querySelectorAll('.input-box');
+        inputBoxes.forEach(box => {
+            box.classList.remove('box-flash');
+        });
+        
+        this.diceRenderer.hideAllFlash();
     }
 
-    resetBoxState() {
-        this.leftFilled = false;
-        this.rightFilled = false;
-        this.totalFilled = false;
-        this.stopFlashing();
-    }
+    async startNewQuestion() {
+        if (this.gameComplete || !this.initializationComplete) {
+            return;
+        }
 
-    // GAME MANAGEMENT
-    startNewGame() {
-        console.log(`New game: Starting ${this.gameMode} at level ${Math.min(this.currentLevel, 4)}`);
-        
-        // Apply level 4 cap for new games
-        this.currentLevel = Math.min(this.currentLevel, 4);
-        
-        this.questionsCompleted = 0;
-        this.gameComplete = false;
-        this.usedNumbersInLevel.clear();
-        this.failedAtCurrentLevel = false;
-        this.clearInactivityTimer();
-        this.resetKeyboardState();
+        // Check if we need to start a new round (after 10 questions)
+        if (this.roundQuestionCount >= CONFIG.RAINBOW_PIECES) {
+            this.usedSumsThisRound.clear();
+            this.roundQuestionCount = 0;
+            console.log('🆕 Starting new round - cleared used combinations');
+        }
+
         this.resetBoxState();
-        this.usedAnswersInCurrentQuestion.clear();
+        this.hideAllInputBoxes();
+        this.hintGiven = false;
+
+        console.log(`🎲 Starting question ${this.questionsCompleted + 1} (round question ${this.roundQuestionCount + 1}) in ${this.currentMode} mode`);
+        console.log(`📊 Current level: ${this.currentLevel} (${this.getLevelDescription(this.currentLevel)})`);
+        console.log(`🚫 Used combinations this round: [${Array.from(this.usedSumsThisRound).sort().join(', ')}]`);
         
-        // Reset question type tracking for new game
-        this.currentQuestionType = null;
-        this.previousQuestionType = null;
+        this.resetButtonStates();
+        this.giveStartingInstruction();
         
-        // Update operator symbol for current game mode
-        this.updateOperatorSymbol();
+        // Disable buttons during dice roll
+        this.buttonsDisabled = true;
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(false);
+        }
         
-        // Don't reset stats - continue tracking across rounds in same session
-        this.stats.registerActivity();
+        try {
+            // Use level-based dice rolling
+            const result = await this.diceRenderer.rollDiceForLevel(this.currentLevel, this.usedSumsThisRound);
+            
+            console.log('🎲 DICE RENDERER RETURNED:', result);
+            
+            // Store the target values from the dice result
+            this.currentValues = result.values;
+            this.currentTotal = result.total;
+            
+            // Add this combination to used combinations for this round
+            this.usedSumsThisRound.add(result.combinationKey);
+            
+            console.log(`🎯 TARGET VALUES: [${this.currentValues.join(', ')}], Total=${this.currentTotal}`);
+            console.log(`📝 Updated used combinations: [${Array.from(this.usedSumsThisRound).sort().join(', ')}]`);
+            
+            // UPDATED: Update button numbers for 3 and 4 dice games
+            if (this.shouldUseNumberFormat()) {
+                const buttonNumbers = this.updateButtonsForNumberFormat();
+                if (buttonNumbers && window.ButtonBar) {
+                    window.ButtonBar.updateNumbers(buttonNumbers);
+                    console.log(`🔄 Updated button numbers: [${buttonNumbers.join(', ')}]`);
+                }
+            }
+            
+            // Enable buttons and show input boxes
+            this.buttonsDisabled = false;
+            if (window.ButtonBar) {
+                window.ButtonBar.setButtonsEnabled(true);
+            }
+            this.showInputBoxes();
+            this.startInactivityTimer();
+            
+            // Start question timer for stats tracking
+            this.stats.startQuestionTimer();
+            
+        } catch (error) {
+            console.error('Error rolling dice:', error);
+            // Fallback values
+            this.currentValues = Array(this.diceRenderer.getDiceCount()).fill(1);
+            this.currentTotal = this.currentValues.reduce((a, b) => a + b, 0);
+            
+            this.buttonsDisabled = false;
+            if (window.ButtonBar) {
+                window.ButtonBar.setButtonsEnabled(true);
+            }
+            this.showInputBoxes();
+            this.startInactivityTimer();
+            
+            this.stats.startQuestionTimer();
+        }
+    }
+
+    giveStartingInstruction() {
+        if (!this.isTabVisible || !this.initializationComplete) return;
+        
+        setTimeout(() => {
+            let message;
+            if (this.questionsCompleted === 0) {
+                message = CONFIG.AUDIO.MESSAGES.FIRST_QUESTION;
+            } else if (this.questionsCompleted === 1) {
+                message = CONFIG.AUDIO.MESSAGES.SECOND_QUESTION;
+            } else {
+                message = CONFIG.AUDIO.MESSAGES.CONTINUE_QUESTION;
+            }
+            this.speakText(message);
+        }, 500);
+    }
+
+    hideAllInputBoxes() {
+        const checkMark = document.getElementById('checkMark');
+        if (checkMark) {
+            checkMark.classList.remove('visible');
+        }
+        
+        const inputBoxes = document.querySelectorAll('.input-box');
+        inputBoxes.forEach(box => {
+            box.textContent = '';
+            box.classList.remove('flashing', 'filled');
+        });
+    }
+
+    showInputBoxes() {
+        // Find the first unfilled box and make it flash
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return;
+        
+        let firstUnfilled = null;
+        
+        // Check dice positions first
+        for (const position of config.inputOrder) {
+            if (!this.filledBoxes.has(position)) {
+                firstUnfilled = position;
+                break;
+            }
+        }
+        
+        // If all dice filled, check total
+        if (!firstUnfilled && !this.filledBoxes.has('total')) {
+            firstUnfilled = 'total';
+        }
+        
+        if (firstUnfilled) {
+            const inputBox = document.querySelector(`[data-position="${firstUnfilled}"]`);
+            if (inputBox) {
+                inputBox.classList.add('flashing');
+            }
+        }
+        
+        this.startFlashing();
+    }
+
+    handleNumberClick(selectedNumber, buttonElement) {
+        this.clearKeyboardTimer();
+        
+        let correctAnswer = false;
+        const wasFirstAttempt = !this.hasAttemptedAnswer();
+        
+        // Check if this number matches any unfilled dice value
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (config) {
+            for (let i = 0; i < config.inputOrder.length; i++) {
+                const position = config.inputOrder[i];
+                if (!this.filledBoxes.has(position) && this.currentValues[i] === selectedNumber) {
+                    this.fillBox(position, selectedNumber, buttonElement);
+                    correctAnswer = true;
+                    break;
+                }
+            }
+        }
+        
+        // Check total if no dice match
+        if (!correctAnswer && !this.filledBoxes.has('total') && this.currentTotal === selectedNumber) {
+            this.fillBox('total', selectedNumber, buttonElement);
+            correctAnswer = true;
+        }
+        
+        // Record stats for this question attempt
+        if (correctAnswer) {
+            this.stats.recordQuestionAttempt(wasFirstAttempt);
+            this.checkQuestionCompletion();
+        } else {
+            this.stats.recordQuestionAttempt(false);
+            this.handleIncorrectAnswer(buttonElement, selectedNumber);
+        }
+    }
+
+    fillBox(position, selectedNumber, buttonElement) {
+        if (!buttonElement && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
+        }
+        
+        if (buttonElement && window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'correct');
+        }
+
+        this.playCompletionSound();
+
+        if (buttonElement) {
+            this.createCelebrationStars(buttonElement);
+        }
+
+        // Find the input box for this position
+        const inputBox = document.querySelector(`[data-position="${position}"]`);
+        if (inputBox) {
+            inputBox.textContent = selectedNumber;
+            inputBox.classList.remove('flashing');
+            inputBox.classList.add('filled');
+        }
+        
+        // Mark this position as filled
+        this.filledBoxes.add(position);
+        
+        // Hide flash for this position
+        if (position !== 'total') {
+            this.diceRenderer.hideFlashForPosition(position);
+        }
+
+        // Check if this was the last box
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        const totalBoxes = config ? config.boxes + 1 : 3; // +1 for total
+        const wasLastBox = this.filledBoxes.size >= totalBoxes;
+        
+        if (wasLastBox) {
+            this.buttonsDisabled = true;
+            if (window.ButtonBar) {
+                window.ButtonBar.setButtonsEnabled(false);
+            }
+            console.log('🔒 Final box filled - buttons disabled');
+        }
+
+        if (!wasLastBox) {
+            this.updateFlashingBoxes();
+        }
+    }
+
+    updateFlashingBoxes() {
+        // Remove flashing from all boxes
+        const inputBoxes = document.querySelectorAll('.input-box');
+        inputBoxes.forEach(box => {
+            box.classList.remove('flashing');
+        });
+        
+        // Find next unfilled box
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return;
+        
+        let nextUnfilled = null;
+        
+        // Check dice positions first
+        for (const position of config.inputOrder) {
+            if (!this.filledBoxes.has(position)) {
+                nextUnfilled = position;
+                break;
+            }
+        }
+        
+        // If all dice filled, check total
+        if (!nextUnfilled && !this.filledBoxes.has('total')) {
+            nextUnfilled = 'total';
+        }
+        
+        if (nextUnfilled) {
+            const inputBox = document.querySelector(`[data-position="${nextUnfilled}"]`);
+            if (inputBox) {
+                inputBox.classList.add('flashing');
+            }
+        }
+        
+        this.startFlashing();
+    }
+
+    checkQuestionCompletion() {
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        const totalBoxes = config ? config.boxes + 1 : 3; // +1 for total
+        
+        if (this.filledBoxes.size >= totalBoxes) {
+            this.clearInactivityTimer();
+            this.stopFlashing();
+            
+            const checkMark = document.getElementById('checkMark');
+            if (checkMark) {
+                checkMark.classList.add('visible');
+            }
+            
+            const pieces = this.rainbow.addPiece();
+            console.log(`Rainbow pieces: ${pieces}`);
+            
+            // Determine if this was answered correctly on first attempt for level progression
+            const wasCorrectFirstAttempt = !this.hasAttemptedAnswer();
+            console.log(`📊 Question completed - First attempt: ${wasCorrectFirstAttempt ? 'Yes' : 'No'}`);
+            
+            // Update level based on performance
+            this.updateLevel(wasCorrectFirstAttempt);
+            
+            // Random encouragement
+            const encouragements = CONFIG.AUDIO.MESSAGES.CORRECT_ANSWERS;
+            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+            this.speakText(randomEncouragement);
+            
+            this.questionsCompleted++;
+            this.roundQuestionCount++;
+            
+            if (this.rainbow.isComplete()) {
+                this.stats.recordRoundCompletion();
+                
+                setTimeout(() => {
+                    this.completeGame();
+                }, 3000);
+                return;
+            }
+
+            setTimeout(() => {
+                this.fadeOutDice();
+            }, CONFIG.NEXT_QUESTION_DELAY);
+        }
+    }
+
+    handleIncorrectAnswer(buttonElement, selectedNumber) {
+        if (!buttonElement && selectedNumber && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
+        }
+        
+        this.clearInactivityTimer();
+        
+        this.playFailureSound();
+        
+        if (this.isTabVisible) {
+            setTimeout(() => {
+                this.speakText(CONFIG.AUDIO.MESSAGES.INCORRECT_ANSWER);
+            }, 800);
+        }
+        
+        this.buttonsDisabled = true;
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(false);
+        }
+        
+        this.stopFlashing();
+        
+        if (buttonElement && window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'incorrect');
+        }
+
+        let crossOverlay = null;
+        if (buttonElement && window.ButtonBar) {
+            crossOverlay = window.ButtonBar.addCrossOverlay(buttonElement);
+        }
+
+        if (buttonElement) {
+            buttonElement.dataset.attempted = 'true';
+        }
+        
+        this.fadeOtherButtons(buttonElement);
+
+        setTimeout(() => {
+            setTimeout(() => {
+                this.fadeInAllButtons();
+                
+                if (crossOverlay && crossOverlay.parentNode) {
+                    crossOverlay.style.transition = 'opacity 700ms ease-out';
+                    crossOverlay.style.opacity = '0';
+                }
+                
+                setTimeout(() => {
+                    if (buttonElement && window.ButtonBar) {
+                        window.ButtonBar.removeCrossOverlay(buttonElement);
+                    }
+                }, 700);
+            }, 700);
+            
+            setTimeout(() => {
+                this.buttonsDisabled = false;
+                if (window.ButtonBar) {
+                    window.ButtonBar.setButtonsEnabled(true);
+                }
+                this.startFlashing();
+                this.startInactivityTimer();
+            }, 1400);
+        }, 700);
+    }
+
+    fadeOtherButtons(excludeButton) {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.buttons.forEach(btn => {
+                if (btn !== excludeButton) {
+                    btn.style.transition = 'opacity 700ms ease-in-out';
+                    btn.style.opacity = '0.1';
+                }
+            });
+        }
+    }
+
+    fadeInAllButtons() {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.buttons.forEach(btn => {
+                btn.style.transition = 'opacity 700ms ease-in-out';
+                btn.style.opacity = '1';
+            });
+            
+            setTimeout(() => {
+                window.ButtonBar.buttons.forEach(btn => {
+                    btn.style.transition = '';
+                });
+            }, 700);
+        }
+    }
+
+    async fadeOutDice() {
+        console.log('Starting dice transition');
+        
+        await this.diceRenderer.fadeOutCurrentDice();
+        this.startNewQuestion();
+    }
+
+    hasAttemptedAnswer() {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            return window.ButtonBar.buttons.some(btn => 
+                btn.dataset.attempted === 'true'
+            );
+        }
+        return false;
+    }
+
+    resetButtonStates() {
+        this.buttonsDisabled = false;
+        
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.setButtonsEnabled(true);
+            window.ButtonBar.buttons.forEach(btn => {
+                btn.dataset.attempted = 'false';
+                btn.classList.remove('correct', 'incorrect');
+                btn.style.opacity = '1';
+                btn.style.transition = '';
+                
+                window.ButtonBar.removeCrossOverlay(btn);
+            });
+        }
+    }
+
+    completeGame() {
+        this.gameComplete = true;
+        this.clearInactivityTimer();
+        this.clearKeyboardTimer();
+        this.stopFlashing();
+        
+        // Create the appropriate modal for current mode
+        this.createCompletionModal();
+        this.modal.classList.remove('hidden');
+        
+        this.bear.startCelebration();
+        
+        // FIXED: Play audio message but don't show it in modal
+        if (this.isTabVisible) {
+            setTimeout(() => {
+                let audioMessage;
+                switch (this.currentMode) {
+                    case CONFIG.GAME_MODES.TWO_DICE:
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE_AUDIO;
+                        break;
+                    case CONFIG.GAME_MODES.THREE_DICE:
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_THREEDICE_COMPLETE_AUDIO;
+                        break;
+                    case CONFIG.GAME_MODES.FOUR_DICE:
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_FOURDICE_COMPLETE_AUDIO;
+                        break;
+                    default:
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE_AUDIO;
+                }
+                this.speakText(audioMessage);
+            }, 1000);
+        }
+    }
+
+    createCelebrationStars(buttonElement) {
+        if (!buttonElement) return;
+        
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const centerX = buttonRect.left + buttonRect.width / 2;
+        const centerY = buttonRect.top + buttonRect.height / 2;
+        
+        const starCount = 5;
+        const radius = 60;
+        
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            star.innerHTML = '⭐';
+            star.className = 'completion-star';
+            star.style.fontSize = '20px';
+            
+            const angle = (i / starCount) * 2 * Math.PI;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            
+            star.style.left = x + 'px';
+            star.style.top = y + 'px';
+            star.style.animationDelay = (i * 0.1) + 's';
+            
+            document.body.appendChild(star);
+            
+            setTimeout(() => {
+                if (star.parentNode) {
+                    star.parentNode.removeChild(star);
+                }
+            }, 1500 + (i * 100));
+        }
+    }
+
+    updateStatsDisplay() {
+        if (this.stats && this.statsDisplay.accuracy) {
+            const currentStats = this.stats.getCurrentStats();
+            this.statsDisplay.accuracy.textContent = currentStats.accuracy;
+            this.statsDisplay.resilience.textContent = currentStats.resilience;
+            this.statsDisplay.speed.textContent = currentStats.speed;
+            this.statsDisplay.variety.textContent = currentStats.variety;
+            this.statsDisplay.questions.textContent = this.stats.totalQuestions;
+        }
+    }
+
+    destroy() {
+        this.clearInactivityTimer();
+        this.clearKeyboardTimer();
+        
+        if (this.statsUpdateInterval) {
+            clearInterval(this.statsUpdateInterval);
+        }
+        
+        if (window.AudioSystem) {
+            window.AudioSystem.stopAllAudio();
+        }
+        
+        if (this.stats) {
+            this.stats.destroy();
+        }
         
         this.rainbow.reset();
         this.bear.reset();
-        this.contentRenderer.reset();
-        this.modal.classList.add('hidden');
+        this.diceRenderer.reset();
         
-        this.initializationComplete = true;
-        
-        // Always recreate buttons for new game
-        this.createButtons();
-        
-        setTimeout(() => {
-            this.startNewQuestion();
-        }, 200);
-    }
-
-completeGame() {
-    this.gameComplete = true;
-    this.clearInactivityTimer();
-    this.resetKeyboardState();
-    this.stopFlashing();
-    
-    // Save total rounds completed for persistence
-    this.stats.saveTotalRoundsCompleted();
-    
-    // Update modal for dual-button layout
-    this.updateModalForCompletion();
-    this.modal.classList.remove('hidden');
-    
-    this.bear.startCelebration();
-    
-    if (this.isTabVisible) {
-        const audioConfig = this.getCurrentAudio();
-        setTimeout(() => {
-            this.speakText(audioConfig.GAME_COMPLETE);
-        }, 1000);
-    }
-}
-
-    updateModalForCompletion() {
-        const modalContent = this.modal.querySelector('.modal-content');
-        if (!modalContent) return;
-        
-        // Clear existing content
-        modalContent.innerHTML = '';
-        
-        // Add title
-        const title = document.createElement('h2');
-        title.textContent = '🌈 Well Done! 🌈';
-        modalContent.appendChild(title);
-        
-        // Create button container
-        const buttonContainer = document.createElement('div');
-        buttonContainer.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            align-items: center;
-            margin-top: 20px;
-        `;
-        
-        // Play Again button
-        const playAgainBtn = document.createElement('button');
-        playAgainBtn.className = 'modal-btn primary-btn';
-        playAgainBtn.innerHTML = '<i class="fas fa-redo-alt"></i> PLAY AGAIN';
-        playAgainBtn.addEventListener('click', () => {
-            this.startNewGame();
-        });
-        
-        // Switch Game Mode button
-        const switchModeBtn = document.createElement('button');
-        switchModeBtn.className = 'modal-btn secondary-btn';
-        
-        if (this.gameMode === CONFIG.GAME_MODES.PLUS_ONE) {
-            switchModeBtn.innerHTML = '<i class="fas fa-arrow-right"></i> MINUS ONE';
-            switchModeBtn.addEventListener('click', () => {
-                this.switchGameMode(CONFIG.GAME_MODES.MINUS_ONE);
-                this.startNewGame();
-            });
-        } else {
-            switchModeBtn.innerHTML = '<i class="fas fa-arrow-right"></i> PLUS ONE';
-            switchModeBtn.addEventListener('click', () => {
-                this.switchGameMode(CONFIG.GAME_MODES.PLUS_ONE);
-                this.startNewGame();
-            });
+        if (window.ButtonBar) {
+            window.ButtonBar.destroy();
         }
-        
-        buttonContainer.appendChild(playAgainBtn);
-        buttonContainer.appendChild(switchModeBtn);
-        modalContent.appendChild(buttonContainer);
-        
-        // Update styles for new buttons
-        this.updateModalButtonStyles();
     }
-
-    updateModalButtonStyles() {
-        const style = document.createElement('style');
-        style.textContent = `
-            .modal-btn {
-                border: none;
-                padding: 15px 30px;
-                font-size: 1.3rem;
-                border-radius: 10px;
-                cursor: pointer;
-                font-weight: bold;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                transition: all 0.3s ease;
-                touch-action: manipulation;
-                pointer-events: auto;
-                outline: none;
-                min-width: 200px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 10px;
-            }
-            
-            .modal-btn.primary-btn {
-                background: #4caf50;
-                color: white;
-            }
-            
-            .modal-btn.secondary-btn {
-                background: #2196F3;
-                color: white;
-            }
-            
-            .modal-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-            }
-            
-            .modal-btn.primary-btn:hover {
-                background: #45a049;
-            }
-            
-            .modal-btn.secondary-btn:hover {
-                background: #1976D2;
-            }
-            
-            .modal-btn:focus {
-                outline: none;
-            }
-            
-            @media (max-width: 768px) {
-                .modal-btn {
-                    font-size: 1.1rem;
-                    padding: 12px 24px;
-                    min-width: 180px;
-                }
-            }
-        `;
-        
-        // Remove existing style if present
-        const existingStyle = document.head.querySelector('style[data-modal-buttons]');
-        if (existingStyle) {
-            existingStyle.remove();
-        }
-        
-        style.setAttribute('data-modal-buttons', 'true');
-        document.head.appendChild(style);
-    }
-
-destroy() {
-    this.clearInactivityTimer();
-    this.resetKeyboardState();
-    
-    if (window.AudioSystem) {
-        window.AudioSystem.stopAllAudio();
-    }
-    
-    if (this.keyboardHandler) {
-        document.removeEventListener('keydown', this.keyboardHandler);
-    }
-    
-    // Clean up statistics - this will save total rounds
-    if (this.stats) {
-        this.stats.destroy();
-    }
-    
-    this.rainbow.reset();
-    this.bear.reset();
-    this.contentRenderer.reset();
-    
-    if (window.ButtonBar) {
-        window.ButtonBar.destroy();
-    }
-    
-    // Remove modal button styles
-    const modalButtonStyles = document.head.querySelector('style[data-modal-buttons]');
-    if (modalButtonStyles) {
-        modalButtonStyles.remove();
-    }
-}
 }
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎮 DOM loaded, creating PlusOneGameController (Dual Mode Version)');
-    window.plusOneGame = new PlusOneGameController();
+    console.log('🎲 DOM loaded, creating MultiDiceGameController');
+    window.multiDiceGame = new MultiDiceGameController();
 });
 
-// Clean up resources when page is about to unload
+// Clean up resources when page is unloaded
 window.addEventListener('beforeunload', () => {
-    if (window.plusOneGame) {
-        window.plusOneGame.destroy();
-    }
-    // Clear session storage when leaving the game
-    CONFIG.clearStoredLevels();
-});
-
-// Also clear levels when navigating away via links
-document.addEventListener('click', (e) => {
-    const link = e.target.closest('a[href]');
-    if (link && !link.href.includes('plusone')) {
-        // User is navigating away from the plusone game
-        CONFIG.clearStoredLevels();
+    if (window.multiDiceGame) {
+        window.multiDiceGame.destroy();
     }
 });
