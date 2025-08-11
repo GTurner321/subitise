@@ -4,7 +4,9 @@
     --sum-box-size: calc(var(--game-area-width) * 0.08); /* 8% of actual game area width */
     --sum-bar-width-multiplier: 6.5; /* Default for 2 dice, will be updated dynamically */
     --red-circle-diameter: calc(var(--game-area-width) * 0.07); /* 7% of game area width for red circle diameter */
-    --dice-flash-diameter: calc(var(--game-area-width) * 0.18); /* 1.5x dice width (12% * 1.5 = 18%) */
+    --dice-flash-diameter: calc(var(--game-area-width) * 0.30); /* UPDATED: 2.5x dice width (12% * 2.5 = 30%) */
+    --dice-shadow-width: calc(var(--game-area-width) * 0.18); /* UPDATED: 1.5x dice width for shadow */
+    --dice-shadow-height: calc(var(--game-area-width) * 0.06); /* UPDATED: 0.5x dice width for shadow height */
 }
 
 /* Prevent scrolling - game always fits on screen */
@@ -71,7 +73,7 @@ body {
     display: none;
 }
 
-/* FIXED: Plus sign positioning with higher z-index and always visible */
+/* FIXED: Plus sign positioning with highest z-index and always visible */
 .plus-sign {
     display: flex;
     justify-content: center;
@@ -84,7 +86,7 @@ body {
     background: #dc3545;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    z-index: 20; /* Higher than dice (10) and sum row (15) - always visible */
+    z-index: 25; /* FIXED: Highest z-index - above everything else */
     position: absolute; /* Change to absolute for flexible positioning */
     margin: 0; /* Ensure no margin */
     padding: 0; /* Ensure no padding */
@@ -98,7 +100,7 @@ body {
     font-weight: bold;
 }
 
-/* UPDATED: Circular flashing areas behind dice */
+/* UPDATED: Circular flashing areas behind dice - larger diameter */
 .dice-flash-circle {
     position: absolute;
     width: var(--dice-flash-diameter);
@@ -106,7 +108,7 @@ body {
     border-radius: 50%;
     pointer-events: none;
     transition: background-color 0.2s ease;
-    z-index: 2; /* Above game areas but below dice */
+    z-index: 3; /* Above shadows but below dice */
     opacity: 0; /* Hidden by default */
     /* Position will be set dynamically by JavaScript */
 }
@@ -115,6 +117,24 @@ body {
     background-color: rgba(144, 238, 144, 0.2) !important;
     opacity: 1 !important;
     transition: background-color 1s ease-in-out, opacity 1s ease-in-out;
+}
+
+/* NEW: Dice shadow elements */
+.dice-shadow {
+    position: absolute;
+    width: var(--dice-shadow-width);
+    height: var(--dice-shadow-height);
+    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 70%, transparent 100%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1; /* Below flashing circles and dice */
+    opacity: 0; /* Hidden by default, will fade in with dice */
+    transition: opacity 1s ease-in-out;
+    /* Position will be set dynamically by JavaScript */
+}
+
+.dice-shadow.visible {
+    opacity: 1;
 }
 
 /* 3D Dice Styling - Square dice with height matching width based on game area width */
@@ -189,7 +209,36 @@ body {
     touch-action: none;
 }
 
-/* Inner face - fills gaps during rotation */
+/* NEW: Inner dice - 10% smaller, same color, 100% opacity, rotates with main dice */
+.dice-inner {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    width: 90%;
+    height: 90%;
+    transform-style: preserve-3d;
+    transform-origin: center center;
+    /* Disable touch interactions */
+    pointer-events: none;
+    touch-action: none;
+}
+
+.dice-inner-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: inherit; /* Will inherit from parent dice color */
+    border: 2px solid #333;
+    border-radius: 10px;
+    box-sizing: border-box;
+    backface-visibility: hidden;
+    opacity: 1; /* 100% opacity as requested */
+    /* Disable touch interactions */
+    pointer-events: none;
+    touch-action: none;
+}
+
+/* Inner face - fills gaps during rotation - UPDATED: smaller z-index */
 .dice-face-inner {
     position: absolute;
     top: 5%;
@@ -199,7 +248,7 @@ body {
     border: none;
     border-radius: 0;
     box-sizing: border-box;
-    z-index: 0;
+    z-index: 0; /* Below inner dice */
     /* Disable touch interactions */
     pointer-events: none;
     touch-action: none;
@@ -304,14 +353,14 @@ body {
     min-font-size: 20px;
 }
 
-/* FIXED: Input boxes for different numbers of dice with minimum sizing */
+/* FIXED: Input boxes for different numbers of dice with better minimum sizing */
 .dice-input-box {
     width: var(--sum-box-size); /* 8% of game area width */
     height: var(--sum-box-size); /* Same as width - perfect squares */
     flex-shrink: 0;
-    /* FIXED: Ensure minimum size during initialization */
-    min-width: 40px;
-    min-height: 40px;
+    /* ENHANCED: Better minimum sizing to prevent tiny boxes */
+    min-width: 50px !important;
+    min-height: 50px !important;
 }
 
 /* Input boxes for sum row */
@@ -327,8 +376,9 @@ body {
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
     transition: all 0.3s ease;
-    /* FIXED: Ensure minimum font size during initialization */
-    min-font-size: 16px;
+    /* ENHANCED: Better minimum font size to prevent tiny text */
+    min-font-size: 20px !important;
+    box-sizing: border-box;
 }
 
 .input-box.flashing {
