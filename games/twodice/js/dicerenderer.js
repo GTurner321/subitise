@@ -69,32 +69,6 @@ class MultiDiceRenderer {
     }
 
         /**
-     * Darken a hex color by a given factor
-     * @param {string} hexColor - Hex color like '#ff6b6b'
-     * @param {number} factor - Amount to darken (0.1 = 10% darker)
-     * @returns {string} Darkened hex color
-     */
-    darkenColor(hexColor, factor) {
-        // Remove # if present
-        const hex = hexColor.replace('#', '');
-        
-        // Parse RGB values
-        const r = parseInt(hex.substr(0, 2), 16);
-        const g = parseInt(hex.substr(2, 2), 16);
-        const b = parseInt(hex.substr(4, 2), 16);
-        
-        // Darken each component
-        const newR = Math.round(r * (1 - factor));
-        const newG = Math.round(g * (1 - factor));
-        const newB = Math.round(b * (1 - factor));
-        
-        // Convert back to hex
-        const toHex = (num) => num.toString(16).padStart(2, '0');
-        
-        return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
-    }
-
-/**
      * FIXED: Ensure plus sign element exists in DOM
      */
     ensurePlusSignExists() {
@@ -629,26 +603,19 @@ class MultiDiceRenderer {
         console.log('Physical rendering positions:', this.physicalFacePositions);
         console.log('Logical tracking positions:', this.logicalFacePositions);
         
-        // Create all 6 faces
+        // Create all 6 faces with colored backs
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
             const face = document.createElement('div');
             face.className = `dice-face ${faceClass}`;
+            
+            // UPDATED: Set face background to dice color (for colored backs)
+            face.style.backgroundColor = diceColor;
             
             // Store the face value as a data attribute for easy access
             face.dataset.faceValue = faceValue;
             
             // Set proper 3D positioning with calculated translateZ
             this.setFace3DPosition(face, faceClass, halfDiceSize);
-            
-            // Ensure transparent background
-            face.style.backgroundColor = 'transparent';
-            face.style.background = 'transparent';
-            face.style.backgroundImage = 'none';
-            face.style.border = 'none';
-            face.style.borderRadius = '0';
-            face.style.boxShadow = 'none';
-            face.style.outline = 'none';
-            face.style.color = 'transparent';
             
             // Create inner face - 90% size, same color, no rounded corners
             const innerFace = document.createElement('div');
@@ -662,7 +629,7 @@ class MultiDiceRenderer {
             innerFace.style.border = 'none';
             innerFace.style.borderRadius = '0';
             innerFace.style.boxSizing = 'border-box';
-            innerFace.style.zIndex = '0';
+            innerFace.style.zIndex = '1';
             
             // Create colored surface with proper positioning
             const coloredSurface = document.createElement('div');
@@ -703,37 +670,15 @@ class MultiDiceRenderer {
             dice.appendChild(face);
         });
         
-        // RESTORED: Create inner dice (95% size, same color, no borders, exact movement sync)
-        const innerDice = document.createElement('div');
-        innerDice.className = 'dice-inner';
-        innerDice.style.backgroundColor = diceColor;
-        
-        // Create inner faces - same color, no borders
-        Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
-            const innerFace = document.createElement('div');
-            innerFace.className = `dice-inner-face ${faceClass}`;
-            innerFace.style.backgroundColor = diceColor;
-            
-            // Set 3D positioning for inner faces using same halfDiceSize
-            this.setFace3DPosition(innerFace, faceClass, halfDiceSize * 0.95);
-            
-            innerDice.appendChild(innerFace);
-        });
-        
-        dice.appendChild(innerDice);
+        // REMOVED: All inner cube creation logic
         
         // Start at standard orientation (no rotation)
         dice.style.transform = `rotateX(0deg) rotateY(0deg)`;
-        innerDice.style.transform = `rotateX(0deg) rotateY(0deg)`;
         
         // Store initial rotation for tracking
         dice.dataset.currentRotationX = 0;
         dice.dataset.currentRotationY = 0;
         dice.dataset.moveCount = 0;
-        
-        // Store initial rotation for inner dice separately
-        innerDice.dataset.currentRotationX = 0;
-        innerDice.dataset.currentRotationY = 0;
         
         return dice;
     }
@@ -1035,33 +980,14 @@ class MultiDiceRenderer {
                     console.log(`   Result: Front=${newFaces.front}\n`);
                 }
                 
-                // FIXED: Apply different transforms - outer gets corrected, inner gets intended
+                // SIMPLIFIED: Apply CSS transform with corrections - no inner cube
                 currentRotationX += cssRotX;
                 currentRotationY += cssRotY;
                 
-                // Outer dice gets corrected transform (for CSS browser quirks)
-                const outerTransform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                dice.style.transform = outerTransform;
+                dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
                 
-                // Inner dice gets the ORIGINAL intended transform (no corrections)
-                const innerDice = dice.querySelector('.dice-inner');
-                if (innerDice) {
-                    let innerRotationX = parseInt(innerDice.dataset.currentRotationX || '0');
-                    let innerRotationY = parseInt(innerDice.dataset.currentRotationY || '0');
-                    
-                    // Apply the RAW intended rotations (before CSS corrections)
-                    innerRotationX += rotX;
-                    innerRotationY += rotY;
-                    
-                    const innerTransform = `rotateX(${innerRotationX}deg) rotateY(${innerRotationY}deg)`;
-                    innerDice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                    innerDice.style.transform = innerTransform;
-                    
-                    // Store inner dice rotation separately
-                    innerDice.dataset.currentRotationX = innerRotationX;
-                    innerDice.dataset.currentRotationY = innerRotationY;
-                }
+                // REMOVED: All inner dice transform logic
                 
                 // Update tracking
                 dice.dataset.currentRotationX = currentRotationX;
