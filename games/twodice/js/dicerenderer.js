@@ -68,7 +68,33 @@ class MultiDiceRenderer {
         this.ensurePlusSignExists();
     }
 
-    /**
+        /**
+     * Darken a hex color by a given factor
+     * @param {string} hexColor - Hex color like '#ff6b6b'
+     * @param {number} factor - Amount to darken (0.1 = 10% darker)
+     * @returns {string} Darkened hex color
+     */
+    darkenColor(hexColor, factor) {
+        // Remove # if present
+        const hex = hexColor.replace('#', '');
+        
+        // Parse RGB values
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        
+        // Darken each component
+        const newR = Math.round(r * (1 - factor));
+        const newG = Math.round(g * (1 - factor));
+        const newB = Math.round(b * (1 - factor));
+        
+        // Convert back to hex
+        const toHex = (num) => num.toString(16).padStart(2, '0');
+        
+        return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
+    }
+
+/**
      * FIXED: Ensure plus sign element exists in DOM
      */
     ensurePlusSignExists() {
@@ -652,13 +678,21 @@ class MultiDiceRenderer {
             coloredSurface.style.border = '3px solid #333';
             coloredSurface.style.borderRadius = '15px';
             coloredSurface.style.boxSizing = 'border-box';
-            coloredSurface.style.zIndex = '1';
+            coloredSurface.style.zIndex = '3';
+            
+            // NEW: Create thickness element for depth (5% extending inward)
+            const thickness = document.createElement('div');
+            thickness.className = 'dice-face-thickness';
+            
+            // Calculate slightly darker color for thickness (10% darker)
+            const darkerColor = this.darkenColor(diceColor, 0.15);
+            thickness.style.backgroundColor = darkerColor;
             
             // Create dots container
             const dotsContainer = document.createElement('div');
             dotsContainer.className = 'dice-dots-container';
             dotsContainer.style.position = 'relative';
-            dotsContainer.style.zIndex = '2';
+            dotsContainer.style.zIndex = '4'; // Above everything else
             dotsContainer.style.width = '100%';
             dotsContainer.style.height = '100%';
             dotsContainer.style.display = 'grid';
@@ -672,33 +706,16 @@ class MultiDiceRenderer {
             this.createDots(dotsContainer, faceValue, gameAreaWidth, faceClass);
             
             face.appendChild(innerFace);      
+            face.appendChild(thickness);
             face.appendChild(coloredSurface); 
             face.appendChild(dotsContainer);  
             dice.appendChild(face);
         });
         
-        // NEW: Create inner dice (95% size, same color, 100% opacity, no borders)
-        const innerDice = document.createElement('div');
-        innerDice.className = 'dice-inner';
-        innerDice.style.backgroundColor = diceColor;
-        
-        // Create inner faces
-        Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
-            const innerFace = document.createElement('div');
-            innerFace.className = `dice-inner-face ${faceClass}`;
-            innerFace.style.backgroundColor = diceColor;
-            
-            // FIXED: Set 3D positioning for inner faces using same halfDiceSize
-            this.setFace3DPosition(innerFace, faceClass, halfDiceSize);
-            
-            innerDice.appendChild(innerFace);
-        });
-        
-        dice.appendChild(innerDice);
+        // REMOVED: Inner dice creation - now using thickness approach
         
         // Start at standard orientation (no rotation)
         dice.style.transform = `rotateX(0deg) rotateY(0deg)`;
-        innerDice.style.transform = `rotateX(0deg) rotateY(0deg)`;
         
         // Store initial rotation for tracking
         dice.dataset.currentRotationX = 0;
@@ -1003,22 +1020,16 @@ class MultiDiceRenderer {
                     console.log(`   Result: Front=${newFaces.front}\n`);
                 }
                 
-                // FIXED: Apply CSS transform with corrections - sync main dice and inner dice
+                // SIMPLIFIED: Apply CSS transform with corrections - no inner dice sync needed
                 currentRotationX += cssRotX;
                 currentRotationY += cssRotY;
                 
-                // Apply the same transform to both main dice and inner dice
                 const transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
                 
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
                 dice.style.transform = transform;
                 
-                // FIXED: Apply EXACT same transform to inner dice for perfect synchronization
-                const innerDice = dice.querySelector('.dice-inner');
-                if (innerDice) {
-                    innerDice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                    innerDice.style.transform = transform; // EXACT same transform
-                }
+                // REMOVED: Inner dice transform logic - now using thickness approach
                 
                 // Update tracking
                 dice.dataset.currentRotationX = currentRotationX;
