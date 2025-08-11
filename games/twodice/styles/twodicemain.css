@@ -176,20 +176,18 @@ body {
     top: calc(50% - calc(var(--game-area-width) * 0.06)); /* 50% minus 6% of game area width */
 }
 
-/* Dice faces - completely transparent containers for 3D positioning */
+/* Dice faces - colored backs, no inner cube needed */
 .dice-face {
     position: absolute;
     width: 100%;
     height: 100%;
-    background: transparent !important;
-    background-color: transparent !important;
-    background-image: none !important;
+    background-color: inherit; /* Will inherit dice color from parent */
+    backface-visibility: visible; /* CHANGED: Show colored back instead of hiding */
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     outline: none !important;
     opacity: 1;
-    backface-visibility: hidden; /* Hide faces when rotated away from viewer */
     box-sizing: border-box;
     color: transparent;
     /* Disable touch interactions */
@@ -207,42 +205,16 @@ body {
     border: 3px solid #333;
     border-radius: 15px;
     box-sizing: border-box;
-    z-index: 3; /* Above inner dice */
+    z-index: 3;
+    /* Background color will be set by JavaScript */
     /* Disable touch interactions */
     pointer-events: none;
     touch-action: none;
 }
 
-/* RESTORED: Inner dice - 95% size, same color, no borders, 100% opacity, synchronized movement */
-.dice-inner {
-    position: absolute;
-    top: 2.5%;
-    left: 2.5%;
-    width: 95%;
-    height: 95%;
-    transform-style: preserve-3d;
-    transform-origin: center center;
-    /* Disable touch interactions */
-    pointer-events: none;
-    touch-action: none;
-}
+/* REMOVED: All inner dice CSS - no longer needed */
 
-.dice-inner-face {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-color: inherit; /* Will inherit from parent dice color */
-    border: none !important; /* No borders - just solid color */
-    border-radius: 8px;
-    box-sizing: border-box;
-    backface-visibility: hidden;
-    opacity: 1; /* 100% opacity */
-    /* Disable touch interactions */
-    pointer-events: none;
-    touch-action: none;
-}
-
-/* Inner face - fills gaps during rotation */
+/* Inner face - fills gaps during rotation - simplified */
 .dice-face-inner {
     position: absolute;
     top: 5%;
@@ -252,7 +224,8 @@ body {
     border: none;
     border-radius: 0;
     box-sizing: border-box;
-    z-index: 1; /* Lowest - just fills gaps */
+    z-index: 1;
+    /* Background color will be set by JavaScript */
     /* Disable touch interactions */
     pointer-events: none;
     touch-action: none;
