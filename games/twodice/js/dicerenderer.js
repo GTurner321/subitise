@@ -1031,16 +1031,22 @@ class MultiDiceRenderer {
                     console.log(`   Result: Front=${newFaces.front}\n`);
                 }
                 
-                // SIMPLIFIED: Apply CSS transform with corrections - no inner dice sync needed
+                // RESTORED: Apply EXACT same corrected transforms to both outer and inner dice
                 currentRotationX += cssRotX;
                 currentRotationY += cssRotY;
                 
-                const transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
+                const correctedTransform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
                 
+                // Apply to outer dice
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                dice.style.transform = transform;
+                dice.style.transform = correctedTransform;
                 
-                // REMOVED: Inner dice transform logic - now using thickness approach
+                // Apply EXACT SAME corrected transform to inner dice for perfect sync
+                const innerDice = dice.querySelector('.dice-inner');
+                if (innerDice) {
+                    innerDice.style.transition = `transform ${flipDuration}s ease-in-out`;
+                    innerDice.style.transform = correctedTransform; // Same corrected transform
+                }
                 
                 // Update tracking
                 dice.dataset.currentRotationX = currentRotationX;
