@@ -431,32 +431,50 @@ class MultiDiceGameController {
     }
 
     /**
-     * Force sum row visibility and proper sizing
+     * Force sum row visibility and proper sizing - only when measurements are ready
      */
     forceSumRowVisibility() {
         if (!this.sumRow) return;
         
-        console.log('🎲 Forcing sum row visibility and sizing');
+        console.log('🎲 Checking if sum row measurements are ready');
         
-        // Force proper dimensions
-        this.sumRow.style.display = 'flex';
-        this.sumRow.style.visibility = 'visible';
-        this.sumRow.style.opacity = '1';
-        this.sumRow.classList.add('loaded');
+        // Check if CSS variables are properly set
+        const gameAreaRect = this.gameArea ? this.gameArea.getBoundingClientRect() : null;
+        if (!gameAreaRect || gameAreaRect.width < 100) {
+            console.warn('⚠️ Game area not ready yet, delaying sum row visibility');
+            return;
+        }
         
-        // Force minimum sizing
-        this.sumRow.style.minWidth = '300px';
-        this.sumRow.style.minHeight = '80px';
+        // Update CSS custom properties
+        document.documentElement.style.setProperty('--game-area-width', `${gameAreaRect.width}px`);
         
-        // Trigger a reflow to ensure CSS calculations
+        // Force a style recalculation
         this.sumRow.offsetHeight;
         
-        // Update CSS custom properties if needed
-        const gameAreaRect = this.gameArea ? this.gameArea.getBoundingClientRect() : null;
-        if (gameAreaRect && gameAreaRect.width > 0) {
-            document.documentElement.style.setProperty('--game-area-width', `${gameAreaRect.width}px`);
-            console.log(`🎲 Updated --game-area-width to ${gameAreaRect.width}px`);
+        // Check if sum box size is reasonable (not tiny)
+        const computedStyle = getComputedStyle(document.documentElement);
+        const sumBoxSize = computedStyle.getPropertyValue('--sum-box-size');
+        const sumBoxSizePx = parseFloat(sumBoxSize);
+        
+        if (sumBoxSizePx < 40) {
+            console.warn('⚠️ Sum box size still too small, waiting for proper calculations');
+            setTimeout(() => {
+                this.forceSumRowVisibility();
+            }, 200);
+            return;
         }
+        
+        console.log('🎲 Sum row measurements ready, making visible');
+        console.log(`📏 Game area width: ${gameAreaRect.width}px, Sum box size: ${sumBoxSizePx}px`);
+        
+        // Now it's safe to show the sum row
+        this.sumRow.style.opacity = '1';
+        this.sumRow.style.visibility = 'visible';
+        this.sumRow.classList.add('loaded');
+        
+        // Force proper dimensions
+        this.sumRow.style.minWidth = '300px';
+        this.sumRow.style.minHeight = '80px';
     }
 
     hideGameElements() {
@@ -835,11 +853,13 @@ startInactivityTimer() {
             if (!config) return;
             
             let flashPosition = null;
+            let allDiceBoxesFilled = true;
             
             // Check dice positions first
             for (const position of config.inputOrder) {
                 if (!this.filledBoxes.has(position)) {
                     flashPosition = position;
+                    allDiceBoxesFilled = false;
                     break;
                 }
             }
@@ -847,35 +867,69 @@ startInactivityTimer() {
             // If all dice filled, check total
             if (!flashPosition && !this.filledBoxes.has('total')) {
                 flashPosition = 'total';
+                // allDiceBoxesFilled remains true
             }
             
             if (flashPosition) {
-                // Flash the corresponding input box
-                const inputBox = document.querySelector(`[data-position="${flashPosition}"]`);
-                if (inputBox) {
-                    inputBox.classList.add('box-flash');
-                }
-                
-                // Flash the corresponding dice circle (not for total)
-                if (flashPosition !== 'total') {
-                    this.diceRenderer.showFlashForPosition(flashPosition);
-                }
-                
-                setTimeout(() => {
-                    if (inputBox) {
-                        inputBox.classList.remove('box-flash');
-                    }
-                    if (flashPosition !== 'total') {
-                        this.diceRenderer.hideFlashForPosition(flashPosition);
-                    }
-                }, 1000);
+                // Start first flash cycle (0.5s in, 0.5s out)
+                this.performFlashCycle(flashPosition, allDiceBoxesFilled, () => {
+                    // After first cycle completes, start second cycle
+                    setTimeout(() => {
+                        this.performFlashCycle(flashPosition, allDiceBoxesFilled);
+                    }, 100); // Brief pause between cycles
+                });
             }
         };
         
         this.flashingTimeout = setTimeout(() => {
             flashElements();
-            this.flashingInterval = setInterval(flashElements, 5000);
-        }, 5000);
+            this.flashingInterval = setInterval(flashElements, 8000); // CHANGED: Every 8 seconds instead of 5
+        }, 8000); // CHANGED: First flash after 8 seconds instead of 5
+    }
+
+    /**
+     * Perform a single flash cycle (0.5s in, 0.5s out)
+     */
+    performFlashCycle(flashPosition, allDiceBoxesFilled, onComplete = null) {
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return;
+
+        // Flash the corresponding input box
+        const inputBox = document.querySelector(`[data-position="${flashPosition}"]`);
+        if (inputBox) {
+            inputBox.classList.add('box-flash');
+        }
+        
+        // Flash logic based on what's missing
+        if (flashPosition === 'total' && allDiceBoxesFilled) {
+            // If only total is missing, flash ALL dice circles
+            config.inputOrder.forEach(position => {
+                this.diceRenderer.showFlashForPosition(position);
+            });
+        } else if (flashPosition !== 'total') {
+            // If dice box is missing, flash only that dice circle
+            this.diceRenderer.showFlashForPosition(flashPosition);
+        }
+        
+        // Fade out after 1 second (0.5s in + 0.5s out)
+        setTimeout(() => {
+            if (inputBox) {
+                inputBox.classList.remove('box-flash');
+            }
+            
+            if (flashPosition === 'total' && allDiceBoxesFilled) {
+                // Hide all dice flashes
+                config.inputOrder.forEach(position => {
+                    this.diceRenderer.hideFlashForPosition(position);
+                });
+            } else if (flashPosition !== 'total') {
+                this.diceRenderer.hideFlashForPosition(flashPosition);
+            }
+            
+            if (onComplete) {
+                onComplete();
+            }
+        }, 1000); // 1 second total flash duration (0.5s in + 0.5s out)
     }
 
     stopFlashing() {
