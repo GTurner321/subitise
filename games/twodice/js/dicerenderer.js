@@ -1,10 +1,9 @@
-class DiceRenderer {
+class MultiDiceRenderer {
     constructor() {
-        // SEARCH FOR THIS LINE: DICE RENDERER PREDICTIVE 2025-01-01
-        this.leftSide = document.getElementById('leftSide');
-        this.rightSide = document.getElementById('rightSide');
+        // SEARCH FOR THIS LINE: MULTI DICE RENDERER 2025-01-01
         this.currentDice = [];
         this.rollTimeouts = [];
+        this.currentMode = CONFIG.GAME_MODES.TWO_DICE; // Default to 2 dice
         
         // Available colors for dice
         this.availableColors = [
@@ -19,14 +18,14 @@ class DiceRenderer {
         // Track previously used colors to avoid repeats
         this.previousColors = [];
         
-        // UPDATED: Level-based dice ranges
+        // Level-based dice ranges
         this.levelRanges = {
             L1: [1, 2, 3],
             L2: [2, 3, 4], 
             L3: [1, 2, 3, 4, 5, 6]
         };
         
-        // UPDATED: Speed sets for movement timing
+        // Speed sets for movement timing
         this.speedSets = {
             A: {
                 diagonal: 0.55,
@@ -66,6 +65,45 @@ class DiceRenderer {
         this.setupResizeHandling();
     }
 
+    /**
+     * Set the game mode (2, 3, or 4 dice)
+     */
+    setGameMode(mode) {
+        this.currentMode = mode;
+        console.log(`🎲 Dice renderer set to ${mode} mode`);
+        
+        // Update game area data attribute for CSS styling
+        const gameArea = document.querySelector('.game-area');
+        if (gameArea) {
+            gameArea.setAttribute('data-mode', mode);
+        }
+        
+        // Update CSS custom properties for sum bar width
+        const modeKey = mode.toUpperCase().replace('_', '_');
+        const config = CONFIG.SUM_BAR_CONFIG[modeKey];
+        if (config) {
+            document.documentElement.style.setProperty('--sum-bar-width-multiplier', config.widthMultiplier);
+        }
+        
+        // Position plus sign based on mode
+        this.positionPlusSign();
+    }
+
+    /**
+     * Position the plus sign based on current mode
+     */
+    positionPlusSign() {
+        const plusSign = document.querySelector('.plus-sign');
+        if (!plusSign) return;
+        
+        const modeKey = this.currentMode.toUpperCase().replace('_', '_');
+        const position = CONFIG.PLUS_POSITIONS[modeKey];
+        if (position) {
+            plusSign.style.left = `calc(${position.x}% - calc(var(--red-circle-diameter) / 2))`;
+            plusSign.style.top = `calc(${position.y}% - calc(var(--red-circle-diameter) / 2))`;
+        }
+    }
+
     setupResizeHandling() {
         window.addEventListener('resize', () => {
             if (this.resizeTimeout) {
@@ -73,6 +111,7 @@ class DiceRenderer {
             }
             this.resizeTimeout = setTimeout(() => {
                 this.updateDiceSize();
+                this.positionPlusSign();
             }, 100);
         });
     }
@@ -110,7 +149,7 @@ class DiceRenderer {
     }
 
     clearDice() {
-        // Remove all existing dice from both sides
+        // Remove all existing dice and flash circles
         this.currentDice.forEach(dice => {
             if (dice && dice.parentNode) {
                 dice.parentNode.removeChild(dice);
@@ -118,93 +157,141 @@ class DiceRenderer {
         });
         this.currentDice = [];
         
+        // Clear flash circles
+        const flashCircles = document.querySelectorAll('.dice-flash-circle');
+        flashCircles.forEach(circle => {
+            if (circle.parentNode) {
+                circle.parentNode.removeChild(circle);
+            }
+        });
+        
         // Clear any pending timeouts
         this.rollTimeouts.forEach(timeout => clearTimeout(timeout));
         this.rollTimeouts = [];
     }
 
+    /**
+     * Get the number of dice for current mode
+     */
+    getDiceCount() {
+        switch (this.currentMode) {
+            case CONFIG.GAME_MODES.TWO_DICE: return 2;
+            case CONFIG.GAME_MODES.THREE_DICE: return 3;
+            case CONFIG.GAME_MODES.FOUR_DICE: return 4;
+            default: return 2;
+        }
+    }
+
+    /**
+     * Get dice positions for current mode
+     */
+    getDicePositions() {
+        const modeKey = this.currentMode.toUpperCase().replace('_', '_');
+        return CONFIG.DICE_POSITIONS[modeKey] || CONFIG.DICE_POSITIONS.TWO_DICE;
+    }
+
+    /**
+     * Get random dice colors ensuring no repeats and enough colors for mode
+     */
     getRandomDiceColors() {
+        const diceCount = this.getDiceCount();
+        
         // Get colors that weren't used in the previous set
         let availableForSelection = this.availableColors.filter(color => 
             !this.previousColors.includes(color)
         );
         
-        // If we don't have enough unused colors (need at least 2), reset and use all colors
-        if (availableForSelection.length < 2) {
+        // If we don't have enough unused colors, reset and use all colors
+        if (availableForSelection.length < diceCount) {
             availableForSelection = [...this.availableColors];
             console.log('Resetting color pool - all colors available again');
         }
         
-        // Shuffle the available colors and pick the first two
+        // Shuffle the available colors and pick the required number
         const shuffled = [...availableForSelection].sort(() => Math.random() - 0.5);
-        const selectedColors = {
-            left: shuffled[0],
-            right: shuffled[1]
-        };
+        const selectedColors = shuffled.slice(0, diceCount);
         
         // Store these colors as the previous set for next time
-        this.previousColors = [selectedColors.left, selectedColors.right];
+        this.previousColors = [...selectedColors];
         
-        console.log(`Selected dice colors: Left=${selectedColors.left}, Right=${selectedColors.right}`);
+        console.log(`Selected dice colors: [${selectedColors.join(', ')}]`);
         
         return selectedColors;
     }
 
     /**
-     * UPDATED: Generate targets based on level and used sums
+     * Generate targets based on level and used sums for current mode
      */
     generateLevelBasedTargets(level, usedSums) {
         const range = this.levelRanges[level];
+        const diceCount = this.getDiceCount();
+        
         if (!range) {
             console.error(`Invalid level: ${level}`);
-            return { leftValue: 1, rightValue: 1, total: 2 };
+            const fallbackValues = Array(diceCount).fill(1);
+            return { 
+                values: fallbackValues, 
+                total: fallbackValues.reduce((a, b) => a + b, 0) 
+            };
         }
         
-        console.log(`🎯 Generating targets for ${level} with range [${range.join(', ')}]`);
-        console.log(`🚫 Avoiding used sums: [${Array.from(usedSums).sort((a,b) => a-b).join(', ')}]`);
+        console.log(`🎯 Generating targets for ${level} with range [${range.join(', ')}] for ${diceCount} dice`);
+        console.log(`🚫 Avoiding used combinations: [${Array.from(usedSums).sort().join(', ')}]`);
         
-        // Try up to 10 times to find a non-repeated sum
+        // Try up to 10 times to find a non-repeated combination
         for (let attempt = 1; attempt <= 10; attempt++) {
-            const leftValue = range[Math.floor(Math.random() * range.length)];
-            const rightValue = range[Math.floor(Math.random() * range.length)];
-            const total = leftValue + rightValue;
+            const values = Array(diceCount).fill(0).map(() => 
+                range[Math.floor(Math.random() * range.length)]
+            );
+            const total = values.reduce((a, b) => a + b, 0);
             
-            if (!usedSums.has(total)) {
-                console.log(`✅ Found unique sum on attempt ${attempt}: (${leftValue}, ${rightValue}) = ${total}`);
-                return { leftValue, rightValue, total };
+            // Create sorted string representation to check for duplicate combinations
+            const sortedValues = [...values].sort((a, b) => a - b);
+            const combinationKey = sortedValues.join(',');
+            
+            if (!usedSums.has(combinationKey)) {
+                console.log(`✅ Found unique combination on attempt ${attempt}: [${values.join(', ')}] = ${total}`);
+                return { values, total, combinationKey };
             }
             
-            console.log(`🔄 Attempt ${attempt}: sum ${total} already used, trying again...`);
+            console.log(`🔄 Attempt ${attempt}: combination [${values.join(', ')}] already used, trying again...`);
         }
         
         // After 10 attempts, just use the last generated values
-        const leftValue = range[Math.floor(Math.random() * range.length)];
-        const rightValue = range[Math.floor(Math.random() * range.length)];
-        const total = leftValue + rightValue;
+        const values = Array(diceCount).fill(0).map(() => 
+            range[Math.floor(Math.random() * range.length)]
+        );
+        const total = values.reduce((a, b) => a + b, 0);
+        const sortedValues = [...values].sort((a, b) => a - b);
+        const combinationKey = sortedValues.join(',');
         
-        console.warn(`⚠️ Using repeat sum after 10 attempts: (${leftValue}, ${rightValue}) = ${total}`);
-        return { leftValue, rightValue, total };
+        console.warn(`⚠️ Using repeat combination after 10 attempts: [${values.join(', ')}] = ${total}`);
+        return { values, total, combinationKey };
     }
 
     /**
-     * UPDATED: Assign random speed sets ensuring they're different
+     * Assign random speed sets ensuring they're different for each dice
      */
     assignSpeedSets() {
+        const diceCount = this.getDiceCount();
         const sets = ['A', 'B'];
-        const shuffled = [...sets].sort(() => Math.random() - 0.5);
+        const assignments = [];
         
-        const assignment = {
-            left: shuffled[0],
-            right: shuffled[1]
-        };
+        for (let i = 0; i < diceCount; i++) {
+            // Cycle through available sets
+            assignments.push(sets[i % sets.length]);
+        }
         
-        console.log(`🏃‍♀️ Speed assignment: Left dice = Set ${assignment.left}, Right dice = Set ${assignment.right}`);
+        // Shuffle to randomize which dice get which set
+        const shuffled = [...assignments].sort(() => Math.random() - 0.5);
         
-        return assignment;
+        console.log(`🏃‍♀️ Speed assignment: [${shuffled.join(', ')}]`);
+        
+        return shuffled;
     }
 
     /**
-     * UPDATED: Get movement duration based on speed set and position in sequence
+     * Get movement duration based on speed set and position in sequence
      */
     getMovementDuration(speedSet, moveNumber, totalMoves, moveType) {
         const set = this.speedSets[speedSet];
@@ -251,7 +338,7 @@ class DiceRenderer {
     }
 
     /**
-     * UPDATED: Generate movement sequence with new constraints
+     * Generate movement sequence with new constraints
      */
     generateTargetBasedSequence(targetNumber, diceName, maxAttempts = 10) {
         console.log(`🎯 Generating sequence for ${diceName} dice to reach ${targetNumber} (max ${maxAttempts} attempts)`);
@@ -422,9 +509,13 @@ class DiceRenderer {
         return remainder === 2 || remainder === 3;
     }
 
-    createDice(diceColor, isLeft = true) {
+    /**
+     * Create a dice element with proper positioning
+     */
+    createDice(diceColor, position, positionKey) {
         const dice = document.createElement('div');
-        dice.className = `dice ${isLeft ? 'left-dice' : 'right-dice'}`;
+        dice.className = `dice positioned`;
+        dice.dataset.position = positionKey;
         dice.style.opacity = '0';
         dice.style.transformStyle = 'preserve-3d';
         
@@ -436,6 +527,10 @@ class DiceRenderer {
         
         // Set height to match width in pixels for perfect square
         dice.style.height = `${diceWidthPx}px`;
+        
+        // Position the dice based on coordinates
+        dice.style.left = `calc(${position.x}% - 6%)`; // Center by subtracting half width
+        dice.style.top = `calc(${position.y}% - calc(var(--game-area-width) * 0.06))`; // Center by subtracting 6% of game area width
         
         // Store dice size for 3D transforms
         dice.dataset.halfSize = halfDiceSize;
@@ -459,7 +554,7 @@ class DiceRenderer {
             'bottom': this.physicalFacePositions.bottom
         };
         
-        console.log('\n=== CREATING DICE ===');
+        console.log(`\n=== CREATING ${positionKey.toUpperCase()} DICE ===`);
         console.log('Physical rendering positions:', this.physicalFacePositions);
         console.log('Logical tracking positions:', this.logicalFacePositions);
         
@@ -548,6 +643,21 @@ class DiceRenderer {
         return dice;
     }
 
+    /**
+     * Create flash circle for a dice position
+     */
+    createFlashCircle(position, positionKey) {
+        const circle = document.createElement('div');
+        circle.className = 'dice-flash-circle';
+        circle.dataset.position = positionKey;
+        
+        // Position the circle centered on the dice position
+        circle.style.left = `calc(${position.x}% - calc(var(--dice-flash-diameter) / 2))`;
+        circle.style.top = `calc(${position.y}% - calc(var(--dice-flash-diameter) / 2))`;
+        
+        return circle;
+    }
+
     createDots(container, value, gameAreaWidth, faceClass = '') {
         const pattern = CONFIG.DICE_FACES[value];
         container.innerHTML = '';
@@ -611,42 +721,50 @@ class DiceRenderer {
         }
     }
 
-    /**
-     * UPDATED: New level-based dice rolling method
+/**
+     * Main dice rolling method for current mode with level-based targets
      */
     async rollDiceForLevel(level, usedSums) {
-        console.log('\n🎲🎲🎲 STARTING LEVEL-BASED DICE ROLL 🎲🎲🎲');
+        console.log(`\n🎲🎲🎲 STARTING ${this.currentMode.toUpperCase()} DICE ROLL 🎲🎲🎲`);
         console.log(`📊 Level: ${level}`);
         
-        // Generate targets based on level
+        // Generate targets based on level and mode
         const targets = this.generateLevelBasedTargets(level, usedSums);
-        const { leftValue: leftTarget, rightValue: rightTarget } = targets;
+        const { values: targetValues, total, combinationKey } = targets;
         
-        console.log(`🎯 TARGETS: Left dice = ${leftTarget}, Right dice = ${rightTarget}, Total = ${targets.total}`);
+        console.log(`🎯 TARGETS: [${targetValues.join(', ')}], Total = ${total}`);
         
-        // Assign speed sets randomly (ensuring they're different)
-        const speedAssignment = this.assignSpeedSets();
-        
-        // Get random colors
+        // Get positions and colors for current mode
+        const positions = this.getDicePositions();
         const colors = this.getRandomDiceColors();
+        const speedAssignments = this.assignSpeedSets();
         
-        // Create two dice with positioning classes
-        const leftDice = this.createDice(colors.left, true);
-        const rightDice = this.createDice(colors.right, false);
-        
-        // Store speed assignments in dice data
-        leftDice.dataset.speedSet = speedAssignment.left;
-        rightDice.dataset.speedSet = speedAssignment.right;
-        
-        // Add to game area
+        // Create dice and flash circles
         const gameArea = document.querySelector('.game-area');
-        gameArea.appendChild(leftDice);
-        gameArea.appendChild(rightDice);
-        this.currentDice = [leftDice, rightDice];
+        const positionKeys = Object.keys(positions);
         
-        // Fade in
+        for (let i = 0; i < targetValues.length; i++) {
+            const positionKey = positionKeys[i];
+            const position = positions[positionKey];
+            const color = colors[i];
+            const speedSet = speedAssignments[i];
+            
+            // Create dice
+            const dice = this.createDice(color, position, positionKey);
+            dice.dataset.speedSet = speedSet;
+            dice.dataset.targetValue = targetValues[i];
+            
+            // Create flash circle
+            const flashCircle = this.createFlashCircle(position, positionKey);
+            
+            gameArea.appendChild(flashCircle);
+            gameArea.appendChild(dice);
+            this.currentDice.push(dice);
+        }
+        
+        // Fade in dice
         setTimeout(() => {
-            [leftDice, rightDice].forEach(dice => {
+            this.currentDice.forEach(dice => {
                 dice.style.transition = 'opacity 1s ease-in';
                 dice.style.opacity = '1';
                 
@@ -658,57 +776,59 @@ class DiceRenderer {
             });
         }, 200);
         
-        // Generate movement sequences until targets are reached
-        const leftSequence = this.generateTargetBasedSequence(leftTarget, 'Left');
-        const rightSequence = this.generateTargetBasedSequence(rightTarget, 'Right');
-        
-        // Pre-log predictions for BOTH dice before any physical execution
-        console.log('\n🎯🎯🎯 COMPLETE PREDICTIONS FOR BOTH DICE 🎯🎯🎯');
-        this.logPredictedSequence(leftDice, leftSequence, 'Left');
-        this.logPredictedSequence(rightDice, rightSequence, 'Right');
-        console.log('\n🎬🎬🎬 STARTING PHYSICAL EXECUTION 🎬🎬🎬\n');
-        
-        // Execute both sequences with speed-based timing
-        const leftPromise = this.executeMovementSequence(leftDice, leftSequence, 'Left');
-        const rightPromise = this.executeMovementSequence(rightDice, rightSequence, 'Right');
-        
-        // Wait for both to complete
-        await Promise.all([leftPromise, rightPromise]);
-        
-        // Read the final faces using tracking data
-        const leftValue = this.getCurrentFrontFace(leftDice);
-        const rightValue = this.getCurrentFrontFace(rightDice);
-        const total = leftValue + rightValue;
-        
-        console.log(`\n🎯 FINAL RESULT: Left=${leftValue}, Right=${rightValue}, Total=${total}`);
-        console.log(`🎯 EXPECTED: Left=${leftTarget}, Right=${rightTarget}, Total=${leftTarget + rightTarget}`);
-        
-        // Verify results
-        if (leftValue !== leftTarget || rightValue !== rightTarget) {
-            console.warn(`⚠️ MISMATCH! Expected (${leftTarget}, ${rightTarget}) but got (${leftValue}, ${rightValue})`);
-        } else {
-            console.log(`✅ SUCCESS! Dice landed on expected values`);
+        // Generate movement sequences for each dice
+        const sequences = [];
+        for (let i = 0; i < this.currentDice.length; i++) {
+            const dice = this.currentDice[i];
+            const targetValue = parseInt(dice.dataset.targetValue);
+            const positionKey = dice.dataset.position;
+            
+            const sequence = this.generateTargetBasedSequence(targetValue, positionKey);
+            sequences.push(sequence);
         }
         
-        return { left: leftValue, right: rightValue, total: total };
+        // Pre-log predictions
+        console.log('\n🎯🎯🎯 COMPLETE PREDICTIONS FOR ALL DICE 🎯🎯🎯');
+        this.currentDice.forEach((dice, i) => {
+            this.logPredictedSequence(dice, sequences[i], dice.dataset.position);
+        });
+        console.log('\n🎬🎬🎬 STARTING PHYSICAL EXECUTION 🎬🎬🎬\n');
+        
+        // Execute all sequences in parallel
+        const promises = this.currentDice.map((dice, i) => 
+            this.executeMovementSequence(dice, sequences[i], dice.dataset.position)
+        );
+        
+        // Wait for all dice to complete
+        await Promise.all(promises);
+        
+        // Read final values
+        const finalValues = this.currentDice.map(dice => this.getCurrentFrontFace(dice));
+        const finalTotal = finalValues.reduce((a, b) => a + b, 0);
+        
+        console.log(`\n🎯 FINAL RESULT: [${finalValues.join(', ')}], Total=${finalTotal}`);
+        console.log(`🎯 EXPECTED: [${targetValues.join(', ')}], Total=${total}`);
+        
+        // Verify results
+        const matches = finalValues.every((value, i) => value === targetValues[i]);
+        if (!matches) {
+            console.warn(`⚠️ MISMATCH! Expected [${targetValues.join(', ')}] but got [${finalValues.join(', ')}]`);
+        } else {
+            console.log(`✅ SUCCESS! All dice landed on expected values`);
+        }
+        
+        return { 
+            values: finalValues, 
+            total: finalTotal, 
+            combinationKey: combinationKey || [...finalValues].sort((a, b) => a - b).join(',')
+        };
     }
 
     /**
-     * LEGACY: Keep original methods for backward compatibility
+     * Separate method to log predicted sequence for any dice
      */
-    async rollDiceForSequence(sequenceIndex) {
-        console.warn('⚠️ rollDiceForSequence is deprecated - use rollDiceForLevel instead');
-        return this.rollDiceForLevel('L1', new Set());
-    }
-
-    async rollDice() {
-        console.warn('⚠️ rollDice is deprecated - use rollDiceForLevel instead');
-        return this.rollDiceForLevel('L1', new Set());
-    }
-
-    // Separate method to log predicted sequence for any dice
     logPredictedSequence(dice, movementSequence, diceName) {
-        console.log(`\n🎯 PREDICTED SEQUENCE FOR ${diceName} DICE:`);
+        console.log(`\n🎯 PREDICTED SEQUENCE FOR ${diceName.toUpperCase()} DICE:`);
         let predictedFaces = JSON.parse(dice.dataset.currentFaces);
         console.log(`INITIAL: Front: ${predictedFaces.front} | Back: ${predictedFaces.back} | Left: ${predictedFaces.left} | Right: ${predictedFaces.right} | Top: ${predictedFaces.top} | Bottom: ${predictedFaces.bottom}`);
         
@@ -748,7 +868,7 @@ class DiceRenderer {
     }
 
     /**
-     * UPDATED: Execute movement sequence with speed-based timing
+     * Execute movement sequence with speed-based timing
      */
     async executeMovementSequence(dice, movementSequence, diceName) {
         return new Promise((resolve) => {
@@ -781,8 +901,8 @@ class DiceRenderer {
                 // Get movement duration based on speed set and position
                 const flipDuration = this.getMovementDuration(speedSet, moveNumber, totalMoves, type);
                 
-                // Log CSS execution details for left dice only during execution
-                if (diceName === 'Left') {
+                // Log CSS execution details for first dice only during execution
+                if (sequenceIndex === 0) {
                     console.log(`📱 CSS EXECUTION - MOVE ${moveNumber}: ${name} (${flipDuration}s)`);
                     console.log(`   Intended: rotX=${rotX}, rotY=${rotY}`);
                     console.log(`   CSS: rotX=${cssRotX}, rotY=${cssRotY}`);
@@ -840,6 +960,13 @@ class DiceRenderer {
             }
         });
         
+        // Fade out flash circles
+        const flashCircles = document.querySelectorAll('.dice-flash-circle');
+        flashCircles.forEach(circle => {
+            circle.style.transition = 'opacity 1s ease-out';
+            circle.style.opacity = '0';
+        });
+        
         // Wait for fade-out and remove
         return new Promise(resolve => {
             const timeout = setTimeout(() => {
@@ -849,6 +976,14 @@ class DiceRenderer {
                     }
                 });
                 this.currentDice = [];
+                
+                // Remove flash circles
+                flashCircles.forEach(circle => {
+                    if (circle.parentNode) {
+                        circle.parentNode.removeChild(circle);
+                    }
+                });
+                
                 resolve();
             }, 1000);
             this.rollTimeouts.push(timeout);
@@ -856,12 +991,46 @@ class DiceRenderer {
     }
 
     getCurrentValues() {
-        if (this.currentDice.length >= 2) {
-            const leftValue = this.getCurrentFrontFace(this.currentDice[0]);
-            const rightValue = this.getCurrentFrontFace(this.currentDice[1]);
-            return { left: leftValue, right: rightValue, total: leftValue + rightValue };
+        const values = this.currentDice.map(dice => this.getCurrentFrontFace(dice));
+        const total = values.reduce((a, b) => a + b, 0);
+        return { values, total };
+    }
+
+    /**
+     * Get flash circle for a specific dice position
+     */
+    getFlashCircleForPosition(positionKey) {
+        return document.querySelector(`.dice-flash-circle[data-position="${positionKey}"]`);
+    }
+
+    /**
+     * Show flash circle for specific position
+     */
+    showFlashForPosition(positionKey) {
+        const circle = this.getFlashCircleForPosition(positionKey);
+        if (circle) {
+            circle.classList.add('circle-flash');
         }
-        return { left: 0, right: 0, total: 0 };
+    }
+
+    /**
+     * Hide flash circle for specific position
+     */
+    hideFlashForPosition(positionKey) {
+        const circle = this.getFlashCircleForPosition(positionKey);
+        if (circle) {
+            circle.classList.remove('circle-flash');
+        }
+    }
+
+    /**
+     * Hide all flash circles
+     */
+    hideAllFlash() {
+        const circles = document.querySelectorAll('.dice-flash-circle');
+        circles.forEach(circle => {
+            circle.classList.remove('circle-flash');
+        });
     }
 
     reset() {
@@ -875,6 +1044,28 @@ class DiceRenderer {
             this.resizeTimeout = null;
         }
         
-        console.log('Dice renderer reset - color tracking cleared');
+        // Reset to default mode
+        this.currentMode = CONFIG.GAME_MODES.TWO_DICE;
+        
+        // Reset game area mode
+        const gameArea = document.querySelector('.game-area');
+        if (gameArea) {
+            gameArea.setAttribute('data-mode', this.currentMode);
+        }
+        
+        console.log('Multi-dice renderer reset - color tracking cleared, mode reset to 2 dice');
+    }
+
+    /**
+     * Legacy methods for backward compatibility
+     */
+    async rollDiceForSequence(sequenceIndex) {
+        console.warn('⚠️ rollDiceForSequence is deprecated - use rollDiceForLevel instead');
+        return this.rollDiceForLevel('L1', new Set());
+    }
+
+    async rollDice() {
+        console.warn('⚠️ rollDice is deprecated - use rollDiceForLevel instead');
+        return this.rollDiceForLevel('L1', new Set());
     }
 }
