@@ -43,11 +43,11 @@ const CONFIG = {
         }
     },
     
-    // UPDATED: Plus symbol positioning for different modes
+    // FIXED: Plus symbol positioning for all modes with proper coordinates
     PLUS_POSITIONS: {
-        TWO_DICE: { x: 50, y: 50 },    // Center
-        THREE_DICE: { x: 50, y: 30 },  // Upper center
-        FOUR_DICE: { x: 50, y: 50 }    // Center
+        TWO_DICE: { x: 50, y: 50 },    // Center between two dice
+        THREE_DICE: { x: 50, y: 30 },  // Upper center above the triangle
+        FOUR_DICE: { x: 50, y: 50 }    // Center of the four dice square
     },
     
     // UPDATED: Sum bar configurations
@@ -130,7 +130,7 @@ const CONFIG = {
     FLASH_DURATION: 800,
     NEXT_QUESTION_DELAY: 2000,
     
-    // UPDATED: Audio settings and messages
+    // FIXED: Audio settings and messages - simplified modal messages
     AUDIO: {
         ENABLED: true,
         
@@ -158,10 +158,13 @@ const CONFIG = {
             HINT_TOTAL_THREE: 'Add the three dice numbers together',
             HINT_TOTAL_FOUR: 'Add the four dice numbers together',
             
-            // UPDATED: Completion messages for different modes
-            GAME_TWODICE_COMPLETE: 'Well done! You\'re on a roll! Play again, or try the game with 3 dice.',
-            GAME_THREEDICE_COMPLETE: 'Well done! You\'re on a roll! Play again, return to 2 dice, or try the game with 4 dice.',
-            GAME_FOURDICE_COMPLETE: 'Well done! You\'ve completed all the games! Play again, return to 2 or 3 dice.'
+            // FIXED: Audio-only completion messages (more detailed for speech)
+            GAME_TWODICE_COMPLETE_AUDIO: 'Well done! You\'re on a roll! Play again, or try the game with 3 dice.',
+            GAME_THREEDICE_COMPLETE_AUDIO: 'Well done! You\'re on a roll! Play again, return to 2 dice, or try the game with 4 dice.',
+            GAME_FOURDICE_COMPLETE_AUDIO: 'Well done! You\'ve completed all the games! Play again, return to 2 or 3 dice.',
+            
+            // FIXED: Brief modal text messages
+            GAME_MODAL_TITLE: 'Well done!'
         }
     },
     
