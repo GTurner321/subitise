@@ -214,15 +214,15 @@ body {
 
 /* REMOVED: All inner dice CSS - no longer needed */
 
-/* Inner face - fills gaps during rotation - simplified */
+/* Inner face - fills gaps during rotation - simplified with rounded corners */
 .dice-face-inner {
     position: absolute;
     top: 5%;
     left: 5%;
     width: 90%;
     height: 90%;
-    border: none;
-    border-radius: 0;
+    border: none; /* No border outline */
+    border-radius: 15px; /* ADDED: Same rounded corners as main faces */
     box-sizing: border-box;
     z-index: 1;
     /* Background color will be set by JavaScript */
