@@ -202,6 +202,14 @@ class MultiDiceRenderer {
             }
         });
         
+        // NEW: Clear shadows
+        const shadows = document.querySelectorAll('.dice-shadow');
+        shadows.forEach(shadow => {
+            if (shadow.parentNode) {
+                shadow.parentNode.removeChild(shadow);
+            }
+        });
+        
         // Clear any pending timeouts
         this.rollTimeouts.forEach(timeout => clearTimeout(timeout));
         this.rollTimeouts = [];
@@ -669,8 +677,28 @@ class MultiDiceRenderer {
             dice.appendChild(face);
         });
         
+        // NEW: Create inner dice (10% smaller, same color, 100% opacity)
+        const innerDice = document.createElement('div');
+        innerDice.className = 'dice-inner';
+        innerDice.style.backgroundColor = diceColor;
+        
+        // Create inner faces
+        Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
+            const innerFace = document.createElement('div');
+            innerFace.className = `dice-inner-face ${faceClass}`;
+            innerFace.style.backgroundColor = diceColor;
+            
+            // Set 3D positioning for inner faces
+            this.setFace3DPosition(innerFace, faceClass, halfDiceSize * 0.9); // Slightly smaller
+            
+            innerDice.appendChild(innerFace);
+        });
+        
+        dice.appendChild(innerDice);
+        
         // Start at standard orientation (no rotation)
         dice.style.transform = `rotateX(0deg) rotateY(0deg)`;
+        innerDice.style.transform = `rotateX(0deg) rotateY(0deg)`;
         
         // Store initial rotation for tracking
         dice.dataset.currentRotationX = 0;
@@ -693,6 +721,21 @@ class MultiDiceRenderer {
         circle.style.top = `calc(${position.y}% - calc(var(--dice-flash-diameter) / 2))`;
         
         return circle;
+    }
+
+    /**
+     * Create shadow element for a dice position
+     */
+    createDiceShadow(position, positionKey) {
+        const shadow = document.createElement('div');
+        shadow.className = 'dice-shadow';
+        shadow.dataset.position = positionKey;
+        
+        // Position the shadow centered horizontally with dice but slightly below
+        shadow.style.left = `calc(${position.x}% - calc(var(--dice-shadow-width) / 2))`;
+        shadow.style.top = `calc(${position.y}% + 7%)`; // 7% below dice center
+        
+        return shadow;
     }
 
     createDots(container, value, gameAreaWidth, faceClass = '') {
@@ -794,12 +837,16 @@ class MultiDiceRenderer {
             // Create flash circle
             const flashCircle = this.createFlashCircle(position, positionKey);
             
+            // NEW: Create shadow
+            const shadow = this.createDiceShadow(position, positionKey);
+            
+            gameArea.appendChild(shadow);
             gameArea.appendChild(flashCircle);
             gameArea.appendChild(dice);
             this.currentDice.push(dice);
         }
         
-        // Fade in dice
+        // Fade in dice and shadows
         setTimeout(() => {
             this.currentDice.forEach(dice => {
                 dice.style.transition = 'opacity 1s ease-in';
@@ -810,6 +857,14 @@ class MultiDiceRenderer {
                     face.style.transition = 'opacity 1s ease-in';
                     face.style.opacity = '1';
                 });
+                
+                // NEW: Fade in shadow
+                const positionKey = dice.dataset.position;
+                const shadow = document.querySelector(`.dice-shadow[data-position="${positionKey}"]`);
+                if (shadow) {
+                    shadow.style.transition = 'opacity 1s ease-in';
+                    shadow.classList.add('visible');
+                }
             });
         }, 200);
         
@@ -954,6 +1009,13 @@ class MultiDiceRenderer {
                 
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
                 dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
+                
+                // NEW: Rotate inner dice simultaneously
+                const innerDice = dice.querySelector('.dice-inner');
+                if (innerDice) {
+                    innerDice.style.transition = `transform ${flipDuration}s ease-in-out`;
+                    innerDice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
+                }
                 
                 // Update tracking
                 dice.dataset.currentRotationX = currentRotationX;
