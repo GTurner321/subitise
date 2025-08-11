@@ -1,7 +1,7 @@
-class TwoDiceGameController {
+class MultiDiceGameController {
     constructor() {
         // Initialize components in proper order
-        this.diceRenderer = new DiceRenderer();
+        this.diceRenderer = new MultiDiceRenderer();
         this.rainbow = new Rainbow();
         this.bear = new Bear();
         this.stats = new TwoDiceStats();
@@ -9,22 +9,20 @@ class TwoDiceGameController {
         // Game state
         this.questionsCompleted = 0;
         this.gameComplete = false;
+        this.currentMode = CONFIG.GAME_MODES.TWO_DICE; // Start with 2 dice
         
-        // UPDATED: Level-based system
+        // Level-based system
         this.currentLevel = 'L1'; // Always start at L1
-        this.usedSumsThisRound = new Set(); // Track used sums for current round
+        this.usedSumsThisRound = new Set(); // Track used combinations for current round
         this.roundQuestionCount = 0; // Questions completed in current round
         
         // Current question state
-        this.currentLeftValue = 0;
-        this.currentRightValue = 0;
+        this.currentValues = []; // Array of dice values
         this.currentTotal = 0;
         this.buttonsDisabled = false;
         
         // Track which boxes are filled
-        this.leftFilled = false;
-        this.rightFilled = false;
-        this.totalFilled = false;
+        this.filledBoxes = new Set(); // Track by position key
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
@@ -49,15 +47,6 @@ class TwoDiceGameController {
         
         // DOM elements
         this.modal = document.getElementById('gameModal');
-        this.playAgainBtn = document.getElementById('playAgainBtn');
-        this.leftInputBox = document.getElementById('leftInputBox');
-        this.rightInputBox = document.getElementById('rightInputBox');
-        this.totalInputBox = document.getElementById('totalInputBox');
-        this.checkMark = document.getElementById('checkMark');
-        this.leftSide = document.getElementById('leftSide');
-        this.rightSide = document.getElementById('rightSide');
-        this.leftFlashArea = document.getElementById('leftFlashArea');
-        this.rightFlashArea = document.getElementById('rightFlashArea');
         this.gameArea = document.querySelector('.game-area');
         this.sumRow = document.getElementById('sumRow');
         
@@ -80,7 +69,17 @@ class TwoDiceGameController {
         this.setupVisibilityHandling();
         this.waitForSystemsAndInitialize();
         
-        console.log(`🎮 Game started at ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+        console.log(`🎮 Game started in ${this.currentMode} mode at ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+    }
+
+    /**
+     * Set the current game mode and update renderer
+     */
+    setGameMode(mode) {
+        this.currentMode = mode;
+        this.diceRenderer.setGameMode(mode);
+        this.updateSumRow();
+        console.log(`🎯 Game mode set to: ${mode}`);
     }
 
     /**
@@ -106,25 +105,205 @@ class TwoDiceGameController {
             // Level up for correct first attempt
             this.currentLevel = levels[currentIndex + 1];
             console.log(`📈 Level up to ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
-            
-            if (CONFIG.AUDIO.MESSAGES.LEVEL_UP && this.isTabVisible) {
-                setTimeout(() => {
-                    this.speakText(CONFIG.AUDIO.MESSAGES.LEVEL_UP);
-                }, 1500);
-            }
         } else if (!wasCorrectFirstAttempt && currentIndex > 0) {
             // Level down for any mistake
             this.currentLevel = levels[currentIndex - 1];
             console.log(`📉 Level down to ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
-            
-            if (CONFIG.AUDIO.MESSAGES.LEVEL_DOWN && this.isTabVisible) {
-                setTimeout(() => {
-                    this.speakText(CONFIG.AUDIO.MESSAGES.LEVEL_DOWN);
-                }, 1500);
-            }
         } else {
             console.log(`📊 Level remains ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
         }
+    }
+
+    /**
+     * Create and update sum row based on current mode
+     */
+    updateSumRow() {
+        if (!this.sumRow) return;
+        
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return;
+        
+        // Clear existing content
+        this.sumRow.innerHTML = '';
+        
+        // Create input boxes and symbols
+        for (let i = 0; i < config.boxes; i++) {
+            // Create input box
+            const inputBox = document.createElement('div');
+            inputBox.className = 'input-box dice-input-box';
+            inputBox.id = `diceInput${i}`;
+            inputBox.dataset.position = config.inputOrder[i];
+            this.sumRow.appendChild(inputBox);
+            
+            // Add plus sign (except after last box)
+            if (i < config.boxes - 1) {
+                const plusSign = document.createElement('div');
+                plusSign.className = 'sum-plus-sign';
+                plusSign.textContent = '+';
+                this.sumRow.appendChild(plusSign);
+            }
+        }
+        
+        // Add equals sign
+        const equalsSign = document.createElement('div');
+        equalsSign.className = 'sum-equals-sign';
+        equalsSign.textContent = '=';
+        this.sumRow.appendChild(equalsSign);
+        
+        // Add total input box
+        const totalBox = document.createElement('div');
+        totalBox.className = 'input-box dice-input-box';
+        totalBox.id = 'totalInputBox';
+        totalBox.dataset.position = 'total';
+        this.sumRow.appendChild(totalBox);
+        
+        // Add check mark
+        const checkMark = document.createElement('div');
+        checkMark.className = 'check-mark';
+        checkMark.id = 'checkMark';
+        checkMark.innerHTML = '✓';
+        this.sumRow.appendChild(checkMark);
+    }
+
+    /**
+     * Get the appropriate hint message for current mode and position
+     */
+    getHintMessage(position) {
+        const messages = {
+            left: CONFIG.AUDIO.MESSAGES.HINT_LEFT_DICE,
+            right: CONFIG.AUDIO.MESSAGES.HINT_RIGHT_DICE,
+            bottom: CONFIG.AUDIO.MESSAGES.HINT_BOTTOM_DICE,
+            topLeft: CONFIG.AUDIO.MESSAGES.HINT_TOP_LEFT_DICE,
+            topRight: CONFIG.AUDIO.MESSAGES.HINT_TOP_RIGHT_DICE,
+            bottomLeft: CONFIG.AUDIO.MESSAGES.HINT_BOTTOM_LEFT_DICE,
+            bottomRight: CONFIG.AUDIO.MESSAGES.HINT_BOTTOM_RIGHT_DICE
+        };
+        
+        return messages[position] || CONFIG.AUDIO.MESSAGES.HINT_LEFT_DICE;
+    }
+
+    /**
+     * Get the appropriate total hint for current mode
+     */
+    getTotalHint() {
+        switch (this.currentMode) {
+            case CONFIG.GAME_MODES.TWO_DICE:
+                return CONFIG.AUDIO.MESSAGES.HINT_TOTAL;
+            case CONFIG.GAME_MODES.THREE_DICE:
+                return CONFIG.AUDIO.MESSAGES.HINT_TOTAL_THREE;
+            case CONFIG.GAME_MODES.FOUR_DICE:
+                return CONFIG.AUDIO.MESSAGES.HINT_TOTAL_FOUR;
+            default:
+                return CONFIG.AUDIO.MESSAGES.HINT_TOTAL;
+        }
+    }
+
+    /**
+     * Create completion modal with appropriate buttons for current mode
+     */
+    createCompletionModal() {
+        if (!this.modal) return;
+        
+        // Clear existing content
+        this.modal.innerHTML = '';
+        
+        // Create modal content
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content';
+        
+        // Title
+        const title = document.createElement('h2');
+        title.textContent = 'Congratulations!';
+        modalContent.appendChild(title);
+        
+        // Message based on current mode
+        const message = document.createElement('p');
+        switch (this.currentMode) {
+            case CONFIG.GAME_MODES.TWO_DICE:
+                message.textContent = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE;
+                break;
+            case CONFIG.GAME_MODES.THREE_DICE:
+                message.textContent = CONFIG.AUDIO.MESSAGES.GAME_THREEDICE_COMPLETE;
+                break;
+            case CONFIG.GAME_MODES.FOUR_DICE:
+                message.textContent = CONFIG.AUDIO.MESSAGES.GAME_FOURDICE_COMPLETE;
+                break;
+        }
+        modalContent.appendChild(message);
+        
+        // Button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'modal-buttons';
+        
+        // Play Again button (always present)
+        const playAgainBtn = document.createElement('button');
+        playAgainBtn.className = 'modal-button primary';
+        playAgainBtn.innerHTML = '<span class="button-icon">🔄</span>Play Again';
+        playAgainBtn.addEventListener('click', () => {
+            this.startNewGame();
+        });
+        buttonContainer.appendChild(playAgainBtn);
+        
+        // Mode-specific buttons
+        if (this.currentMode === CONFIG.GAME_MODES.TWO_DICE) {
+            // Try 3 Dice button
+            const threeDiceBtn = document.createElement('button');
+            threeDiceBtn.className = 'modal-button success';
+            threeDiceBtn.innerHTML = '<span class="button-icon">→</span>Try 3 Dice';
+            threeDiceBtn.addEventListener('click', () => {
+                this.switchToMode(CONFIG.GAME_MODES.THREE_DICE);
+            });
+            buttonContainer.appendChild(threeDiceBtn);
+            
+        } else if (this.currentMode === CONFIG.GAME_MODES.THREE_DICE) {
+            // Try 4 Dice button
+            const fourDiceBtn = document.createElement('button');
+            fourDiceBtn.className = 'modal-button success';
+            fourDiceBtn.innerHTML = '<span class="button-icon">→</span>Try 4 Dice';
+            fourDiceBtn.addEventListener('click', () => {
+                this.switchToMode(CONFIG.GAME_MODES.FOUR_DICE);
+            });
+            buttonContainer.appendChild(fourDiceBtn);
+            
+            // Back to 2 Dice button
+            const twoDiceBtn = document.createElement('button');
+            twoDiceBtn.className = 'modal-button secondary';
+            twoDiceBtn.innerHTML = '<span class="button-icon">←</span>Back to 2 Dice';
+            twoDiceBtn.addEventListener('click', () => {
+                this.switchToMode(CONFIG.GAME_MODES.TWO_DICE);
+            });
+            buttonContainer.appendChild(twoDiceBtn);
+            
+        } else if (this.currentMode === CONFIG.GAME_MODES.FOUR_DICE) {
+            // Back to 3 Dice button
+            const threeDiceBtn = document.createElement('button');
+            threeDiceBtn.className = 'modal-button secondary';
+            threeDiceBtn.innerHTML = '<span class="button-icon">←</span>Back to 3 Dice';
+            threeDiceBtn.addEventListener('click', () => {
+                this.switchToMode(CONFIG.GAME_MODES.THREE_DICE);
+            });
+            buttonContainer.appendChild(threeDiceBtn);
+            
+            // Back to 2 Dice button
+            const twoDiceBtn = document.createElement('button');
+            twoDiceBtn.className = 'modal-button secondary';
+            twoDiceBtn.innerHTML = '<span class="button-icon">←</span>Back to 2 Dice';
+            twoDiceBtn.addEventListener('click', () => {
+                this.switchToMode(CONFIG.GAME_MODES.TWO_DICE);
+            });
+            buttonContainer.appendChild(twoDiceBtn);
+        }
+        
+        modalContent.appendChild(buttonContainer);
+        this.modal.appendChild(modalContent);
+    }
+
+    /**
+     * Switch to a different game mode
+     */
+    switchToMode(newMode) {
+        this.setGameMode(newMode);
+        this.startNewGame();
     }
 
     /**
@@ -134,7 +313,7 @@ class TwoDiceGameController {
         console.log('🎲 Checking system readiness...');
         
         const buttonBarReady = window.ButtonBar && typeof window.ButtonBar.create === 'function';
-        const gameAreaReady = this.gameArea && this.leftSide && this.rightSide && this.sumRow;
+        const gameAreaReady = this.gameArea && this.sumRow;
         
         if (buttonBarReady && gameAreaReady) {
             console.log('🎲 All systems ready, proceeding with initialization');
@@ -265,58 +444,6 @@ class TwoDiceGameController {
                     if (this.buttonsDisabled || !this.initializationComplete) return;
                     
                     this.clearInactivityTimer();
-                    this.startInactivityTimer();
-                    
-                    this.handleNumberClick(selectedNumber, buttonElement);
-                }
-            );
-            console.log('✅ Button bar created successfully');
-        } else {
-            console.warn('ButtonBar not available - using fallback');
-        }
-    }
-
-    setupVisibilityHandling() {
-        document.addEventListener('visibilitychange', () => {
-            this.isTabVisible = !document.hidden;
-            
-            if (!this.isTabVisible) {
-                this.clearInactivityTimer();
-                if (window.AudioSystem) {
-                    window.AudioSystem.stopAllAudio();
-                }
-            } else {
-                if (!this.gameComplete && !this.buttonsDisabled && this.initializationComplete) {
-                    this.startInactivityTimer();
-                }
-            }
-        });
-    }
-
-    speakText(text, options = {}) {
-        if (window.AudioSystem) {
-            window.AudioSystem.speakText(text, options);
-        }
-    }
-
-    playCompletionSound() {
-        if (window.AudioSystem) {
-            window.AudioSystem.playCompletionSound();
-        }
-    }
-
-    playFailureSound() {
-        if (window.AudioSystem) {
-            window.AudioSystem.playFailureSound();
-        }
-    }
-
-    startInactivityTimer() {
-        if (!this.isTabVisible || this.hintGiven || !this.initializationComplete) {
-            return;
-        }
-        
-        this.clearInactivityTimer();
         this.inactivityTimer = setTimeout(() => {
             this.giveInactivityHint();
         }, this.inactivityDuration);
@@ -342,13 +469,23 @@ class TwoDiceGameController {
         
         this.hintGiven = true;
         
+        // Find the first unfilled position to give a hint for
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return;
+        
         let hintText = '';
-        if (!this.leftFilled) {
-            hintText = CONFIG.AUDIO.MESSAGES.HINT_LEFT_DICE;
-        } else if (!this.rightFilled) {
-            hintText = CONFIG.AUDIO.MESSAGES.HINT_RIGHT_DICE;
-        } else if (!this.totalFilled) {
-            hintText = CONFIG.AUDIO.MESSAGES.HINT_TOTAL;
+        
+        // Check dice input boxes first
+        for (const position of config.inputOrder) {
+            if (!this.filledBoxes.has(position)) {
+                hintText = this.getHintMessage(position);
+                break;
+            }
+        }
+        
+        // If all dice boxes are filled, check total
+        if (!hintText && !this.filledBoxes.has('total')) {
+            hintText = this.getTotalHint();
         }
         
         if (hintText) {
@@ -357,10 +494,6 @@ class TwoDiceGameController {
     }
 
     initializeEventListeners() {
-        this.playAgainBtn.addEventListener('click', () => {
-            this.startNewGame();
-        });
-
         document.addEventListener('keydown', (e) => {
             if (this.buttonsDisabled || this.gameComplete || !this.initializationComplete) {
                 return;
@@ -416,9 +549,22 @@ class TwoDiceGameController {
     }
 
     isDigitValidAnswer(number) {
-        if (!this.leftFilled && number === this.currentLeftValue) return true;
-        if (!this.rightFilled && number === this.currentRightValue) return true;
-        if (!this.totalFilled && number === this.currentTotal) return true;
+        // Check if number matches any unfilled dice value
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return false;
+        
+        for (let i = 0; i < config.inputOrder.length; i++) {
+            const position = config.inputOrder[i];
+            if (!this.filledBoxes.has(position) && this.currentValues[i] === number) {
+                return true;
+            }
+        }
+        
+        // Check total
+        if (!this.filledBoxes.has('total') && this.currentTotal === number) {
+            return true;
+        }
+        
         return false;
     }
 
@@ -429,27 +575,30 @@ class TwoDiceGameController {
         this.clearKeyboardTimer();
         this.resetBoxState();
         
-        // UPDATED: Reset level system for new game
+        // Reset level system for new game
         this.currentLevel = 'L1'; // Always start at L1
-        this.usedSumsThisRound = new Set(); // Clear used sums
+        this.usedSumsThisRound = new Set(); // Clear used combinations
         this.roundQuestionCount = 0; // Reset question count
         
         this.rainbow.reset();
         this.bear.reset();
         this.diceRenderer.reset();
+        
+        // Set up for current mode
+        this.diceRenderer.setGameMode(this.currentMode);
+        this.updateSumRow();
+        
         this.modal.classList.add('hidden');
         this.hideAllInputBoxes();
         
         this.initializationComplete = true;
         
-        console.log(`🔄 New game started at ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
+        console.log(`🔄 New game started in ${this.currentMode} mode at ${this.currentLevel}: ${this.getLevelDescription(this.currentLevel)}`);
         this.startNewQuestion();
     }
 
     resetBoxState() {
-        this.leftFilled = false;
-        this.rightFilled = false;
-        this.totalFilled = false;
+        this.filledBoxes.clear();
         this.stopFlashing();
     }
 
@@ -457,25 +606,46 @@ class TwoDiceGameController {
         this.stopFlashing();
         
         const flashElements = () => {
-            if (!this.leftFilled) {
-                this.leftFlashArea.classList.add('area-flash');
-                this.leftInputBox.classList.add('box-flash');
-            } else if (!this.rightFilled) {
-                this.rightFlashArea.classList.add('area-flash');
-                this.rightInputBox.classList.add('box-flash');
-            } else if (!this.totalFilled) {
-                this.leftFlashArea.classList.add('area-flash');
-                this.rightFlashArea.classList.add('area-flash');
-                this.totalInputBox.classList.add('box-flash');
+            // Find first unfilled position
+            const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+            if (!config) return;
+            
+            let flashPosition = null;
+            
+            // Check dice positions first
+            for (const position of config.inputOrder) {
+                if (!this.filledBoxes.has(position)) {
+                    flashPosition = position;
+                    break;
+                }
             }
             
-            setTimeout(() => {
-                this.leftFlashArea.classList.remove('area-flash');
-                this.rightFlashArea.classList.remove('area-flash');
-                this.leftInputBox.classList.remove('box-flash');
-                this.rightInputBox.classList.remove('box-flash');
-                this.totalInputBox.classList.remove('box-flash');
-            }, 1000);
+            // If all dice filled, check total
+            if (!flashPosition && !this.filledBoxes.has('total')) {
+                flashPosition = 'total';
+            }
+            
+            if (flashPosition) {
+                // Flash the corresponding input box
+                const inputBox = document.querySelector(`[data-position="${flashPosition}"]`);
+                if (inputBox) {
+                    inputBox.classList.add('box-flash');
+                }
+                
+                // Flash the corresponding dice circle (not for total)
+                if (flashPosition !== 'total') {
+                    this.diceRenderer.showFlashForPosition(flashPosition);
+                }
+                
+                setTimeout(() => {
+                    if (inputBox) {
+                        inputBox.classList.remove('box-flash');
+                    }
+                    if (flashPosition !== 'total') {
+                        this.diceRenderer.hideFlashForPosition(flashPosition);
+                    }
+                }, 1000);
+            }
         };
         
         this.flashingTimeout = setTimeout(() => {
@@ -495,11 +665,13 @@ class TwoDiceGameController {
             this.flashingTimeout = null;
         }
         
-        this.leftFlashArea.classList.remove('area-flash');
-        this.rightFlashArea.classList.remove('area-flash');
-        this.leftInputBox.classList.remove('box-flash');
-        this.rightInputBox.classList.remove('box-flash');
-        this.totalInputBox.classList.remove('box-flash');
+        // Remove all flashing
+        const inputBoxes = document.querySelectorAll('.input-box');
+        inputBoxes.forEach(box => {
+            box.classList.remove('box-flash');
+        });
+        
+        this.diceRenderer.hideAllFlash();
     }
 
     async startNewQuestion() {
@@ -511,16 +683,16 @@ class TwoDiceGameController {
         if (this.roundQuestionCount >= CONFIG.RAINBOW_PIECES) {
             this.usedSumsThisRound.clear();
             this.roundQuestionCount = 0;
-            console.log('🆕 Starting new round - cleared used sums');
+            console.log('🆕 Starting new round - cleared used combinations');
         }
 
         this.resetBoxState();
         this.hideAllInputBoxes();
         this.hintGiven = false;
 
-        console.log(`🎲 Starting question ${this.questionsCompleted + 1} (round question ${this.roundQuestionCount + 1})`);
+        console.log(`🎲 Starting question ${this.questionsCompleted + 1} (round question ${this.roundQuestionCount + 1}) in ${this.currentMode} mode`);
         console.log(`📊 Current level: ${this.currentLevel} (${this.getLevelDescription(this.currentLevel)})`);
-        console.log(`🚫 Used sums this round: [${Array.from(this.usedSumsThisRound).sort((a,b) => a-b).join(', ')}]`);
+        console.log(`🚫 Used combinations this round: [${Array.from(this.usedSumsThisRound).sort().join(', ')}]`);
         
         this.resetButtonStates();
         this.giveStartingInstruction();
@@ -532,21 +704,20 @@ class TwoDiceGameController {
         }
         
         try {
-            // UPDATED: Use level-based dice rolling
+            // Use level-based dice rolling
             const result = await this.diceRenderer.rollDiceForLevel(this.currentLevel, this.usedSumsThisRound);
             
             console.log('🎲 DICE RENDERER RETURNED:', result);
             
             // Store the target values from the dice result
-            this.currentLeftValue = result.left;
-            this.currentRightValue = result.right;
+            this.currentValues = result.values;
             this.currentTotal = result.total;
             
-            // Add this sum to used sums for this round
-            this.usedSumsThisRound.add(result.total);
+            // Add this combination to used combinations for this round
+            this.usedSumsThisRound.add(result.combinationKey);
             
-            console.log(`🎯 TARGET VALUES: Left=${this.currentLeftValue}, Right=${this.currentRightValue}, Total=${this.currentTotal}`);
-            console.log(`📝 Updated used sums: [${Array.from(this.usedSumsThisRound).sort((a,b) => a-b).join(', ')}]`);
+            console.log(`🎯 TARGET VALUES: [${this.currentValues.join(', ')}], Total=${this.currentTotal}`);
+            console.log(`📝 Updated used combinations: [${Array.from(this.usedSumsThisRound).sort().join(', ')}]`);
             
             // Enable buttons and show input boxes
             this.buttonsDisabled = false;
@@ -562,9 +733,8 @@ class TwoDiceGameController {
         } catch (error) {
             console.error('Error rolling dice:', error);
             // Fallback values
-            this.currentLeftValue = 1;
-            this.currentRightValue = 1;
-            this.currentTotal = 2;
+            this.currentValues = Array(this.diceRenderer.getDiceCount()).fill(1);
+            this.currentTotal = this.currentValues.reduce((a, b) => a + b, 0);
             
             this.buttonsDisabled = false;
             if (window.ButtonBar) {
@@ -594,25 +764,45 @@ class TwoDiceGameController {
     }
 
     hideAllInputBoxes() {
-        this.checkMark.classList.remove('visible');
+        const checkMark = document.getElementById('checkMark');
+        if (checkMark) {
+            checkMark.classList.remove('visible');
+        }
         
-        this.leftInputBox.textContent = '';
-        this.rightInputBox.textContent = '';
-        this.totalInputBox.textContent = '';
-        
-        this.leftInputBox.classList.remove('flashing', 'filled');
-        this.rightInputBox.classList.remove('flashing', 'filled');
-        this.totalInputBox.classList.remove('flashing', 'filled');
+        const inputBoxes = document.querySelectorAll('.input-box');
+        inputBoxes.forEach(box => {
+            box.textContent = '';
+            box.classList.remove('flashing', 'filled');
+        });
     }
 
     showInputBoxes() {
-        if (!this.leftFilled) {
-            this.leftInputBox.classList.add('flashing');
-        } else if (!this.rightFilled) {
-            this.rightInputBox.classList.add('flashing');
-        } else if (!this.totalFilled) {
-            this.totalInputBox.classList.add('flashing');
+        // Find the first unfilled box and make it flash
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return;
+        
+        let firstUnfilled = null;
+        
+        // Check dice positions first
+        for (const position of config.inputOrder) {
+            if (!this.filledBoxes.has(position)) {
+                firstUnfilled = position;
+                break;
+            }
         }
+        
+        // If all dice filled, check total
+        if (!firstUnfilled && !this.filledBoxes.has('total')) {
+            firstUnfilled = 'total';
+        }
+        
+        if (firstUnfilled) {
+            const inputBox = document.querySelector(`[data-position="${firstUnfilled}"]`);
+            if (inputBox) {
+                inputBox.classList.add('flashing');
+            }
+        }
+        
         this.startFlashing();
     }
 
@@ -622,13 +812,21 @@ class TwoDiceGameController {
         let correctAnswer = false;
         const wasFirstAttempt = !this.hasAttemptedAnswer();
         
-        if (!this.leftFilled && selectedNumber === this.currentLeftValue) {
-            this.fillBox('left', selectedNumber, buttonElement);
-            correctAnswer = true;
-        } else if (!this.rightFilled && selectedNumber === this.currentRightValue) {
-            this.fillBox('right', selectedNumber, buttonElement);
-            correctAnswer = true;
-        } else if (!this.totalFilled && selectedNumber === this.currentTotal) {
+        // Check if this number matches any unfilled dice value
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (config) {
+            for (let i = 0; i < config.inputOrder.length; i++) {
+                const position = config.inputOrder[i];
+                if (!this.filledBoxes.has(position) && this.currentValues[i] === selectedNumber) {
+                    this.fillBox(position, selectedNumber, buttonElement);
+                    correctAnswer = true;
+                    break;
+                }
+            }
+        }
+        
+        // Check total if no dice match
+        if (!correctAnswer && !this.filledBoxes.has('total') && this.currentTotal === selectedNumber) {
             this.fillBox('total', selectedNumber, buttonElement);
             correctAnswer = true;
         }
@@ -643,7 +841,7 @@ class TwoDiceGameController {
         }
     }
 
-    fillBox(boxType, selectedNumber, buttonElement) {
+    fillBox(position, selectedNumber, buttonElement) {
         if (!buttonElement && window.ButtonBar) {
             buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
         }
@@ -658,29 +856,26 @@ class TwoDiceGameController {
             this.createCelebrationStars(buttonElement);
         }
 
-        switch (boxType) {
-            case 'left':
-                this.leftInputBox.textContent = selectedNumber;
-                this.leftInputBox.classList.remove('flashing');
-                this.leftInputBox.classList.add('filled');
-                this.leftFilled = true;
-                break;
-            case 'right':
-                this.rightInputBox.textContent = selectedNumber;
-                this.rightInputBox.classList.remove('flashing');
-                this.rightInputBox.classList.add('filled');
-                this.rightFilled = true;
-                break;
-            case 'total':
-                this.totalInputBox.textContent = selectedNumber;
-                this.totalInputBox.classList.remove('flashing');
-                this.totalInputBox.classList.add('filled');
-                this.totalFilled = true;
-                break;
+        // Find the input box for this position
+        const inputBox = document.querySelector(`[data-position="${position}"]`);
+        if (inputBox) {
+            inputBox.textContent = selectedNumber;
+            inputBox.classList.remove('flashing');
+            inputBox.classList.add('filled');
+        }
+        
+        // Mark this position as filled
+        this.filledBoxes.add(position);
+        
+        // Hide flash for this position
+        if (position !== 'total') {
+            this.diceRenderer.hideFlashForPosition(position);
         }
 
-        const boxesFilledBefore = [this.leftFilled, this.rightFilled, this.totalFilled].filter(Boolean).length - 1;
-        const wasLastBox = boxesFilledBefore === 2;
+        // Check if this was the last box
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        const totalBoxes = config ? config.boxes + 1 : 3; // +1 for total
+        const wasLastBox = this.filledBoxes.size >= totalBoxes;
         
         if (wasLastBox) {
             this.buttonsDisabled = true;
@@ -696,32 +891,58 @@ class TwoDiceGameController {
     }
 
     updateFlashingBoxes() {
-        this.leftInputBox.classList.remove('flashing');
-        this.rightInputBox.classList.remove('flashing');
-        this.totalInputBox.classList.remove('flashing');
+        // Remove flashing from all boxes
+        const inputBoxes = document.querySelectorAll('.input-box');
+        inputBoxes.forEach(box => {
+            box.classList.remove('flashing');
+        });
         
-        if (!this.leftFilled) {
-            this.leftInputBox.classList.add('flashing');
-        } else if (!this.rightFilled) {
-            this.rightInputBox.classList.add('flashing');
-        } else if (!this.totalFilled) {
-            this.totalInputBox.classList.add('flashing');
+        // Find next unfilled box
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return;
+        
+        let nextUnfilled = null;
+        
+        // Check dice positions first
+        for (const position of config.inputOrder) {
+            if (!this.filledBoxes.has(position)) {
+                nextUnfilled = position;
+                break;
+            }
+        }
+        
+        // If all dice filled, check total
+        if (!nextUnfilled && !this.filledBoxes.has('total')) {
+            nextUnfilled = 'total';
+        }
+        
+        if (nextUnfilled) {
+            const inputBox = document.querySelector(`[data-position="${nextUnfilled}"]`);
+            if (inputBox) {
+                inputBox.classList.add('flashing');
+            }
         }
         
         this.startFlashing();
     }
 
     checkQuestionCompletion() {
-        if (this.leftFilled && this.rightFilled && this.totalFilled) {
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        const totalBoxes = config ? config.boxes + 1 : 3; // +1 for total
+        
+        if (this.filledBoxes.size >= totalBoxes) {
             this.clearInactivityTimer();
             this.stopFlashing();
             
-            this.checkMark.classList.add('visible');
+            const checkMark = document.getElementById('checkMark');
+            if (checkMark) {
+                checkMark.classList.add('visible');
+            }
             
             const pieces = this.rainbow.addPiece();
             console.log(`Rainbow pieces: ${pieces}`);
             
-            // UPDATED: Determine if this was answered correctly on first attempt for level progression
+            // Determine if this was answered correctly on first attempt for level progression
             const wasCorrectFirstAttempt = !this.hasAttemptedAnswer();
             console.log(`📊 Question completed - First attempt: ${wasCorrectFirstAttempt ? 'Yes' : 'No'}`);
             
@@ -878,13 +1099,30 @@ class TwoDiceGameController {
         this.clearInactivityTimer();
         this.clearKeyboardTimer();
         this.stopFlashing();
+        
+        // Create the appropriate modal for current mode
+        this.createCompletionModal();
         this.modal.classList.remove('hidden');
         
         this.bear.startCelebration();
         
         if (this.isTabVisible) {
             setTimeout(() => {
-                this.speakText(CONFIG.AUDIO.MESSAGES.GAME_COMPLETE);
+                let message;
+                switch (this.currentMode) {
+                    case CONFIG.GAME_MODES.TWO_DICE:
+                        message = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE;
+                        break;
+                    case CONFIG.GAME_MODES.THREE_DICE:
+                        message = CONFIG.AUDIO.MESSAGES.GAME_THREEDICE_COMPLETE;
+                        break;
+                    case CONFIG.GAME_MODES.FOUR_DICE:
+                        message = CONFIG.AUDIO.MESSAGES.GAME_FOURDICE_COMPLETE;
+                        break;
+                    default:
+                        message = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE;
+                }
+                this.speakText(message);
             }, 1000);
         }
     }
@@ -962,13 +1200,13 @@ class TwoDiceGameController {
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎲 DOM loaded, creating TwoDiceGameController');
-    window.twoDiceGame = new TwoDiceGameController();
+    console.log('🎲 DOM loaded, creating MultiDiceGameController');
+    window.multiDiceGame = new MultiDiceGameController();
 });
 
 // Clean up resources when page is unloaded
 window.addEventListener('beforeunload', () => {
-    if (window.twoDiceGame) {
-        window.twoDiceGame.destroy();
+    if (window.multiDiceGame) {
+        window.multiDiceGame.destroy();
     }
 });
