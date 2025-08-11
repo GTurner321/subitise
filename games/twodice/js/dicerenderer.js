@@ -110,9 +110,11 @@ class MultiDiceRenderer {
             document.documentElement.style.setProperty('--sum-bar-width-multiplier', config.widthMultiplier);
         }
         
-        // FIXED: Ensure plus sign exists and position it for the new mode
-        this.ensurePlusSignExists();
-        this.positionPlusSign();
+        // FIXED: Always ensure plus sign exists and position it for the new mode
+        setTimeout(() => {
+            this.ensurePlusSignExists();
+            this.positionPlusSign();
+        }, 100);
     }
 
     /**
@@ -602,6 +604,7 @@ class MultiDiceRenderer {
         console.log(`\n=== CREATING ${positionKey.toUpperCase()} DICE ===`);
         console.log('Physical rendering positions:', this.physicalFacePositions);
         console.log('Logical tracking positions:', this.logicalFacePositions);
+        console.log(`Dice size: ${diceWidthPx}px, Half size: ${halfDiceSize}px`);
         
         // Create all 6 faces with colored backs
         Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
@@ -614,8 +617,10 @@ class MultiDiceRenderer {
             // Store the face value as a data attribute for easy access
             face.dataset.faceValue = faceValue;
             
-            // Set proper 3D positioning with calculated translateZ
+            // FIXED: Ensure proper 3D positioning with calculated translateZ
             this.setFace3DPosition(face, faceClass, halfDiceSize);
+            
+            console.log(`Face ${faceClass} (value ${faceValue}): positioned with halfSize ${halfDiceSize}px`);
             
             // Create inner face - 90% size, same color, no rounded corners
             const innerFace = document.createElement('div');
