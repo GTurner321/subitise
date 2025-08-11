@@ -507,7 +507,7 @@ class MultiDiceGameController {
     }
 
     /**
-     * UPDATED: Generate 4 button numbers for 3 and 4 dice games
+     * UPDATED: Generate 9 button numbers for 3 and 4 dice games with new rules
      */
     updateButtonsForNumberFormat() {
         if (!this.shouldUseNumberFormat()) return null;
@@ -515,70 +515,84 @@ class MultiDiceGameController {
         const correctAnswer = this.currentTotal;
         const numbers = [];
         
-        // 1) The correct answer
-        numbers.push(correctAnswer);
+        console.log(`🎯 Generating 9 buttons for ${this.currentMode}, correct answer: ${correctAnswer}`);
         
-        // 2) Random choice between n+1 and n-1
-        const option2Choices = [correctAnswer + 1, correctAnswer - 1].filter(n => n > 0);
-        if (option2Choices.length > 0) {
-            const option2 = option2Choices[Math.floor(Math.random() * option2Choices.length)];
-            numbers.push(option2);
-        }
+        // Always include buttons 1-6
+        numbers.push(1, 2, 3, 4, 5, 6);
         
-        // 3) Random choice between n+2 and n-2
-        const option3Choices = [correctAnswer + 2, correctAnswer - 2].filter(n => n > 0 && !numbers.includes(n));
-        if (option3Choices.length > 0) {
-            const option3 = option3Choices[Math.floor(Math.random() * option3Choices.length)];
-            numbers.push(option3);
-        }
-        
-        // 4) Random different number from appropriate range
-        const isThreeDice = this.currentMode === CONFIG.GAME_MODES.THREE_DICE;
-        const rangeMin = isThreeDice ? 3 : 4;
-        const rangeMax = isThreeDice ? 18 : 24;
-        
-        // Generate candidates from range, excluding already chosen numbers
-        const candidates = [];
-        for (let i = rangeMin; i <= rangeMax; i++) {
-            if (!numbers.includes(i)) {
-                candidates.push(i);
+        if (correctAnswer > 6) {
+            // If n > 6: add n, n-1 or n+1, and random extra
+            numbers.push(correctAnswer);
+            
+            // Add n-1 or n+1 (randomly choose)
+            const variation = Math.random() < 0.5 ? correctAnswer - 1 : correctAnswer + 1;
+            if (variation > 0) {
+                numbers.push(variation);
             }
+            
+            // Add random number from appropriate range, excluding n, n-1, n+1
+            const isThreeDice = this.currentMode === CONFIG.GAME_MODES.THREE_DICE;
+            const rangeMin = 7;
+            const rangeMax = isThreeDice ? 18 : 24;
+            
+            const excludeSet = new Set([correctAnswer, correctAnswer - 1, correctAnswer + 1]);
+            const candidates = [];
+            for (let i = rangeMin; i <= rangeMax; i++) {
+                if (!excludeSet.has(i) && !numbers.includes(i)) {
+                    candidates.push(i);
+                }
+            }
+            
+            if (candidates.length > 0) {
+                const randomExtra = candidates[Math.floor(Math.random() * candidates.length)];
+                numbers.push(randomExtra);
+            }
+            
+        } else {
+            // If n <= 6: add n+i, n+i+1, n+i+2 where i = 7-n
+            const i = 7 - correctAnswer;
+            numbers.push(correctAnswer + i);
+            numbers.push(correctAnswer + i + 1);
+            numbers.push(correctAnswer + i + 2);
         }
         
-        if (candidates.length > 0) {
-            const option4 = candidates[Math.floor(Math.random() * candidates.length)];
-            numbers.push(option4);
-        }
+        // Remove duplicates and ensure we have exactly 9 numbers
+        const uniqueNumbers = [...new Set(numbers)];
         
-        // Pad with additional numbers if needed (shouldn't happen but safety)
-        while (numbers.length < 4) {
-            for (let i = rangeMin; i <= rangeMax && numbers.length < 4; i++) {
-                if (!numbers.includes(i)) {
-                    numbers.push(i);
+        // If we don't have enough numbers, fill with available ones
+        while (uniqueNumbers.length < 9) {
+            const isThreeDice = this.currentMode === CONFIG.GAME_MODES.THREE_DICE;
+            const maxRange = isThreeDice ? 18 : 24;
+            
+            for (let i = 1; i <= maxRange && uniqueNumbers.length < 9; i++) {
+                if (!uniqueNumbers.includes(i)) {
+                    uniqueNumbers.push(i);
                 }
             }
         }
         
-        // Shuffle the numbers randomly
-        const shuffledNumbers = [...numbers].sort(() => Math.random() - 0.5);
+        // Sort in ascending order and take first 9
+        const finalNumbers = uniqueNumbers.sort((a, b) => a - b).slice(0, 9);
         
-        console.log(`🎯 Generated 4 buttons for ${this.currentMode}: [${shuffledNumbers.join(', ')}] (correct: ${correctAnswer})`);
+        console.log(`🎯 Generated 9 buttons: [${finalNumbers.join(', ')}] (correct: ${correctAnswer})`);
         
-        return shuffledNumbers.slice(0, 4); // Ensure exactly 4 numbers
+        return finalNumbers;
     }
 
     createButtons() {
         if (window.ButtonBar && this.buttonBarReady) {
             if (this.shouldUseNumberFormat()) {
-                // For 3 and 4 dice games - use 4 button format
-                // Numbers will be set dynamically when question starts
-                const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24'];
-                const placeholderNumbers = [1, 2, 3, 4]; // Will be updated dynamically
+                // UPDATED: For 3 and 4 dice games - use 9 button format with new dimensions
+                const colors = [
+                    '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+                    '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8'
+                ];
+                const placeholderNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]; // Will be updated dynamically
                 
                 window.ButtonBar.create(
-                    4,      // 4 buttons
-                    14,     // 14% width
-                    8,      // 8% height
+                    9,      // CHANGED: 9 buttons instead of 4
+                    9.4,    // CHANGED: 9.4% width (for double digits)
+                    8,      // CHANGED: 8% height
                     colors,
                     placeholderNumbers,
                     (selectedNumber, buttonElement) => {
@@ -590,7 +604,7 @@ class MultiDiceGameController {
                         this.handleNumberClick(selectedNumber, buttonElement);
                     }
                 );
-                console.log(`✅ Button bar created for ${this.currentMode} with 4 buttons`);
+                console.log(`✅ Button bar created for ${this.currentMode} with 9 buttons`);
             } else {
                 // For 2 dice game - use 12 button format
                 const colors = [
@@ -735,10 +749,10 @@ startInactivityTimer() {
     }
 
     handleKeyboardDigit(digit) {
-        // UPDATED: For 3 and 4 dice games with 4-button system, disable complex keyboard handling
+        // UPDATED: For 3 and 4 dice games with 9-button system
         if (this.shouldUseNumberFormat()) {
-            // Simple digit handling for 4-button system
-            if (digit >= 1 && digit <= 4 && window.ButtonBar && window.ButtonBar.buttons) {
+            // Simple digit handling for 9-button system (keys 1-9)
+            if (digit >= 1 && digit <= 9 && window.ButtonBar && window.ButtonBar.buttons) {
                 const buttonIndex = digit - 1;
                 const button = window.ButtonBar.buttons[buttonIndex];
                 if (button) {
