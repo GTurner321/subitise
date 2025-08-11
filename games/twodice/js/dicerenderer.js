@@ -677,7 +677,7 @@ class MultiDiceRenderer {
             dice.appendChild(face);
         });
         
-        // NEW: Create inner dice (10% smaller, same color, 100% opacity)
+        // NEW: Create inner dice (95% size, same color, 100% opacity, no borders)
         const innerDice = document.createElement('div');
         innerDice.className = 'dice-inner';
         innerDice.style.backgroundColor = diceColor;
@@ -688,8 +688,8 @@ class MultiDiceRenderer {
             innerFace.className = `dice-inner-face ${faceClass}`;
             innerFace.style.backgroundColor = diceColor;
             
-            // Set 3D positioning for inner faces
-            this.setFace3DPosition(innerFace, faceClass, halfDiceSize * 0.9); // Slightly smaller
+            // FIXED: Set 3D positioning for inner faces using same halfDiceSize
+            this.setFace3DPosition(innerFace, faceClass, halfDiceSize);
             
             innerDice.appendChild(innerFace);
         });
@@ -1003,18 +1003,21 @@ class MultiDiceRenderer {
                     console.log(`   Result: Front=${newFaces.front}\n`);
                 }
                 
-                // Apply CSS transform with corrections
+                // FIXED: Apply CSS transform with corrections - sync main dice and inner dice
                 currentRotationX += cssRotX;
                 currentRotationY += cssRotY;
                 
-                dice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
+                // Apply the same transform to both main dice and inner dice
+                const transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
                 
-                // NEW: Rotate inner dice simultaneously
+                dice.style.transition = `transform ${flipDuration}s ease-in-out`;
+                dice.style.transform = transform;
+                
+                // FIXED: Apply EXACT same transform to inner dice for perfect synchronization
                 const innerDice = dice.querySelector('.dice-inner');
                 if (innerDice) {
                     innerDice.style.transition = `transform ${flipDuration}s ease-in-out`;
-                    innerDice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
+                    innerDice.style.transform = transform; // EXACT same transform
                 }
                 
                 // Update tracking
@@ -1056,6 +1059,14 @@ class MultiDiceRenderer {
                     face.style.transition = 'opacity 1s ease-out';
                     face.style.opacity = '0';
                 });
+                
+                // FIXED: Fade out corresponding shadow
+                const positionKey = dice.dataset.position;
+                const shadow = document.querySelector(`.dice-shadow[data-position="${positionKey}"]`);
+                if (shadow) {
+                    shadow.style.transition = 'opacity 1s ease-out';
+                    shadow.classList.remove('visible');
+                }
             }
         });
         
