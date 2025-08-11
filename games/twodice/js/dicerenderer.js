@@ -680,14 +680,6 @@ class MultiDiceRenderer {
             coloredSurface.style.boxSizing = 'border-box';
             coloredSurface.style.zIndex = '3';
             
-            // NEW: Create thickness element for depth (10% extending inward)
-            const thickness = document.createElement('div');
-            thickness.className = 'dice-face-thickness';
-            
-            // Calculate darker color for thickness (20% darker for better visibility)
-            const darkerColor = this.darkenColor(diceColor, 0.2);
-            thickness.style.backgroundColor = darkerColor;
-            
             // Create dots container
             const dotsContainer = document.createElement('div');
             dotsContainer.className = 'dice-dots-container';
@@ -706,16 +698,33 @@ class MultiDiceRenderer {
             this.createDots(dotsContainer, faceValue, gameAreaWidth, faceClass);
             
             face.appendChild(innerFace);      
-            face.appendChild(thickness);
             face.appendChild(coloredSurface); 
             face.appendChild(dotsContainer);  
             dice.appendChild(face);
         });
         
-        // REMOVED: Inner dice creation - now using thickness approach
+        // RESTORED: Create inner dice (95% size, same color, no borders, exact movement sync)
+        const innerDice = document.createElement('div');
+        innerDice.className = 'dice-inner';
+        innerDice.style.backgroundColor = diceColor;
+        
+        // Create inner faces - same color, no borders
+        Object.entries(faceValues).forEach(([faceClass, faceValue]) => {
+            const innerFace = document.createElement('div');
+            innerFace.className = `dice-inner-face ${faceClass}`;
+            innerFace.style.backgroundColor = diceColor;
+            
+            // Set 3D positioning for inner faces using same halfDiceSize
+            this.setFace3DPosition(innerFace, faceClass, halfDiceSize * 0.95);
+            
+            innerDice.appendChild(innerFace);
+        });
+        
+        dice.appendChild(innerDice);
         
         // Start at standard orientation (no rotation)
         dice.style.transform = `rotateX(0deg) rotateY(0deg)`;
+        innerDice.style.transform = `rotateX(0deg) rotateY(0deg)`;
         
         // Store initial rotation for tracking
         dice.dataset.currentRotationX = 0;
