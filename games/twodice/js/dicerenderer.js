@@ -863,7 +863,7 @@ class MultiDiceRenderer {
             this.currentDice.push(dice);
         }
         
-        // Fade in dice and shadows
+        // Fade in dice and shadows with staggered timing
         setTimeout(() => {
             this.currentDice.forEach(dice => {
                 dice.style.transition = 'opacity 1s ease-in';
@@ -875,12 +875,14 @@ class MultiDiceRenderer {
                     face.style.opacity = '1';
                 });
                 
-                // NEW: Fade in shadow
+                // UPDATED: Fade in shadow with 0.4 second delay
                 const positionKey = dice.dataset.position;
                 const shadow = document.querySelector(`.dice-shadow[data-position="${positionKey}"]`);
                 if (shadow) {
-                    shadow.style.transition = 'opacity 1s ease-in';
-                    shadow.classList.add('visible');
+                    setTimeout(() => {
+                        shadow.style.transition = 'opacity 1s ease-in';
+                        shadow.classList.add('visible');
+                    }, 400); // 0.4 second delay for shadow fade-in
                 }
             });
         }, 200);
@@ -1059,36 +1061,40 @@ class MultiDiceRenderer {
     async fadeOutCurrentDice() {
         if (this.currentDice.length === 0) return;
         
-        // Fade out current dice
+        // CORRECTED: Fade out shadows FIRST (0.4 seconds before dice)
         this.currentDice.forEach(dice => {
-            if (dice && dice.parentNode) {
-                dice.style.transition = 'opacity 1s ease-out';
-                dice.style.opacity = '0';
-                
-                const faces = dice.querySelectorAll('.dice-face');
-                faces.forEach(face => {
-                    face.style.transition = 'opacity 1s ease-out';
-                    face.style.opacity = '0';
-                });
-                
-                // FIXED: Fade out corresponding shadow
-                const positionKey = dice.dataset.position;
-                const shadow = document.querySelector(`.dice-shadow[data-position="${positionKey}"]`);
-                if (shadow) {
-                    shadow.style.transition = 'opacity 1s ease-out';
-                    shadow.classList.remove('visible');
-                }
+            const positionKey = dice.dataset.position;
+            const shadow = document.querySelector(`.dice-shadow[data-position="${positionKey}"]`);
+            if (shadow) {
+                shadow.style.transition = 'opacity 1s ease-out';
+                shadow.classList.remove('visible');
             }
         });
         
-        // Fade out flash circles
+        // Fade out flash circles immediately (with shadows)
         const flashCircles = document.querySelectorAll('.dice-flash-circle');
         flashCircles.forEach(circle => {
             circle.style.transition = 'opacity 1s ease-out';
             circle.style.opacity = '0';
         });
         
-        // Wait for fade-out and remove
+        // CORRECTED: Start dice fade-out 0.4 seconds AFTER shadows
+        setTimeout(() => {
+            this.currentDice.forEach(dice => {
+                if (dice && dice.parentNode) {
+                    dice.style.transition = 'opacity 1s ease-out';
+                    dice.style.opacity = '0';
+                    
+                    const faces = dice.querySelectorAll('.dice-face');
+                    faces.forEach(face => {
+                        face.style.transition = 'opacity 1s ease-out';
+                        face.style.opacity = '0';
+                    });
+                }
+            });
+        }, 400); // 0.4 second delay for dice fade-out (after shadows start)
+        
+        // Wait for complete fade-out and remove (account for the staggered timing)
         return new Promise(resolve => {
             const timeout = setTimeout(() => {
                 this.currentDice.forEach(dice => {
@@ -1106,7 +1112,7 @@ class MultiDiceRenderer {
                 });
                 
                 resolve();
-            }, 1000);
+            }, 1400); // 1000ms fade + 400ms stagger
             this.rollTimeouts.push(timeout);
         });
     }
