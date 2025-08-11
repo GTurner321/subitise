@@ -375,6 +375,11 @@ class MultiDiceGameController {
         console.log('📏 Game area dimensions updated and CSS custom property set:', gameAreaRect.width, 'px');
         
         this.forceStyleRecalculation();
+        
+        // UPDATED: Also force sum row visibility after dimensions are updated
+        setTimeout(() => {
+            this.forceSumRowVisibility();
+        }, 100);
     }
     
     forceStyleRecalculation() {
@@ -399,21 +404,59 @@ class MultiDiceGameController {
     }
 
     initializeGame() {
-        console.log('🎲 Starting game initialization with loading sequence');
+        console.log('🎲 Starting game initialization with proper loading sequence');
         
         this.hideGameElements();
         
         setTimeout(() => {
             console.log('🎲 Starting fade-in sequence');
             this.showGameElements();
-            this.isLoading = false;
-            this.initializationComplete = true;
             
+            // UPDATED: Wait for game area and button bar to be fully loaded before creating sum row
             setTimeout(() => {
-                this.startNewQuestion();
-            }, 1000);
+                this.isLoading = false;
+                this.initializationComplete = true;
+                
+                // Ensure sum row is properly initialized after game area is ready
+                this.updateSumRow();
+                this.forceSumRowVisibility();
+                
+                setTimeout(() => {
+                    this.startNewQuestion();
+                }, 500);
+                
+            }, 800); // Give more time for game area and button bar to stabilize
             
         }, 500);
+    }
+
+    /**
+     * Force sum row visibility and proper sizing
+     */
+    forceSumRowVisibility() {
+        if (!this.sumRow) return;
+        
+        console.log('🎲 Forcing sum row visibility and sizing');
+        
+        // Force proper dimensions
+        this.sumRow.style.display = 'flex';
+        this.sumRow.style.visibility = 'visible';
+        this.sumRow.style.opacity = '1';
+        this.sumRow.classList.add('loaded');
+        
+        // Force minimum sizing
+        this.sumRow.style.minWidth = '300px';
+        this.sumRow.style.minHeight = '80px';
+        
+        // Trigger a reflow to ensure CSS calculations
+        this.sumRow.offsetHeight;
+        
+        // Update CSS custom properties if needed
+        const gameAreaRect = this.gameArea ? this.gameArea.getBoundingClientRect() : null;
+        if (gameAreaRect && gameAreaRect.width > 0) {
+            document.documentElement.style.setProperty('--game-area-width', `${gameAreaRect.width}px`);
+            console.log(`🎲 Updated --game-area-width to ${gameAreaRect.width}px`);
+        }
     }
 
     hideGameElements() {
