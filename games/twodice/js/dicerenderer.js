@@ -63,6 +63,31 @@ class MultiDiceRenderer {
         
         // Setup resize handling for responsive dice
         this.setupResizeHandling();
+        
+        // FIXED: Ensure plus sign is created and positioned immediately
+        this.ensurePlusSignExists();
+    }
+
+    /**
+     * FIXED: Ensure plus sign element exists in DOM
+     */
+    ensurePlusSignExists() {
+        let plusSign = document.querySelector('.plus-sign');
+        if (!plusSign) {
+            plusSign = document.createElement('div');
+            plusSign.className = 'plus-sign';
+            plusSign.innerHTML = '<i class="fas fa-plus"></i>';
+            
+            const gameArea = document.querySelector('.game-area');
+            if (gameArea) {
+                gameArea.appendChild(plusSign);
+                console.log('✅ Plus sign created and added to game area');
+            }
+        }
+        
+        // Position it immediately for current mode
+        this.positionPlusSign();
+        return plusSign;
     }
 
     /**
@@ -85,22 +110,34 @@ class MultiDiceRenderer {
             document.documentElement.style.setProperty('--sum-bar-width-multiplier', config.widthMultiplier);
         }
         
-        // Position plus sign based on mode
+        // FIXED: Ensure plus sign exists and position it for the new mode
+        this.ensurePlusSignExists();
         this.positionPlusSign();
     }
 
     /**
-     * Position the plus sign based on current mode
+     * FIXED: Position the plus sign based on current mode - always ensure it's visible
      */
     positionPlusSign() {
-        const plusSign = document.querySelector('.plus-sign');
-        if (!plusSign) return;
+        let plusSign = document.querySelector('.plus-sign');
+        if (!plusSign) {
+            console.warn('⚠️ Plus sign not found, creating it');
+            plusSign = this.ensurePlusSignExists();
+        }
         
         const modeKey = this.currentMode.toUpperCase().replace('_', '_');
         const position = CONFIG.PLUS_POSITIONS[modeKey];
-        if (position) {
+        
+        if (position && plusSign) {
             plusSign.style.left = `calc(${position.x}% - calc(var(--red-circle-diameter) / 2))`;
             plusSign.style.top = `calc(${position.y}% - calc(var(--red-circle-diameter) / 2))`;
+            plusSign.style.display = 'flex'; // Ensure it's visible
+            plusSign.style.visibility = 'visible';
+            plusSign.style.opacity = '1';
+            
+            console.log(`📍 Plus sign positioned for ${this.currentMode} at (${position.x}%, ${position.y}%)`);
+        } else {
+            console.error(`❌ No position config found for mode: ${modeKey}`);
         }
     }
 
@@ -111,7 +148,7 @@ class MultiDiceRenderer {
             }
             this.resizeTimeout = setTimeout(() => {
                 this.updateDiceSize();
-                this.positionPlusSign();
+                this.positionPlusSign(); // FIXED: Reposition plus sign on resize
             }, 100);
         });
     }
@@ -1052,6 +1089,10 @@ class MultiDiceRenderer {
         if (gameArea) {
             gameArea.setAttribute('data-mode', this.currentMode);
         }
+        
+        // FIXED: Ensure plus sign is recreated and positioned after reset
+        this.ensurePlusSignExists();
+        this.positionPlusSign();
         
         console.log('Multi-dice renderer reset - color tracking cleared, mode reset to 2 dice');
     }
