@@ -680,12 +680,12 @@ class MultiDiceRenderer {
             coloredSurface.style.boxSizing = 'border-box';
             coloredSurface.style.zIndex = '3';
             
-            // NEW: Create thickness element for depth (5% extending inward)
+            // NEW: Create thickness element for depth (10% extending inward)
             const thickness = document.createElement('div');
             thickness.className = 'dice-face-thickness';
             
-            // Calculate slightly darker color for thickness (10% darker)
-            const darkerColor = this.darkenColor(diceColor, 0.15);
+            // Calculate darker color for thickness (20% darker for better visibility)
+            const darkerColor = this.darkenColor(diceColor, 0.2);
             thickness.style.backgroundColor = darkerColor;
             
             // Create dots container
