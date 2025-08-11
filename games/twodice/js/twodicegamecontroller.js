@@ -76,9 +76,32 @@ class MultiDiceGameController {
      * Set the current game mode and update renderer
      */
     setGameMode(mode) {
+        const previousMode = this.currentMode;
         this.currentMode = mode;
         this.diceRenderer.setGameMode(mode);
         this.updateSumRow();
+        
+        // UPDATED: Recreate buttons if switching between different button systems
+        const previousUseNumberFormat = previousMode === CONFIG.GAME_MODES.THREE_DICE || previousMode === CONFIG.GAME_MODES.FOUR_DICE;
+        const currentUseNumberFormat = this.shouldUseNumberFormat();
+        
+        if (previousUseNumberFormat !== currentUseNumberFormat && this.buttonBarReady) {
+            console.log(`🔄 Button system change detected, recreating buttons for ${mode}`);
+            if (window.ButtonBar) {
+                window.ButtonBar.destroy();
+            }
+            setTimeout(() => {
+                this.createButtons();
+                // FIXED: Force sum row visibility after button recreation
+                if (this.sumRow) {
+                    this.sumRow.style.display = 'flex';
+                    this.sumRow.style.opacity = '1';
+                    this.sumRow.style.visibility = 'visible';
+                    this.sumRow.classList.add('loaded');
+                }
+            }, 100);
+        }
+        
         console.log(`🎯 Game mode set to: ${mode}`);
     }
 
@@ -405,36 +428,134 @@ class MultiDiceGameController {
         
         if (this.sumRow) {
             this.sumRow.classList.add('loaded');
+            // FIXED: Force visibility and proper styling for sum row
+            this.sumRow.style.display = 'flex';
+            this.sumRow.style.opacity = '1';
+            this.sumRow.style.visibility = 'visible';
         }
         
         console.log('🎲 Game elements faded in');
     }
 
-    createButtons() {
-        const colors = [
-            '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
-            '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894',
-            '#00cec9', '#e17055'
-        ];
-        const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    /**
+     * UPDATED: Determine if should use number format (4 buttons) for 3 and 4 dice games
+     */
+    shouldUseNumberFormat() {
+        return this.currentMode === CONFIG.GAME_MODES.THREE_DICE || 
+               this.currentMode === CONFIG.GAME_MODES.FOUR_DICE;
+    }
+
+    /**
+     * UPDATED: Generate 4 button numbers for 3 and 4 dice games
+     */
+    updateButtonsForNumberFormat() {
+        if (!this.shouldUseNumberFormat()) return null;
         
-        if (window.ButtonBar && this.buttonBarReady) {
-            window.ButtonBar.create(
-                12,
-                6.7,
-                6.7,
-                colors,
-                numbers,
-                (selectedNumber, buttonElement) => {
-                    if (this.buttonsDisabled || !this.initializationComplete) return;
-                    
-                    this.clearInactivityTimer();
-                    this.startInactivityTimer();
-                    
-                    this.handleNumberClick(selectedNumber, buttonElement);
+        const correctAnswer = this.currentTotal;
+        const numbers = [];
+        
+        // 1) The correct answer
+        numbers.push(correctAnswer);
+        
+        // 2) Random choice between n+1 and n-1
+        const option2Choices = [correctAnswer + 1, correctAnswer - 1].filter(n => n > 0);
+        if (option2Choices.length > 0) {
+            const option2 = option2Choices[Math.floor(Math.random() * option2Choices.length)];
+            numbers.push(option2);
+        }
+        
+        // 3) Random choice between n+2 and n-2
+        const option3Choices = [correctAnswer + 2, correctAnswer - 2].filter(n => n > 0 && !numbers.includes(n));
+        if (option3Choices.length > 0) {
+            const option3 = option3Choices[Math.floor(Math.random() * option3Choices.length)];
+            numbers.push(option3);
+        }
+        
+        // 4) Random different number from appropriate range
+        const isThreeDice = this.currentMode === CONFIG.GAME_MODES.THREE_DICE;
+        const rangeMin = isThreeDice ? 3 : 4;
+        const rangeMax = isThreeDice ? 18 : 24;
+        
+        // Generate candidates from range, excluding already chosen numbers
+        const candidates = [];
+        for (let i = rangeMin; i <= rangeMax; i++) {
+            if (!numbers.includes(i)) {
+                candidates.push(i);
+            }
+        }
+        
+        if (candidates.length > 0) {
+            const option4 = candidates[Math.floor(Math.random() * candidates.length)];
+            numbers.push(option4);
+        }
+        
+        // Pad with additional numbers if needed (shouldn't happen but safety)
+        while (numbers.length < 4) {
+            for (let i = rangeMin; i <= rangeMax && numbers.length < 4; i++) {
+                if (!numbers.includes(i)) {
+                    numbers.push(i);
                 }
-            );
-            console.log('✅ Button bar created successfully');
+            }
+        }
+        
+        // Shuffle the numbers randomly
+        const shuffledNumbers = [...numbers].sort(() => Math.random() - 0.5);
+        
+        console.log(`🎯 Generated 4 buttons for ${this.currentMode}: [${shuffledNumbers.join(', ')}] (correct: ${correctAnswer})`);
+        
+        return shuffledNumbers.slice(0, 4); // Ensure exactly 4 numbers
+    }
+
+    createButtons() {
+        if (window.ButtonBar && this.buttonBarReady) {
+            if (this.shouldUseNumberFormat()) {
+                // For 3 and 4 dice games - use 4 button format
+                // Numbers will be set dynamically when question starts
+                const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24'];
+                const placeholderNumbers = [1, 2, 3, 4]; // Will be updated dynamically
+                
+                window.ButtonBar.create(
+                    4,      // 4 buttons
+                    14,     // 14% width
+                    8,      // 8% height
+                    colors,
+                    placeholderNumbers,
+                    (selectedNumber, buttonElement) => {
+                        if (this.buttonsDisabled || !this.initializationComplete) return;
+                        
+                        this.clearInactivityTimer();
+                        this.startInactivityTimer();
+                        
+                        this.handleNumberClick(selectedNumber, buttonElement);
+                    }
+                );
+                console.log(`✅ Button bar created for ${this.currentMode} with 4 buttons`);
+            } else {
+                // For 2 dice game - use 12 button format
+                const colors = [
+                    '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
+                    '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894',
+                    '#00cec9', '#e17055'
+                ];
+                const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                
+                window.ButtonBar.create(
+                    12,
+                    6.7,
+                    6.7,
+                    colors,
+                    numbers,
+                    (selectedNumber, buttonElement) => {
+                        if (this.buttonsDisabled || !this.initializationComplete) return;
+                        
+                        this.clearInactivityTimer();
+                        this.startInactivityTimer();
+                        
+                        this.handleNumberClick(selectedNumber, buttonElement);
+                    }
+                );
+                console.log('✅ Button bar created for 2 dice with 12 buttons');
+            }
         } else {
             console.warn('ButtonBar not available - using fallback');
         }
@@ -553,6 +674,21 @@ startInactivityTimer() {
     }
 
     handleKeyboardDigit(digit) {
+        // UPDATED: For 3 and 4 dice games with 4-button system, disable complex keyboard handling
+        if (this.shouldUseNumberFormat()) {
+            // Simple digit handling for 4-button system
+            if (digit >= 1 && digit <= 4 && window.ButtonBar && window.ButtonBar.buttons) {
+                const buttonIndex = digit - 1;
+                const button = window.ButtonBar.buttons[buttonIndex];
+                if (button) {
+                    const buttonNumber = parseInt(button.textContent);
+                    this.handleNumberClick(buttonNumber, button);
+                }
+            }
+            return;
+        }
+        
+        // Original keyboard handling for 2-dice game with 12 buttons
         if (this.keyboardBuffer === '1' && (digit === 0 || digit === 1 || digit === 2)) {
             this.clearKeyboardTimer();
             const number = parseInt('1' + digit);
@@ -624,6 +760,14 @@ startInactivityTimer() {
         // Set up for current mode
         this.diceRenderer.setGameMode(this.currentMode);
         this.updateSumRow();
+        
+        // FIXED: Force sum row visibility for 2-dice game
+        if (this.sumRow) {
+            this.sumRow.style.display = 'flex';
+            this.sumRow.style.opacity = '1';
+            this.sumRow.style.visibility = 'visible';
+            this.sumRow.classList.add('loaded');
+        }
         
         this.modal.classList.add('hidden');
         this.hideAllInputBoxes();
@@ -755,6 +899,24 @@ startInactivityTimer() {
             
             console.log(`🎯 TARGET VALUES: [${this.currentValues.join(', ')}], Total=${this.currentTotal}`);
             console.log(`📝 Updated used combinations: [${Array.from(this.usedSumsThisRound).sort().join(', ')}]`);
+            
+            // UPDATED: Update button numbers for 3 and 4 dice games
+            if (this.shouldUseNumberFormat()) {
+                const buttonNumbers = this.updateButtonsForNumberFormat();
+                if (buttonNumbers && window.ButtonBar && window.ButtonBar.updateNumbers) {
+                    window.ButtonBar.updateNumbers(buttonNumbers);
+                    console.log(`🔄 Updated button numbers: [${buttonNumbers.join(', ')}]`);
+                } else if (buttonNumbers && window.ButtonBar) {
+                    // FALLBACK: If updateNumbers doesn't exist, manually update
+                    console.log('🔄 Manually updating button numbers as fallback');
+                    window.ButtonBar.buttons.forEach((button, index) => {
+                        if (button && buttonNumbers[index] !== undefined) {
+                            button.dataset.number = buttonNumbers[index];
+                            button.textContent = buttonNumbers[index];
+                        }
+                    });
+                }
+            }
             
             // Enable buttons and show input boxes
             this.buttonsDisabled = false;
