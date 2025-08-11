@@ -1,4 +1,4 @@
-// Two Dice Game configuration settings
+// Multi-Dice Game configuration settings
 const CONFIG = {
     // Rainbow colors (in order)
     RAINBOW_COLORS: [
@@ -16,6 +16,58 @@ const CONFIG = {
     
     // Game mechanics
     RAINBOW_PIECES: 10, // Complete rainbow after 10 correct answers
+    
+    // UPDATED: Game modes
+    GAME_MODES: {
+        TWO_DICE: 'two_dice',
+        THREE_DICE: 'three_dice', 
+        FOUR_DICE: 'four_dice'
+    },
+    
+    // UPDATED: Dice positioning for different modes (percentages of game area)
+    DICE_POSITIONS: {
+        TWO_DICE: {
+            left: { x: 23, y: 50 },      // (23%, 50%)
+            right: { x: 77, y: 50 }      // (77%, 50%)
+        },
+        THREE_DICE: {
+            left: { x: 23, y: 40 },      // (23%, 40%) 
+            right: { x: 77, y: 40 },     // (77%, 40%)
+            bottom: { x: 50, y: 80 }     // (50%, 80%)
+        },
+        FOUR_DICE: {
+            topLeft: { x: 24, y: 24 },       // (24%, 24%)
+            topRight: { x: 77, y: 25 },      // (77%, 25%)
+            bottomLeft: { x: 22, y: 76 },    // (22%, 76%)
+            bottomRight: { x: 78, y: 75 }    // (78%, 75%)
+        }
+    },
+    
+    // UPDATED: Plus symbol positioning for different modes
+    PLUS_POSITIONS: {
+        TWO_DICE: { x: 50, y: 50 },    // Center
+        THREE_DICE: { x: 50, y: 30 },  // Upper center
+        FOUR_DICE: { x: 50, y: 50 }    // Center
+    },
+    
+    // UPDATED: Sum bar configurations
+    SUM_BAR_CONFIG: {
+        TWO_DICE: {
+            boxes: 2,
+            widthMultiplier: 6.5,
+            inputOrder: ['left', 'right'] // Maps to dice positions
+        },
+        THREE_DICE: {
+            boxes: 3,
+            widthMultiplier: 8.1,
+            inputOrder: ['left', 'bottom', 'right'] // Box1=left, Box2=bottom, Box3=right
+        },
+        FOUR_DICE: {
+            boxes: 4,
+            widthMultiplier: 9.7,
+            inputOrder: ['topLeft', 'bottomLeft', 'topRight', 'bottomRight'] // As specified
+        }
+    },
     
     // Dice settings
     DICE_SIZE: 120, // Size of each dice in pixels
@@ -39,19 +91,15 @@ const CONFIG = {
         SPEED_SETS: {
             A: {
                 diagonal: 0.55,
-                topToBottom: 0.4,
-                finalThreeMoves: {
-                    diagonal: 0.4,
-                    topToBottom: 0.3
-                }
+                forward: 0.4,
+                penultimate: { diagonal: 0.7, forward: 0.53 },
+                last: { diagonal: 0.95, forward: 0.75 }
             },
             B: {
                 diagonal: 0.58,
-                topToBottom: 0.42,
-                finalThreeMoves: {
-                    diagonal: 0.4,
-                    topToBottom: 0.3
-                }
+                forward: 0.42,
+                penultimate: { diagonal: 0.7, forward: 0.53 },
+                last: { diagonal: 0.95, forward: 0.75 }
             }
         }
     },
@@ -82,13 +130,13 @@ const CONFIG = {
     FLASH_DURATION: 800,
     NEXT_QUESTION_DELAY: 2000,
     
-    // Audio settings and messages
+    // UPDATED: Audio settings and messages
     AUDIO: {
         ENABLED: true,
         
         MESSAGES: {
             // Game start messages
-            FIRST_QUESTION: 'Watch the dice roll and complete the three numbers in the addition sum.',
+            FIRST_QUESTION: 'Watch the dice roll and complete the addition sum.',
             SECOND_QUESTION: 'Try again and complete the sum',
             CONTINUE_QUESTION: 'Complete the sum',
             
@@ -96,17 +144,24 @@ const CONFIG = {
             CORRECT_ANSWERS: ['Well done!', 'Excellent!', 'Perfect!', 'Great job!', 'Outstanding!'],
             INCORRECT_ANSWER: 'Try again',
             
-            // Hint messages
+            // UPDATED: Hint messages for multi-dice
             HINT_LEFT_DICE: 'Count the dots on the left dice',
-            HINT_RIGHT_DICE: 'Count the dots on the right dice', 
+            HINT_RIGHT_DICE: 'Count the dots on the right dice',
+            HINT_BOTTOM_DICE: 'Count the dots on the bottom dice',
+            HINT_TOP_LEFT_DICE: 'Count the dots on the top left dice',
+            HINT_TOP_RIGHT_DICE: 'Count the dots on the top right dice', 
+            HINT_BOTTOM_LEFT_DICE: 'Count the dots on the bottom left dice',
+            HINT_BOTTOM_RIGHT_DICE: 'Count the dots on the bottom right dice',
+            
+            // UPDATED: Total hints for different modes
             HINT_TOTAL: 'Add the two dice numbers together',
+            HINT_TOTAL_THREE: 'Add the three dice numbers together',
+            HINT_TOTAL_FOUR: 'Add the four dice numbers together',
             
-            // Completion messages
-            GAME_COMPLETE: 'Well done! You\'re on a roll! Try again or return to the home page.',
-            
-            // Level progression (optional audio feedback)
-            LEVEL_UP: 'Level up! Numbers are getting harder.',
-            LEVEL_DOWN: 'Don\'t worry, let\'s try some easier numbers.'
+            // UPDATED: Completion messages for different modes
+            GAME_TWODICE_COMPLETE: 'Well done! You\'re on a roll! Play again, or try the game with 3 dice, or return to the home page.',
+            GAME_THREEDICE_COMPLETE: 'Well done! You\'re on a roll! Play again, return to 2 dice, or try the game with 4 dice.',
+            GAME_FOURDICE_COMPLETE: 'Well done! You\'ve completed all the games! Play again, return to 2 or 3 dice, or return to the home page.'
         }
     },
     
