@@ -2,8 +2,9 @@
 :root {
     --game-area-width: 800px; /* Initial reasonable value, will be updated by JavaScript with actual game area width */
     --sum-box-size: calc(var(--game-area-width) * 0.08); /* 8% of actual game area width */
-    --sum-bar-width-multiplier: 6.5; /* How many box widths for sum bar */
+    --sum-bar-width-multiplier: 6.5; /* Default for 2 dice, will be updated dynamically */
     --red-circle-diameter: calc(var(--game-area-width) * 0.07); /* 7% of game area width for red circle diameter */
+    --dice-flash-diameter: calc(var(--game-area-width) * 0.18); /* 1.5x dice width (12% * 1.5 = 18%) */
 }
 
 /* Prevent scrolling - game always fits on screen */
@@ -47,31 +48,9 @@ body {
     opacity: 1;
 }
 
-/* Left game area: 0% to 46% of game area width */
-.left-side {
-    position: absolute;
-    left: 0%;
-    width: 46%;
-    top: 0%;
-    height: 100%;
-    /* Visual debugging - remove in production */
-    /* border: 1px dashed rgba(255, 0, 0, 0.3); */
-    z-index: 5; /* Above rainbow, below dice */
-}
+/* UPDATED: Remove left/right side areas - replaced with circular flashing */
 
-/* Left flash area for green flashing */
-.left-flash-area {
-    position: absolute;
-    left: 0%;
-    width: 46%;
-    top: 0%;
-    height: 100%;
-    pointer-events: none;
-    transition: background-color 0.2s ease;
-    z-index: 2; /* Above game areas but below dice */
-}
-
-/* Middle section - central bar with plus sign: 46% to 54% of game area width */
+/* UPDATED: Middle section - only visible for 2-dice mode */
 .middle-section {
     position: absolute;
     left: 46%;
@@ -88,6 +67,13 @@ body {
     padding: 0; /* Ensure no padding */
 }
 
+/* Hide middle section for 3 and 4 dice modes */
+.game-area[data-mode="three_dice"] .middle-section,
+.game-area[data-mode="four_dice"] .middle-section {
+    display: none;
+}
+
+/* UPDATED: Plus sign positioning - now flexible based on mode */
 .plus-sign {
     display: flex;
     justify-content: center;
@@ -101,9 +87,10 @@ body {
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
     z-index: 10;
-    position: relative;
+    position: absolute; /* Change to absolute for flexible positioning */
     margin: 0; /* Ensure no margin */
     padding: 0; /* Ensure no padding */
+    /* Position will be set dynamically by JavaScript based on mode */
 }
 
 .plus-sign i {
@@ -113,35 +100,23 @@ body {
     font-weight: bold;
 }
 
-/* Right game area: 54% to 100% of game area width */
-.right-side {
+/* UPDATED: Circular flashing areas behind dice */
+.dice-flash-circle {
     position: absolute;
-    left: 54%;
-    width: 46%;
-    top: 0%;
-    height: 100%;
-    /* Visual debugging - remove in production */
-    /* border: 1px dashed rgba(0, 255, 0, 0.3); */
-    z-index: 5; /* Above rainbow, below dice */
-}
-
-/* Right flash area for green flashing */
-.right-flash-area {
-    position: absolute;
-    left: 54%;
-    width: 46%;
-    top: 0%;
-    height: 100%;
+    width: var(--dice-flash-diameter);
+    height: var(--dice-flash-diameter);
+    border-radius: 50%;
     pointer-events: none;
     transition: background-color 0.2s ease;
     z-index: 2; /* Above game areas but below dice */
+    opacity: 0; /* Hidden by default */
+    /* Position will be set dynamically by JavaScript */
 }
 
-/* Area flashing styles */
-.left-flash-area.area-flash,
-.right-flash-area.area-flash {
+.dice-flash-circle.circle-flash {
     background-color: rgba(144, 238, 144, 0.2) !important;
-    transition: background-color 1s ease-in-out;
+    opacity: 1 !important;
+    transition: background-color 1s ease-in-out, opacity 1s ease-in-out;
 }
 
 /* 3D Dice Styling - Square dice with height matching width based on game area width */
@@ -163,16 +138,20 @@ body {
     touch-action: none;
 }
 
-/* Left dice positioning: centered at (23%, 45%) of game area */
-.dice.left-dice {
-    left: calc(23% - 6%); /* 23% minus half dice width (6%) */
-    top: calc(50% - 6%); /* 45% minus half dice height (6%) - from top */
+/* UPDATED: Dynamic dice positioning - will be set by JavaScript */
+.dice.positioned {
+    /* Position will be set dynamically based on mode and dice role */
 }
 
-/* Right dice positioning: centered at (77%, 45%) of game area */
+/* UPDATED: Legacy positioning classes for backward compatibility */
+.dice.left-dice {
+    left: calc(23% - 6%); /* 23% minus half dice width (6%) */
+    top: calc(50% - calc(var(--game-area-width) * 0.06)); /* 50% minus 6% of game area width */
+}
+
 .dice.right-dice {
     left: calc(77% - 6%); /* 77% minus half dice width (6%) */
-    top: calc(50% - 6%); /* 45% minus half dice height (6%) - from top */
+    top: calc(50% - calc(var(--game-area-width) * 0.06)); /* 50% minus 6% of game area width */
 }
 
 /* Dice faces - completely transparent containers for 3D positioning */
@@ -269,7 +248,7 @@ body {
     transition: transform 0.8s ease-out !important;
 }
 
-/* Sum row at bottom - positioned using game area percentages */
+/* UPDATED: Sum row at bottom - dynamic width based on mode */
 .sum-row {
     position: absolute;
     bottom: 3%; /* 3% of game area height */
@@ -280,8 +259,8 @@ body {
     gap: 2%;
     z-index: 15;
     
-    /* Responsive sizing based on game area */
-    width: calc(var(--sum-box-size) * var(--sum-bar-width-multiplier)); /* 6.5 boxes width */
+    /* Responsive sizing based on game area - width will be updated dynamically */
+    width: calc(var(--sum-box-size) * var(--sum-bar-width-multiplier));
     height: calc(var(--sum-box-size) + 2vh); /* box height + padding */
     
     background: rgba(255, 255, 255, 0.95);
@@ -321,9 +300,8 @@ body {
     flex-shrink: 0;
 }
 
-.left-sum-box,
-.right-sum-box,
-.total-sum-box {
+/* UPDATED: Input boxes for different numbers of dice */
+.dice-input-box {
     width: var(--sum-box-size); /* 8% of game area width */
     height: var(--sum-box-size); /* Same as width - perfect squares */
     flex-shrink: 0;
@@ -417,7 +395,62 @@ body {
     }
 }
 
-/* Game completion modal - Remove local styles to use main.css styles */
+/* UPDATED: Game completion modal styles for multiple buttons */
+.modal-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.modal-button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.modal-button.primary {
+    background: #007bff;
+    color: white;
+}
+
+.modal-button.primary:hover {
+    background: #0056b3;
+    transform: translateY(-2px);
+}
+
+.modal-button.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.modal-button.secondary:hover {
+    background: #545b62;
+    transform: translateY(-2px);
+}
+
+.modal-button.success {
+    background: #28a745;
+    color: white;
+}
+
+.modal-button.success:hover {
+    background: #1e7e34;
+    transform: translateY(-2px);
+}
+
+/* Button icons */
+.button-icon {
+    font-size: 18px;
+}
 
 /* Star celebration animation */
 .completion-star {
