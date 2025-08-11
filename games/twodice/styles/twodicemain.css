@@ -213,11 +213,11 @@ body {
     touch-action: none;
 }
 
-/* NEW: Face thickness - 5% depth extending inward with transparent borders */
+/* NEW: Face thickness - 10% depth extending inward with transparent borders */
 .dice-face-thickness {
     position: absolute;
     width: 100%;
-    height: 5%; /* 5% of dice width for thickness */
+    height: 10%; /* INCREASED: 10% of dice width for thickness */
     border: none; /* Transparent borders as discussed */
     box-sizing: border-box;
     z-index: 2; /* Below surface but above inner face */
@@ -241,7 +241,7 @@ body {
 
 .dice-face.left .dice-face-thickness {
     right: 0;
-    width: 5%;
+    width: 10%; /* INCREASED: 10% width for side faces */
     height: 100%;
     transform-origin: right center;
     transform: rotateY(90deg);
@@ -249,7 +249,7 @@ body {
 
 .dice-face.right .dice-face-thickness {
     left: 0;
-    width: 5%;
+    width: 10%; /* INCREASED: 10% width for side faces */
     height: 100%;
     transform-origin: left center;
     transform: rotateY(-90deg);
