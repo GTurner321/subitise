@@ -199,7 +199,7 @@ class MultiDiceGameController {
     }
 
     /**
-     * Create completion modal with appropriate buttons for current mode
+     * FIXED: Create completion modal with brief text and simple buttons
      */
     createCompletionModal() {
         if (!this.modal) return;
@@ -211,25 +211,10 @@ class MultiDiceGameController {
         const modalContent = document.createElement('div');
         modalContent.className = 'modal-content';
         
-        // Title
+        // FIXED: Simple title only
         const title = document.createElement('h2');
-        title.textContent = 'Congratulations!';
+        title.textContent = CONFIG.AUDIO.MESSAGES.GAME_MODAL_TITLE; // Just "Well done!"
         modalContent.appendChild(title);
-        
-        // Message based on current mode
-        const message = document.createElement('p');
-        switch (this.currentMode) {
-            case CONFIG.GAME_MODES.TWO_DICE:
-                message.textContent = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE;
-                break;
-            case CONFIG.GAME_MODES.THREE_DICE:
-                message.textContent = CONFIG.AUDIO.MESSAGES.GAME_THREEDICE_COMPLETE;
-                break;
-            case CONFIG.GAME_MODES.FOUR_DICE:
-                message.textContent = CONFIG.AUDIO.MESSAGES.GAME_FOURDICE_COMPLETE;
-                break;
-        }
-        modalContent.appendChild(message);
         
         // Button container
         const buttonContainer = document.createElement('div');
@@ -238,56 +223,56 @@ class MultiDiceGameController {
         // Play Again button (always present)
         const playAgainBtn = document.createElement('button');
         playAgainBtn.className = 'modal-button primary';
-        playAgainBtn.innerHTML = '<span class="button-icon">🔄</span>Play Again';
+        playAgainBtn.textContent = 'Play again'; // FIXED: Simple text
         playAgainBtn.addEventListener('click', () => {
             this.startNewGame();
         });
         buttonContainer.appendChild(playAgainBtn);
         
-        // Mode-specific buttons
+        // FIXED: Mode-specific buttons with simple text
         if (this.currentMode === CONFIG.GAME_MODES.TWO_DICE) {
-            // Try 3 Dice button
+            // 3 Dice button
             const threeDiceBtn = document.createElement('button');
             threeDiceBtn.className = 'modal-button success';
-            threeDiceBtn.innerHTML = '<span class="button-icon">→</span>Try 3 Dice';
+            threeDiceBtn.textContent = '3 dice'; // FIXED: Simple text
             threeDiceBtn.addEventListener('click', () => {
                 this.switchToMode(CONFIG.GAME_MODES.THREE_DICE);
             });
             buttonContainer.appendChild(threeDiceBtn);
             
         } else if (this.currentMode === CONFIG.GAME_MODES.THREE_DICE) {
-            // Try 4 Dice button
+            // 4 Dice button
             const fourDiceBtn = document.createElement('button');
             fourDiceBtn.className = 'modal-button success';
-            fourDiceBtn.innerHTML = '<span class="button-icon">→</span>Try 4 Dice';
+            fourDiceBtn.textContent = '4 dice'; // FIXED: Simple text
             fourDiceBtn.addEventListener('click', () => {
                 this.switchToMode(CONFIG.GAME_MODES.FOUR_DICE);
             });
             buttonContainer.appendChild(fourDiceBtn);
             
-            // Back to 2 Dice button
+            // 2 Dice button
             const twoDiceBtn = document.createElement('button');
             twoDiceBtn.className = 'modal-button secondary';
-            twoDiceBtn.innerHTML = '<span class="button-icon">←</span>Back to 2 Dice';
+            twoDiceBtn.textContent = '2 dice'; // FIXED: Simple text
             twoDiceBtn.addEventListener('click', () => {
                 this.switchToMode(CONFIG.GAME_MODES.TWO_DICE);
             });
             buttonContainer.appendChild(twoDiceBtn);
             
         } else if (this.currentMode === CONFIG.GAME_MODES.FOUR_DICE) {
-            // Back to 3 Dice button
+            // 3 Dice button
             const threeDiceBtn = document.createElement('button');
             threeDiceBtn.className = 'modal-button secondary';
-            threeDiceBtn.innerHTML = '<span class="button-icon">←</span>Back to 3 Dice';
+            threeDiceBtn.textContent = '3 dice'; // FIXED: Simple text
             threeDiceBtn.addEventListener('click', () => {
                 this.switchToMode(CONFIG.GAME_MODES.THREE_DICE);
             });
             buttonContainer.appendChild(threeDiceBtn);
             
-            // Back to 2 Dice button
+            // 2 Dice button
             const twoDiceBtn = document.createElement('button');
             twoDiceBtn.className = 'modal-button secondary';
-            twoDiceBtn.innerHTML = '<span class="button-icon">←</span>Back to 2 Dice';
+            twoDiceBtn.textContent = '2 dice'; // FIXED: Simple text
             twoDiceBtn.addEventListener('click', () => {
                 this.switchToMode(CONFIG.GAME_MODES.TWO_DICE);
             });
@@ -1158,23 +1143,24 @@ startInactivityTimer() {
         
         this.bear.startCelebration();
         
+        // FIXED: Play audio message but don't show it in modal
         if (this.isTabVisible) {
             setTimeout(() => {
-                let message;
+                let audioMessage;
                 switch (this.currentMode) {
                     case CONFIG.GAME_MODES.TWO_DICE:
-                        message = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE;
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE_AUDIO;
                         break;
                     case CONFIG.GAME_MODES.THREE_DICE:
-                        message = CONFIG.AUDIO.MESSAGES.GAME_THREEDICE_COMPLETE;
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_THREEDICE_COMPLETE_AUDIO;
                         break;
                     case CONFIG.GAME_MODES.FOUR_DICE:
-                        message = CONFIG.AUDIO.MESSAGES.GAME_FOURDICE_COMPLETE;
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_FOURDICE_COMPLETE_AUDIO;
                         break;
                     default:
-                        message = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE;
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE_AUDIO;
                 }
-                this.speakText(message);
+                this.speakText(audioMessage);
             }, 1000);
         }
     }
