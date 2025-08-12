@@ -50,7 +50,7 @@ body {
     opacity: 1;
 }
 
-/* Middle section - only visible for 2-dice mode */
+/* Middle section - make transparent but keep for plus sign positioning in 2-dice mode */
 .middle-section {
     position: absolute;
     left: 46%;
@@ -60,6 +60,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    /* UPDATED: Make transparent for 3 and 4 dice modes */
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
     border-left: 1px dashed rgba(0, 0, 0, 0.3);
     border-right: 1px dashed rgba(0, 0, 0, 0.3);
@@ -67,10 +68,11 @@ body {
     padding: 0; /* Ensure no padding */
 }
 
-/* Hide middle section for 3 and 4 dice modes */
+/* Make middle section transparent for 3 and 4 dice modes but keep container */
 .game-area[data-mode="three_dice"] .middle-section,
 .game-area[data-mode="four_dice"] .middle-section {
-    display: none;
+    background: transparent !important;
+    border: none !important;
 }
 
 /* Plus sign positioning with highest z-index and always visible */
@@ -92,6 +94,9 @@ body {
     padding: 0; /* Ensure no padding */
     opacity: 1 !important; /* Force visibility */
     visibility: visible !important; /* Force visibility */
+    /* UPDATED: Ensure it's always on top with transform3d hack */
+    transform: translateZ(0) !important;
+    will-change: transform !important;
     /* Position will be set dynamically by JavaScript based on mode */
 }
 
@@ -203,7 +208,7 @@ body {
     right: 0;
     bottom: 0;
     border: 3px solid #333;
-    border-radius: 20%; /* CHANGED: 20% of dice width instead of 15% */
+    border-radius: 20% !important; /* FIXED: Force 20% border radius */
     box-sizing: border-box;
     z-index: 3;
     /* Background color will be set by JavaScript */
@@ -220,7 +225,7 @@ body {
     width: 90%;
     height: 90%;
     border: none; /* No border outline */
-    border-radius: 20%; /* CHANGED: 20% of inner face width instead of 15% */
+    border-radius: 20% !important; /* FIXED: Force 20% border radius */
     box-sizing: border-box;
     z-index: 1;
     /* Background color will be set by JavaScript */
@@ -278,7 +283,7 @@ body {
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 2%;
+    gap: 1.2%; /* UPDATED: Reduced gap from 2% to 1.2% (40% reduction) */
     z-index: 15;
     
     /* Ensure proper sizing always */
@@ -297,7 +302,7 @@ body {
     box-sizing: border-box;
     opacity: 0; /* CHANGED: Start hidden until measurements ready */
     visibility: hidden; /* CHANGED: Start hidden until measurements ready */
-    transition: opacity 1s ease-in-out, visibility 1s ease-in-out;
+    transition: opacity 2s ease-in-out, visibility 2s ease-in-out; /* UPDATED: 2 second fade-in */
     
     /* Re-enable touch for sum row interactions */
     touch-action: manipulation;
@@ -320,14 +325,14 @@ body {
 /* Sum row symbols with proper responsive sizing */
 .sum-plus-sign,
 .sum-equals-sign {
-    font-size: calc(var(--sum-box-size) * 0.52); /* Based on box size */
+    font-size: calc(var(--sum-box-size) * 0.42); /* UPDATED: Reduced from 0.52 to 0.42 */
     font-weight: bold;
     color: #333;
-    min-width: calc(var(--sum-box-size) * 0.75); /* 75% of box size */
+    min-width: calc(var(--sum-box-size) * 0.6); /* UPDATED: Reduced from 0.75 to 0.6 */
     text-align: center;
     flex-shrink: 0;
     /* Better minimum font size to prevent tiny text */
-    min-font-size: 24px !important;
+    min-font-size: 20px !important; /* UPDATED: Reduced from 24px to 20px */
 }
 
 /* Input boxes for different numbers of dice with better minimum sizing */
@@ -348,13 +353,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: calc(var(--sum-box-size) * 0.6); /* Font size proportional to box size */
+    font-size: calc(var(--sum-box-size) * 0.45); /* UPDATED: Reduced from 0.6 to 0.45 for smaller text */
     font-weight: bold;
     color: #333;
     box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
     transition: all 0.3s ease;
     /* Better minimum font size to prevent tiny text */
-    min-font-size: 24px !important;
+    min-font-size: 18px !important; /* UPDATED: Reduced from 24px to 18px */
     box-sizing: border-box;
     position: relative; /* Ensure proper positioning context */
 }
