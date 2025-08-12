@@ -76,22 +76,13 @@ class TrumpsRenderer {
                 cardElement.classList.add('card-back');
                 cardElement.dataset.cardId = card.id;
                 
-                // Add card back design with bear image
-                const cardBack = document.createElement('div');
-                cardBack.className = 'card-back-design';
-                
-                // Create pattern div
-                const cardPattern = document.createElement('div');
-                cardPattern.className = 'card-pattern';
-                
-                // Create bear image div
-                const cardBearImage = document.createElement('div');
-                cardBearImage.className = 'card-bear-image';
-                
-                // Append both elements to card back
-                cardBack.appendChild(cardPattern);
-                cardBack.appendChild(cardBearImage);
-                cardElement.appendChild(cardBack);
+                // Add card back design with bear image - simpler approach
+                cardElement.innerHTML = `
+                    <div class="card-back-design">
+                        <div class="card-pattern"></div>
+                        <div class="card-bear-image"></div>
+                    </div>
+                `;
                 
                 // Make clickable
                 cardElement.style.cursor = 'pointer';
