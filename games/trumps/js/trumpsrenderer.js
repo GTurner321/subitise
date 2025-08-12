@@ -76,28 +76,14 @@ class TrumpsRenderer {
                 cardElement.classList.add('card-back');
                 cardElement.dataset.cardId = card.id;
                 
-                // Create card back design with bear image using img element
+                // Create card back design with pattern only (no bear image)
                 const cardBack = document.createElement('div');
                 cardBack.className = 'card-back-design';
                 
                 const cardPattern = document.createElement('div');
                 cardPattern.className = 'card-pattern';
                 
-                const cardBearContainer = document.createElement('div');
-                cardBearContainer.className = 'card-bear-image';
-                
-                const bearImg = document.createElement('img');
-                bearImg.src = '../../assets/bear.png';
-                bearImg.alt = 'Bear';
-                bearImg.style.width = '100%';
-                bearImg.style.height = '100%';
-                bearImg.style.objectFit = 'contain';
-                bearImg.style.filter = 'brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)';
-                bearImg.style.opacity = '0.8';
-                
-                cardBearContainer.appendChild(bearImg);
                 cardBack.appendChild(cardPattern);
-                cardBack.appendChild(cardBearContainer);
                 cardElement.appendChild(cardBack);
                 
                 // Make clickable
@@ -149,32 +135,19 @@ class TrumpsRenderer {
     
     applyButtonBarMargins() {
         const gameArea = document.querySelector('.game-area');
-        if (gameArea && window.ButtonBar) {
-            // Get current outside margin from ButtonBar system
-            const outsideMargin = window.ButtonBar.getOutsideMarginPercent();
-            
-            // Apply margins to game area for center card phase
-            gameArea.style.marginLeft = `${outsideMargin}vw`;
-            gameArea.style.marginRight = `${outsideMargin}vw`;
-            gameArea.style.width = `${100 - (2 * outsideMargin)}vw`;
-            gameArea.style.background = 'white'; // White background for center area
-            gameArea.style.zIndex = '20'; // Higher z-index to hide rainbow during card selection
-            
-            console.log(`📐 Applied ButtonBar margins: ${outsideMargin}vw`);
+        if (gameArea) {
+            // Add class for center card phase with margins and white background
+            gameArea.classList.add('center-card-phase');
+            console.log('📐 Applied center-card-phase class for ButtonBar margins');
         }
     }
     
     removeButtonBarMargins() {
         const gameArea = document.querySelector('.game-area');
         if (gameArea) {
-            // Reset to full width for card grid phase
-            gameArea.style.marginLeft = '0';
-            gameArea.style.marginRight = '0';
-            gameArea.style.width = '100vw';
-            gameArea.style.background = 'linear-gradient(135deg, #e3f2fd, #f3e5f5)'; // Back to gradient
-            gameArea.style.zIndex = ''; // Reset z-index to show rainbow
-            
-            console.log('📐 Removed ButtonBar margins - back to full width');
+            // Remove class to go back to full width with gradient background
+            gameArea.classList.remove('center-card-phase');
+            console.log('📐 Removed center-card-phase class - back to full width');
         }
     }
 
@@ -194,21 +167,7 @@ class TrumpsRenderer {
         const cardPattern = document.createElement('div');
         cardPattern.className = 'card-pattern';
         
-        const cardBearContainer = document.createElement('div');
-        cardBearContainer.className = 'card-bear-image';
-        
-        const bearImg = document.createElement('img');
-        bearImg.src = '../../assets/bear.png';
-        bearImg.alt = 'Bear';
-        bearImg.style.width = '100%';
-        bearImg.style.height = '100%';
-        bearImg.style.objectFit = 'contain';
-        bearImg.style.filter = 'brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)';
-        bearImg.style.opacity = '0.8';
-        
-        cardBearContainer.appendChild(bearImg);
         cardBack.appendChild(cardPattern);
-        cardBack.appendChild(cardBearContainer);
         
         // Card front
         const cardFront = document.createElement('div');
@@ -350,14 +309,14 @@ class TrumpsRenderer {
         const hasHalfStar = rating % 1 !== 0;
         let starsHtml = '';
         
-        // Add full stars
+        // Add full stars using Font Awesome
         for (let i = 0; i < fullStars; i++) {
-            starsHtml += '<span class="star full-star">★</span>';
+            starsHtml += '<span class="star"><i class="fa-solid fa-star"></i></span>';
         }
         
-        // Add half star if needed
+        // Add half star if needed using Font Awesome
         if (hasHalfStar) {
-            starsHtml += '<span class="star half-star">★</span>';
+            starsHtml += '<span class="star"><i class="fa-solid fa-star-half"></i></span>';
         }
         
         return starsHtml;
