@@ -984,7 +984,7 @@ class MultiDiceGameController {
     }
 
     /**
-     * Perform a single flash cycle (0.5s in, 0.5s out) - UPDATED: No hold, just quick fade
+     * Perform a single flash cycle (0.5s in, 0.5s out) - UPDATED: Immediate fade, no hold
      */
     performFlashCycle(flashPosition, allDiceBoxesFilled, onComplete = null) {
         const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
@@ -1007,7 +1007,7 @@ class MultiDiceGameController {
             this.diceRenderer.showFlashForPosition(flashPosition);
         }
         
-        // UPDATED: Fade out after 1 second (0.5s in + 0.5s out) - no hold
+        // UPDATED: Fade out immediately after 1 second (0.5s in + 0.5s out) - no hold
         setTimeout(() => {
             if (inputBox) {
                 inputBox.classList.remove('box-flash');
@@ -1025,7 +1025,7 @@ class MultiDiceGameController {
             if (onComplete) {
                 onComplete();
             }
-        }, 1000); // 1 second total flash duration (0.5s in + 0.5s out)
+        }, 1000); // 1 second total: 0.5s fade in + 0.5s fade out
     }
 
     stopFlashing() {
