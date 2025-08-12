@@ -5,7 +5,7 @@
     flex-direction: column;
     height: 100vh;
     width: 100vw;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #e3f2fd; /* Same pale lilac-blue as main.css margins */
     padding: 0;
     margin: 0;
     position: relative;
@@ -19,20 +19,22 @@
     gap: 4vw;
     margin: 1.5vh 0;
     padding: 0 2vw;
+    position: relative;
+    z-index: 10; /* Ensure scores are visible above rainbow */
 }
 
 .score-box {
-    width: 8vh;
-    height: 8vh;
-    border-radius: 1.5vh;
+    width: 13vh;
+    height: 13vh;
+    border-radius: 2vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3.5vh;
+    font-size: 5.5vh;
     font-weight: bold;
     color: white;
     transition: transform 0.3s ease;
-    box-shadow: 0 0.5vh 2vh rgba(0,0,0,0.2);
+    box-shadow: 0 0.8vh 2.5vh rgba(0,0,0,0.2);
 }
 
 .user-score {
@@ -54,6 +56,8 @@
     flex: 1;
     padding: 2vh 0;
     align-items: center;
+    position: relative;
+    z-index: 10; /* Ensure cards are visible above rainbow */
 }
 
 .card-slot {
@@ -161,6 +165,7 @@
     gap: 8vw;
     align-items: center;
     justify-content: center;
+    z-index: 15; /* Higher z-index for revealed cards */
 }
 
 .center-area.hidden {
@@ -168,8 +173,8 @@
 }
 
 .center-card {
-    width: 20vw; /* Slightly reduced from 24vw */
-    height: calc(20vw / 0.7); /* Maintain 0.7 aspect ratio */
+    width: 20vw; /* Keep width the same */
+    height: calc(20vw / 0.7 * 1.1); /* Make 10% taller by multiplying by 1.1 */
     perspective: 1000px;
 }
 
@@ -213,7 +218,7 @@
 }
 
 .card-name {
-    font-size: 2vh;
+    font-size: 2.8vh; /* Increased from 2vh */
     font-weight: bold;
     color: #333;
     margin-bottom: 1.5vh;
@@ -221,7 +226,7 @@
     line-height: 1.2;
 }
 
-/* Square image window */
+/* Square image window - transparent with no border/shading */
 .card-image-window {
     width: 100%;
     height: 0;
@@ -229,9 +234,8 @@
     position: relative;
     border-radius: 1.5vh;
     margin-bottom: 1.5vh;
-    background: #E6F3FF;
-    box-shadow: inset 0 0.3vh 1vh rgba(135, 206, 250, 0.3);
-    border: 0.2vh solid #B8D4F0;
+    background: transparent; /* Made transparent */
+    /* Removed box-shadow and border */
 }
 
 .card-image {
@@ -286,13 +290,13 @@
 
 .stat-label {
     font-weight: bold;
-    font-size: 1.6vh;
+    font-size: 2.2vh; /* Increased from 1.6vh */
     color: #555;
 }
 
 .stat-value {
     font-weight: bold;
-    font-size: 1.8vh;
+    font-size: 2.5vh; /* Increased from 1.8vh */
     color: #333;
 }
 
@@ -347,14 +351,14 @@
     }
 }
 
-/* Rainbow background - positioned behind game content */
+/* Rainbow background - positioned behind game content with correct z-index */
 .rainbow-container {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
+    z-index: 0; /* Changed from 1 to 0 to ensure it's behind all game content */
     pointer-events: none; /* Allow clicks to pass through */
 }
 
