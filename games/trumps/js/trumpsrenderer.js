@@ -76,13 +76,29 @@ class TrumpsRenderer {
                 cardElement.classList.add('card-back');
                 cardElement.dataset.cardId = card.id;
                 
-                // Add card back design with bear image - simpler approach
-                cardElement.innerHTML = `
-                    <div class="card-back-design">
-                        <div class="card-pattern"></div>
-                        <div class="card-bear-image"></div>
-                    </div>
-                `;
+                // Create card back design with bear image using img element
+                const cardBack = document.createElement('div');
+                cardBack.className = 'card-back-design';
+                
+                const cardPattern = document.createElement('div');
+                cardPattern.className = 'card-pattern';
+                
+                const cardBearContainer = document.createElement('div');
+                cardBearContainer.className = 'card-bear-image';
+                
+                const bearImg = document.createElement('img');
+                bearImg.src = '../../assets/bear.png';
+                bearImg.alt = 'Bear';
+                bearImg.style.width = '100%';
+                bearImg.style.height = '100%';
+                bearImg.style.objectFit = 'contain';
+                bearImg.style.filter = 'brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)';
+                bearImg.style.opacity = '0.8';
+                
+                cardBearContainer.appendChild(bearImg);
+                cardBack.appendChild(cardPattern);
+                cardBack.appendChild(cardBearContainer);
+                cardElement.appendChild(cardBack);
                 
                 // Make clickable
                 cardElement.style.cursor = 'pointer';
@@ -140,10 +156,25 @@ class TrumpsRenderer {
         // Card back
         const cardBack = document.createElement('div');
         cardBack.className = 'card-face card-back-face';
-        cardBack.innerHTML = `
-            <div class="card-pattern"></div>
-            <div class="card-bear-image"></div>
-        `;
+        
+        const cardPattern = document.createElement('div');
+        cardPattern.className = 'card-pattern';
+        
+        const cardBearContainer = document.createElement('div');
+        cardBearContainer.className = 'card-bear-image';
+        
+        const bearImg = document.createElement('img');
+        bearImg.src = '../../assets/bear.png';
+        bearImg.alt = 'Bear';
+        bearImg.style.width = '100%';
+        bearImg.style.height = '100%';
+        bearImg.style.objectFit = 'contain';
+        bearImg.style.filter = 'brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)';
+        bearImg.style.opacity = '0.8';
+        
+        cardBearContainer.appendChild(bearImg);
+        cardBack.appendChild(cardPattern);
+        cardBack.appendChild(cardBearContainer);
         
         // Card front
         const cardFront = document.createElement('div');
