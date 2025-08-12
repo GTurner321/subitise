@@ -10,28 +10,11 @@ class TrumpsGameController {
         this.selectedCards = { user: null, computer: null };
         this.gameComplete = false;
         
-        // Audio functionality
-        this.audioEnabled = CONFIG.AUDIO_ENABLED;
-        this.audioContext = null;
-        this.questionsCompleted = 0; // Track total questions for different instructions
-        
-        // Mute button references
-        this.muteButton = null;
-        this.muteContainer = null;
+        // Track questions completed for different instructions
+        this.questionsCompleted = 0;
         
         this.initializeGame();
         this.initializeEventListeners();
-        this.initializeAudio();
-        this.createMuteButton();
-    }
-
-    async initializeAudio() {
-        if (!this.audioEnabled) return;
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
-            this.audioEnabled = false;
-        }
     }
 
     initializeGame() {
@@ -58,88 +41,6 @@ class TrumpsGameController {
         });
     }
 
-    createMuteButton() {
-        // Create mute button container
-        const muteContainer = document.createElement('div');
-        muteContainer.style.position = 'fixed';
-        muteContainer.style.top = '20px';
-        muteContainer.style.right = '20px';
-        muteContainer.style.zIndex = '1000';
-        muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        muteContainer.style.borderRadius = '50%';
-        muteContainer.style.width = '60px';
-        muteContainer.style.height = '60px';
-        muteContainer.style.display = 'flex';
-        muteContainer.style.alignItems = 'center';
-        muteContainer.style.justifyContent = 'center';
-        muteContainer.style.cursor = 'pointer';
-        muteContainer.style.transition = 'all 0.3s ease';
-        muteContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-        
-        // Create button
-        this.muteButton = document.createElement('button');
-        this.muteButton.style.background = 'none';
-        this.muteButton.style.border = 'none';
-        this.muteButton.style.color = 'white';
-        this.muteButton.style.fontSize = '24px';
-        this.muteButton.style.cursor = 'pointer';
-        this.muteButton.style.width = '100%';
-        this.muteButton.style.height = '100%';
-        this.muteButton.style.display = 'flex';
-        this.muteButton.style.alignItems = 'center';
-        this.muteButton.style.justifyContent = 'center';
-        
-        // Set initial icon
-        this.updateMuteButtonIcon();
-        
-        // Add event listeners
-        this.muteButton.addEventListener('click', () => this.toggleAudio());
-        this.muteButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.toggleAudio();
-        });
-        
-        // Hover effects
-        muteContainer.addEventListener('mouseenter', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-            muteContainer.style.transform = 'scale(1.1)';
-        });
-        
-        muteContainer.addEventListener('mouseleave', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            muteContainer.style.transform = 'scale(1)';
-        });
-        
-        muteContainer.appendChild(this.muteButton);
-        document.body.appendChild(muteContainer);
-        
-        this.muteContainer = muteContainer;
-    }
-
-    updateMuteButtonIcon() {
-        if (this.muteButton) {
-            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
-            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
-        }
-    }
-
-    toggleAudio() {
-        this.audioEnabled = !this.audioEnabled;
-        this.updateMuteButtonIcon();
-        
-        // Stop any current speech
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        // Provide feedback
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText('Sound on');
-            }, 100);
-        }
-    }
-
     handleClick(e) {
         const target = e.target.closest('[data-card-id], [data-category]');
         if (!target) return;
@@ -160,8 +61,8 @@ class TrumpsGameController {
         // Render the current card grid
         this.renderer.renderCardGrid(this.availableCards);
         
-        // Give instructions - shortened message
-        this.speakText(`Round ${this.currentRound}. Choose a card.`);
+        // Give instructions using universal audio system
+        window.AudioSystem.speakText(`Round ${this.currentRound}. Choose a card.`);
     }
 
     async handleCardSelection(cardId) {
@@ -193,14 +94,14 @@ class TrumpsGameController {
         if (this.questionsCompleted === 0) {
             // First question - longer explanation
             const longInstruction = 'Choose a category: Fun, Cuddly, or Stars. Fun goes up to 100%, cuddly goes up to 10, and the star rating is out of 5 stars';
-            this.speakText(longInstruction);
+            window.AudioSystem.speakText(longInstruction);
             
             // Calculate speech duration and wait before flipping computer card
             const speechDuration = this.calculateSpeechDuration(longInstruction);
             await this.renderer.wait(speechDuration);
         } else {
             // Subsequent questions - short instruction
-            this.speakText('Choose a category');
+            window.AudioSystem.speakText('Choose a category');
         }
     }
 
@@ -245,18 +146,19 @@ class TrumpsGameController {
             result
         );
         
-        // Update scores based on result
+        // Update scores based on result and provide audio feedback
         if (result === 'user') {
             this.scores.user++;
-            this.playSuccessSound();
-            this.speakText('You win this round!');
+            window.AudioSystem.playCompletionSound();
+            window.AudioSystem.speakText('You win this round!');
         } else if (result === 'computer') {
             this.scores.computer++;
-            this.playFailureSound();
-            this.speakText('Computer wins this round.');
+            window.AudioSystem.playFailureSound();
+            window.AudioSystem.speakText('Computer wins this round.');
         } else {
-            this.playNeutralSound();
-            this.speakText('It\'s a draw! No points awarded.');
+            // No sound method for neutral/draw in AudioSystem, so we'll use a tone
+            window.AudioSystem.playTone(440, 0.2, 'sine', 0.2);
+            window.AudioSystem.speakText('It\'s a draw! No points awarded.');
         }
         
         this.renderer.updateScores(this.scores.user, this.scores.computer);
@@ -307,7 +209,7 @@ class TrumpsGameController {
         // Show game complete modal
         this.renderer.showGameComplete(this.scores.user, this.scores.computer);
         
-        // Give final message
+        // Give final message using universal audio system
         let finalMessage;
         if (this.scores.user > this.scores.computer) {
             finalMessage = `Congratulations! You won ${this.scores.user} to ${this.scores.computer}! Play again or return to the home page.`;
@@ -318,7 +220,7 @@ class TrumpsGameController {
         }
         
         setTimeout(() => {
-            this.speakText(finalMessage);
+            window.AudioSystem.speakText(finalMessage);
         }, 1000);
     }
 
@@ -339,114 +241,11 @@ class TrumpsGameController {
         this.initializeGame();
     }
 
-    // Audio feedback methods
-    playSuccessSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            // Happy ascending tone
-            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
-            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
-            
-            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.5);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
-    playFailureSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
-            
-            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.3);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
-    playNeutralSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            // Neutral tone
-            oscillator.frequency.setValueAtTime(440, this.audioContext.currentTime);
-            
-            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.2);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
-    speakText(text) {
-        if (!this.audioEnabled) return;
-        
-        try {
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.1;
-                utterance.volume = 0.8;
-                
-                speechSynthesis.speak(utterance);
-            }
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
     destroy() {
-        // Clean up audio
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        if (this.audioContext) {
-            this.audioContext.close();
-        }
-        
-        // Clean up mute button
-        if (this.muteContainer && this.muteContainer.parentNode) {
-            this.muteContainer.parentNode.removeChild(this.muteContainer);
-        }
-        
         // Clean up renderer
         this.renderer.reset();
+        
+        // Universal AudioSystem will handle its own cleanup
     }
 }
 
