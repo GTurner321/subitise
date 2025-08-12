@@ -138,7 +138,7 @@ class TrumpsRenderer {
         if (gameArea) {
             // Add class for center card phase with margins and white background
             gameArea.classList.add('center-card-phase');
-            console.log('📐 Applied center-card-phase class for ButtonBar margins');
+            console.log(`📐 Applied center-card-phase class - classes now: ${gameArea.className}`);
         }
     }
     
@@ -146,8 +146,12 @@ class TrumpsRenderer {
         const gameArea = document.querySelector('.game-area');
         if (gameArea) {
             // Remove class to go back to full width with gradient background
+            const hadClass = gameArea.classList.contains('center-card-phase');
             gameArea.classList.remove('center-card-phase');
-            console.log('📐 Removed center-card-phase class - back to full width');
+            console.log(`📐 Removed center-card-phase class - had class: ${hadClass}, classes now: ${gameArea.className}`);
+            
+            // Force a reflow to ensure the CSS changes take effect
+            gameArea.offsetHeight;
         }
     }
 
