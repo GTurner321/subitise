@@ -1,15 +1,43 @@
 /* Teddy Trumps Game Styles - Fully Responsive */
 
+/* Game area with responsive margin system */
 .game-area {
     display: flex;
     flex-direction: column;
     height: 100vh;
     width: 100vw;
-    background: linear-gradient(135deg, #e3f2fd, #f3e5f5); /* Same gradient as main.css */
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5); /* Default gradient background */
     padding: 0;
     margin: 0;
     position: relative;
     overflow: hidden;
+    transition: all 0.5s ease; /* Smooth transition between phases */
+}
+
+/* Game area in center card phase with ButtonBar margins */
+.game-area.center-card-phase {
+    margin-left: 14vw; /* Default large screen margin */
+    margin-right: 14vw;
+    width: 72vw; /* 100vw - 28vw margins */
+    background: white; /* White background for center phase */
+    z-index: 20; /* Higher z-index to hide rainbow */
+}
+
+/* Responsive margins for center card phase */
+@media (max-width: 1024px) {
+    .game-area.center-card-phase {
+        margin-left: calc(14vw * (100vw - 768px) / (1024px - 768px)); /* Gradual reduction */
+        margin-right: calc(14vw * (100vw - 768px) / (1024px - 768px));
+        width: calc(100vw - 2 * 14vw * (100vw - 768px) / (1024px - 768px));
+    }
+}
+
+@media (max-width: 768px) {
+    .game-area.center-card-phase {
+        margin-left: 0;
+        margin-right: 0;
+        width: 100vw;
+    }
 }
 
 /* Scores Container */
@@ -384,12 +412,18 @@
     display: none !important;
 }
 
-/* Star Rating Styles */
+/* Star Rating Styles - Font Awesome stars */
 .star {
     color: #FFD700;
-    font-size: 4.5vh; /* Increased from 1.8vh to 4.5vh (2.5x larger) */
-    margin-right: 0.3vh;
-    text-shadow: 0.1vh 0.1vh 0.2vh rgba(0,0,0,0.3);
+    font-size: 2.8vh; /* Reduced to match button height better */
+    margin-right: 0.2vh;
+    text-shadow: 0.2vh 0.2vh 0.4vh rgba(0,0,0,0.5); /* Shadow behind stars */
+    padding: 0; /* Minimal padding */
+}
+
+.star i {
+    padding: 0;
+    margin: 0;
 }
 
 .half-star {
