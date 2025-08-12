@@ -752,20 +752,68 @@ class MultiDiceGameController {
     }
 
     handleKeyboardDigit(digit) {
-        // UPDATED: For 3 and 4 dice games with 9-button system
+        // UPDATED: For 3 and 4 dice games with 9-button system - implement 2-digit handling
         if (this.shouldUseNumberFormat()) {
-            // FIXED: Match digit to button number content, not position
-            if (digit >= 1 && digit <= 9 && window.ButtonBar && window.ButtonBar.buttons) {
-                // Find button that contains this digit as its number
+            // Check if digit 1 could be start of multi-digit answer
+            if (digit === 1) {
+                const hasAnswerStartingWith1 = this.hasValidAnswerStartingWith(1);
+                const hasExactAnswer1 = this.isDigitValidAnswer(1);
+                
+                if (!hasAnswerStartingWith1) {
+                    // No answers start with 1, so it's wrong
+                    return;
+                }
+                
+                if (hasExactAnswer1) {
+                    // There is an answer of exactly 1, so accept it
+                    const targetButton = window.ButtonBar.buttons.find(button => {
+                        return button && parseInt(button.textContent) === 1;
+                    });
+                    if (targetButton) {
+                        this.handleNumberClick(1, targetButton);
+                    }
+                    return;
+                }
+                
+                // Wait for second digit since there are multi-digit answers starting with 1
+                this.keyboardBuffer = '1';
+                this.keyboardTimer = setTimeout(() => {
+                    this.clearKeyboardTimer();
+                    // If we timeout, try to use 1 as answer if available
+                    const targetButton = window.ButtonBar.buttons.find(button => {
+                        return button && parseInt(button.textContent) === 1;
+                    });
+                    if (targetButton && this.isDigitValidAnswer(1)) {
+                        this.handleNumberClick(1, targetButton);
+                    }
+                }, this.keyboardWaitDuration);
+                return;
+            }
+            
+            // Handle second digit of multi-digit number
+            if (this.keyboardBuffer === '1' && digit >= 0 && digit <= 9) {
+                this.clearKeyboardTimer();
+                const number = parseInt('1' + digit);
+                
+                // Find button that contains this number
+                const targetButton = window.ButtonBar.buttons.find(button => {
+                    return button && parseInt(button.textContent) === number;
+                });
+                
+                if (targetButton && this.isDigitValidAnswer(number)) {
+                    this.handleNumberClick(number, targetButton);
+                }
+                return;
+            }
+            
+            // Single digit handling for non-1 digits
+            if (digit >= 2 && digit <= 9) {
                 const targetButton = window.ButtonBar.buttons.find(button => {
                     return button && parseInt(button.textContent) === digit;
                 });
                 
                 if (targetButton) {
-                    const buttonNumber = parseInt(targetButton.textContent);
-                    this.handleNumberClick(buttonNumber, targetButton);
-                } else {
-                    console.log(`No button found containing number ${digit}`);
+                    this.handleNumberClick(digit, targetButton);
                 }
             }
             return;
@@ -802,6 +850,34 @@ class MultiDiceGameController {
         if (digit >= 1 && digit <= 9) {
             this.handleNumberClick(digit, null);
         }
+    }
+
+    /**
+     * Check if there are valid answers starting with a specific digit
+     */
+    hasValidAnswerStartingWith(startDigit) {
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return false;
+        
+        // Check dice values
+        for (let i = 0; i < config.inputOrder.length; i++) {
+            const position = config.inputOrder[i];
+            if (!this.filledBoxes.has(position)) {
+                const value = this.currentValues[i];
+                if (value.toString().startsWith(startDigit.toString())) {
+                    return true;
+                }
+            }
+        }
+        
+        // Check total
+        if (!this.filledBoxes.has('total')) {
+            if (this.currentTotal.toString().startsWith(startDigit.toString())) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     isDigitValidAnswer(number) {
@@ -893,12 +969,10 @@ class MultiDiceGameController {
             }
             
             if (flashPosition) {
-                // Start first flash cycle (0.5s in, 0.5s out)
+                // UPDATED: Start first flash cycle, then immediately start second cycle
                 this.performFlashCycle(flashPosition, allDiceBoxesFilled, () => {
-                    // After first cycle completes, start second cycle
-                    setTimeout(() => {
-                        this.performFlashCycle(flashPosition, allDiceBoxesFilled);
-                    }, 100); // Brief pause between cycles
+                    // After first cycle completes, start second cycle immediately
+                    this.performFlashCycle(flashPosition, allDiceBoxesFilled);
                 });
             }
         };
@@ -910,7 +984,7 @@ class MultiDiceGameController {
     }
 
     /**
-     * Perform a single flash cycle (0.5s in, 0.5s out)
+     * Perform a single flash cycle (0.5s in, 0.5s out) - UPDATED: No hold, just quick fade
      */
     performFlashCycle(flashPosition, allDiceBoxesFilled, onComplete = null) {
         const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
@@ -933,7 +1007,7 @@ class MultiDiceGameController {
             this.diceRenderer.showFlashForPosition(flashPosition);
         }
         
-        // Fade out after 1 second (0.5s in + 0.5s out)
+        // UPDATED: Fade out after 1 second (0.5s in + 0.5s out) - no hold
         setTimeout(() => {
             if (inputBox) {
                 inputBox.classList.remove('box-flash');
