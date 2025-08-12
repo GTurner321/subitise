@@ -31,15 +31,15 @@ const CONFIG = {
             right: { x: 77, y: 50 }      // (77%, 50%)
         },
         THREE_DICE: {
-            left: { x: 20, y: 60 },      // UPDATED: Horizontal line (20%, 60%)
-            bottom: { x: 50, y: 60 },    // UPDATED: Center (50%, 60%) - keeping name for compatibility
-            right: { x: 80, y: 60 }      // UPDATED: Right (80%, 60%)
+            left: { x: 20, y: 55 },      // UPDATED: Horizontal line (20%, 55%)
+            bottom: { x: 50, y: 55 },    // UPDATED: Center (50%, 55%) - keeping name for compatibility
+            right: { x: 80, y: 55 }      // UPDATED: Right (80%, 55%)
         },
         FOUR_DICE: {
-            topLeft: { x: 17, y: 60 },       // UPDATED: Far left (17%, 60%) - keeping name for compatibility
-            bottomLeft: { x: 39, y: 60 },    // UPDATED: Center-left (39%, 60%)
-            topRight: { x: 61, y: 60 },      // UPDATED: Center-right (61%, 60%)
-            bottomRight: { x: 83, y: 60 }    // UPDATED: Far right (83%, 60%)
+            topLeft: { x: 15, y: 55 },       // UPDATED: Far left (15%, 55%) - keeping name for compatibility
+            bottomLeft: { x: 38, y: 55 },    // UPDATED: Center-left (38%, 55%)
+            topRight: { x: 62, y: 55 },      // UPDATED: Center-right (62%, 55%)
+            bottomRight: { x: 85, y: 55 }    // UPDATED: Far right (85%, 55%)
         }
     },
     
@@ -90,16 +90,16 @@ const CONFIG = {
         // Speed sets (assigned randomly to left/right dice)
         SPEED_SETS: {
             A: {
-                diagonal: 0.55,
-                forward: 0.4,
-                penultimate: { diagonal: 0.7, forward: 0.53 },
-                last: { diagonal: 0.95, forward: 0.75 }
+                diagonal: 0.49,
+                forward: 0.34,
+                penultimate: { diagonal: 0.49, forward: 0.34 },
+                last: { diagonal: 0.65, forward: 0.46 }
             },
             B: {
-                diagonal: 0.58,
-                forward: 0.42,
-                penultimate: { diagonal: 0.7, forward: 0.53 },
-                last: { diagonal: 0.95, forward: 0.75 }
+                diagonal: 0.53,
+                forward: 0.38,
+                penultimate: { diagonal: 0.53, forward: 0.38 },
+                last: { diagonal: 0.65, forward: 0.46 }
             }
         }
     },
@@ -147,11 +147,11 @@ const CONFIG = {
             // UPDATED: Hint messages for multi-dice
             HINT_LEFT_DICE: 'Count the dots on the left dice',
             HINT_RIGHT_DICE: 'Count the dots on the right dice',
-            HINT_BOTTOM_DICE: 'Count the dots on the bottom dice',
-            HINT_TOP_LEFT_DICE: 'Count the dots on the top left dice',
-            HINT_TOP_RIGHT_DICE: 'Count the dots on the top right dice', 
-            HINT_BOTTOM_LEFT_DICE: 'Count the dots on the bottom left dice',
-            HINT_BOTTOM_RIGHT_DICE: 'Count the dots on the bottom right dice',
+            HINT_BOTTOM_DICE: 'Count the dots on the middle dice',
+            HINT_TOP_LEFT_DICE: 'Count the dots on the left dice',
+            HINT_TOP_RIGHT_DICE: 'Count the dots on the third dice', 
+            HINT_BOTTOM_LEFT_DICE: 'Count the dots on the second dice',
+            HINT_BOTTOM_RIGHT_DICE: 'Count the dots on the right dice',
             
             // UPDATED: Total hints for different modes
             HINT_TOTAL: 'Add the two dice numbers together',
