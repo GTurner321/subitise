@@ -57,378 +57,7 @@ class MultiDiceGameController {
             speed: document.getElementById('speedStat'),
             variety: document.getElementById('varietyStat'),
             questions: document.getElementById('questionsStat')
-        }
-
-    fillBox(position, selectedNumber, buttonElement) {
-        if (!buttonElement && window.ButtonBar) {
-            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
-        }
-        
-        if (buttonElement && window.ButtonBar) {
-            window.ButtonBar.animateButton(buttonElement, 'correct');
-        }
-
-        this.playCompletionSound();
-
-        if (buttonElement) {
-            this.createCelebrationStars(buttonElement);
-        }
-
-        // Find the input box for this position
-        const inputBox = document.querySelector(`[data-position="${position}"]`);
-        if (inputBox) {
-            inputBox.textContent = selectedNumber;
-            inputBox.classList.remove('flashing');
-            inputBox.classList.add('filled');
-        }
-        
-        // Mark this position as filled
-        this.filledBoxes.add(position);
-        
-        // Hide flash for this position
-        if (position !== 'total') {
-            this.diceRenderer.hideFlashForPosition(position);
-        }
-
-        // Check if this was the last box
-        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
-        const totalBoxes = config ? config.boxes + 1 : 3; // +1 for total
-        const wasLastBox = this.filledBoxes.size >= totalBoxes;
-        
-        if (wasLastBox) {
-            this.buttonsDisabled = true;
-            if (window.ButtonBar) {
-                window.ButtonBar.setButtonsEnabled(false);
-            }
-            console.log('🔒 Final box filled - buttons disabled');
-        }
-
-        if (!wasLastBox) {
-            this.updateFlashingBoxes();
-        }
-    }
-
-    updateFlashingBoxes() {
-        // Remove flashing from all boxes
-        const inputBoxes = document.querySelectorAll('.input-box');
-        inputBoxes.forEach(box => {
-            box.classList.remove('flashing');
-        });
-        
-        // Find next unfilled box
-        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
-        if (!config) return;
-        
-        let nextUnfilled = null;
-        
-        // Check dice positions first
-        for (const position of config.inputOrder) {
-            if (!this.filledBoxes.has(position)) {
-                nextUnfilled = position;
-                break;
-            }
-        }
-        
-        // If all dice filled, check total
-        if (!nextUnfilled && !this.filledBoxes.has('total')) {
-            nextUnfilled = 'total';
-        }
-        
-        if (nextUnfilled) {
-            const inputBox = document.querySelector(`[data-position="${nextUnfilled}"]`);
-            if (inputBox) {
-                inputBox.classList.add('flashing');
-            }
-        }
-        
-        this.startFlashing();
-    }
-
-    checkQuestionCompletion() {
-        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
-        const totalBoxes = config ? config.boxes + 1 : 3; // +1 for total
-        
-        if (this.filledBoxes.size >= totalBoxes) {
-            this.clearInactivityTimer();
-            this.stopFlashing();
-            
-            const checkMark = document.getElementById('checkMark');
-            if (checkMark) {
-                checkMark.classList.add('visible');
-            }
-            
-            const pieces = this.rainbow.addPiece();
-            console.log(`Rainbow pieces: ${pieces}`);
-            
-            // Determine if this was answered correctly on first attempt for level progression
-            const wasCorrectFirstAttempt = !this.hasAttemptedAnswer();
-            console.log(`📊 Question completed - First attempt: ${wasCorrectFirstAttempt ? 'Yes' : 'No'}`);
-            
-            // Update level based on performance
-            this.updateLevel(wasCorrectFirstAttempt);
-            
-            // Random encouragement
-            const encouragements = CONFIG.AUDIO.MESSAGES.CORRECT_ANSWERS;
-            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-            this.speakText(randomEncouragement);
-            
-            this.questionsCompleted++;
-            this.roundQuestionCount++;
-            
-            if (this.rainbow.isComplete()) {
-                this.stats.recordRoundCompletion();
-                
-                setTimeout(() => {
-                    this.completeGame();
-                }, 3000);
-                return;
-            }
-
-            setTimeout(() => {
-                this.fadeOutDice();
-            }, CONFIG.NEXT_QUESTION_DELAY);
-        }
-    }
-
-    handleIncorrectAnswer(buttonElement, selectedNumber) {
-        if (!buttonElement && selectedNumber && window.ButtonBar) {
-            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
-        }
-        
-        this.clearInactivityTimer();
-        
-        this.playFailureSound();
-        
-        if (this.isTabVisible) {
-            setTimeout(() => {
-                this.speakText(CONFIG.AUDIO.MESSAGES.INCORRECT_ANSWER);
-            }, 800);
-        }
-        
-        this.buttonsDisabled = true;
-        if (window.ButtonBar) {
-            window.ButtonBar.setButtonsEnabled(false);
-        }
-        
-        this.stopFlashing();
-        
-        if (buttonElement && window.ButtonBar) {
-            window.ButtonBar.animateButton(buttonElement, 'incorrect');
-        }
-
-        let crossOverlay = null;
-        if (buttonElement && window.ButtonBar) {
-            crossOverlay = window.ButtonBar.addCrossOverlay(buttonElement);
-        }
-
-        if (buttonElement) {
-            buttonElement.dataset.attempted = 'true';
-        }
-        
-        this.fadeOtherButtons(buttonElement);
-
-        setTimeout(() => {
-            setTimeout(() => {
-                this.fadeInAllButtons();
-                
-                if (crossOverlay && crossOverlay.parentNode) {
-                    crossOverlay.style.transition = 'opacity 700ms ease-out';
-                    crossOverlay.style.opacity = '0';
-                }
-                
-                setTimeout(() => {
-                    if (buttonElement && window.ButtonBar) {
-                        window.ButtonBar.removeCrossOverlay(buttonElement);
-                    }
-                }, 700);
-            }, 700);
-            
-            setTimeout(() => {
-                this.buttonsDisabled = false;
-                if (window.ButtonBar) {
-                    window.ButtonBar.setButtonsEnabled(true);
-                }
-                this.startFlashing();
-                this.startInactivityTimer();
-            }, 1400);
-        }, 700);
-    }
-
-    fadeOtherButtons(excludeButton) {
-        if (window.ButtonBar && window.ButtonBar.buttons) {
-            window.ButtonBar.buttons.forEach(btn => {
-                if (btn !== excludeButton) {
-                    btn.style.transition = 'opacity 700ms ease-in-out';
-                    btn.style.opacity = '0.1';
-                }
-            });
-        }
-    }
-
-    fadeInAllButtons() {
-        if (window.ButtonBar && window.ButtonBar.buttons) {
-            window.ButtonBar.buttons.forEach(btn => {
-                btn.style.transition = 'opacity 700ms ease-in-out';
-                btn.style.opacity = '1';
-            });
-            
-            setTimeout(() => {
-                window.ButtonBar.buttons.forEach(btn => {
-                    btn.style.transition = '';
-                });
-            }, 700);
-        }
-    }
-
-    async fadeOutDice() {
-        console.log('Starting dice transition');
-        
-        await this.diceRenderer.fadeOutCurrentDice();
-        this.startNewQuestion();
-    }
-
-    hasAttemptedAnswer() {
-        if (window.ButtonBar && window.ButtonBar.buttons) {
-            return window.ButtonBar.buttons.some(btn => 
-                btn.dataset.attempted === 'true'
-            );
-        }
-        return false;
-    }
-
-    resetButtonStates() {
-        this.buttonsDisabled = false;
-        
-        if (window.ButtonBar && window.ButtonBar.buttons) {
-            window.ButtonBar.setButtonsEnabled(true);
-            window.ButtonBar.buttons.forEach(btn => {
-                btn.dataset.attempted = 'false';
-                btn.classList.remove('correct', 'incorrect');
-                btn.style.opacity = '1';
-                btn.style.transition = '';
-                
-                window.ButtonBar.removeCrossOverlay(btn);
-            });
-        }
-    }
-
-    completeGame() {
-        this.gameComplete = true;
-        this.clearInactivityTimer();
-        this.clearKeyboardTimer();
-        this.stopFlashing();
-        
-        // Create the appropriate modal for current mode
-        this.createCompletionModal();
-        this.modal.classList.remove('hidden');
-        
-        this.bear.startCelebration();
-        
-        // FIXED: Play audio message but don't show it in modal
-        if (this.isTabVisible) {
-            setTimeout(() => {
-                let audioMessage;
-                switch (this.currentMode) {
-                    case CONFIG.GAME_MODES.TWO_DICE:
-                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE_AUDIO;
-                        break;
-                    case CONFIG.GAME_MODES.THREE_DICE:
-                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_THREEDICE_COMPLETE_AUDIO;
-                        break;
-                    case CONFIG.GAME_MODES.FOUR_DICE:
-                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_FOURDICE_COMPLETE_AUDIO;
-                        break;
-                    default:
-                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE_AUDIO;
-                }
-                this.speakText(audioMessage);
-            }, 1000);
-        }
-    }
-
-    createCelebrationStars(buttonElement) {
-        if (!buttonElement) return;
-        
-        const buttonRect = buttonElement.getBoundingClientRect();
-        const centerX = buttonRect.left + buttonRect.width / 2;
-        const centerY = buttonRect.top + buttonRect.height / 2;
-        
-        const starCount = 5;
-        const radius = 60;
-        
-        for (let i = 0; i < starCount; i++) {
-            const star = document.createElement('div');
-            star.innerHTML = '⭐';
-            star.className = 'completion-star';
-            star.style.fontSize = '20px';
-            
-            const angle = (i / starCount) * 2 * Math.PI;
-            const x = centerX + Math.cos(angle) * radius;
-            const y = centerY + Math.sin(angle) * radius;
-            
-            star.style.left = x + 'px';
-            star.style.top = y + 'px';
-            star.style.animationDelay = (i * 0.1) + 's';
-            
-            document.body.appendChild(star);
-            
-            setTimeout(() => {
-                if (star.parentNode) {
-                    star.parentNode.removeChild(star);
-                }
-            }, 1500 + (i * 100));
-        }
-    }
-
-    updateStatsDisplay() {
-        if (this.stats && this.statsDisplay.accuracy) {
-            const currentStats = this.stats.getCurrentStats();
-            this.statsDisplay.accuracy.textContent = currentStats.accuracy;
-            this.statsDisplay.resilience.textContent = currentStats.resilience;
-            this.statsDisplay.speed.textContent = currentStats.speed;
-            this.statsDisplay.variety.textContent = currentStats.variety;
-            this.statsDisplay.questions.textContent = this.stats.totalQuestions;
-        }
-    }
-
-    destroy() {
-        this.clearInactivityTimer();
-        this.clearKeyboardTimer();
-        
-        if (this.statsUpdateInterval) {
-            clearInterval(this.statsUpdateInterval);
-        }
-        
-        if (window.AudioSystem) {
-            window.AudioSystem.stopAllAudio();
-        }
-        
-        if (this.stats) {
-            this.stats.destroy();
-        }
-        
-        this.rainbow.reset();
-        this.bear.reset();
-        this.diceRenderer.reset();
-        
-        if (window.ButtonBar) {
-            window.ButtonBar.destroy();
-        }
-    }
-}
-
-// Initialize game when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎲 DOM loaded, creating MultiDiceGameController');
-    window.multiDiceGame = new MultiDiceGameController();
-});
-
-// Clean up resources when page is unloaded
-window.addEventListener('beforeunload', () => {
-    if (window.multiDiceGame) {
-        window.multiDiceGame.destroy();
-    }
-});;
+        };
         
         // Update stats display periodically
         this.statsUpdateInterval = setInterval(() => {
@@ -873,7 +502,7 @@ window.addEventListener('beforeunload', () => {
     }
 
     /**
-     * UPDATED: Determine if should use number format (4 buttons) for 3 and 4 dice games
+     * UPDATED: Determine if should use number format (9 buttons) for 3 and 4 dice games
      */
     shouldUseNumberFormat() {
         return this.currentMode === CONFIG.GAME_MODES.THREE_DICE || 
@@ -1045,7 +674,7 @@ window.addEventListener('beforeunload', () => {
         }
     }
 
-startInactivityTimer() {
+    startInactivityTimer() {
         if (!this.isTabVisible || this.hintGiven || !this.initializationComplete) {
             return;
         }
@@ -1529,3 +1158,374 @@ startInactivityTimer() {
             this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
+
+    fillBox(position, selectedNumber, buttonElement) {
+        if (!buttonElement && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
+        }
+        
+        if (buttonElement && window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'correct');
+        }
+
+        this.playCompletionSound();
+
+        if (buttonElement) {
+            this.createCelebrationStars(buttonElement);
+        }
+
+        // Find the input box for this position
+        const inputBox = document.querySelector(`[data-position="${position}"]`);
+        if (inputBox) {
+            inputBox.textContent = selectedNumber;
+            inputBox.classList.remove('flashing');
+            inputBox.classList.add('filled');
+        }
+        
+        // Mark this position as filled
+        this.filledBoxes.add(position);
+        
+        // Hide flash for this position
+        if (position !== 'total') {
+            this.diceRenderer.hideFlashForPosition(position);
+        }
+
+        // Check if this was the last box
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        const totalBoxes = config ? config.boxes + 1 : 3; // +1 for total
+        const wasLastBox = this.filledBoxes.size >= totalBoxes;
+        
+        if (wasLastBox) {
+            this.buttonsDisabled = true;
+            if (window.ButtonBar) {
+                window.ButtonBar.setButtonsEnabled(false);
+            }
+            console.log('🔒 Final box filled - buttons disabled');
+        }
+
+        if (!wasLastBox) {
+            this.updateFlashingBoxes();
+        }
+    }
+
+    updateFlashingBoxes() {
+        // Remove flashing from all boxes
+        const inputBoxes = document.querySelectorAll('.input-box');
+        inputBoxes.forEach(box => {
+            box.classList.remove('flashing');
+        });
+        
+        // Find next unfilled box
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        if (!config) return;
+        
+        let nextUnfilled = null;
+        
+        // Check dice positions first
+        for (const position of config.inputOrder) {
+            if (!this.filledBoxes.has(position)) {
+                nextUnfilled = position;
+                break;
+            }
+        }
+        
+        // If all dice filled, check total
+        if (!nextUnfilled && !this.filledBoxes.has('total')) {
+            nextUnfilled = 'total';
+        }
+        
+        if (nextUnfilled) {
+            const inputBox = document.querySelector(`[data-position="${nextUnfilled}"]`);
+            if (inputBox) {
+                inputBox.classList.add('flashing');
+            }
+        }
+        
+        this.startFlashing();
+    }
+
+    checkQuestionCompletion() {
+        const config = CONFIG.SUM_BAR_CONFIG[this.currentMode.toUpperCase().replace('_', '_')];
+        const totalBoxes = config ? config.boxes + 1 : 3; // +1 for total
+        
+        if (this.filledBoxes.size >= totalBoxes) {
+            this.clearInactivityTimer();
+            this.stopFlashing();
+            
+            const checkMark = document.getElementById('checkMark');
+            if (checkMark) {
+                checkMark.classList.add('visible');
+            }
+            
+            const pieces = this.rainbow.addPiece();
+            console.log(`Rainbow pieces: ${pieces}`);
+            
+            // Determine if this was answered correctly on first attempt for level progression
+            const wasCorrectFirstAttempt = !this.hasAttemptedAnswer();
+            console.log(`📊 Question completed - First attempt: ${wasCorrectFirstAttempt ? 'Yes' : 'No'}`);
+            
+            // Update level based on performance
+            this.updateLevel(wasCorrectFirstAttempt);
+            
+            // Random encouragement
+            const encouragements = CONFIG.AUDIO.MESSAGES.CORRECT_ANSWERS;
+            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+            this.speakText(randomEncouragement);
+            
+            this.questionsCompleted++;
+            this.roundQuestionCount++;
+            
+            if (this.rainbow.isComplete()) {
+                this.stats.recordRoundCompletion();
+                
+                setTimeout(() => {
+                    this.completeGame();
+                }, 3000);
+                return;
+            }
+
+            setTimeout(() => {
+                this.fadeOutDice();
+            }, CONFIG.NEXT_QUESTION_DELAY);
+        }
+    }
+
+    handleIncorrectAnswer(buttonElement, selectedNumber) {
+        if (!buttonElement && selectedNumber && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
+        }
+        
+        this.clearInactivityTimer();
+        
+        this.playFailureSound();
+        
+        if (this.isTabVisible) {
+            setTimeout(() => {
+                this.speakText(CONFIG.AUDIO.MESSAGES.INCORRECT_ANSWER);
+            }, 800);
+        }
+        
+        this.buttonsDisabled = true;
+        if (window.ButtonBar) {
+            window.ButtonBar.setButtonsEnabled(false);
+        }
+        
+        this.stopFlashing();
+        
+        if (buttonElement && window.ButtonBar) {
+            window.ButtonBar.animateButton(buttonElement, 'incorrect');
+        }
+
+        let crossOverlay = null;
+        if (buttonElement && window.ButtonBar) {
+            crossOverlay = window.ButtonBar.addCrossOverlay(buttonElement);
+        }
+
+        if (buttonElement) {
+            buttonElement.dataset.attempted = 'true';
+        }
+        
+        this.fadeOtherButtons(buttonElement);
+
+        setTimeout(() => {
+            setTimeout(() => {
+                this.fadeInAllButtons();
+                
+                if (crossOverlay && crossOverlay.parentNode) {
+                    crossOverlay.style.transition = 'opacity 700ms ease-out';
+                    crossOverlay.style.opacity = '0';
+                }
+                
+                setTimeout(() => {
+                    if (buttonElement && window.ButtonBar) {
+                        window.ButtonBar.removeCrossOverlay(buttonElement);
+                    }
+                }, 700);
+            }, 700);
+            
+            setTimeout(() => {
+                this.buttonsDisabled = false;
+                if (window.ButtonBar) {
+                    window.ButtonBar.setButtonsEnabled(true);
+                }
+                this.startFlashing();
+                this.startInactivityTimer();
+            }, 1400);
+        }, 700);
+    }
+
+    fadeOtherButtons(excludeButton) {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.buttons.forEach(btn => {
+                if (btn !== excludeButton) {
+                    btn.style.transition = 'opacity 700ms ease-in-out';
+                    btn.style.opacity = '0.1';
+                }
+            });
+        }
+    }
+
+    fadeInAllButtons() {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.buttons.forEach(btn => {
+                btn.style.transition = 'opacity 700ms ease-in-out';
+                btn.style.opacity = '1';
+            });
+            
+            setTimeout(() => {
+                window.ButtonBar.buttons.forEach(btn => {
+                    btn.style.transition = '';
+                });
+            }, 700);
+        }
+    }
+
+    async fadeOutDice() {
+        console.log('Starting dice transition');
+        
+        await this.diceRenderer.fadeOutCurrentDice();
+        this.startNewQuestion();
+    }
+
+    hasAttemptedAnswer() {
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            return window.ButtonBar.buttons.some(btn => 
+                btn.dataset.attempted === 'true'
+            );
+        }
+        return false;
+    }
+
+    resetButtonStates() {
+        this.buttonsDisabled = false;
+        
+        if (window.ButtonBar && window.ButtonBar.buttons) {
+            window.ButtonBar.setButtonsEnabled(true);
+            window.ButtonBar.buttons.forEach(btn => {
+                btn.dataset.attempted = 'false';
+                btn.classList.remove('correct', 'incorrect');
+                btn.style.opacity = '1';
+                btn.style.transition = '';
+                
+                window.ButtonBar.removeCrossOverlay(btn);
+            });
+        }
+    }
+
+    completeGame() {
+        this.gameComplete = true;
+        this.clearInactivityTimer();
+        this.clearKeyboardTimer();
+        this.stopFlashing();
+        
+        // Create the appropriate modal for current mode
+        this.createCompletionModal();
+        this.modal.classList.remove('hidden');
+        
+        this.bear.startCelebration();
+        
+        // FIXED: Play audio message but don't show it in modal
+        if (this.isTabVisible) {
+            setTimeout(() => {
+                let audioMessage;
+                switch (this.currentMode) {
+                    case CONFIG.GAME_MODES.TWO_DICE:
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE_AUDIO;
+                        break;
+                    case CONFIG.GAME_MODES.THREE_DICE:
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_THREEDICE_COMPLETE_AUDIO;
+                        break;
+                    case CONFIG.GAME_MODES.FOUR_DICE:
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_FOURDICE_COMPLETE_AUDIO;
+                        break;
+                    default:
+                        audioMessage = CONFIG.AUDIO.MESSAGES.GAME_TWODICE_COMPLETE_AUDIO;
+                }
+                this.speakText(audioMessage);
+            }, 1000);
+        }
+    }
+
+    createCelebrationStars(buttonElement) {
+        if (!buttonElement) return;
+        
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const centerX = buttonRect.left + buttonRect.width / 2;
+        const centerY = buttonRect.top + buttonRect.height / 2;
+        
+        const starCount = 5;
+        const radius = 60;
+        
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            star.innerHTML = '⭐';
+            star.className = 'completion-star';
+            star.style.fontSize = '20px';
+            
+            const angle = (i / starCount) * 2 * Math.PI;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            
+            star.style.left = x + 'px';
+            star.style.top = y + 'px';
+            star.style.animationDelay = (i * 0.1) + 's';
+            
+            document.body.appendChild(star);
+            
+            setTimeout(() => {
+                if (star.parentNode) {
+                    star.parentNode.removeChild(star);
+                }
+            }, 1500 + (i * 100));
+        }
+    }
+
+    updateStatsDisplay() {
+        if (this.stats && this.statsDisplay.accuracy) {
+            const currentStats = this.stats.getCurrentStats();
+            this.statsDisplay.accuracy.textContent = currentStats.accuracy;
+            this.statsDisplay.resilience.textContent = currentStats.resilience;
+            this.statsDisplay.speed.textContent = currentStats.speed;
+            this.statsDisplay.variety.textContent = currentStats.variety;
+            this.statsDisplay.questions.textContent = this.stats.totalQuestions;
+        }
+    }
+
+    destroy() {
+        this.clearInactivityTimer();
+        this.clearKeyboardTimer();
+        
+        if (this.statsUpdateInterval) {
+            clearInterval(this.statsUpdateInterval);
+        }
+        
+        if (window.AudioSystem) {
+            window.AudioSystem.stopAllAudio();
+        }
+        
+        if (this.stats) {
+            this.stats.destroy();
+        }
+        
+        this.rainbow.reset();
+        this.bear.reset();
+        this.diceRenderer.reset();
+        
+        if (window.ButtonBar) {
+            window.ButtonBar.destroy();
+        }
+    }
+}
+
+// Initialize game when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎲 DOM loaded, creating MultiDiceGameController');
+    window.multiDiceGame = new MultiDiceGameController();
+});
+
+// Clean up resources when page is unloaded
+window.addEventListener('beforeunload', () => {
+    if (window.multiDiceGame) {
+        window.multiDiceGame.destroy();
+    }
+});
