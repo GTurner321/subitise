@@ -5,7 +5,7 @@
     flex-direction: column;
     height: 100vh;
     width: 100vw;
-    background: #e3f2fd; /* Same pale lilac-blue as main.css margins */
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5); /* Same gradient as main.css */
     padding: 0;
     margin: 0;
     position: relative;
@@ -67,6 +67,7 @@
     transition: all 0.3s ease;
     position: relative;
     grid-column: span 1;
+    z-index: 5; /* Ensure cards are above rainbow */
 }
 
 /* Empty slots in first and last columns for margins */
@@ -151,8 +152,22 @@
     background-position: center;
     filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%);
     /* This filter converts the image to the blue color from the card gradient */
-    z-index: 2;
+    z-index: 3;
     opacity: 0.8;
+    position: relative; /* Add position to ensure visibility */
+    display: block; /* Ensure it displays */
+}
+
+/* Debug: Add a fallback background color to see if the div is rendering */
+.card-bear-image:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 0, 0, 0.1); /* Very faint red background for debugging */
+    z-index: -1;
 }
 
 /* Center Area - Positioned at 55% from top */
@@ -174,7 +189,7 @@
 
 .center-card {
     width: 20vw; /* Keep width the same */
-    height: calc(20vw / 0.7 * 1.1); /* Make 10% taller by multiplying by 1.1 */
+    height: calc(20vw / 0.7 * 1.2); /* Make 20% taller by multiplying by 1.2 */
     perspective: 1000px;
 }
 
@@ -210,7 +225,7 @@
 }
 
 .card-front-face {
-    background: linear-gradient(135deg, #fff, #f8f9fa);
+    background: #f5f5dc; /* Dull light yellow background */
     transform: rotateY(180deg);
     display: flex;
     flex-direction: column;
@@ -218,15 +233,16 @@
 }
 
 .card-name {
-    font-size: 2.8vh; /* Increased from 2vh */
+    font-size: 3.2vh; /* Increased further */
     font-weight: bold;
     color: #333;
     margin-bottom: 1.5vh;
     text-align: center;
     line-height: 1.2;
+    text-transform: uppercase; /* All caps */
 }
 
-/* Square image window - transparent with no border/shading */
+/* Square image window - with border and button background */
 .card-image-window {
     width: 100%;
     height: 0;
@@ -234,8 +250,9 @@
     position: relative;
     border-radius: 1.5vh;
     margin-bottom: 1.5vh;
-    background: transparent; /* Made transparent */
-    /* Removed box-shadow and border */
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5); /* Same as button background */
+    box-shadow: inset 0 0.3vh 1vh rgba(135, 206, 250, 0.3);
+    border: 0.2vh solid #B8D4F0;
 }
 
 .card-image {
@@ -247,7 +264,8 @@
     max-height: 90%;
     object-fit: contain; /* Ensures the image fits within the square */
     border-radius: 1vh;
-    box-shadow: 0 0.3vh 0.8vh rgba(0,0,0,0.2);
+    /* Removed box-shadow and any borders */
+    background: transparent; /* Transparent background */
 }
 
 .card-stats {
@@ -290,14 +308,16 @@
 
 .stat-label {
     font-weight: bold;
-    font-size: 2.2vh; /* Increased from 1.6vh */
+    font-size: 2.6vh; /* Increased further */
     color: #555;
+    text-transform: uppercase; /* All caps */
 }
 
 .stat-value {
     font-weight: bold;
-    font-size: 2.5vh; /* Increased from 1.8vh */
+    font-size: 2.8vh; /* Increased further */
     color: #333;
+    text-transform: uppercase; /* All caps */
 }
 
 /* Winner/Loser Effects */
@@ -358,8 +378,12 @@
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 0; /* Changed from 1 to 0 to ensure it's behind all game content */
+    z-index: 1; /* Changed back to 1, but ensure SVG inside has lower z-index */
     pointer-events: none; /* Allow clicks to pass through */
+}
+
+.rainbow-container svg {
+    z-index: 1 !important; /* Ensure SVG stays behind game content */
 }
 
 @keyframes modalAppear {
