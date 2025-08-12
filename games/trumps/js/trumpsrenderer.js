@@ -76,12 +76,12 @@ class TrumpsRenderer {
                 cardElement.classList.add('card-back');
                 cardElement.dataset.cardId = card.id;
                 
-                // Add card back design
+                // Add card back design with bear image
                 const cardBack = document.createElement('div');
                 cardBack.className = 'card-back-design';
                 cardBack.innerHTML = `
                     <div class="card-pattern"></div>
-                    <div class="card-letters">TT</div>
+                    <div class="card-bear-image"></div>
                 `;
                 cardElement.appendChild(cardBack);
                 
@@ -143,26 +143,27 @@ class TrumpsRenderer {
         cardBack.className = 'card-face card-back-face';
         cardBack.innerHTML = `
             <div class="card-pattern"></div>
-            <div class="card-letters">TT</div>
+            <div class="card-bear-image"></div>
         `;
         
         // Card front
         const cardFront = document.createElement('div');
         cardFront.className = 'card-face card-front-face';
         
+        const cardName = document.createElement('h3');
+        cardName.className = 'card-name';
+        cardName.textContent = card.name;
+        
+        // Create square image window
+        const imageWindow = document.createElement('div');
+        imageWindow.className = 'card-image-window';
+        
         const cardImage = document.createElement('img');
         cardImage.src = card.image;
         cardImage.alt = card.name;
         cardImage.className = 'card-image';
         
-        // Create image window with shimmer background
-        const imageWindow = document.createElement('div');
-        imageWindow.className = 'card-image-window';
         imageWindow.appendChild(cardImage);
-        
-        const cardName = document.createElement('h3');
-        cardName.className = 'card-name';
-        cardName.textContent = card.name;
         
         const statsContainer = document.createElement('div');
         statsContainer.className = 'card-stats';
@@ -293,6 +294,17 @@ class TrumpsRenderer {
         
         modalContent.innerHTML = `
             <h2>${emoji} ${message} ${emoji}</h2>
+            <div class="final-scores">
+                <div class="final-score">
+                    <div class="score-label">You</div>
+                    <div class="score-number">${userScore}</div>
+                </div>
+                <div class="score-divider">-</div>
+                <div class="final-score">
+                    <div class="score-label">Computer</div>
+                    <div class="score-number">${computerScore}</div>
+                </div>
+            </div>
             <button class="play-again-btn" id="playAgainBtn">PLAY AGAIN</button>
         `;
         
