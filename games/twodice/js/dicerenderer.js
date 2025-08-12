@@ -28,16 +28,16 @@ class MultiDiceRenderer {
         // Speed sets for movement timing
         this.speedSets = {
             A: {
-                diagonal: 0.45,
-                forward: 0.32,
-                penultimate: { diagonal: 0.45, forward: 0.32 },
-                last: { diagonal: 1, forward: 0.71 }
+                diagonal: 0.49,
+                forward: 0.34,
+                penultimate: { diagonal: 0.49, forward: 0.34 },
+                last: { diagonal: 0.65, forward: 0.46 }
             },
             B: {
-                diagonal: 0.4,
-                forward: 0.28,
-                penultimate: { diagonal: 0.4, forward: 0.28 },
-                last: { diagonal: 1, forward: 0.71 }
+                diagonal: 0.53,
+                forward: 0.38,
+                penultimate: { diagonal: 0.53, forward: 0.38 },
+                last: { diagonal: 0.65, forward: 0.46 }
             }
         };
         
