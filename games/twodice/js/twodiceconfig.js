@@ -90,16 +90,16 @@ const CONFIG = {
         // Speed sets (assigned randomly to left/right dice)
         SPEED_SETS: {
             A: {
-                diagonal: 0.49,
-                forward: 0.34,
-                penultimate: { diagonal: 0.49, forward: 0.34 },
-                last: { diagonal: 0.65, forward: 0.46 }
+                diagonal: 0.35,
+                forward: 0.25,
+                penultimate: { diagonal: 0.35, forward: 0.25 },
+                last: { diagonal: 0.5, forward: 0.35 }
             },
             B: {
-                diagonal: 0.53,
-                forward: 0.38,
-                penultimate: { diagonal: 0.53, forward: 0.38 },
-                last: { diagonal: 0.65, forward: 0.46 }
+                diagonal: 0.4,
+                forward: 0.28,
+                penultimate: { diagonal: 0.4, forward: 0.28 },
+                last: { diagonal: 0.5, forward: 0.35 }
             }
         }
     },
