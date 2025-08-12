@@ -135,7 +135,7 @@ body {
     position: absolute;
     width: var(--dice-shadow-width);
     height: var(--dice-shadow-height);
-    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.24) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.02) 80%, transparent 100%); /* UPDATED: Fuzzier edges and reduced opacity */
+    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 70%, transparent 100%); /* REVERTED: Back to original shadow */
     border-radius: 50%;
     pointer-events: none;
     z-index: 1; /* Below flashing circles and dice */
@@ -145,7 +145,7 @@ body {
 }
 
 .dice-shadow.visible {
-    opacity: 0.7; /* UPDATED: Changed from 0.8 to 0.7 */
+    opacity: 0.7; /* Keep the 0.7 opacity as requested */
 }
 
 /* 3D Dice Styling - Square dice with height matching width based on game area width */
