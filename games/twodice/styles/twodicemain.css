@@ -145,7 +145,7 @@ body {
 }
 
 .dice-shadow.visible {
-    opacity: 0.8; /* UPDATED: Reduced opacity from 1 to 0.8 */
+    opacity: 0.7; /* UPDATED: Changed from 0.8 to 0.7 */
 }
 
 /* 3D Dice Styling - Square dice with height matching width based on game area width */
@@ -445,11 +445,11 @@ body {
 /* Simplified modal styles with consistent button sizing */
 .modal-buttons {
     display: flex;
-    flex-direction: row; /* UPDATED: Ensure horizontal layout */
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-direction: column; /* UPDATED: Stack buttons vertically */
+    gap: 15px; /* UPDATED: Increased gap for vertical spacing */
     margin-top: 20px;
     justify-content: center;
+    align-items: center; /* UPDATED: Center buttons horizontally */
 }
 
 .modal-button {
@@ -461,7 +461,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     /* Consistent button width */
-    min-width: 120px;
+    min-width: 200px; /* UPDATED: Wider buttons for vertical layout */
     text-align: center;
     text-transform: uppercase; /* UPDATED: All caps text */
 }
