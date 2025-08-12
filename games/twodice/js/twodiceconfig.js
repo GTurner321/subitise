@@ -31,23 +31,23 @@ const CONFIG = {
             right: { x: 77, y: 50 }      // (77%, 50%)
         },
         THREE_DICE: {
-            left: { x: 23, y: 45 },      // UPDATED: (23%, 45%) 
-            right: { x: 77, y: 45 },     // UPDATED: (77%, 45%)
-            bottom: { x: 50, y: 65 }     // UPDATED: (50%, 65%)
+            left: { x: 20, y: 60 },      // UPDATED: Horizontal line (20%, 60%)
+            bottom: { x: 50, y: 60 },    // UPDATED: Center (50%, 60%) - keeping name for compatibility
+            right: { x: 80, y: 60 }      // UPDATED: Right (80%, 60%)
         },
         FOUR_DICE: {
-            topLeft: { x: 23, y: 35 },       // UPDATED: (23%, 35%)
-            topRight: { x: 77, y: 35 },      // UPDATED: (77%, 35%)
-            bottomLeft: { x: 23, y: 65 },    // UPDATED: (23%, 65%)
-            bottomRight: { x: 77, y: 65 }    // UPDATED: (77%, 65%)
+            topLeft: { x: 17, y: 60 },       // UPDATED: Far left (17%, 60%) - keeping name for compatibility
+            bottomLeft: { x: 39, y: 60 },    // UPDATED: Center-left (39%, 60%)
+            topRight: { x: 61, y: 60 },      // UPDATED: Center-right (61%, 60%)
+            bottomRight: { x: 83, y: 60 }    // UPDATED: Far right (83%, 60%)
         }
     },
     
     // UPDATED: Plus symbol positioning for all modes with new coordinates
     PLUS_POSITIONS: {
         TWO_DICE: { x: 50, y: 50 },    // Center between two dice
-        THREE_DICE: { x: 50, y: 35 },  // UPDATED: Upper center at (50%, 35%)
-        FOUR_DICE: { x: 50, y: 50 }    // Center of the four dice square
+        THREE_DICE: { x: 50, y: 20 },  // UPDATED: Top center at (50%, 20%)
+        FOUR_DICE: { x: 50, y: 20 }    // UPDATED: Top center at (50%, 20%)
     },
     
     // UPDATED: Sum bar configurations
