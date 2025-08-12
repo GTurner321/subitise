@@ -111,14 +111,14 @@ body {
     visibility: visible !important;
 }
 
-/* Circular flashing areas behind dice - slower transitions */
+/* Circular flashing areas behind dice - faster transitions for quick cycles */
 .dice-flash-circle {
     position: absolute;
     width: var(--dice-flash-diameter);
     height: var(--dice-flash-diameter);
     border-radius: 50%;
     pointer-events: none;
-    transition: background-color 0.5s ease-in-out, opacity 0.5s ease-in-out; /* 0.5s transitions */
+    transition: background-color 0.5s ease-in-out, opacity 0.5s ease-in-out; /* Exactly 0.5s for precise timing */
     z-index: 3; /* Above shadows but below dice */
     opacity: 0; /* Hidden by default */
     /* Position will be set dynamically by JavaScript */
@@ -127,7 +127,7 @@ body {
 .dice-flash-circle.circle-flash {
     background-color: rgba(80, 200, 80, 0.25) !important; /* UPDATED: Darker green */
     opacity: 1 !important;
-    transition: background-color 0.5s ease-in-out, opacity 0.5s ease-in-out; /* 0.5s transitions */
+    transition: background-color 0.5s ease-in-out, opacity 0.5s ease-in-out; /* Exactly 0.5s for precise timing */
 }
 
 /* Dice shadow elements */
