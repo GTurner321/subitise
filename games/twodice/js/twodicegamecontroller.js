@@ -222,7 +222,7 @@ class MultiDiceGameController {
     }
 
     /**
-     * FIXED: Create completion modal with brief text and simple buttons
+     * UPDATED: Create completion modal with rainbow emojis and proper icons
      */
     createCompletionModal() {
         if (!this.modal) return;
@@ -234,30 +234,30 @@ class MultiDiceGameController {
         const modalContent = document.createElement('div');
         modalContent.className = 'modal-content';
         
-        // FIXED: Simple title only
+        // UPDATED: Title with rainbow emojis
         const title = document.createElement('h2');
-        title.textContent = CONFIG.AUDIO.MESSAGES.GAME_MODAL_TITLE; // Just "Well done!"
+        title.textContent = '🌈 Well Done! 🌈';
         modalContent.appendChild(title);
         
         // Button container
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'modal-buttons';
         
-        // Play Again button (always present)
+        // Play Again button (always present) with reset icon
         const playAgainBtn = document.createElement('button');
         playAgainBtn.className = 'modal-button primary';
-        playAgainBtn.textContent = 'Play again'; // FIXED: Simple text
+        playAgainBtn.innerHTML = '<i class="fas fa-redo"></i> PLAY AGAIN'; // Reset icon + text
         playAgainBtn.addEventListener('click', () => {
             this.startNewGame();
         });
         buttonContainer.appendChild(playAgainBtn);
         
-        // FIXED: Mode-specific buttons with simple text
+        // UPDATED: Mode-specific buttons with arrow icons and simple text
         if (this.currentMode === CONFIG.GAME_MODES.TWO_DICE) {
             // 3 Dice button
             const threeDiceBtn = document.createElement('button');
             threeDiceBtn.className = 'modal-button success';
-            threeDiceBtn.textContent = '3 dice'; // FIXED: Simple text
+            threeDiceBtn.innerHTML = '<i class="fas fa-arrow-right"></i> 3 DICE'; // Arrow icon + text
             threeDiceBtn.addEventListener('click', () => {
                 this.switchToMode(CONFIG.GAME_MODES.THREE_DICE);
             });
@@ -267,7 +267,7 @@ class MultiDiceGameController {
             // 4 Dice button
             const fourDiceBtn = document.createElement('button');
             fourDiceBtn.className = 'modal-button success';
-            fourDiceBtn.textContent = '4 dice'; // FIXED: Simple text
+            fourDiceBtn.innerHTML = '<i class="fas fa-arrow-right"></i> 4 DICE'; // Arrow icon + text
             fourDiceBtn.addEventListener('click', () => {
                 this.switchToMode(CONFIG.GAME_MODES.FOUR_DICE);
             });
@@ -276,7 +276,7 @@ class MultiDiceGameController {
             // 2 Dice button
             const twoDiceBtn = document.createElement('button');
             twoDiceBtn.className = 'modal-button secondary';
-            twoDiceBtn.textContent = '2 dice'; // FIXED: Simple text
+            twoDiceBtn.innerHTML = '<i class="fas fa-arrow-right"></i> 2 DICE'; // Arrow icon + text
             twoDiceBtn.addEventListener('click', () => {
                 this.switchToMode(CONFIG.GAME_MODES.TWO_DICE);
             });
@@ -286,7 +286,7 @@ class MultiDiceGameController {
             // 3 Dice button
             const threeDiceBtn = document.createElement('button');
             threeDiceBtn.className = 'modal-button secondary';
-            threeDiceBtn.textContent = '3 dice'; // FIXED: Simple text
+            threeDiceBtn.innerHTML = '<i class="fas fa-arrow-right"></i> 3 DICE'; // Arrow icon + text
             threeDiceBtn.addEventListener('click', () => {
                 this.switchToMode(CONFIG.GAME_MODES.THREE_DICE);
             });
@@ -295,7 +295,7 @@ class MultiDiceGameController {
             // 2 Dice button
             const twoDiceBtn = document.createElement('button');
             twoDiceBtn.className = 'modal-button secondary';
-            twoDiceBtn.textContent = '2 dice'; // FIXED: Simple text
+            twoDiceBtn.innerHTML = '<i class="fas fa-arrow-right"></i> 2 DICE'; // Arrow icon + text
             twoDiceBtn.addEventListener('click', () => {
                 this.switchToMode(CONFIG.GAME_MODES.TWO_DICE);
             });
