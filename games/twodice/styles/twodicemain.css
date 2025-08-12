@@ -88,15 +88,17 @@ body {
     background: #dc3545 !important;
     border-radius: 50%;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
-    z-index: 1001 !important; /* Higher than rainbow (z-index: 1) but below buttons (z-index: 1000+) */
+    z-index: 9999 !important; /* UPDATED: Much higher z-index to ensure it's always on top */
     position: absolute; /* Change to absolute for flexible positioning */
     margin: 0; /* Ensure no margin */
     padding: 0; /* Ensure no padding */
     opacity: 1 !important; /* Force visibility */
     visibility: visible !important; /* Force visibility */
-    /* UPDATED: Ensure it's always on top with transform3d hack */
-    transform: translateZ(0) !important;
+    /* UPDATED: Ensure it's always on top with transform3d hack and isolation */
+    transform: translateZ(999px) !important;
     will-change: transform !important;
+    isolation: isolate !important;
+    contain: layout style paint !important;
     /* Position will be set dynamically by JavaScript based on mode */
 }
 
@@ -123,7 +125,7 @@ body {
 }
 
 .dice-flash-circle.circle-flash {
-    background-color: rgba(144, 238, 144, 0.2) !important;
+    background-color: rgba(80, 200, 80, 0.25) !important; /* UPDATED: Darker green */
     opacity: 1 !important;
     transition: background-color 0.5s ease-in-out, opacity 0.5s ease-in-out; /* 0.5s transitions */
 }
@@ -133,7 +135,7 @@ body {
     position: absolute;
     width: var(--dice-shadow-width);
     height: var(--dice-shadow-height);
-    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 70%, transparent 100%);
+    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.24) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.02) 80%, transparent 100%); /* UPDATED: Fuzzier edges and reduced opacity */
     border-radius: 50%;
     pointer-events: none;
     z-index: 1; /* Below flashing circles and dice */
@@ -143,7 +145,7 @@ body {
 }
 
 .dice-shadow.visible {
-    opacity: 1;
+    opacity: 0.8; /* UPDATED: Reduced opacity from 1 to 0.8 */
 }
 
 /* 3D Dice Styling - Square dice with height matching width based on game area width */
@@ -189,7 +191,7 @@ body {
     background-color: inherit; /* Will inherit dice color from parent */
     backface-visibility: visible; /* Show colored back instead of hiding */
     border: none !important;
-    border-radius: 20% !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
     outline: none !important;
     opacity: 1;
@@ -283,6 +285,7 @@ body {
     transform: translateX(-50%);
     display: flex;
     align-items: center;
+    justify-content: center; /* UPDATED: Center all elements */
     gap: 1.2%; /* UPDATED: Reduced gap from 2% to 1.2% (40% reduction) */
     z-index: 15;
     
@@ -325,14 +328,14 @@ body {
 /* Sum row symbols with proper responsive sizing */
 .sum-plus-sign,
 .sum-equals-sign {
-    font-size: calc(var(--sum-box-size) * 0.42); /* UPDATED: Reduced from 0.52 to 0.42 */
+    font-size: calc(var(--sum-box-size) * 0.5); /* UPDATED: Increased from 0.42 to 0.5 */
     font-weight: bold;
     color: #333;
-    min-width: calc(var(--sum-box-size) * 0.6); /* UPDATED: Reduced from 0.75 to 0.6 */
+    min-width: calc(var(--sum-box-size) * 0.65); /* UPDATED: Increased from 0.6 to 0.65 */
     text-align: center;
     flex-shrink: 0;
     /* Better minimum font size to prevent tiny text */
-    min-font-size: 20px !important; /* UPDATED: Reduced from 24px to 20px */
+    min-font-size: 22px !important; /* UPDATED: Increased from 20px to 22px */
 }
 
 /* Input boxes for different numbers of dice with better minimum sizing */
@@ -392,16 +395,16 @@ body {
 }
 
 .check-mark {
-    font-size: calc(var(--sum-box-size) * 0.6); /* Font size proportional to box size */
+    font-size: calc(var(--sum-box-size) * 0.7); /* UPDATED: Increased from 0.6 to 0.7 for larger tick */
     color: #28a745;
     opacity: 0;
     transition: opacity 0.5s ease;
-    min-width: calc(var(--sum-box-size) * 0.7); /* 70% of box size */
+    min-width: calc(var(--sum-box-size) * 0.8); /* UPDATED: Increased from 0.7 to 0.8 */
     text-align: center;
     flex-shrink: 0;
     margin-left: 1.5%;
     /* Ensure minimum font size during initialization */
-    min-font-size: 16px;
+    min-font-size: 20px; /* UPDATED: Increased from 16px to 20px */
 }
 
 .check-mark.visible {
@@ -442,7 +445,7 @@ body {
 /* Simplified modal styles with consistent button sizing */
 .modal-buttons {
     display: flex;
-    flex-direction: row;
+    flex-direction: row; /* UPDATED: Ensure horizontal layout */
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 20px;
@@ -460,6 +463,7 @@ body {
     /* Consistent button width */
     min-width: 120px;
     text-align: center;
+    text-transform: uppercase; /* UPDATED: All caps text */
 }
 
 .modal-button.primary {
