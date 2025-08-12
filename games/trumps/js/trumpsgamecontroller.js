@@ -42,6 +42,15 @@ class TrumpsGameController {
         } catch (error) {
             console.warn('Bear system not available:', error);
         }
+        
+        // Initialize ButtonBar system for margins (no actual buttons needed)
+        try {
+            if (window.ButtonBar) {
+                console.log('📐 ButtonBar system available for responsive margins');
+            }
+        } catch (error) {
+            console.warn('ButtonBar system not available:', error);
+        }
     }
 
     initializeGame() {
@@ -111,7 +120,7 @@ class TrumpsGameController {
         // Move to next phase
         this.gamePhase = 'category';
         
-        // Animate card selection and movement
+        // Animate card selection and movement (renderer handles ButtonBar margins)
         await this.renderer.selectAndMoveCards(userCard, computerCard);
         
         // Flip user's card first
@@ -297,6 +306,9 @@ class TrumpsGameController {
         // Hide modal
         const modal = document.getElementById('gameModal');
         modal.classList.add('hidden');
+        
+        // Ensure margins are removed when restarting
+        this.renderer.removeButtonBarMargins();
         
         // Reinitialize game
         this.initializeGame();
