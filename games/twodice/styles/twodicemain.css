@@ -189,7 +189,7 @@ body {
     background-color: inherit; /* Will inherit dice color from parent */
     backface-visibility: visible; /* Show colored back instead of hiding */
     border: none !important;
-    border-radius: 0 !important;
+    border-radius: 20% !important;
     box-shadow: none !important;
     outline: none !important;
     opacity: 1;
