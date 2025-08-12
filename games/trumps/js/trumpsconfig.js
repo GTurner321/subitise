@@ -27,11 +27,10 @@ const CONFIG = {
         stars: { label: 'Stars', suffix: '', max: 5 } // No suffix for star display
     },
     
-    // Visual settings
+    // Visual settings - now percentage-based
     CARD_ASPECT_RATIO: 0.7, // height/width
-    CENTER_CARD_WIDTH: 200, // pixels
     
-    // Audio settings
+    // Audio settings - delegated to universal AudioSystem
     AUDIO_ENABLED: true,
     
     // Card database - 16 different teddy bears and toys
