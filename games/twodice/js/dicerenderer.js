@@ -68,7 +68,7 @@ class MultiDiceRenderer {
         this.ensurePlusSignExists();
     }
 
-        /**
+    /**
      * FIXED: Ensure plus sign element exists in DOM
      */
     ensurePlusSignExists() {
@@ -675,8 +675,6 @@ class MultiDiceRenderer {
             dice.appendChild(face);
         });
         
-        // REMOVED: All inner cube creation logic
-        
         // Start at standard orientation (no rotation)
         dice.style.transform = `rotateX(0deg) rotateY(0deg)`;
         
@@ -781,7 +779,7 @@ class MultiDiceRenderer {
         }
     }
 
-/**
+    /**
      * Main dice rolling method for current mode with level-based targets
      */
     async rollDiceForLevel(level, usedSums) {
@@ -991,8 +989,6 @@ class MultiDiceRenderer {
                 
                 dice.style.transition = `transform ${flipDuration}s ease-in-out`;
                 dice.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
-                
-                // REMOVED: All inner dice transform logic
                 
                 // Update tracking
                 dice.dataset.currentRotationX = currentRotationX;
