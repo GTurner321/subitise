@@ -276,38 +276,8 @@ class TrumpsRenderer {
         this.centerArea.innerHTML = '';
     }
 
-    showGameComplete(userScore, computerScore) {
+    showGameComplete() {
         const modal = document.getElementById('gameModal');
-        const modalContent = modal.querySelector('.modal-content');
-        
-        let message, emoji;
-        if (userScore > computerScore) {
-            message = 'Well done!';
-            emoji = '🎉';
-        } else if (computerScore > userScore) {
-            message = 'Good game!';
-            emoji = '🤖';
-        } else {
-            message = 'It\'s a draw!';
-            emoji = '🤝';
-        }
-        
-        modalContent.innerHTML = `
-            <h2>${emoji} ${message} ${emoji}</h2>
-            <div class="final-scores">
-                <div class="final-score">
-                    <div class="score-label">You</div>
-                    <div class="score-number">${userScore}</div>
-                </div>
-                <div class="score-divider">-</div>
-                <div class="final-score">
-                    <div class="score-label">Computer</div>
-                    <div class="score-number">${computerScore}</div>
-                </div>
-            </div>
-            <button class="play-again-btn" id="playAgainBtn">PLAY AGAIN</button>
-        `;
-        
         modal.classList.remove('hidden');
     }
 
