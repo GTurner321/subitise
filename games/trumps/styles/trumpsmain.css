@@ -45,10 +45,10 @@
     background: linear-gradient(135deg, #f44336, #da190b);
 }
 
-/* Card Grid - Full screen width layout */
+/* Card Grid - Full screen width layout with proper centering */
 .card-grid {
     display: grid;
-    grid-template-columns: 7% repeat(8, 10.75%) 7%;
+    grid-template-columns: 1fr repeat(8, minmax(0, 1fr)) 1fr; /* Equal margins using fr units */
     grid-template-rows: repeat(2, 1fr);
     grid-column-gap: 0.5%;
     grid-row-gap: 2vh;
@@ -142,38 +142,21 @@
     );
 }
 
-/* Bear image on card back */
+/* Bear image container on card back */
 .card-bear-image {
     width: 60%;
     height: 60%;
-    background-image: url('../../assets/bear.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%);
-    /* This filter converts the image to the blue color from the card gradient */
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 3;
-    opacity: 0.8;
-    position: relative; /* Add position to ensure visibility */
-    display: block; /* Ensure it displays */
 }
 
-/* Debug: Add a fallback background color to see if the div is rendering */
-.card-bear-image:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 0, 0, 0.1); /* Very faint red background for debugging */
-    z-index: -1;
-}
-
-/* Center Area - Positioned at 55% from top */
+/* Center Area - Positioned at 57% from top */
 .center-area {
     position: absolute;
-    top: 55%;
+    top: 57%;
     left: 50%;
     transform: translate(-50%, -50%);
     display: flex;
@@ -242,7 +225,7 @@
     text-transform: uppercase; /* All caps */
 }
 
-/* Square image window - with border and button background */
+/* Square image window - with darker border */
 .card-image-window {
     width: 100%;
     height: 0;
@@ -252,7 +235,7 @@
     margin-bottom: 1.5vh;
     background: linear-gradient(135deg, #e3f2fd, #f3e5f5); /* Same as button background */
     box-shadow: inset 0 0.3vh 1vh rgba(135, 206, 250, 0.3);
-    border: 0.2vh solid #B8D4F0;
+    border: 0.3vh solid #7DA3D9; /* Darker blue border */
 }
 
 .card-image {
@@ -282,7 +265,7 @@
     padding: 1.5vh 2vh;
     border-radius: 1.2vh;
     transition: all 0.3s ease;
-    border: 0.2vh solid transparent;
+    border: 0.3vh solid #7DA3D9; /* Darker blue border matching image window */
 }
 
 .stat-button {
@@ -404,7 +387,7 @@
 /* Star Rating Styles */
 .star {
     color: #FFD700;
-    font-size: 1.8vh;
+    font-size: 4.5vh; /* Increased from 1.8vh to 4.5vh (2.5x larger) */
     margin-right: 0.3vh;
     text-shadow: 0.1vh 0.1vh 0.2vh rgba(0,0,0,0.3);
 }
