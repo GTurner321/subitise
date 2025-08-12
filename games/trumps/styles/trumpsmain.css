@@ -347,96 +347,15 @@
     }
 }
 
-/* Game Complete Modal */
-.modal {
-    position: fixed;
+/* Rainbow background - positioned behind game content */
+.rainbow-container {
+    position: absolute;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0,0,0,0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-    padding: 5vh;
-    border-radius: 3vh;
-    text-align: center;
-    animation: modalAppear 0.5s ease;
-    max-width: 50vw;
-}
-
-.modal-content h2 {
-    color: white;
-    font-size: 4vh;
-    margin-bottom: 3vh;
-    text-shadow: 0.3vh 0.3vh 0.5vh rgba(0,0,0,0.3);
-}
-
-.final-scores {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 3vw;
-    margin: 3vh 0;
-    font-size: 2.5vh;
-    color: white;
-    text-shadow: 0.2vh 0.2vh 0.3vh rgba(0,0,0,0.3);
-}
-
-.final-score {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.score-label {
-    font-size: 1.8vh;
-    margin-bottom: 1vh;
-}
-
-.score-number {
-    font-size: 3.5vh;
-    font-weight: bold;
-}
-
-.score-divider {
-    font-size: 3.5vh;
-    font-weight: bold;
-}
-
-.play-again-btn {
-    background: #4caf50;
-    color: white;
-    border: none;
-    padding: 2vh 4vh;
-    font-size: 2.2vh;
-    border-radius: 1.5vh;
-    cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 0.5vh 1vh rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
-    
-    /* Touch support */
-    touch-action: manipulation;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-    outline: none;
-}
-
-.play-again-btn:hover {
-    background: #45a049;
-    transform: translateY(-0.3vh);
-    box-shadow: 0 0.8vh 1.5vh rgba(0,0,0,0.3);
-}
-
-.play-again-btn:focus {
-    outline: none;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none; /* Allow clicks to pass through */
 }
 
 @keyframes modalAppear {
