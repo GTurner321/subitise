@@ -9,12 +9,6 @@
     <link rel="stylesheet" href="styles/trumpsmain.css">
 </head>
 <body>
-    <!-- Back to games navigation -->
-    <a href="../../index.html" class="back-button">
-        <i class="fas fa-arrow-left"></i>
-        Back to Games
-    </a>
-    
     <!-- Main game area -->
     <div class="game-area">
         <!-- Scores, card grid, and center area will be dynamically created -->
@@ -34,5 +28,13 @@
     <script src="js/trumpsconfig.js"></script>
     <script src="js/trumpsrenderer.js"></script>
     <script src="js/trumpsgamecontroller.js"></script>
+    
+    <script>
+        // Initialize universal audio system with trumps-specific settings
+        document.addEventListener('DOMContentLoaded', () => {
+            // Configure audio system for trumps game (no button bar needed)
+            window.AudioSystem.setBottomPosition(false, '../../index.html');
+        });
+    </script>
 </body>
 </html>
