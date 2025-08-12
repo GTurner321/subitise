@@ -131,6 +131,9 @@ class TrumpsRenderer {
         this.cardGrid.classList.add('hidden');
         this.centerArea.classList.remove('hidden');
         
+        // Apply ButtonBar margins and white background when showing center cards
+        this.applyButtonBarMargins();
+        
         // Create center cards
         this.createCenterCard(userCard, 'user');
         this.createCenterCard(computerCard, 'computer');
@@ -142,6 +145,37 @@ class TrumpsRenderer {
         });
         
         await this.wait(CONFIG.CARD_MOVE_DURATION);
+    }
+    
+    applyButtonBarMargins() {
+        const gameArea = document.querySelector('.game-area');
+        if (gameArea && window.ButtonBar) {
+            // Get current outside margin from ButtonBar system
+            const outsideMargin = window.ButtonBar.getOutsideMarginPercent();
+            
+            // Apply margins to game area for center card phase
+            gameArea.style.marginLeft = `${outsideMargin}vw`;
+            gameArea.style.marginRight = `${outsideMargin}vw`;
+            gameArea.style.width = `${100 - (2 * outsideMargin)}vw`;
+            gameArea.style.background = 'white'; // White background for center area
+            gameArea.style.zIndex = '20'; // Higher z-index to hide rainbow during card selection
+            
+            console.log(`📐 Applied ButtonBar margins: ${outsideMargin}vw`);
+        }
+    }
+    
+    removeButtonBarMargins() {
+        const gameArea = document.querySelector('.game-area');
+        if (gameArea) {
+            // Reset to full width for card grid phase
+            gameArea.style.marginLeft = '0';
+            gameArea.style.marginRight = '0';
+            gameArea.style.width = '100vw';
+            gameArea.style.background = 'linear-gradient(135deg, #e3f2fd, #f3e5f5)'; // Back to gradient
+            gameArea.style.zIndex = ''; // Reset z-index to show rainbow
+            
+            console.log('📐 Removed ButtonBar margins - back to full width');
+        }
     }
 
     createCenterCard(card, player) {
