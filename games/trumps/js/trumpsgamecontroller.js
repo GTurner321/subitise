@@ -13,8 +13,35 @@ class TrumpsGameController {
         // Track questions completed for different instructions
         this.questionsCompleted = 0;
         
+        // Initialize celebration systems
+        this.rainbow = null;
+        this.bear = null;
+        this.initializeCelebrationSystems();
+        
         this.initializeGame();
         this.initializeEventListeners();
+    }
+    
+    initializeCelebrationSystems() {
+        // Initialize rainbow system
+        try {
+            if (window.Rainbow) {
+                this.rainbow = new window.Rainbow();
+                console.log('🌈 Rainbow celebration system initialized');
+            }
+        } catch (error) {
+            console.warn('Rainbow system not available:', error);
+        }
+        
+        // Initialize bear system
+        try {
+            if (window.Bear) {
+                this.bear = new window.Bear();
+                console.log('🐻 Bear celebration system initialized');
+            }
+        } catch (error) {
+            console.warn('Bear system not available:', error);
+        }
     }
 
     initializeGame() {
@@ -163,6 +190,9 @@ class TrumpsGameController {
         
         this.renderer.updateScores(this.scores.user, this.scores.computer);
         
+        // Add rainbow piece after each round (celebration regardless of who wins)
+        this.addRainbowPiece();
+        
         // Wait to show result
         await this.renderer.wait(CONFIG.RESULT_DISPLAY_DURATION);
         
@@ -202,22 +232,45 @@ class TrumpsGameController {
         }
     }
 
+    
+    addRainbowPiece() {
+        if (this.rainbow) {
+            const pieces = this.rainbow.addPiece();
+            console.log(`🌈 Rainbow now has ${pieces} pieces`);
+            
+            // After 8th round, add the final 2 pieces and trigger final celebration
+            if (this.currentRound === CONFIG.ROUNDS) {
+                setTimeout(() => {
+                    if (this.rainbow) {
+                        this.rainbow.addPiece(); // 9th piece
+                        setTimeout(() => {
+                            if (this.rainbow) {
+                                this.rainbow.addPiece(); // 10th piece
+                                // Final celebration is automatically triggered when rainbow is complete
+                            }
+                        }, 500);
+                    }
+                }, 1000);
+            }
+        }
+    }
+
     completeGame() {
         this.gameComplete = true;
         console.log(`Game complete! Final score: User ${this.scores.user} - Computer ${this.scores.computer}`);
         
         // Show game complete modal
-        this.renderer.showGameComplete(this.scores.user, this.scores.computer);
+        this.renderer.showGameComplete();
+        
+        // Start bear celebration when modal appears
+        if (this.bear) {
+            setTimeout(() => {
+                this.bear.startCelebration();
+            }, 500); // Short delay after modal appears
+        }
         
         // Give final message using universal audio system
-        let finalMessage;
-        if (this.scores.user > this.scores.computer) {
-            finalMessage = `Congratulations! You won ${this.scores.user} to ${this.scores.computer}! Play again or return to the home page.`;
-        } else if (this.scores.computer > this.scores.user) {
-            finalMessage = `Good game! The computer won this time, ${this.scores.computer} to ${this.scores.user}. Play again or return to the home page.`;
-        } else {
-            finalMessage = `It's a ${this.scores.user} to ${this.scores.computer} draw! Play again or return to the home page.`;
-        }
+        const finalMessage = `Congratulations! You completed all ${CONFIG.ROUNDS} rounds! Play again or return to the home page.`;
         
         setTimeout(() => {
             window.AudioSystem.speakText(finalMessage);
@@ -225,6 +278,14 @@ class TrumpsGameController {
     }
 
     restartGame() {
+        // Stop any ongoing celebrations
+        if (this.rainbow) {
+            this.rainbow.reset();
+        }
+        if (this.bear) {
+            this.bear.stopCelebration();
+        }
+        
         // Reset all game state
         this.currentRound = 1;
         this.scores = { user: 0, computer: 0 };
@@ -242,6 +303,14 @@ class TrumpsGameController {
     }
 
     destroy() {
+        // Clean up celebration systems
+        if (this.rainbow) {
+            this.rainbow.destroy();
+        }
+        if (this.bear) {
+            this.bear.stopCelebration();
+        }
+        
         // Clean up renderer
         this.renderer.reset();
         
