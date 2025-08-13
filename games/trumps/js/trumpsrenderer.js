@@ -194,27 +194,38 @@ class TrumpsRenderer {
         // Enable pointer events on square container for card interaction
         this.squareContainer.style.pointerEvents = 'auto';
         
-    // Step 1: Create only the card backs first (blue faces)
-    this.createCardBacks(userCard, 'user');
+    // Create blue back for computer only
     this.createCardBacks(computerCard, 'computer');
 
-    // Update square scores to match current scores
+    // Create front face for user (no blue back)
+    this.createCardFronts(userCard, 'user');
+
+    // Update square scores
     this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
     this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
 
-    // Step 2: Fade in the card backs over 1 second
-    const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
-    cardBacks.forEach(back => {
-    back.style.opacity = '0';
-    back.style.transition = 'opacity 1s ease-in';
+    // Fade in user front face
+    const userElements = this.squareContainer.querySelectorAll('.user-title, .user-picture, .user-button-1, .user-button-2, .user-button-3, .user-card-front');
+    userElements.forEach(element => {
+    element.style.opacity = '0';
+    element.style.transition = 'opacity 1s ease-in';
     setTimeout(() => {
-        back.style.opacity = '1';
+        element.style.opacity = '1';
     }, 50);
     });
 
-    // Step 3: After 1.1 seconds, create front faces behind the blue backs
+    // Fade in computer blue back
+    const computerBack = this.squareContainer.querySelector('.computer-card-back');
+    if (computerBack) {
+    computerBack.style.opacity = '0';
+    computerBack.style.transition = 'opacity 1s ease-in';
     setTimeout(() => {
-    this.createCardFronts(userCard, 'user');
+        computerBack.style.opacity = '1';
+    }, 50);
+    }
+
+    // After 1.1 seconds, create computer front face behind blue back
+    setTimeout(() => {
     this.createCardFronts(computerCard, 'computer');
     }, 1100);
     }
