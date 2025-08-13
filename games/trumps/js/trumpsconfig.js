@@ -23,7 +23,7 @@ const CONFIG = {
     // Category display info
     CATEGORY_INFO: {
         fun: { label: 'Fun', suffix: '%', max: 100 },
-        cuddly: { label: 'Cuddly', suffix: '/10', max: 10 },
+        cuddly: { label: 'Cuddles', suffix: '/10', max: 10 }, // Changed from "Cuddly" to "Cuddles"
         stars: { label: 'Stars', suffix: '', max: 5 } // No suffix for star display
     },
     
