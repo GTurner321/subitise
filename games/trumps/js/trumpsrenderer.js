@@ -306,7 +306,7 @@ class TrumpsRenderer {
         title.textContent = card.name;
         title.style.position = 'absolute';
         this.positionSquareElement(title, cardX + 5, cardY, 35, 9, squareSize);
-        title.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.TITLE * 1.5}px`;
+        title.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.TITLE * 1.2}px`; // Smaller (was 1.5x, now 1.2x)
         title.style.fontFamily = 'Comic Sans MS, cursive';
         title.style.fontWeight = 'bold';
         title.style.color = '#333';
@@ -410,7 +410,7 @@ class TrumpsRenderer {
                     star.style.color = '#FFD700';
                     star.style.textShadow = '0 0 6px rgba(0,0,0,0.8)';
                     star.style.marginRight = '2%';
-                    star.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR * 1.2}px`;
+                    star.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR * 1.0}px`; // Smaller (was 1.2x, now 1.0x)
                     starsContainer.appendChild(star);
                 }
                 
@@ -420,7 +420,7 @@ class TrumpsRenderer {
                     halfStar.className = 'fa-solid fa-star-half-stroke square-star';
                     halfStar.style.color = '#FFD700';
                     halfStar.style.textShadow = '0 0 6px rgba(0,0,0,0.8)';
-                    halfStar.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR * 1.2}px`;
+                    halfStar.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR * 1.0}px`; // Smaller (was 1.2x, now 1.0x)
                     starsContainer.appendChild(halfStar);
                 }
                 
@@ -441,11 +441,7 @@ class TrumpsRenderer {
     }
 
     async flipCard(cardId, player) {
-        // Computer card reveals 2 seconds after button click
-        if (player === 'computer') {
-            await this.wait(2000); // Wait 2 seconds
-        }
-        
+        // Computer card reveals immediately after button click (no extra wait)
         await this.revealCard(cardId, player);
     }
     
@@ -454,13 +450,13 @@ class TrumpsRenderer {
         const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
         
         if (cardBack) {
-            // Set up for width animation - keep within card boundaries
-            cardBack.style.transformOrigin = player === 'user' ? 'right center' : 'left center';
-            cardBack.style.transition = 'transform 1s ease-out';
+            // Set up for width animation - both cards reveal left to right
+            cardBack.style.transformOrigin = 'left center'; // Both cards reveal from left
+            cardBack.style.transition = 'transform 0.6s ease-out'; // Faster (0.6s instead of 1s)
             cardBack.style.transform = 'scaleX(0)';
             
             // Wait for animation to complete
-            await this.wait(1000);
+            await this.wait(600); // Match the 0.6s duration
             
             // Hide the back completely
             cardBack.style.display = 'none';
