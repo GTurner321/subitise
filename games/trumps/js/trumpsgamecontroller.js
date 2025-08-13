@@ -121,8 +121,9 @@ class TrumpsGameController {
         
         // Animate card selection and movement to square layout
         await this.renderer.selectAndMoveCards(userCard, computerCard);
-        
-        // Flip user's card first
+
+        // Wait for card setup to complete (blue backs fade in + front faces created), then flip user's card
+        await this.renderer.wait(1200); // Wait 1.2 seconds for front faces to be ready
         await this.renderer.flipCard(userCard.id, 'user');
         
         // Give instruction for category selection - different for first vs subsequent questions
