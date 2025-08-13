@@ -22,6 +22,14 @@ class TrumpsRenderer {
         const rainbowContainer = document.createElement('div');
         rainbowContainer.className = 'rainbow-container';
         rainbowContainer.id = 'rainbowContainer';
+        rainbowContainer.style.position = 'absolute';
+        rainbowContainer.style.top = '0';
+        rainbowContainer.style.left = '0';
+        rainbowContainer.style.width = '100%';
+        rainbowContainer.style.height = '100%';
+        rainbowContainer.style.zIndex = '1';
+        rainbowContainer.style.pointerEvents = 'none';
+        console.log('🌈 Created rainbow container:', rainbowContainer);
         this.gameArea.appendChild(rainbowContainer);
         
         // Create square container (always present, transparent)
@@ -291,7 +299,7 @@ class TrumpsRenderer {
         pictureArea.style.borderRadius = '8%';
         pictureArea.style.background = 'linear-gradient(135deg, #e3f2fd, #f3e5f5)';
         pictureArea.style.boxShadow = 'inset 0 1% 3% rgba(135, 206, 250, 0.3)';
-        pictureArea.style.border = `${squareSize * 0.015}px solid #7DA3D9`; // Blue border
+        pictureArea.style.border = `${squareSize * 0.005}px solid #667eea`; // Thinner blue border from card back
         pictureArea.style.display = 'flex';
         pictureArea.style.alignItems = 'center';
         pictureArea.style.justifyContent = 'center';
@@ -324,12 +332,12 @@ class TrumpsRenderer {
             button.dataset.player = player;
             button.style.position = 'absolute'; // Add absolute positioning
             this.positionSquareElement(button, cardX + 5, cardY + buttonYOffsets[index], 35, 9, squareSize);
-            button.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.BUTTON}px`;
+            button.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.BUTTON * 2}px`; // Double the text size
             button.style.borderRadius = '8%';
-            button.style.border = `${squareSize * 0.015}px solid #7DA3D9`; // Blue border
+            button.style.border = `${squareSize * 0.005}px solid #667eea`; // Thinner blue border from card back
             button.style.display = 'flex';
             button.style.alignItems = 'center';
-            button.style.paddingLeft = '8%';
+            button.style.paddingLeft = '0'; // No left padding
             button.style.fontWeight = 'bold';
             button.style.textTransform = 'uppercase';
             button.style.transition = 'all 0.3s ease';
@@ -358,7 +366,7 @@ class TrumpsRenderer {
                 starsContainer.style.display = 'flex';
                 starsContainer.style.alignItems = 'center';
                 starsContainer.style.marginLeft = 'auto';
-                starsContainer.style.marginRight = '8%';
+                starsContainer.style.marginRight = '4%'; // Reduced right margin since no left padding
                 
                 const fullStars = Math.floor(value);
                 const hasHalfStar = value % 1 !== 0;
@@ -368,9 +376,9 @@ class TrumpsRenderer {
                     const star = document.createElement('i');
                     star.className = 'fa-solid fa-star square-star';
                     star.style.color = '#FFD700';
-                    star.style.textShadow = '0 0 3px rgba(0,0,0,0.5)';
+                    star.style.textShadow = '0 0 6px rgba(0,0,0,0.8)'; // Darker shadow
                     star.style.marginRight = '2%';
-                    star.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR}px`;
+                    star.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR * 1.5}px`; // 50% larger
                     starsContainer.appendChild(star);
                 }
                 
@@ -379,8 +387,8 @@ class TrumpsRenderer {
                     const halfStar = document.createElement('i');
                     halfStar.className = 'fa-solid fa-star-half-stroke square-star';
                     halfStar.style.color = '#FFD700';
-                    halfStar.style.textShadow = '0 0 3px rgba(0,0,0,0.5)';
-                    halfStar.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR}px`;
+                    halfStar.style.textShadow = '0 0 6px rgba(0,0,0,0.8)'; // Darker shadow
+                    halfStar.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR * 1.5}px`; // 50% larger
                     starsContainer.appendChild(halfStar);
                 }
                 
@@ -390,7 +398,7 @@ class TrumpsRenderer {
                 valueSpan.className = 'square-card-button-value';
                 valueSpan.textContent = `${value}${categoryInfo.suffix}`;
                 valueSpan.style.marginLeft = 'auto';
-                valueSpan.style.marginRight = '8%';
+                valueSpan.style.marginRight = '4%'; // Reduced right margin since no left padding
                 valueSpan.style.color = '#333';
                 button.appendChild(valueSpan);
             }
