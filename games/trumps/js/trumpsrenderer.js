@@ -211,6 +211,16 @@ class TrumpsRenderer {
                 back.style.opacity = '1';
             }, 50);
         });
+
+        // Step 2: Fade in the card backs over 1.5 seconds
+        const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
+        cardBacks.forEach(back => {
+            back.style.opacity = '0';
+            back.style.transition = 'opacity 1.5s ease-in';
+            setTimeout(() => {
+                back.style.opacity = '1';
+        }, 200);
+        });
         
         // Step 3: After 0.5 seconds, create front faces underneath (invisible but ready)
         setTimeout(() => {
