@@ -194,7 +194,7 @@ class TrumpsRenderer {
         // Enable pointer events on square container for card interaction
         this.squareContainer.style.pointerEvents = 'auto';
         
-        // Create square card elements
+        // Create square card elements (front face already visible underneath back)
         this.createSquareCardElements(userCard, 'user');
         this.createSquareCardElements(computerCard, 'computer');
         
@@ -212,6 +212,11 @@ class TrumpsRenderer {
                 element.style.opacity = '1';
             }, 50);
         });
+        
+        // Auto-reveal user card after 1 second delay
+        setTimeout(async () => {
+            await this.revealCard(userCard.id, 'user');
+        }, 1000);
     }
 
     createSquareCardElements(card, player) {
@@ -422,43 +427,29 @@ class TrumpsRenderer {
     }
 
     async flipCard(cardId, player) {
-        // Show front and all elements immediately (underneath the back)
-        const cardFront = this.squareContainer.querySelector(`.${player}-card-front[data-card-id="${cardId}"]`);
-        const title = this.squareContainer.querySelector(`.${player}-title`);
-        const picture = this.squareContainer.querySelector(`.${player}-picture`);
-        const buttons = this.squareContainer.querySelectorAll(`.${player}-button-1, .${player}-button-2, .${player}-button-3`);
+        // Computer card reveals 2 seconds after button click
+        if (player === 'computer') {
+            await this.wait(2000); // Wait 2 seconds
+        }
         
-        const elementsToShow = [cardFront, title, picture, ...buttons].filter(el => el);
-        elementsToShow.forEach(element => {
-            element.classList.remove('hidden');
-            element.style.opacity = '1';
-        });
-        
-        // Calculate center point and animate width to 0
+        await this.revealCard(cardId, player);
+    }
+    
+    async revealCard(cardId, player) {
+        // Sideways reveal - card back width reduces to 0 within card boundaries
         const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
         
         if (cardBack) {
-            let centerX;
-            if (player === 'user') {
-                centerX = 34.5; // Center between 22 and 47
-            } else {
-                centerX = 75.5; // Center between 53 and 98
-            }
-            
-            const { squareSize } = this.calculateSquareDimensions();
-            const centerPx = (centerX / 100) * squareSize;
-            
-            // Set transform origin to center and animate width to 0
-            cardBack.style.transformOrigin = `${centerPx}px center`;
-            cardBack.style.transition = 'transform 0.8s ease-out';
+            // Set up for width animation - keep within card boundaries
+            cardBack.style.transformOrigin = player === 'user' ? 'right center' : 'left center';
+            cardBack.style.transition = 'transform 1s ease-out';
             cardBack.style.transform = 'scaleX(0)';
             
             // Wait for animation to complete
-            await this.wait(800);
+            await this.wait(1000);
             
-            // Hide the back
-            cardBack.classList.add('hidden');
-            cardBack.style.transform = 'scaleX(1)'; // Reset for next time
+            // Hide the back completely
+            cardBack.style.display = 'none';
         }
     }
 
