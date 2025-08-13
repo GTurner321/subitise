@@ -204,24 +204,24 @@ class TrumpsGameController {
         // Wait to show result
         await this.renderer.wait(CONFIG.RESULT_DISPLAY_DURATION);
         
-        // Remove used cards from available cards BEFORE clearing center cards
+        // Remove used cards from available cards BEFORE any UI changes
         this.availableCards = this.availableCards.filter(
             card => card.id !== this.selectedCards.user.id && 
                    card.id !== this.selectedCards.computer.id
         );
         
-        // Clear center cards and return to grid layout
+        // Clear center cards (this will also call switchToGridLayout internally)
         await this.renderer.clearCenterCards();
         
         // Check if game is complete
         if (this.currentRound >= CONFIG.ROUNDS) {
             this.completeGame();
         } else {
-            // Next round
+            // Next round - the grid should already be showing the correct remaining cards
             this.currentRound++;
             this.questionsCompleted++; // Increment questions completed
             await this.renderer.wait(CONFIG.RESET_DELAY);
-            this.startNewRound();
+            this.startNewRound(); // This will re-render the grid with correct cards
         }
     }
 
