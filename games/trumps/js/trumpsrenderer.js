@@ -202,27 +202,27 @@ class TrumpsRenderer {
         this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
         this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
         
-        // Step 2: Fade in the card backs over 1.5 seconds
-        const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
-        cardBacks.forEach(back => {
-        back.style.opacity = '0';
-        back.style.transition = 'opacity 1.5s ease-in';
-        setTimeout(() => {
+    // Step 2: Fade in the card backs over 1 second
+    const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
+    cardBacks.forEach(back => {
+    back.style.opacity = '0';
+    back.style.transition = 'opacity 1s ease-in';
+    setTimeout(() => {
         back.style.opacity = '1';
-        }, 200);
-        });
-        
-        // Step 3: After 1.5 seconds (when fade in completes), create front faces and reveal user card
-        setTimeout(() => {
-        this.createCardFronts(userCard, 'user');
-        this.createCardFronts(computerCard, 'computer');
+    }, 50);
+    });
+
+    // Step 3: After 1.1 seconds, create front faces behind the blue backs
+    setTimeout(() => {
+    this.createCardFronts(userCard, 'user');
+    this.createCardFronts(computerCard, 'computer');
     
-        // Step 4: After front faces are ready, reveal user card
-        setTimeout(async () => {
+    // Step 4: After 0.9 more seconds (total 2 seconds), reveal user card
+    setTimeout(async () => {
         await this.revealCard(userCard.id, 'user');
-        }, 100); // Small delay to ensure front faces are rendered
+    }, 900);
     
-        }, 1500); // Wait for 1.5s fade in to complete
+    }, 1100); // 1.1 seconds - after fade in completes
     }
 
     createCardBacks(card, player) {
