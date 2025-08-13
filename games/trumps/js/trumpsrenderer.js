@@ -194,28 +194,34 @@ class TrumpsRenderer {
         // Enable pointer events on square container for card interaction
         this.squareContainer.style.pointerEvents = 'auto';
         
-        // Create square card elements (front face already visible underneath back)
-        this.createSquareCardElements(userCard, 'user');
-        this.createSquareCardElements(computerCard, 'computer');
+        // Step 1: Create only the card backs first (blue faces)
+        this.createCardBacks(userCard, 'user');
+        this.createCardBacks(computerCard, 'computer');
         
         // Update square scores to match current scores
         this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
         this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
         
-        // Show cards immediately with no animation (just fade in)
-        const squareCardElements = this.squareContainer.querySelectorAll('.square-card-element:not(.square-score-box)');
-        squareCardElements.forEach(element => {
-            element.style.opacity = '0';
-            element.style.transition = 'opacity 0.5s ease-in';
-            // Trigger fade in
+        // Step 2: Fade in the card backs over 1 second
+        const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
+        cardBacks.forEach(back => {
+            back.style.opacity = '0';
+            back.style.transition = 'opacity 1s ease-in';
             setTimeout(() => {
-                element.style.opacity = '1';
+                back.style.opacity = '1';
             }, 50);
         });
         
-        // Auto-reveal user card after 1 second delay
-        setTimeout(async () => {
-            await this.revealCard(userCard.id, 'user');
+        // Step 3: After 1 second, create front faces underneath (invisible but ready)
+        setTimeout(() => {
+            this.createCardFronts(userCard, 'user');
+            this.createCardFronts(computerCard, 'computer');
+            
+            // Step 4: After front faces are ready, reveal left card
+            setTimeout(async () => {
+                await this.revealCard(userCard.id, 'user');
+            }, 100); // Small delay to ensure front faces are rendered
+            
         }, 1000);
     }
 
