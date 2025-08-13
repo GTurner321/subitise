@@ -42,15 +42,6 @@ class TrumpsGameController {
         } catch (error) {
             console.warn('Bear system not available:', error);
         }
-        
-        // Initialize ButtonBar system for margins (no actual buttons needed)
-        try {
-            if (window.ButtonBar) {
-                console.log('📐 ButtonBar system available for responsive margins');
-            }
-        } catch (error) {
-            console.warn('ButtonBar system not available:', error);
-        }
     }
 
     initializeGame() {
@@ -64,7 +55,7 @@ class TrumpsGameController {
     }
 
     initializeEventListeners() {
-        // Handle card selection
+        // Handle card selection and category selection
         document.addEventListener('click', (e) => {
             this.handleClick(e);
         });
@@ -78,13 +69,21 @@ class TrumpsGameController {
     }
 
     handleClick(e) {
-        const target = e.target.closest('[data-card-id], [data-category]');
-        if (!target) return;
+        // Handle clicks on card slots in grid mode
+        const cardSlot = e.target.closest('[data-card-id]');
+        if (cardSlot && this.gamePhase === 'selection' && this.renderer.currentMode === 'grid') {
+            this.handleCardSelection(parseInt(cardSlot.dataset.cardId));
+            return;
+        }
         
-        if (this.gamePhase === 'selection' && target.dataset.cardId) {
-            this.handleCardSelection(parseInt(target.dataset.cardId));
-        } else if (this.gamePhase === 'category' && target.dataset.category) {
-            this.handleCategorySelection(target.dataset.category);
+        // Handle clicks on category buttons in square mode
+        const categoryButton = e.target.closest('[data-category]');
+        if (categoryButton && this.gamePhase === 'category' && this.renderer.currentMode === 'square') {
+            // Only allow clicks on user's card buttons (clickable class)
+            if (categoryButton.classList.contains('clickable')) {
+                this.handleCategorySelection(categoryButton.dataset.category);
+            }
+            return;
         }
     }
 
@@ -120,7 +119,7 @@ class TrumpsGameController {
         // Move to next phase
         this.gamePhase = 'category';
         
-        // Animate card selection and movement (renderer handles ButtonBar margins)
+        // Animate card selection and movement to square layout
         await this.renderer.selectAndMoveCards(userCard, computerCard);
         
         // Flip user's card first
@@ -132,7 +131,7 @@ class TrumpsGameController {
             const longInstruction = 'Choose a category: Fun, Cuddly, or Stars. Fun goes up to 100%, cuddly goes up to 10, and the star rating is out of 5 stars';
             window.AudioSystem.speakText(longInstruction);
             
-            // Calculate speech duration and wait before flipping computer card
+            // Calculate speech duration and wait before showing computer card back
             const speechDuration = this.calculateSpeechDuration(longInstruction);
             await this.renderer.wait(speechDuration);
         } else {
@@ -211,7 +210,7 @@ class TrumpsGameController {
                    card.id !== this.selectedCards.computer.id
         );
         
-        // Clear center cards
+        // Clear center cards and return to grid layout
         await this.renderer.clearCenterCards();
         
         // Check if game is complete
@@ -241,20 +240,21 @@ class TrumpsGameController {
         }
     }
 
-    
     addRainbowPiece() {
         if (this.rainbow) {
             const pieces = this.rainbow.addPiece();
             console.log(`🌈 Rainbow now has ${pieces} pieces`);
             
-            // After 8th round, add the final 2 pieces and trigger final celebration
+            // Special handling for 8th round - add the final 2 pieces
             if (this.currentRound === CONFIG.ROUNDS) {
                 setTimeout(() => {
                     if (this.rainbow) {
                         this.rainbow.addPiece(); // 9th piece
+                        console.log(`🌈 Rainbow now has ${this.rainbow.getPieces()} pieces`);
                         setTimeout(() => {
                             if (this.rainbow) {
                                 this.rainbow.addPiece(); // 10th piece
+                                console.log(`🌈 Rainbow now has ${this.rainbow.getPieces()} pieces - Complete!`);
                                 // Final celebration is automatically triggered when rainbow is complete
                             }
                         }, 500);
@@ -306,9 +306,6 @@ class TrumpsGameController {
         // Hide modal
         const modal = document.getElementById('gameModal');
         modal.classList.add('hidden');
-        
-        // Ensure margins are removed when restarting
-        this.renderer.removeButtonBarMargins();
         
         // Reinitialize game
         this.initializeGame();
