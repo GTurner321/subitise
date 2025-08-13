@@ -25,8 +25,9 @@
         </div>
     </div>
     
-    <!-- JavaScript files -->
+    <!-- JavaScript files - Fixed order and paths -->
     <script src="../../js/shared/audio.js"></script>
+    <script src="../../js/shared/buttonbar.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
     <script src="js/trumpsconfig.js"></script>
@@ -34,9 +35,14 @@
     <script src="js/trumpsgamecontroller.js"></script>
     
     <script>
-        // Initialize universal audio system with trumps-specific settings
+        // Initialize universal systems for trumps game
         document.addEventListener('DOMContentLoaded', () => {
-            // Configure audio system for trumps game (no button bar needed)
+            // Initialize ButtonBar (required by Rainbow for resize handling)
+            if (window.ButtonBar) {
+                window.ButtonBar.initialize();
+            }
+            
+            // Configure audio system for trumps game
             window.AudioSystem.setBottomPosition(false, '../../index.html');
         });
     </script>
