@@ -262,6 +262,26 @@ class TrumpsRenderer {
         cardFront.style.background = '#f5f5dc';
         cardFront.style.borderRadius = '8%';
         cardFront.style.boxShadow = '0 3% 6% rgba(0,0,0,0.3)';
+        cardFront.style.border = `${squareSize * 0.005}px solid #667eea`; // Same border as picture and buttons
+        
+        // Add diagonal pattern to card front with yellow colors
+        const frontPattern = document.createElement('div');
+        frontPattern.style.position = 'absolute';
+        frontPattern.style.top = '0';
+        frontPattern.style.left = '0';
+        frontPattern.style.right = '0';
+        frontPattern.style.bottom = '0';
+        frontPattern.style.background = `repeating-linear-gradient(
+            45deg,
+            rgba(255, 215, 0, 0.3) 0,
+            rgba(255, 215, 0, 0.3) ${squareSize * 0.008}px,
+            transparent ${squareSize * 0.008}px,
+            transparent ${squareSize * 0.016}px
+        )`;
+        frontPattern.style.borderRadius = '8%';
+        frontPattern.style.pointerEvents = 'none';
+        cardFront.appendChild(frontPattern);
+        
         this.squareContainer.appendChild(cardFront);
         
         // Create title
@@ -270,7 +290,8 @@ class TrumpsRenderer {
         title.textContent = card.name;
         title.style.position = 'absolute'; // Add absolute positioning
         this.positionSquareElement(title, cardX + 5, cardY, 35, 9, squareSize);
-        title.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.TITLE}px`;
+        title.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.TITLE * 1.5}px`; // Larger font
+        title.style.fontFamily = 'Comic Sans MS, cursive'; // Comic Sans
         title.style.fontWeight = 'bold';
         title.style.color = '#333';
         title.style.textTransform = 'uppercase';
@@ -321,12 +342,14 @@ class TrumpsRenderer {
             button.dataset.player = player;
             button.style.position = 'absolute'; // Add absolute positioning
             this.positionSquareElement(button, cardX + 5, cardY + buttonYOffsets[index], 35, 9, squareSize);
-            button.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.BUTTON * 2}px`; // Double the text size
+            button.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.BUTTON * 1.5}px`; // Smaller font (was *2, now *1.5)
+            button.style.fontFamily = 'Comic Sans MS, cursive'; // Comic Sans
             button.style.borderRadius = '8%';
             button.style.border = `${squareSize * 0.005}px solid #667eea`; // Thinner blue border from card back
             button.style.display = 'flex';
             button.style.alignItems = 'center';
-            button.style.paddingLeft = '0'; // No left padding
+            button.style.paddingLeft = '2%'; // Small left padding
+            button.style.paddingRight = '2%'; // Small right padding
             button.style.fontWeight = 'bold';
             button.style.textTransform = 'uppercase';
             button.style.transition = 'all 0.3s ease';
@@ -344,8 +367,9 @@ class TrumpsRenderer {
             // Create label
             const label = document.createElement('span');
             label.className = 'square-card-button-label';
-            label.textContent = categoryInfo.label;
+            label.textContent = category === 'cuddly' ? 'Cuddles' : categoryInfo.label; // Rename cuddly to cuddles
             label.style.color = '#555';
+            label.style.fontFamily = 'Comic Sans MS, cursive'; // Comic Sans
             button.appendChild(label);
             
             // Create value (stars or text)
@@ -387,8 +411,9 @@ class TrumpsRenderer {
                 valueSpan.className = 'square-card-button-value';
                 valueSpan.textContent = `${value}${categoryInfo.suffix}`;
                 valueSpan.style.marginLeft = 'auto';
-                valueSpan.style.marginRight = '4%'; // Reduced right margin since no left padding
+                valueSpan.style.marginRight = '0'; // No right margin due to padding
                 valueSpan.style.color = '#333';
+                valueSpan.style.fontFamily = 'Comic Sans MS, cursive'; // Comic Sans
                 button.appendChild(valueSpan);
             }
             
@@ -432,23 +457,34 @@ class TrumpsRenderer {
             await this.wait(CONFIG.CARD_FLIP_DURATION);
             
         } else {
-            // Computer card: instant reveal after 2 second wait
+            // Computer card: center-outward reveal after 2 second wait
             await this.wait(2000); // Wait 2 seconds
             
-            // Instant reveal - no fade in
             const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
+            
+            if (cardBack) {
+                // Create center-outward reveal effect using CSS clip-path
+                cardBack.style.transition = 'clip-path 0.8s ease-out';
+                cardBack.style.clipPath = 'circle(0% at 50% 50%)'; // Start from center, 0% radius
+                
+                // After a brief moment, expand to reveal
+                setTimeout(() => {
+                    cardBack.style.clipPath = 'circle(100% at 50% 50%)'; // Expand to full size
+                }, 50);
+                
+                // Wait for animation to complete
+                await this.wait(800);
+                
+                // Hide back and show front instantly
+                cardBack.classList.add('hidden');
+            }
+            
+            // Show front and all elements instantly
             const cardFront = this.squareContainer.querySelector(`.${player}-card-front[data-card-id="${cardId}"]`);
             const title = this.squareContainer.querySelector(`.${player}-title`);
             const picture = this.squareContainer.querySelector(`.${player}-picture`);
             const buttons = this.squareContainer.querySelectorAll(`.${player}-button-1, .${player}-button-2, .${player}-button-3`);
             
-            // Hide back instantly
-            if (cardBack) {
-                cardBack.style.opacity = '0';
-                cardBack.classList.add('hidden');
-            }
-            
-            // Show front and all elements instantly
             const elementsToShow = [cardFront, title, picture, ...buttons].filter(el => el);
             elementsToShow.forEach(element => {
                 element.classList.remove('hidden');
