@@ -3,8 +3,6 @@ class TrumpsRenderer {
         this.gameArea = document.querySelector('.game-area');
         this.cardGrid = null;
         this.squareContainer = null;
-        this.gridUserScoreElement = null;
-        this.gridComputerScoreElement = null;
         this.squareUserScoreElement = null;
         this.squareComputerScoreElement = null;
         
@@ -225,24 +223,23 @@ class TrumpsRenderer {
         }, 1000);
     }
 
-    createSquareCardElements(card, player) {
+    createCardBacks(card, player) {
         const { squareSize } = this.calculateSquareDimensions();
         const isUser = player === 'user';
-        
-        // Base positions for user (left) or computer (right)
         const cardX = isUser ? 2 : 53;
         const cardY = 23;
         
-        // Create card back face
+        // Create only the card back face
         const cardBack = document.createElement('div');
         cardBack.className = `square-card-back square-card-element ${player}-card-back`;
         cardBack.dataset.cardId = card.id;
         cardBack.dataset.player = player;
-        cardBack.style.position = 'absolute'; // Add absolute positioning
+        cardBack.style.position = 'absolute';
         this.positionSquareElement(cardBack, cardX, cardY, 45, 73, squareSize);
         cardBack.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
         cardBack.style.borderRadius = '8%';
         cardBack.style.boxShadow = '0 3% 6% rgba(0,0,0,0.3)';
+        cardBack.style.zIndex = '30'; // Highest z-index to cover everything
         
         // Add diagonal pattern to card back
         const pattern = document.createElement('div');
@@ -262,20 +259,28 @@ class TrumpsRenderer {
         cardBack.appendChild(pattern);
         
         this.squareContainer.appendChild(cardBack);
+    }
+
+    createCardFronts(card, player) {
+        const { squareSize } = this.calculateSquareDimensions();
+        const isUser = player === 'user';
+        const cardX = isUser ? 2 : 53;
+        const cardY = 23;
         
-        // Create card front face (initially hidden behind back)
+        // Create card front face (underneath back)
         const cardFront = document.createElement('div');
-        cardFront.className = `square-card-front square-card-element ${player}-card-front hidden`;
+        cardFront.className = `square-card-front square-card-element ${player}-card-front`;
         cardFront.dataset.cardId = card.id;
         cardFront.dataset.player = player;
-        cardFront.style.position = 'absolute'; // Add absolute positioning
+        cardFront.style.position = 'absolute';
         this.positionSquareElement(cardFront, cardX, cardY, 45, 73, squareSize);
         cardFront.style.background = '#f5f5dc';
         cardFront.style.borderRadius = '8%';
         cardFront.style.boxShadow = '0 3% 6% rgba(0,0,0,0.3)';
-        cardFront.style.border = `${squareSize * 0.005}px solid #667eea`; // Same border as picture and buttons
+        cardFront.style.border = `${squareSize * 0.005}px solid #667eea`;
+        cardFront.style.zIndex = '25'; // Below back, visible when back is removed
         
-        // Add diagonal pattern to card front with yellow colors
+        // Add diagonal pattern to card front
         const frontPattern = document.createElement('div');
         frontPattern.style.position = 'absolute';
         frontPattern.style.top = '0';
@@ -297,12 +302,12 @@ class TrumpsRenderer {
         
         // Create title
         const title = document.createElement('div');
-        title.className = `square-card-title square-card-element ${player}-title hidden`;
+        title.className = `square-card-title square-card-element ${player}-title`;
         title.textContent = card.name;
-        title.style.position = 'absolute'; // Add absolute positioning
+        title.style.position = 'absolute';
         this.positionSquareElement(title, cardX + 5, cardY, 35, 9, squareSize);
-        title.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.TITLE * 1.5}px`; // Larger font
-        title.style.fontFamily = 'Comic Sans MS, cursive'; // Comic Sans
+        title.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.TITLE * 1.5}px`;
+        title.style.fontFamily = 'Comic Sans MS, cursive';
         title.style.fontWeight = 'bold';
         title.style.color = '#333';
         title.style.textTransform = 'uppercase';
@@ -310,21 +315,23 @@ class TrumpsRenderer {
         title.style.alignItems = 'center';
         title.style.justifyContent = 'center';
         title.style.lineHeight = '1.2';
+        title.style.zIndex = '25'; // Same as front face
         this.squareContainer.appendChild(title);
         
         // Create picture area
         const pictureArea = document.createElement('div');
-        pictureArea.className = `square-card-picture square-card-element ${player}-picture hidden`;
-        pictureArea.style.position = 'absolute'; // Add absolute positioning
+        pictureArea.className = `square-card-picture square-card-element ${player}-picture`;
+        pictureArea.style.position = 'absolute';
         this.positionSquareElement(pictureArea, cardX + 5, cardY + 9, 35, 30, squareSize);
         pictureArea.style.borderRadius = '8%';
         pictureArea.style.background = 'linear-gradient(135deg, #e3f2fd, #f3e5f5)';
         pictureArea.style.boxShadow = 'inset 0 1% 3% rgba(135, 206, 250, 0.3)';
-        pictureArea.style.border = `${squareSize * 0.005}px solid #667eea`; // Thinner blue border from card back
+        pictureArea.style.border = `${squareSize * 0.005}px solid #667eea`;
         pictureArea.style.display = 'flex';
         pictureArea.style.alignItems = 'center';
         pictureArea.style.justifyContent = 'center';
         pictureArea.style.overflow = 'hidden';
+        pictureArea.style.zIndex = '25'; // Same as front face
         
         const image = document.createElement('img');
         image.src = card.image;
@@ -347,40 +354,41 @@ class TrumpsRenderer {
             const value = card.stats[category];
             
             const button = document.createElement('div');
-            button.className = `square-card-button square-card-element ${player}-button-${index + 1} ${isUser ? 'clickable' : 'display-only'} hidden`;
+            button.className = `square-card-button square-card-element ${player}-button-${index + 1} ${isUser ? 'clickable' : 'display-only'}`;
             button.dataset.category = category;
             button.dataset.cardId = card.id;
             button.dataset.player = player;
-            button.style.position = 'absolute'; // Add absolute positioning
+            button.style.position = 'absolute';
             this.positionSquareElement(button, cardX + 5, cardY + buttonYOffsets[index], 35, 9, squareSize);
-            button.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.BUTTON * 1.5}px`; // Smaller font (was *2, now *1.5)
-            button.style.fontFamily = 'Comic Sans MS, cursive'; // Comic Sans
+            button.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.BUTTON * 1.5}px`;
+            button.style.fontFamily = 'Comic Sans MS, cursive';
             button.style.borderRadius = '8%';
-            button.style.border = `${squareSize * 0.005}px solid #667eea`; // Thinner blue border from card back
+            button.style.border = `${squareSize * 0.005}px solid #667eea`;
             button.style.display = 'flex';
             button.style.alignItems = 'center';
-            button.style.paddingLeft = '2%'; // Small left padding
-            button.style.paddingRight = '2%'; // Small right padding
+            button.style.paddingLeft = '2%';
+            button.style.paddingRight = '2%';
             button.style.fontWeight = 'bold';
             button.style.textTransform = 'uppercase';
             button.style.transition = 'all 0.3s ease';
-            button.style.boxShadow = '0 2% 4% rgba(0,0,0,0.2)'; // Add shadow
+            button.style.boxShadow = '0 2% 4% rgba(0,0,0,0.2)';
+            button.style.zIndex = '25'; // Same as front face
             
             if (isUser) {
                 button.style.background = 'linear-gradient(135deg, #e3f2fd, #f3e5f5)';
                 button.style.cursor = 'pointer';
-                button.style.pointerEvents = 'auto'; // User buttons should be clickable
+                button.style.pointerEvents = 'auto';
             } else {
                 button.style.background = 'linear-gradient(135deg, #f5f5f5, #eeeeee)';
-                button.style.pointerEvents = 'none'; // Computer buttons not clickable
+                button.style.pointerEvents = 'none';
             }
             
             // Create label
             const label = document.createElement('span');
             label.className = 'square-card-button-label';
-            label.textContent = category === 'cuddly' ? 'Cuddles' : categoryInfo.label; // Rename cuddly to cuddles
+            label.textContent = category === 'cuddly' ? 'Cuddles' : categoryInfo.label;
             label.style.color = '#555';
-            label.style.fontFamily = 'Comic Sans MS, cursive'; // Comic Sans
+            label.style.fontFamily = 'Comic Sans MS, cursive';
             button.appendChild(label);
             
             // Create value (stars or text)
@@ -390,7 +398,7 @@ class TrumpsRenderer {
                 starsContainer.style.display = 'flex';
                 starsContainer.style.alignItems = 'center';
                 starsContainer.style.marginLeft = 'auto';
-                starsContainer.style.marginRight = '4%'; // Reduced right margin since no left padding
+                starsContainer.style.marginRight = '2%';
                 
                 const fullStars = Math.floor(value);
                 const hasHalfStar = value % 1 !== 0;
@@ -400,9 +408,9 @@ class TrumpsRenderer {
                     const star = document.createElement('i');
                     star.className = 'fa-solid fa-star square-star';
                     star.style.color = '#FFD700';
-                    star.style.textShadow = '0 0 6px rgba(0,0,0,0.8)'; // Darker shadow
+                    star.style.textShadow = '0 0 6px rgba(0,0,0,0.8)';
                     star.style.marginRight = '2%';
-                    star.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR * 1.5}px`; // 50% larger
+                    star.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR * 1.2}px`;
                     starsContainer.appendChild(star);
                 }
                 
@@ -411,8 +419,8 @@ class TrumpsRenderer {
                     const halfStar = document.createElement('i');
                     halfStar.className = 'fa-solid fa-star-half-stroke square-star';
                     halfStar.style.color = '#FFD700';
-                    halfStar.style.textShadow = '0 0 6px rgba(0,0,0,0.8)'; // Darker shadow
-                    halfStar.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR * 1.5}px`; // 50% larger
+                    halfStar.style.textShadow = '0 0 6px rgba(0,0,0,0.8)';
+                    halfStar.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.STAR * 1.2}px`;
                     starsContainer.appendChild(halfStar);
                 }
                 
@@ -422,9 +430,9 @@ class TrumpsRenderer {
                 valueSpan.className = 'square-card-button-value';
                 valueSpan.textContent = `${value}${categoryInfo.suffix}`;
                 valueSpan.style.marginLeft = 'auto';
-                valueSpan.style.marginRight = '0'; // No right margin due to padding
+                valueSpan.style.marginRight = '0';
                 valueSpan.style.color = '#333';
-                valueSpan.style.fontFamily = 'Comic Sans MS, cursive'; // Comic Sans
+                valueSpan.style.fontFamily = 'Comic Sans MS, cursive';
                 button.appendChild(valueSpan);
             }
             
@@ -599,8 +607,8 @@ class TrumpsRenderer {
                 const computerCard = CONFIG.CARDS.find(c => c.id == computerCardId);
                 
                 if (userCard && computerCard) {
-                    this.createSquareCardElements(userCard, 'user');
-                    this.createSquareCardElements(computerCard, 'computer');
+                    this.createCardFronts(userCard, 'user');
+                    this.createCardFronts(computerCard, 'computer');
                     
                     // Restore flipped state if cards were flipped
                     const userElements = this.squareContainer.querySelectorAll('.user-title, .user-picture, .user-button-1, .user-button-2, .user-button-3');
