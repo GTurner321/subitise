@@ -44,22 +44,19 @@ class TrumpsGameController {
         }
     }
 
-async initializeGame() {
-    // Preload all card images first
-    try {
-        await ImagePreloader.preloadImages();
-        console.log('All images preloaded successfully!');
-    } catch (error) {
-        console.warn('Some images failed to preload, continuing anyway...');
-    }
-    
-    // Initialize cards with original positions
+initializeGame() {
+    // Start game immediately
     this.availableCards = CONFIG.CARDS.map((card, index) => ({
         ...card,
         originalPosition: index
     }));
     
     this.startNewRound();
+    
+    // Preload in background (don't await)
+    ImagePreloader.preloadImages().then(() => {
+        console.log('Images preloaded in background');
+    });
 }
 
     initializeEventListeners() {
