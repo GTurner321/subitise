@@ -164,7 +164,7 @@ class TrumpsGameController {
         
         this.gamePhase = 'comparison';
         
-        // Flip computer's card
+        // Flip computer's card (now with no extra 2-second delay)
         await this.renderer.flipCard(this.selectedCards.computer.id, 'computer');
         
         // Wait a moment for dramatic effect
@@ -204,14 +204,14 @@ class TrumpsGameController {
         // Wait to show result
         await this.renderer.wait(CONFIG.RESULT_DISPLAY_DURATION);
         
-        // Clear center cards and return to grid layout
-        await this.renderer.clearCenterCards();
-        
-        // Remove used cards from available cards AFTER clearing center cards
+        // Remove used cards from available cards BEFORE clearing center cards
         this.availableCards = this.availableCards.filter(
             card => card.id !== this.selectedCards.user.id && 
                    card.id !== this.selectedCards.computer.id
         );
+        
+        // Clear center cards and return to grid layout
+        await this.renderer.clearCenterCards();
         
         // Check if game is complete
         if (this.currentRound >= CONFIG.ROUNDS) {
