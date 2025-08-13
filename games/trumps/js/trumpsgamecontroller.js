@@ -204,14 +204,14 @@ class TrumpsGameController {
         // Wait to show result
         await this.renderer.wait(CONFIG.RESULT_DISPLAY_DURATION);
         
-        // Remove used cards from available cards
+        // Clear center cards and return to grid layout
+        await this.renderer.clearCenterCards();
+        
+        // Remove used cards from available cards AFTER clearing center cards
         this.availableCards = this.availableCards.filter(
             card => card.id !== this.selectedCards.user.id && 
                    card.id !== this.selectedCards.computer.id
         );
-        
-        // Clear center cards and return to grid layout
-        await this.renderer.clearCenterCards();
         
         // Check if game is complete
         if (this.currentRound >= CONFIG.ROUNDS) {
@@ -306,6 +306,10 @@ class TrumpsGameController {
         // Hide modal
         const modal = document.getElementById('gameModal');
         modal.classList.add('hidden');
+        
+        // Reset scores in renderer
+        this.renderer.squareUserScoreElement.textContent = '0';
+        this.renderer.squareComputerScoreElement.textContent = '0';
         
         // Reinitialize game
         this.initializeGame();
