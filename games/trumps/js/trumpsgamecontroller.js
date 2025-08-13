@@ -123,7 +123,7 @@ class TrumpsGameController {
         await this.renderer.selectAndMoveCards(userCard, computerCard);
 
         // Wait for card setup to complete (blue backs fade in + front faces created), then flip user's card
-        await this.renderer.wait(1200); // Wait 1.2 seconds for front faces to be ready
+        await this.renderer.wait(2500); // Wait 2.5 seconds - let user see the blue back
         await this.renderer.flipCard(userCard.id, 'user');
         
         // Give instruction for category selection - different for first vs subsequent questions
