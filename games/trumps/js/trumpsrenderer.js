@@ -202,23 +202,13 @@ class TrumpsRenderer {
         this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
         this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
         
-        // Step 2: Fade in the card backs over 0.5 seconds
-        let existingCardBacks = this.squareContainer.querySelectorAll('.square-card-back');
-        cardBacks.forEach(back => {
-            back.style.opacity = '0';
-            back.style.transition = 'opacity 0.5s ease-in'; // Faster fade in (0.5s instead of 1s)
-            setTimeout(() => {
-                back.style.opacity = '1';
-            }, 50);
-        });
-
         // Step 2: Fade in the card backs over 1.5 seconds
         const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
         cardBacks.forEach(back => {
-            back.style.opacity = '0';
-            back.style.transition = 'opacity 1.5s ease-in';
-            setTimeout(() => {
-                back.style.opacity = '1';
+        back.style.opacity = '0';
+        back.style.transition = 'opacity 1.5s ease-in';
+        setTimeout(() => {
+        back.style.opacity = '1';
         }, 200);
         });
         
