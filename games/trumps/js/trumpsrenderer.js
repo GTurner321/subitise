@@ -194,14 +194,14 @@ class TrumpsRenderer {
         // Enable pointer events on square container for card interaction
         this.squareContainer.style.pointerEvents = 'auto';
         
-        // Step 1: Create only the card backs first (blue faces)
-        this.createCardBacks(userCard, 'user');
-        this.createCardBacks(computerCard, 'computer');
-        
-        // Update square scores to match current scores
-        this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
-        this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
-        
+    // Step 1: Create only the card backs first (blue faces)
+    this.createCardBacks(userCard, 'user');
+    this.createCardBacks(computerCard, 'computer');
+
+    // Update square scores to match current scores
+    this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
+    this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
+
     // Step 2: Fade in the card backs over 1 second
     const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
     cardBacks.forEach(back => {
