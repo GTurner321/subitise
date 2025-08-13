@@ -38,9 +38,11 @@
         // Initialize universal systems for trumps game
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize ButtonBar (required by Rainbow for resize handling)
-            if (window.ButtonBar) {
-                window.ButtonBar.initialize();
-            }
+        if (window.ButtonBar && typeof window.ButtonBar.initialize === 'function') {
+        window.ButtonBar.initialize();
+        } else {
+        console.log('ButtonBar not available or no initialize method');
+        }
             
             // Configure audio system for trumps game
             window.AudioSystem.setBottomPosition(false, '../../index.html');
