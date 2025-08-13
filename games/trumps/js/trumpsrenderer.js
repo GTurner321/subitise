@@ -135,30 +135,14 @@ class TrumpsRenderer {
         
         this.cardGrid.innerHTML = '';
         
-        // Create 20 slots total: 2 margin slots + 8 card slots per row
-        for (let i = 0; i < 20; i++) {
+        // Create 16 card slots with direct positioning (no complex grid logic)
+        for (let position = 0; position < 16; position++) {
             const cardElement = document.createElement('div');
             cardElement.className = 'card-slot';
-            
-            // Skip margin slots (positions 0, 9, 10, 19)
-            if (i === 0 || i === 9 || i === 10 || i === 19) {
-                cardElement.style.visibility = 'hidden';
-                this.cardGrid.appendChild(cardElement);
-                continue;
-            }
-            
-            // Calculate actual card position (0-15)
-            let cardPosition;
-            if (i >= 1 && i <= 8) {
-                cardPosition = i - 1; // First row: positions 1-8 become 0-7
-            } else if (i >= 11 && i <= 18) {
-                cardPosition = i - 3; // Second row: positions 11-18 become 8-15
-            }
-            
-            cardElement.dataset.position = cardPosition;
+            cardElement.dataset.position = position;
             
             // Check if this position has a card
-            const card = availableCards.find(c => c.originalPosition === cardPosition);
+            const card = availableCards.find(c => c.originalPosition === position);
             if (card) {
                 cardElement.classList.add('card-back');
                 cardElement.dataset.cardId = card.id;
