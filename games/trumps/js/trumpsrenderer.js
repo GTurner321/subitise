@@ -205,11 +205,17 @@ switchToSquareLayout(userCard, computerCard) {
     // Fade in BOTH blue backs over 1 second
     const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
     cardBacks.forEach(back => {
+        // Force initial opacity to 0 immediately using multiple frames
         back.style.opacity = '0';
-        back.style.transition = 'opacity 1s ease-in';
-        setTimeout(() => {
-            back.style.opacity = '1';
-        }, 50);
+        back.style.transition = 'none'; // No transition initially
+        
+        // Use requestAnimationFrame to ensure opacity is set before starting transition
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                back.style.transition = 'opacity 1s ease-in';
+                back.style.opacity = '1';
+            });
+        });
     });
     
     // After 1.1 seconds, create front faces behind the blue backs
@@ -218,7 +224,7 @@ switchToSquareLayout(userCard, computerCard) {
         this.createCardFronts(computerCard, 'computer');
     }, 1100);
 }
-
+    
     createCardBacks(card, player) {
         const { squareSize } = this.calculateSquareDimensions();
         const isUser = player === 'user';
