@@ -164,7 +164,8 @@ class TrumpsGameController {
         
         this.gamePhase = 'comparison';
         
-        // Flip computer's card (now with no extra 2-second delay)
+        // Wait 2 seconds before flipping computer's card
+        await this.renderer.wait(1500);
         await this.renderer.flipCard(this.selectedCards.computer.id, 'computer');
         
         // Wait a moment for dramatic effect
