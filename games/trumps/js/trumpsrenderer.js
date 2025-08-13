@@ -216,13 +216,7 @@ class TrumpsRenderer {
     setTimeout(() => {
     this.createCardFronts(userCard, 'user');
     this.createCardFronts(computerCard, 'computer');
-    
-    // Step 4: After 0.9 more seconds (total 2 seconds), reveal user card
-    setTimeout(async () => {
-        await this.revealCard(userCard.id, 'user');
-    }, 900);
-    
-    }, 1100); // 1.1 seconds - after fade in completes
+    }, 1100);
     }
 
     createCardBacks(card, player) {
