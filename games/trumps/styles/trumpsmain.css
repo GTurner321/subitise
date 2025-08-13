@@ -1,46 +1,20 @@
-/* Teddy Trumps Game Styles - Fully Responsive */
+/* Teddy Trumps Game Styles - Fully Responsive with Square Layout */
 
-/* Game area with responsive margin system */
 .game-area {
     display: flex;
     flex-direction: column;
     height: 100vh;
     width: 100vw;
-    background: linear-gradient(135deg, #e3f2fd, #f3e5f5); /* Default gradient background */
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5); /* Same gradient as main.css */
     padding: 0;
     margin: 0;
     position: relative;
     overflow: hidden;
-    transition: all 0.5s ease; /* Smooth transition between phases */
 }
 
-/* Game area in center card phase with ButtonBar margins */
-.game-area.center-card-phase {
-    margin-left: 14vw; /* Default large screen margin */
-    margin-right: 14vw;
-    width: 72vw; /* 100vw - 28vw margins */
-    background: white; /* White background for center phase */
-    z-index: 20; /* Higher z-index to hide rainbow */
-}
+/* ===== CARD SELECTION PHASE (16-card grid) ===== */
 
-/* Responsive margins for center card phase */
-@media (max-width: 1024px) {
-    .game-area.center-card-phase {
-        margin-left: calc(14vw * (100vw - 768px) / (1024px - 768px)); /* Gradual reduction */
-        margin-right: calc(14vw * (100vw - 768px) / (1024px - 768px));
-        width: calc(100vw - 2 * 14vw * (100vw - 768px) / (1024px - 768px));
-    }
-}
-
-@media (max-width: 768px) {
-    .game-area.center-card-phase {
-        margin-left: 0;
-        margin-right: 0;
-        width: 100vw;
-    }
-}
-
-/* Scores Container */
+/* Scores Container - Original grid layout */
 .scores-container {
     display: flex;
     justify-content: center;
@@ -153,14 +127,6 @@
     justify-content: center;
     border-radius: 1vh;
     overflow: hidden;
-}
-
-.card-pattern {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
     background: repeating-linear-gradient(
         45deg,
         rgba(255,255,255,0.1) 0,
@@ -170,18 +136,203 @@
     );
 }
 
-/* Bear image container on card back */
-.card-bear-image {
-    width: 60%;
-    height: 60%;
-    position: relative;
+/* ===== SQUARE LAYOUT PHASE (2-card comparison) ===== */
+
+/* Square container - dynamically positioned and sized */
+.square-container {
+    position: absolute;
+    background: transparent;
+    z-index: 15; /* Higher z-index for revealed cards */
+    /* Position and size will be set by JavaScript */
+}
+
+.square-container.hidden {
+    display: none;
+}
+
+/* Square layout score boxes */
+.square-score-box {
+    position: absolute;
+    border-radius: 15%; /* Responsive rounded corners */
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 3;
+    font-weight: bold;
+    color: white;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2% 5% rgba(0,0,0,0.2);
+    /* Position, size, and font-size will be set by JavaScript based on square dimensions */
 }
 
-/* Center Area - Positioned at 57% from top */
+.square-score-box.user-score {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+}
+
+.square-score-box.computer-score {
+    background: linear-gradient(135deg, #f44336, #da190b);
+}
+
+/* Square layout cards */
+.square-card {
+    position: absolute;
+    perspective: 1000px;
+    /* Position and size will be set by JavaScript based on square dimensions */
+}
+
+.square-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.square-card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 8%; /* Responsive border radius */
+    backface-visibility: hidden;
+    box-shadow: 0 3% 6% rgba(0,0,0,0.3);
+}
+
+.square-card-back-face {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.square-card-front-face {
+    background: #f5f5dc; /* Dull light yellow background */
+    transform: rotateY(180deg);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Square layout card elements */
+.square-card-title {
+    position: absolute;
+    background: transparent;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    /* Position, size, and font-size will be set by JavaScript */
+}
+
+.square-card-picture {
+    position: absolute;
+    border-radius: 8%; /* Responsive border radius */
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    box-shadow: inset 0 1% 3% rgba(135, 206, 250, 0.3);
+    border: 1.5% solid #7DA3D9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    /* Position and size will be set by JavaScript */
+}
+
+.square-card-image {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    border-radius: 4%;
+    background: transparent;
+}
+
+.square-card-button {
+    position: absolute;
+    border-radius: 8%; /* Responsive border radius */
+    transition: all 0.3s ease;
+    border: 1.5% solid #7DA3D9;
+    display: flex;
+    align-items: center;
+    padding-left: 8%; /* Left-aligned text with padding */
+    font-weight: bold;
+    text-transform: uppercase;
+    /* Position, size, and font-size will be set by JavaScript */
+}
+
+.square-card-button.clickable {
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    cursor: pointer;
+}
+
+.square-card-button.clickable:hover {
+    background: linear-gradient(135deg, #bbdefb, #e1bee7);
+    transform: translateY(-2%);
+    box-shadow: 0 2% 6% rgba(0,0,0,0.2);
+}
+
+.square-card-button.display-only {
+    background: linear-gradient(135deg, #f5f5f5, #eeeeee);
+}
+
+.square-card-button.selected-category {
+    border-color: #ff6b6b !important;
+    background: linear-gradient(135deg, #ffebee, #fce4ec) !important;
+    box-shadow: 0 0 4% rgba(255, 107, 107, 0.5) !important;
+}
+
+.square-card-button-label {
+    color: #555;
+}
+
+.square-card-button-value {
+    margin-left: auto;
+    margin-right: 8%; /* Right padding to balance left padding */
+    color: #333;
+}
+
+/* Star styling for square layout */
+.square-stars {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    margin-right: 8%;
+}
+
+.square-star {
+    color: #FFD700;
+    text-shadow: 0 0 3px rgba(0,0,0,0.5);
+    margin-right: 2%;
+    /* Font size will be set by JavaScript based on square dimensions */
+}
+
+.square-star:last-child {
+    margin-right: 0;
+}
+
+/* Winner/Loser Effects for square layout */
+.square-card.winner {
+    animation: pulse 1s infinite;
+}
+
+.square-card.winner .square-card-front-face {
+    background: linear-gradient(135deg, #c8e6c9, #4caf50);
+    box-shadow: 0 0 6% #4caf50;
+}
+
+.square-card.loser .square-card-front-face {
+    background: linear-gradient(135deg, #ffcdd2, #f44336);
+    opacity: 0.7;
+}
+
+.square-card.draw .square-card-front-face {
+    background: linear-gradient(135deg, #fff3e0, #ff9800);
+}
+
+/* ===== ORIGINAL CENTER AREA (keeping for backwards compatibility) ===== */
+
+/* Center Area - Original positioning (may not be used in new layout) */
 .center-area {
     position: absolute;
     top: 57%;
@@ -230,11 +381,6 @@
     justify-content: center;
 }
 
-.card-back-face .card-bear-image {
-    width: 50%;
-    height: 50%;
-}
-
 .card-front-face {
     background: #f5f5dc; /* Dull light yellow background */
     transform: rotateY(180deg);
@@ -275,7 +421,6 @@
     max-height: 90%;
     object-fit: contain; /* Ensures the image fits within the square */
     border-radius: 1vh;
-    /* Removed box-shadow and any borders */
     background: transparent; /* Transparent background */
 }
 
@@ -412,18 +557,12 @@
     display: none !important;
 }
 
-/* Star Rating Styles - Font Awesome stars */
+/* Star Rating Styles - Original (kept for backwards compatibility) */
 .star {
     color: #FFD700;
-    font-size: 2.8vh; /* Reduced to match button height better */
-    margin-right: 0.2vh;
-    text-shadow: 0.2vh 0.2vh 0.4vh rgba(0,0,0,0.5); /* Shadow behind stars */
-    padding: 0; /* Minimal padding */
-}
-
-.star i {
-    padding: 0;
-    margin: 0;
+    font-size: 4.5vh; /* Increased from 1.8vh to 4.5vh (2.5x larger) */
+    margin-right: 0.3vh;
+    text-shadow: 0.1vh 0.1vh 0.2vh rgba(0,0,0,0.3);
 }
 
 .half-star {
