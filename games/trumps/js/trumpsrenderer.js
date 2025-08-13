@@ -63,6 +63,7 @@ class TrumpsRenderer {
         this.squareUserScoreElement.style.pointerEvents = 'auto'; // Score boxes should be clickable if needed
         this.positionSquareElement(this.squareUserScoreElement, 25, 4, 15, 15, squareSize);
         this.squareUserScoreElement.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.SCORE}px`;
+        this.squareUserScoreElement.style.boxShadow = '0 3% 6% rgba(0,0,0,0.3)'; // Added shadow
         
         // Create computer score box
         this.squareComputerScoreElement = document.createElement('div');
@@ -71,6 +72,7 @@ class TrumpsRenderer {
         this.squareComputerScoreElement.style.pointerEvents = 'auto'; // Score boxes should be clickable if needed
         this.positionSquareElement(this.squareComputerScoreElement, 60, 4, 15, 15, squareSize);
         this.squareComputerScoreElement.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.SCORE}px`;
+        this.squareComputerScoreElement.style.boxShadow = '0 3% 6% rgba(0,0,0,0.3)'; // Added shadow
         
         this.squareContainer.appendChild(this.squareUserScoreElement);
         this.squareContainer.appendChild(this.squareComputerScoreElement);
@@ -200,17 +202,17 @@ class TrumpsRenderer {
         this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
         this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
         
-        // Step 2: Fade in the card backs over 1 second
+        // Step 2: Fade in the card backs over 0.5 seconds
         const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
         cardBacks.forEach(back => {
             back.style.opacity = '0';
-            back.style.transition = 'opacity 1s ease-in';
+            back.style.transition = 'opacity 0.5s ease-in'; // Faster fade in (0.5s instead of 1s)
             setTimeout(() => {
                 back.style.opacity = '1';
             }, 50);
         });
         
-        // Step 3: After 1 second, create front faces underneath (invisible but ready)
+        // Step 3: After 0.5 seconds, create front faces underneath (invisible but ready)
         setTimeout(() => {
             this.createCardFronts(userCard, 'user');
             this.createCardFronts(computerCard, 'computer');
@@ -220,7 +222,7 @@ class TrumpsRenderer {
                 await this.revealCard(userCard.id, 'user');
             }, 100); // Small delay to ensure front faces are rendered
             
-        }, 1000);
+        }, 500); // Changed from 1000ms to 500ms
     }
 
     createCardBacks(card, player) {
@@ -238,7 +240,7 @@ class TrumpsRenderer {
         this.positionSquareElement(cardBack, cardX, cardY, 45, 73, squareSize);
         cardBack.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
         cardBack.style.borderRadius = '8%';
-        cardBack.style.boxShadow = '0 3% 6% rgba(0,0,0,0.3)';
+        cardBack.style.boxShadow = '0 4% 8% rgba(0,0,0,0.4)'; // Added stronger shadow
         cardBack.style.zIndex = '30'; // Highest z-index to cover everything
         
         // Add diagonal pattern to card back
@@ -276,7 +278,7 @@ class TrumpsRenderer {
         this.positionSquareElement(cardFront, cardX, cardY, 45, 73, squareSize);
         cardFront.style.background = '#f5f5dc';
         cardFront.style.borderRadius = '8%';
-        cardFront.style.boxShadow = '0 3% 6% rgba(0,0,0,0.3)';
+        cardFront.style.boxShadow = '0 4% 8% rgba(0,0,0,0.4)'; // Added stronger shadow
         cardFront.style.border = `${squareSize * 0.005}px solid #667eea`;
         cardFront.style.zIndex = '25'; // Below back, visible when back is removed
         
@@ -450,13 +452,13 @@ class TrumpsRenderer {
         const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
         
         if (cardBack) {
-            // Set up for width animation - both cards reveal left to right
-            cardBack.style.transformOrigin = 'left center'; // Both cards reveal from left
-            cardBack.style.transition = 'transform 0.6s ease-out'; // Faster (0.6s instead of 1s)
+            // Set up for width animation - blue moves to the right (reveals from right edge)
+            cardBack.style.transformOrigin = 'right center'; // Blue disappears to the right
+            cardBack.style.transition = 'transform 0.3s ease-out'; // Faster (0.3s instead of 0.6s)
             cardBack.style.transform = 'scaleX(0)';
             
             // Wait for animation to complete
-            await this.wait(600); // Match the 0.6s duration
+            await this.wait(300); // Match the 0.3s duration
             
             // Hide the back completely
             cardBack.style.display = 'none';
@@ -543,8 +545,21 @@ class TrumpsRenderer {
         // Remove square card elements (keep score boxes)
         squareCardElements.forEach(element => element.remove());
         
-        // Switch back to grid layout
-        this.switchToGridLayout();
+        // Switch back to grid layout (but don't render cards yet - that will happen in startNewRound)
+        this.switchToGridLayoutWithoutRender();
+    }
+
+    switchToGridLayoutWithoutRender() {
+        this.currentMode = 'grid';
+        
+        // Disable pointer events on square container so grid cards can be clicked
+        this.squareContainer.style.pointerEvents = 'none';
+        
+        // Show grid layout container but don't populate it yet
+        this.cardGrid.classList.remove('hidden');
+        
+        // Clear any existing grid content to prevent showing old cards
+        this.cardGrid.innerHTML = '';
     }
 
     hideSquareCardElements() {
