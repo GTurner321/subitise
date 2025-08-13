@@ -212,17 +212,17 @@ class TrumpsRenderer {
         }, 200);
         });
         
-        // Step 3: After 0.5 seconds, create front faces underneath (invisible but ready)
+        // Step 3: After 1.5 seconds (when fade in completes), create front faces and reveal user card
         setTimeout(() => {
-            this.createCardFronts(userCard, 'user');
-            this.createCardFronts(computerCard, 'computer');
-            
-            // Step 4: After front faces are ready, reveal left card
-            setTimeout(async () => {
-                await this.revealCard(userCard.id, 'user');
-            }, 100); // Small delay to ensure front faces are rendered
-            
-        }, 500); // Changed from 1000ms to 500ms
+        this.createCardFronts(userCard, 'user');
+        this.createCardFronts(computerCard, 'computer');
+    
+        // Step 4: After front faces are ready, reveal user card
+        setTimeout(async () => {
+        await this.revealCard(userCard.id, 'user');
+        }, 100); // Small delay to ensure front faces are rendered
+    
+        }, 1500); // Wait for 1.5s fade in to complete
     }
 
     createCardBacks(card, player) {
