@@ -194,33 +194,46 @@ switchToSquareLayout(userCard, computerCard) {
     // Enable pointer events on square container for card interaction
     this.squareContainer.style.pointerEvents = 'auto';
     
-    // Create BOTH blue backs first (before any front faces)
-    this.createCardBacks(userCard, 'user');
+    // Create blue back for computer only
     this.createCardBacks(computerCard, 'computer');
+    
+    // Create front face for user immediately (no blue back)
+    this.createCardFronts(userCard, 'user');
     
     // Update square scores to match current scores
     this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
     this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
     
-    // Fade in BOTH blue backs over 1 second
-    const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
-    cardBacks.forEach(back => {
-        // Force initial opacity to 0 immediately using multiple frames
-        back.style.opacity = '0';
-        back.style.transition = 'none'; // No transition initially
+    // Fade in user front face elements
+    const userElements = this.squareContainer.querySelectorAll('.user-title, .user-picture, .user-button-1, .user-button-2, .user-button-3, .user-card-front');
+    userElements.forEach(element => {
+        element.style.opacity = '0';
+        element.style.transition = 'none';
         
-        // Use requestAnimationFrame to ensure opacity is set before starting transition
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                back.style.transition = 'opacity 1s ease-in';
-                back.style.opacity = '1';
+                element.style.transition = 'opacity 1s ease-in';
+                element.style.opacity = '1';
             });
         });
     });
     
-    // After 1.1 seconds, create front faces behind the blue backs
+    // Fade in computer blue back
+    const computerBack = this.squareContainer.querySelector('.computer-card-back');
+    if (computerBack) {
+        computerBack.style.opacity = '0';
+        computerBack.style.transition = 'none';
+        
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                computerBack.style.transition = 'opacity 1s ease-in';
+                computerBack.style.opacity = '1';
+            });
+        });
+    }
+    
+    // After 1.1 seconds, create computer front face behind blue back
     setTimeout(() => {
-        this.createCardFronts(userCard, 'user');
         this.createCardFronts(computerCard, 'computer');
     }, 1100);
 }
