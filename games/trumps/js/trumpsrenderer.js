@@ -422,74 +422,43 @@ class TrumpsRenderer {
     }
 
     async flipCard(cardId, player) {
-        if (player === 'user') {
-            // User card: fade out back, then fade in front and elements
-            const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
-            
-            // Fade out card back
-            if (cardBack) {
-                cardBack.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-out`;
-                cardBack.style.opacity = '0';
+        // Show front and all elements immediately (underneath the back)
+        const cardFront = this.squareContainer.querySelector(`.${player}-card-front[data-card-id="${cardId}"]`);
+        const title = this.squareContainer.querySelector(`.${player}-title`);
+        const picture = this.squareContainer.querySelector(`.${player}-picture`);
+        const buttons = this.squareContainer.querySelectorAll(`.${player}-button-1, .${player}-button-2, .${player}-button-3`);
+        
+        const elementsToShow = [cardFront, title, picture, ...buttons].filter(el => el);
+        elementsToShow.forEach(element => {
+            element.classList.remove('hidden');
+            element.style.opacity = '1';
+        });
+        
+        // Calculate center point and animate width to 0
+        const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
+        
+        if (cardBack) {
+            let centerX;
+            if (player === 'user') {
+                centerX = 34.5; // Center between 22 and 47
+            } else {
+                centerX = 75.5; // Center between 53 and 98
             }
             
-            await this.wait(CONFIG.CARD_FLIP_DURATION);
+            const { squareSize } = this.calculateSquareDimensions();
+            const centerPx = (centerX / 100) * squareSize;
             
-            // Hide back, show front and all elements with fade in
-            const cardFront = this.squareContainer.querySelector(`.${player}-card-front[data-card-id="${cardId}"]`);
-            const title = this.squareContainer.querySelector(`.${player}-title`);
-            const picture = this.squareContainer.querySelector(`.${player}-picture`);
-            const buttons = this.squareContainer.querySelectorAll(`.${player}-button-1, .${player}-button-2, .${player}-button-3`);
+            // Set transform origin to center and animate width to 0
+            cardBack.style.transformOrigin = `${centerPx}px center`;
+            cardBack.style.transition = 'transform 0.8s ease-out';
+            cardBack.style.transform = 'scaleX(0)';
             
-            if (cardBack) cardBack.classList.add('hidden');
+            // Wait for animation to complete
+            await this.wait(800);
             
-            // Show and fade in front elements
-            const elementsToShow = [cardFront, title, picture, ...buttons].filter(el => el);
-            elementsToShow.forEach(element => {
-                element.classList.remove('hidden');
-                element.style.opacity = '0';
-                element.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-in`;
-                // Trigger fade in
-                setTimeout(() => {
-                    element.style.opacity = '1';
-                }, 50);
-            });
-            
-            await this.wait(CONFIG.CARD_FLIP_DURATION);
-            
-        } else {
-            // Computer card: center-outward reveal after 2 second wait
-            await this.wait(2000); // Wait 2 seconds
-            
-            const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
-            
-            if (cardBack) {
-                // Create center-outward reveal effect using CSS clip-path
-                cardBack.style.transition = 'clip-path 0.8s ease-out';
-                cardBack.style.clipPath = 'circle(0% at 50% 50%)'; // Start from center, 0% radius
-                
-                // After a brief moment, expand to reveal
-                setTimeout(() => {
-                    cardBack.style.clipPath = 'circle(100% at 50% 50%)'; // Expand to full size
-                }, 50);
-                
-                // Wait for animation to complete
-                await this.wait(800);
-                
-                // Hide back and show front instantly
-                cardBack.classList.add('hidden');
-            }
-            
-            // Show front and all elements instantly
-            const cardFront = this.squareContainer.querySelector(`.${player}-card-front[data-card-id="${cardId}"]`);
-            const title = this.squareContainer.querySelector(`.${player}-title`);
-            const picture = this.squareContainer.querySelector(`.${player}-picture`);
-            const buttons = this.squareContainer.querySelectorAll(`.${player}-button-1, .${player}-button-2, .${player}-button-3`);
-            
-            const elementsToShow = [cardFront, title, picture, ...buttons].filter(el => el);
-            elementsToShow.forEach(element => {
-                element.classList.remove('hidden');
-                element.style.opacity = '1';
-            });
+            // Hide the back
+            cardBack.classList.add('hidden');
+            cardBack.style.transform = 'scaleX(1)'; // Reset for next time
         }
     }
 
@@ -654,6 +623,11 @@ class TrumpsRenderer {
 
     reset() {
         this.currentMode = 'grid';
+        
+        // Reset scores to 0
+        this.squareUserScoreElement.textContent = '0';
+        this.squareComputerScoreElement.textContent = '0';
+        
         this.initializeLayout();
     }
 }
