@@ -3,8 +3,14 @@ class TrumpsRenderer {
         this.gameArea = document.querySelector('.game-area');
         this.cardGrid = null;
         this.centerArea = null;
+        this.squareContainer = null;
         this.userScoreElement = null;
         this.computerScoreElement = null;
+        this.squareUserScoreElement = null;
+        this.squareComputerScoreElement = null;
+        
+        // Track current layout mode
+        this.currentMode = 'grid'; // 'grid' or 'square'
         
         this.initializeLayout();
     }
@@ -13,7 +19,21 @@ class TrumpsRenderer {
         // Clear game area
         this.gameArea.innerHTML = '';
         
-        // Create scores container
+        // Create rainbow container first (so it's behind everything)
+        const rainbowContainer = document.createElement('div');
+        rainbowContainer.className = 'rainbow-container';
+        rainbowContainer.id = 'rainbowContainer';
+        this.gameArea.appendChild(rainbowContainer);
+        
+        // Create grid layout elements
+        this.createGridLayout();
+        
+        // Create square layout elements (initially hidden)
+        this.createSquareLayout();
+    }
+
+    createGridLayout() {
+        // Create scores container for grid layout
         const scoresContainer = document.createElement('div');
         scoresContainer.className = 'scores-container';
         
@@ -32,23 +52,97 @@ class TrumpsRenderer {
         this.cardGrid = document.createElement('div');
         this.cardGrid.className = 'card-grid';
         
-        // Create center area for selected cards
+        // Create original center area (for backwards compatibility)
         this.centerArea = document.createElement('div');
         this.centerArea.className = 'center-area hidden';
         
-        // Add everything to game area
+        // Add to game area
         this.gameArea.appendChild(scoresContainer);
         this.gameArea.appendChild(this.cardGrid);
         this.gameArea.appendChild(this.centerArea);
     }
 
+    createSquareLayout() {
+        // Create square container
+        this.squareContainer = document.createElement('div');
+        this.squareContainer.className = 'square-container hidden';
+        
+        // Create square score boxes
+        this.squareUserScoreElement = document.createElement('div');
+        this.squareUserScoreElement.className = 'square-score-box user-score';
+        this.squareUserScoreElement.textContent = '0';
+        
+        this.squareComputerScoreElement = document.createElement('div');
+        this.squareComputerScoreElement.className = 'square-score-box computer-score';
+        this.squareComputerScoreElement.textContent = '0';
+        
+        this.squareContainer.appendChild(this.squareUserScoreElement);
+        this.squareContainer.appendChild(this.squareComputerScoreElement);
+        
+        // Add to game area
+        this.gameArea.appendChild(this.squareContainer);
+    }
+
+    calculateSquareDimensions() {
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+        const width = gameAreaRect.width;
+        const height = gameAreaRect.height;
+        
+        let squareSize, left, top;
+        
+        if (width > height) {
+            // Width > height: square size = height, center horizontally
+            squareSize = height;
+            left = (width - height) / 2;
+            top = 0;
+        } else {
+            // Height > width: square size = width, center vertically
+            squareSize = width;
+            left = 0;
+            top = (height - width) / 2;
+        }
+        
+        return { squareSize, left, top };
+    }
+
+    positionSquareElements() {
+        const { squareSize, left, top } = this.calculateSquareDimensions();
+        
+        // Position square container
+        this.squareContainer.style.left = `${left}px`;
+        this.squareContainer.style.top = `${top}px`;
+        this.squareContainer.style.width = `${squareSize}px`;
+        this.squareContainer.style.height = `${squareSize}px`;
+        
+        // Position score boxes
+        this.positionSquareElement(this.squareUserScoreElement, 25, 4, 15, 15, squareSize);
+        this.positionSquareElement(this.squareComputerScoreElement, 60, 4, 15, 15, squareSize);
+        
+        // Set score box font size
+        const scoreFontSize = squareSize * 0.08; // 8% of square size
+        this.squareUserScoreElement.style.fontSize = `${scoreFontSize}px`;
+        this.squareComputerScoreElement.style.fontSize = `${scoreFontSize}px`;
+    }
+
+    positionSquareElement(element, x, y, width, height, squareSize) {
+        element.style.left = `${(x / 100) * squareSize}px`;
+        element.style.top = `${(y / 100) * squareSize}px`;
+        element.style.width = `${(width / 100) * squareSize}px`;
+        element.style.height = `${(height / 100) * squareSize}px`;
+    }
+
     renderCardGrid(availableCards) {
-        this.cardGrid.innerHTML = '';
+        this.currentMode = 'grid';
+        
+        // Show grid layout, hide square layout
         this.cardGrid.classList.remove('hidden');
+        this.cardGrid.parentElement.querySelector('.scores-container').style.display = 'flex';
+        this.squareContainer.classList.add('hidden');
         this.centerArea.classList.add('hidden');
         
+        this.cardGrid.innerHTML = '';
+        
         // Create 20 slots total: 2 margin slots + 8 card slots per row
-        // This allows us to use CSS grid positioning correctly
         for (let i = 0; i < 20; i++) {
             const cardElement = document.createElement('div');
             cardElement.className = 'card-slot';
@@ -76,14 +170,9 @@ class TrumpsRenderer {
                 cardElement.classList.add('card-back');
                 cardElement.dataset.cardId = card.id;
                 
-                // Create card back design with pattern only (no bear image)
+                // Create card back design without bear image
                 const cardBack = document.createElement('div');
                 cardBack.className = 'card-back-design';
-                
-                const cardPattern = document.createElement('div');
-                cardPattern.className = 'card-pattern';
-                
-                cardBack.appendChild(cardPattern);
                 cardElement.appendChild(cardBack);
                 
                 // Make clickable
@@ -113,136 +202,165 @@ class TrumpsRenderer {
         // Wait for fade out
         await this.wait(CONFIG.CARD_FADE_DURATION);
         
-        // Hide grid and show center area
-        this.cardGrid.classList.add('hidden');
-        this.centerArea.classList.remove('hidden');
-        
-        // Apply ButtonBar margins and white background when showing center cards
-        this.applyButtonBarMargins();
-        
-        // Create center cards
-        this.createCenterCard(userCard, 'user');
-        this.createCenterCard(computerCard, 'computer');
-        
-        // Animate cards moving to center (they appear with move animation)
-        const centerCards = this.centerArea.querySelectorAll('.center-card');
-        centerCards.forEach(card => {
-            card.style.animation = `cardSlideIn ${CONFIG.CARD_MOVE_DURATION}ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`;
-        });
+        // Switch to square layout
+        this.switchToSquareLayout(userCard, computerCard);
         
         await this.wait(CONFIG.CARD_MOVE_DURATION);
     }
-    
-    applyButtonBarMargins() {
-        const gameArea = document.querySelector('.game-area');
-        if (gameArea) {
-            // Add class for center card phase with margins and white background
-            gameArea.classList.add('center-card-phase');
-            console.log(`📐 Applied center-card-phase class - classes now: ${gameArea.className}`);
-        }
-    }
-    
-    removeButtonBarMargins() {
-        const gameArea = document.querySelector('.game-area');
-        if (gameArea) {
-            // Remove class to go back to full width with gradient background
-            const hadClass = gameArea.classList.contains('center-card-phase');
-            gameArea.classList.remove('center-card-phase');
-            console.log(`📐 Removed center-card-phase class - had class: ${hadClass}, classes now: ${gameArea.className}`);
-            
-            // Force a reflow to ensure the CSS changes take effect
-            gameArea.offsetHeight;
-        }
+
+    switchToSquareLayout(userCard, computerCard) {
+        this.currentMode = 'square';
+        
+        // Hide grid layout
+        this.cardGrid.classList.add('hidden');
+        this.cardGrid.parentElement.querySelector('.scores-container').style.display = 'none';
+        this.centerArea.classList.add('hidden');
+        
+        // Position and show square layout
+        this.positionSquareElements();
+        this.squareContainer.classList.remove('hidden');
+        
+        // Create square cards
+        this.createSquareCard(userCard, 'user');
+        this.createSquareCard(computerCard, 'computer');
+        
+        // Update square scores to match current scores
+        this.squareUserScoreElement.textContent = this.userScoreElement.textContent;
+        this.squareComputerScoreElement.textContent = this.computerScoreElement.textContent;
+        
+        // Animate cards sliding in
+        const squareCards = this.squareContainer.querySelectorAll('.square-card');
+        squareCards.forEach(card => {
+            card.style.animation = `cardSlideIn ${CONFIG.CARD_MOVE_DURATION}ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`;
+        });
     }
 
-    createCenterCard(card, player) {
+    createSquareCard(card, player) {
+        const { squareSize } = this.calculateSquareDimensions();
+        
+        // Calculate positions based on player
+        const isUser = player === 'user';
+        const cardX = isUser ? 2 : 53;
+        const cardY = 23;
+        const cardWidth = 45;
+        const cardHeight = 73;
+        
+        // Create card container
         const cardElement = document.createElement('div');
-        cardElement.className = `center-card ${player}-card`;
+        cardElement.className = `square-card ${player}-card`;
         cardElement.dataset.cardId = card.id;
+        this.positionSquareElement(cardElement, cardX, cardY, cardWidth, cardHeight, squareSize);
         
         // Card inner container for flip effect
         const cardInner = document.createElement('div');
-        cardInner.className = 'card-inner';
+        cardInner.className = 'square-card-inner';
         
         // Card back
         const cardBack = document.createElement('div');
-        cardBack.className = 'card-face card-back-face';
-        
-        const cardPattern = document.createElement('div');
-        cardPattern.className = 'card-pattern';
-        
-        cardBack.appendChild(cardPattern);
+        cardBack.className = 'square-card-face square-card-back-face';
         
         // Card front
         const cardFront = document.createElement('div');
-        cardFront.className = 'card-face card-front-face';
+        cardFront.className = 'square-card-face square-card-front-face';
         
-        const cardName = document.createElement('h3');
-        cardName.className = 'card-name';
-        cardName.textContent = card.name;
-        
-        // Create square image window
-        const imageWindow = document.createElement('div');
-        imageWindow.className = 'card-image-window';
-        
-        const cardImage = document.createElement('img');
-        cardImage.src = card.image;
-        cardImage.alt = card.name;
-        cardImage.className = 'card-image';
-        
-        imageWindow.appendChild(cardImage);
-        
-        const statsContainer = document.createElement('div');
-        statsContainer.className = 'card-stats';
-        
-        // Create category buttons (only for user card)
-        Object.keys(CONFIG.CATEGORIES).forEach(categoryKey => {
-            const category = CONFIG.CATEGORIES[categoryKey];
-            const categoryInfo = CONFIG.CATEGORY_INFO[category];
-            const value = card.stats[category];
-            
-            const statElement = document.createElement('div');
-            statElement.className = `card-stat ${player === 'user' ? 'stat-button' : 'stat-display'}`;
-            statElement.dataset.category = category;
-            
-            const statLabel = document.createElement('div');
-            statLabel.className = 'stat-label';
-            statLabel.textContent = categoryInfo.label;
-            
-            const statValue = document.createElement('div');
-            statValue.className = 'stat-value';
-            
-            // Handle star rating display
-            if (category === 'stars') {
-                statValue.innerHTML = this.createStarRating(value);
-            } else {
-                statValue.textContent = `${value}${categoryInfo.suffix}`;
-            }
-            
-            statElement.appendChild(statLabel);
-            statElement.appendChild(statValue);
-            
-            if (player === 'user') {
-                statElement.style.cursor = 'pointer';
-            }
-            
-            statsContainer.appendChild(statElement);
-        });
-        
-        cardFront.appendChild(cardName);
-        cardFront.appendChild(imageWindow);
-        cardFront.appendChild(statsContainer);
+        // Create card elements
+        this.createSquareCardElements(card, player, cardFront, squareSize);
         
         cardInner.appendChild(cardBack);
         cardInner.appendChild(cardFront);
         cardElement.appendChild(cardInner);
         
-        this.centerArea.appendChild(cardElement);
+        this.squareContainer.appendChild(cardElement);
+    }
+
+    createSquareCardElements(card, player, cardFront, squareSize) {
+        const isUser = player === 'user';
+        const baseX = isUser ? 7 : 58;
+        
+        // Create title
+        const title = document.createElement('div');
+        title.className = 'square-card-title';
+        title.textContent = card.name;
+        this.positionSquareElement(title, baseX, 23, 35, 9, squareSize);
+        title.style.fontSize = `${squareSize * 0.025}px`; // 2.5% of square size
+        cardFront.appendChild(title);
+        
+        // Create picture area
+        const pictureArea = document.createElement('div');
+        pictureArea.className = 'square-card-picture';
+        this.positionSquareElement(pictureArea, baseX, 32, 35, 30, squareSize);
+        
+        const image = document.createElement('img');
+        image.src = card.image;
+        image.alt = card.name;
+        image.className = 'square-card-image';
+        pictureArea.appendChild(image);
+        cardFront.appendChild(pictureArea);
+        
+        // Create category buttons
+        const buttonYPositions = [64, 74, 84];
+        const categories = Object.keys(CONFIG.CATEGORIES);
+        
+        categories.forEach((categoryKey, index) => {
+            const category = CONFIG.CATEGORIES[categoryKey];
+            const categoryInfo = CONFIG.CATEGORY_INFO[category];
+            const value = card.stats[category];
+            
+            const button = document.createElement('div');
+            button.className = `square-card-button ${isUser ? 'clickable' : 'display-only'}`;
+            button.dataset.category = category;
+            this.positionSquareElement(button, baseX, buttonYPositions[index], 35, 9, squareSize);
+            button.style.fontSize = `${squareSize * 0.02}px`; // 2% of square size
+            
+            // Create label
+            const label = document.createElement('span');
+            label.className = 'square-card-button-label';
+            label.textContent = categoryInfo.label;
+            button.appendChild(label);
+            
+            // Create value (stars or text)
+            if (category === 'stars') {
+                const starsContainer = document.createElement('div');
+                starsContainer.className = 'square-stars';
+                
+                const fullStars = Math.floor(value);
+                const hasHalfStar = value % 1 !== 0;
+                
+                // Add full stars
+                for (let i = 0; i < fullStars; i++) {
+                    const star = document.createElement('i');
+                    star.className = 'fa-solid fa-star square-star';
+                    star.style.fontSize = `${squareSize * 0.025}px`; // 2.5% of square size
+                    starsContainer.appendChild(star);
+                }
+                
+                // Add half star if needed
+                if (hasHalfStar) {
+                    const halfStar = document.createElement('i');
+                    halfStar.className = 'fa-solid fa-star-half-stroke square-star';
+                    halfStar.style.fontSize = `${squareSize * 0.025}px`; // 2.5% of square size
+                    starsContainer.appendChild(halfStar);
+                }
+                
+                button.appendChild(starsContainer);
+            } else {
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'square-card-button-value';
+                valueSpan.textContent = `${value}${categoryInfo.suffix}`;
+                button.appendChild(valueSpan);
+            }
+            
+            if (isUser) {
+                button.style.cursor = 'pointer';
+            }
+            
+            cardFront.appendChild(button);
+        });
     }
 
     async flipCard(cardId, player) {
-        const cardElement = this.centerArea.querySelector(`[data-card-id="${cardId}"]`);
-        const cardInner = cardElement.querySelector('.card-inner');
+        const cardElement = this.squareContainer.querySelector(`[data-card-id="${cardId}"]`);
+        const cardInner = cardElement.querySelector('.square-card-inner');
         
         cardInner.style.transform = 'rotateY(180deg)';
         cardInner.style.transition = `transform ${CONFIG.CARD_FLIP_DURATION}ms ease-in-out`;
@@ -251,19 +369,19 @@ class TrumpsRenderer {
     }
 
     highlightWinner(userCard, computerCard, category, result) {
-        const userCardElement = this.centerArea.querySelector('.user-card');
-        const computerCardElement = this.centerArea.querySelector('.computer-card');
+        const userCardElement = this.squareContainer.querySelector('.user-card');
+        const computerCardElement = this.squareContainer.querySelector('.computer-card');
         
         // Remove any existing highlights
         userCardElement.classList.remove('winner', 'loser', 'draw');
         computerCardElement.classList.remove('winner', 'loser', 'draw');
         
         // Highlight the selected category on both cards
-        const userStat = userCardElement.querySelector(`[data-category="${category}"]`);
-        const computerStat = computerCardElement.querySelector(`[data-category="${category}"]`);
+        const userButton = userCardElement.querySelector(`[data-category="${category}"]`);
+        const computerButton = computerCardElement.querySelector(`[data-category="${category}"]`);
         
-        userStat.classList.add('selected-category');
-        computerStat.classList.add('selected-category');
+        userButton.classList.add('selected-category');
+        computerButton.classList.add('selected-category');
         
         // Apply result styling
         if (result === 'user') {
@@ -279,28 +397,76 @@ class TrumpsRenderer {
     }
 
     updateScores(userScore, computerScore) {
-        // Animate score change
+        // Update both grid and square score displays
+        
+        // Grid scores
         this.userScoreElement.style.transform = 'scale(1.2)';
         this.computerScoreElement.style.transform = 'scale(1.2)';
         
+        // Square scores
+        this.squareUserScoreElement.style.transform = 'scale(1.2)';
+        this.squareComputerScoreElement.style.transform = 'scale(1.2)';
+        
         setTimeout(() => {
+            // Update text content
             this.userScoreElement.textContent = userScore;
             this.computerScoreElement.textContent = computerScore;
+            this.squareUserScoreElement.textContent = userScore;
+            this.squareComputerScoreElement.textContent = computerScore;
             
+            // Reset scale
             this.userScoreElement.style.transform = 'scale(1)';
             this.computerScoreElement.style.transform = 'scale(1)';
+            this.squareUserScoreElement.style.transform = 'scale(1)';
+            this.squareComputerScoreElement.style.transform = 'scale(1)';
         }, 150);
     }
 
     async clearCenterCards() {
-        const centerCards = this.centerArea.querySelectorAll('.center-card');
+        if (this.currentMode === 'square') {
+            // Clear square cards
+            const squareCards = this.squareContainer.querySelectorAll('.square-card');
+            
+            squareCards.forEach(card => {
+                card.style.animation = `cardSlideOut ${CONFIG.CARD_FADE_DURATION}ms ease-in forwards`;
+            });
+            
+            await this.wait(CONFIG.CARD_FADE_DURATION);
+            
+            // Remove square cards from container (keep score boxes)
+            squareCards.forEach(card => card.remove());
+            
+            // Switch back to grid layout
+            this.switchToGridLayout();
+        } else {
+            // Original center area clearing (for backwards compatibility)
+            const centerCards = this.centerArea.querySelectorAll('.center-card');
+            
+            centerCards.forEach(card => {
+                card.style.animation = `cardSlideOut ${CONFIG.CARD_FADE_DURATION}ms ease-in forwards`;
+            });
+            
+            await this.wait(CONFIG.CARD_FADE_DURATION);
+            this.centerArea.innerHTML = '';
+        }
+    }
+
+    switchToGridLayout() {
+        this.currentMode = 'grid';
         
-        centerCards.forEach(card => {
-            card.style.animation = `cardSlideOut ${CONFIG.CARD_FADE_DURATION}ms ease-in forwards`;
+        // Hide square layout
+        this.squareContainer.classList.add('hidden');
+        
+        // Show grid layout
+        this.cardGrid.classList.remove('hidden');
+        this.cardGrid.parentElement.querySelector('.scores-container').style.display = 'flex';
+        
+        // Reset card opacities for next round
+        const allCards = this.cardGrid.querySelectorAll('.card-slot');
+        allCards.forEach(card => {
+            card.style.opacity = '1';
+            card.style.transition = '';
         });
-        
-        await this.wait(CONFIG.CARD_FADE_DURATION);
-        this.centerArea.innerHTML = '';
     }
 
     showGameComplete() {
@@ -313,17 +479,44 @@ class TrumpsRenderer {
         const hasHalfStar = rating % 1 !== 0;
         let starsHtml = '';
         
-        // Add full stars using Font Awesome
+        // Add full stars
         for (let i = 0; i < fullStars; i++) {
-            starsHtml += '<span class="star"><i class="fa-solid fa-star"></i></span>';
+            starsHtml += '<span class="star full-star">★</span>';
         }
         
-        // Add half star if needed using Font Awesome
+        // Add half star if needed
         if (hasHalfStar) {
-            starsHtml += '<span class="star"><i class="fa-solid fa-star-half"></i></span>';
+            starsHtml += '<span class="star half-star">★</span>';
         }
         
         return starsHtml;
+    }
+
+    // Handle window resize for responsive square layout
+    handleResize() {
+        if (this.currentMode === 'square') {
+            this.positionSquareElements();
+            
+            // Reposition existing square cards
+            const squareCards = this.squareContainer.querySelectorAll('.square-card');
+            squareCards.forEach(card => {
+                const isUser = card.classList.contains('user-card');
+                const cardData = {
+                    id: card.dataset.cardId,
+                    name: card.querySelector('.square-card-title').textContent
+                };
+                
+                // Remove and recreate the card with new dimensions
+                const parent = card.parentElement;
+                card.remove();
+                
+                // Get card data from CONFIG to recreate properly
+                const configCard = CONFIG.CARDS.find(c => c.id == cardData.id);
+                if (configCard) {
+                    this.createSquareCard(configCard, isUser ? 'user' : 'computer');
+                }
+            });
+        }
     }
 
     // Utility method for waiting
@@ -332,6 +525,14 @@ class TrumpsRenderer {
     }
 
     reset() {
+        this.currentMode = 'grid';
         this.initializeLayout();
     }
 }
+
+// Add resize listener for responsive behavior
+window.addEventListener('resize', () => {
+    if (window.trumpsGame && window.trumpsGame.renderer) {
+        window.trumpsGame.renderer.handleResize();
+    }
+});
