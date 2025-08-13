@@ -44,15 +44,23 @@ class TrumpsGameController {
         }
     }
 
-    initializeGame() {
-        // Initialize cards with original positions
-        this.availableCards = CONFIG.CARDS.map((card, index) => ({
-            ...card,
-            originalPosition: index
-        }));
-        
-        this.startNewRound();
+async initializeGame() {
+    // Preload all card images first
+    try {
+        await ImagePreloader.preloadImages();
+        console.log('All images preloaded successfully!');
+    } catch (error) {
+        console.warn('Some images failed to preload, continuing anyway...');
     }
+    
+    // Initialize cards with original positions
+    this.availableCards = CONFIG.CARDS.map((card, index) => ({
+        ...card,
+        originalPosition: index
+    }));
+    
+    this.startNewRound();
+}
 
     initializeEventListeners() {
         // Handle card selection and category selection
