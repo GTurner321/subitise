@@ -202,10 +202,15 @@ class TrumpsRenderer {
         this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
         this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
         
-        // Animate cards sliding in
+        // Show cards immediately with no animation (just fade in)
         const squareCardElements = this.squareContainer.querySelectorAll('.square-card-element:not(.square-score-box)');
         squareCardElements.forEach(element => {
-            element.style.animation = `cardSlideIn ${CONFIG.CARD_MOVE_DURATION}ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`;
+            element.style.opacity = '0';
+            element.style.transition = 'opacity 0.5s ease-in';
+            // Trigger fade in
+            setTimeout(() => {
+                element.style.opacity = '1';
+            }, 50);
         });
     }
 
@@ -392,51 +397,64 @@ class TrumpsRenderer {
     }
 
     async flipCard(cardId, player) {
-        // Simply fade in all card elements (no flip transformation)
-        const title = this.squareContainer.querySelector(`.${player}-title`);
-        const picture = this.squareContainer.querySelector(`.${player}-picture`);
-        const buttons = this.squareContainer.querySelectorAll(`.${player}-button-1, .${player}-button-2, .${player}-button-3`);
-        
-        // Hide card back
-        const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
-        if (cardBack) {
-            cardBack.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-out`;
-            cardBack.style.opacity = '0';
+        if (player === 'user') {
+            // User card: fade out back, then fade in front and elements
+            const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
+            
+            // Fade out card back
+            if (cardBack) {
+                cardBack.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-out`;
+                cardBack.style.opacity = '0';
+            }
+            
+            await this.wait(CONFIG.CARD_FLIP_DURATION);
+            
+            // Hide back, show front and all elements with fade in
+            const cardFront = this.squareContainer.querySelector(`.${player}-card-front[data-card-id="${cardId}"]`);
+            const title = this.squareContainer.querySelector(`.${player}-title`);
+            const picture = this.squareContainer.querySelector(`.${player}-picture`);
+            const buttons = this.squareContainer.querySelectorAll(`.${player}-button-1, .${player}-button-2, .${player}-button-3`);
+            
+            if (cardBack) cardBack.classList.add('hidden');
+            
+            // Show and fade in front elements
+            const elementsToShow = [cardFront, title, picture, ...buttons].filter(el => el);
+            elementsToShow.forEach(element => {
+                element.classList.remove('hidden');
+                element.style.opacity = '0';
+                element.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-in`;
+                // Trigger fade in
+                setTimeout(() => {
+                    element.style.opacity = '1';
+                }, 50);
+            });
+            
+            await this.wait(CONFIG.CARD_FLIP_DURATION);
+            
+        } else {
+            // Computer card: instant reveal after 2 second wait
+            await this.wait(2000); // Wait 2 seconds
+            
+            // Instant reveal - no fade in
+            const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
+            const cardFront = this.squareContainer.querySelector(`.${player}-card-front[data-card-id="${cardId}"]`);
+            const title = this.squareContainer.querySelector(`.${player}-title`);
+            const picture = this.squareContainer.querySelector(`.${player}-picture`);
+            const buttons = this.squareContainer.querySelectorAll(`.${player}-button-1, .${player}-button-2, .${player}-button-3`);
+            
+            // Hide back instantly
+            if (cardBack) {
+                cardBack.style.opacity = '0';
+                cardBack.classList.add('hidden');
+            }
+            
+            // Show front and all elements instantly
+            const elementsToShow = [cardFront, title, picture, ...buttons].filter(el => el);
+            elementsToShow.forEach(element => {
+                element.classList.remove('hidden');
+                element.style.opacity = '1';
+            });
         }
-        
-        await this.wait(CONFIG.CARD_FLIP_DURATION / 2);
-        
-        // Show card front and all elements
-        const cardFront = this.squareContainer.querySelector(`.${player}-card-front[data-card-id="${cardId}"]`);
-        if (cardFront) {
-            cardFront.classList.remove('hidden');
-            cardFront.style.opacity = '0';
-            cardFront.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-in`;
-            cardFront.style.opacity = '1';
-        }
-        
-        if (title) {
-            title.classList.remove('hidden');
-            title.style.opacity = '0';
-            title.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-in`;
-            title.style.opacity = '1';
-        }
-        
-        if (picture) {
-            picture.classList.remove('hidden');
-            picture.style.opacity = '0';
-            picture.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-in`;
-            picture.style.opacity = '1';
-        }
-        
-        buttons.forEach(button => {
-            button.classList.remove('hidden');
-            button.style.opacity = '0';
-            button.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-in`;
-            button.style.opacity = '1';
-        });
-        
-        await this.wait(CONFIG.CARD_FLIP_DURATION / 2);
     }
 
     highlightWinner(userCard, computerCard, category, result) {
@@ -506,11 +524,12 @@ class TrumpsRenderer {
     }
 
     async clearCenterCards() {
-        // Clear square card elements with animation
+        // Clear square card elements with fade out only
         const squareCardElements = this.squareContainer.querySelectorAll('.square-card-element:not(.square-score-box)');
         
         squareCardElements.forEach(element => {
-            element.style.animation = `cardSlideOut ${CONFIG.CARD_FADE_DURATION}ms ease-in forwards`;
+            element.style.transition = `opacity ${CONFIG.CARD_FADE_DURATION}ms ease-out`;
+            element.style.opacity = '0';
         });
         
         await this.wait(CONFIG.CARD_FADE_DURATION);
