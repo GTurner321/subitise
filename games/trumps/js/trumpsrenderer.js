@@ -234,7 +234,7 @@ class TrumpsRenderer {
         this.positionSquareElement(cardBack, cardX, cardY, 45, 73, squareSize);
         cardBack.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
         cardBack.style.borderRadius = '8%';
-        cardBack.style.boxShadow = '0 4% 8% rgba(0,0,0,0.4)'; // Added stronger shadow
+        cardBack.style.boxShadow = `0 ${squareSize * 0.04}px ${squareSize * 0.08}px rgba(0,0,0,0.4)`;
         cardBack.style.zIndex = '30'; // Highest z-index to cover everything
         
         // Add diagonal pattern to card back
@@ -272,7 +272,7 @@ class TrumpsRenderer {
         this.positionSquareElement(cardFront, cardX, cardY, 45, 73, squareSize);
         cardFront.style.background = '#f5f5dc';
         cardFront.style.borderRadius = '8%';
-        cardFront.style.boxShadow = '0 4% 8% rgba(0,0,0,0.4)'; // Added stronger shadow
+        cardFront.style.boxShadow = `0 ${squareSize * 0.04}px ${squareSize * 0.08}px rgba(0,0,0,0.4)`;
         cardFront.style.border = `${squareSize * 0.005}px solid #667eea`;
         cardFront.style.zIndex = '25'; // Below back, visible when back is removed
         
