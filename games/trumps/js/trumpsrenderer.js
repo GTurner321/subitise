@@ -230,6 +230,7 @@ class TrumpsRenderer {
         cardBack.className = `square-card-back square-card-element ${player}-card-back`;
         cardBack.dataset.cardId = card.id;
         cardBack.dataset.player = player;
+        cardBack.style.position = 'absolute'; // Add absolute positioning
         this.positionSquareElement(cardBack, cardX, cardY, 45, 73, squareSize);
         cardBack.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
         cardBack.style.borderRadius = '8%';
@@ -259,6 +260,7 @@ class TrumpsRenderer {
         cardFront.className = `square-card-front square-card-element ${player}-card-front hidden`;
         cardFront.dataset.cardId = card.id;
         cardFront.dataset.player = player;
+        cardFront.style.position = 'absolute'; // Add absolute positioning
         this.positionSquareElement(cardFront, cardX, cardY, 45, 73, squareSize);
         cardFront.style.background = '#f5f5dc';
         cardFront.style.borderRadius = '8%';
@@ -269,6 +271,7 @@ class TrumpsRenderer {
         const title = document.createElement('div');
         title.className = `square-card-title square-card-element ${player}-title hidden`;
         title.textContent = card.name;
+        title.style.position = 'absolute'; // Add absolute positioning
         this.positionSquareElement(title, cardX + 5, cardY, 35, 9, squareSize);
         title.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.TITLE}px`;
         title.style.fontWeight = 'bold';
@@ -283,6 +286,7 @@ class TrumpsRenderer {
         // Create picture area
         const pictureArea = document.createElement('div');
         pictureArea.className = `square-card-picture square-card-element ${player}-picture hidden`;
+        pictureArea.style.position = 'absolute'; // Add absolute positioning
         this.positionSquareElement(pictureArea, cardX + 5, cardY + 9, 35, 30, squareSize);
         pictureArea.style.borderRadius = '8%';
         pictureArea.style.background = 'linear-gradient(135deg, #e3f2fd, #f3e5f5)';
@@ -318,6 +322,7 @@ class TrumpsRenderer {
             button.dataset.category = category;
             button.dataset.cardId = card.id;
             button.dataset.player = player;
+            button.style.position = 'absolute'; // Add absolute positioning
             this.positionSquareElement(button, cardX + 5, cardY + buttonYOffsets[index], 35, 9, squareSize);
             button.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.BUTTON}px`;
             button.style.borderRadius = '8%';
