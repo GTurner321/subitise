@@ -255,6 +255,7 @@ class TrumpsRenderer {
         cardBack.appendChild(pattern);
         
         this.squareContainer.appendChild(cardBack);
+console.log(`Creating card back for ${player}, opacity: ${cardBack.style.opacity}`);
     }
 
     createCardFronts(card, player) {
@@ -442,6 +443,7 @@ class TrumpsRenderer {
     }
     
     async revealCard(cardId, player) {
+    console.log(`Revealing card for ${player} at ${Date.now()}`);
         // Sideways reveal - card back width reduces to 0 within card boundaries
         const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
         
