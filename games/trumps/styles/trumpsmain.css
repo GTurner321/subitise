@@ -65,14 +65,14 @@
 }
 
 /* Position each card slot directly using vw/vh coordinates */
-.card-slot:nth-child(1) { left: 10.5vw; top: 25vh; }  /* Top row, position 0 */
-.card-slot:nth-child(2) { left: 20.5vw; top: 25vh; }  /* Top row, position 1 */
-.card-slot:nth-child(3) { left: 30.5vw; top: 25vh; }  /* Top row, position 2 */
-.card-slot:nth-child(4) { left: 40.5vw; top: 25vh; }  /* Top row, position 3 */
-.card-slot:nth-child(5) { left: 50.5vw; top: 25vh; }  /* Top row, position 4 */
-.card-slot:nth-child(6) { left: 60.5vw; top: 25vh; }  /* Top row, position 5 */
-.card-slot:nth-child(7) { left: 70.5vw; top: 25vh; }  /* Top row, position 6 */
-.card-slot:nth-child(8) { left: 80.5vw; top: 25vh; }  /* Top row, position 7 */
+.card-slot:nth-child(1) { left: 10.5vw; top: 23vh; }  /* Top row, position 0 */
+.card-slot:nth-child(2) { left: 20.5vw; top: 23vh; }  /* Top row, position 1 */
+.card-slot:nth-child(3) { left: 30.5vw; top: 23vh; }  /* Top row, position 2 */
+.card-slot:nth-child(4) { left: 40.5vw; top: 23vh; }  /* Top row, position 3 */
+.card-slot:nth-child(5) { left: 50.5vw; top: 23vh; }  /* Top row, position 4 */
+.card-slot:nth-child(6) { left: 60.5vw; top: 23vh; }  /* Top row, position 5 */
+.card-slot:nth-child(7) { left: 70.5vw; top: 23vh; }  /* Top row, position 6 */
+.card-slot:nth-child(8) { left: 80.5vw; top: 23vh; }  /* Top row, position 7 */
 .card-slot:nth-child(9) { left: 10.5vw; top: 60vh; }  /* Bottom row, position 8 */
 .card-slot:nth-child(10) { left: 20.5vw; top: 60vh; } /* Bottom row, position 9 */
 .card-slot:nth-child(11) { left: 30.5vw; top: 60vh; } /* Bottom row, position 10 */
