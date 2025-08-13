@@ -185,50 +185,39 @@ class TrumpsRenderer {
         await this.wait(CONFIG.CARD_MOVE_DURATION);
     }
 
-    switchToSquareLayout(userCard, computerCard) {
-        this.currentMode = 'square';
-        
-        // Hide grid layout
-        this.cardGrid.classList.add('hidden');
-        
-        // Enable pointer events on square container for card interaction
-        this.squareContainer.style.pointerEvents = 'auto';
-        
-    // Create blue back for computer only
+switchToSquareLayout(userCard, computerCard) {
+    this.currentMode = 'square';
+    
+    // Hide grid layout
+    this.cardGrid.classList.add('hidden');
+    
+    // Enable pointer events on square container for card interaction
+    this.squareContainer.style.pointerEvents = 'auto';
+    
+    // Create BOTH blue backs first (before any front faces)
+    this.createCardBacks(userCard, 'user');
     this.createCardBacks(computerCard, 'computer');
-
-    // Create front face for user (no blue back)
-    this.createCardFronts(userCard, 'user');
-
-    // Update square scores
+    
+    // Update square scores to match current scores
     this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
     this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
-
-    // Fade in user front face
-    const userElements = this.squareContainer.querySelectorAll('.user-title, .user-picture, .user-button-1, .user-button-2, .user-button-3, .user-card-front');
-    userElements.forEach(element => {
-    element.style.opacity = '0';
-    element.style.transition = 'opacity 1s ease-in';
-    setTimeout(() => {
-        element.style.opacity = '1';
-    }, 50);
+    
+    // Fade in BOTH blue backs over 1 second
+    const cardBacks = this.squareContainer.querySelectorAll('.square-card-back');
+    cardBacks.forEach(back => {
+        back.style.opacity = '0';
+        back.style.transition = 'opacity 1s ease-in';
+        setTimeout(() => {
+            back.style.opacity = '1';
+        }, 50);
     });
-
-    // Fade in computer blue back
-    const computerBack = this.squareContainer.querySelector('.computer-card-back');
-    if (computerBack) {
-    computerBack.style.opacity = '0';
-    computerBack.style.transition = 'opacity 1s ease-in';
+    
+    // After 1.1 seconds, create front faces behind the blue backs
     setTimeout(() => {
-        computerBack.style.opacity = '1';
-    }, 50);
-    }
-
-    // After 1.1 seconds, create computer front face behind blue back
-    setTimeout(() => {
-    this.createCardFronts(computerCard, 'computer');
+        this.createCardFronts(userCard, 'user');
+        this.createCardFronts(computerCard, 'computer');
     }, 1100);
-    }
+}
 
     createCardBacks(card, player) {
         const { squareSize } = this.calculateSquareDimensions();
