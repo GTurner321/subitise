@@ -35,6 +35,7 @@ class TrumpsRenderer {
         // Create square container - always present
         this.squareContainer = document.createElement('div');
         this.squareContainer.className = 'square-container';
+        this.squareContainer.style.pointerEvents = 'none'; // Allow clicks to pass through to grid cards
         
         // Position the square container
         this.positionSquareContainer();
@@ -53,6 +54,7 @@ class TrumpsRenderer {
         this.squareUserScoreElement = document.createElement('div');
         this.squareUserScoreElement.className = 'square-score-box user-score';
         this.squareUserScoreElement.textContent = '0';
+        this.squareUserScoreElement.style.pointerEvents = 'auto'; // Score boxes should be clickable if needed
         this.positionSquareElement(this.squareUserScoreElement, 25, 4, 15, 15, squareSize);
         this.squareUserScoreElement.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.SCORE}px`;
         
@@ -60,6 +62,7 @@ class TrumpsRenderer {
         this.squareComputerScoreElement = document.createElement('div');
         this.squareComputerScoreElement.className = 'square-score-box computer-score';
         this.squareComputerScoreElement.textContent = '0';
+        this.squareComputerScoreElement.style.pointerEvents = 'auto'; // Score boxes should be clickable if needed
         this.positionSquareElement(this.squareComputerScoreElement, 60, 4, 15, 15, squareSize);
         this.squareComputerScoreElement.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.SCORE}px`;
         
@@ -68,27 +71,11 @@ class TrumpsRenderer {
     }
 
     createGridLayout() {
-        // Create scores container for grid layout
-        const scoresContainer = document.createElement('div');
-        scoresContainer.className = 'scores-container';
-        
-        this.gridUserScoreElement = document.createElement('div');
-        this.gridUserScoreElement.className = 'score-box user-score';
-        this.gridUserScoreElement.textContent = '0';
-        
-        this.gridComputerScoreElement = document.createElement('div');
-        this.gridComputerScoreElement.className = 'score-box computer-score';
-        this.gridComputerScoreElement.textContent = '0';
-        
-        scoresContainer.appendChild(this.gridUserScoreElement);
-        scoresContainer.appendChild(this.gridComputerScoreElement);
-        
-        // Create card grid container
+        // Create card grid container (no scores needed - using square scores)
         this.cardGrid = document.createElement('div');
         this.cardGrid.className = 'card-grid';
         
         // Add to game area
-        this.gameArea.appendChild(scoresContainer);
         this.gameArea.appendChild(this.cardGrid);
     }
 
@@ -134,9 +121,8 @@ class TrumpsRenderer {
     renderCardGrid(availableCards) {
         this.currentMode = 'grid';
         
-        // Show grid layout, hide square card elements (scores stay visible)
+        // Show grid layout, hide square card elements
         this.cardGrid.classList.remove('hidden');
-        this.cardGrid.parentElement.querySelector('.scores-container').style.display = 'flex';
         this.hideSquareCardElements();
         
         this.cardGrid.innerHTML = '';
@@ -212,18 +198,20 @@ class TrumpsRenderer {
         
         // Hide grid layout
         this.cardGrid.classList.add('hidden');
-        this.cardGrid.parentElement.querySelector('.scores-container').style.display = 'none';
+        
+        // Enable pointer events on square container for card interaction
+        this.squareContainer.style.pointerEvents = 'auto';
         
         // Create square card elements
         this.createSquareCardElements(userCard, 'user');
         this.createSquareCardElements(computerCard, 'computer');
         
         // Update square scores to match current scores
-        this.squareUserScoreElement.textContent = this.gridUserScoreElement.textContent;
-        this.squareComputerScoreElement.textContent = this.gridComputerScoreElement.textContent;
+        this.squareUserScoreElement.textContent = this.squareUserScoreElement.textContent || '0';
+        this.squareComputerScoreElement.textContent = this.squareComputerScoreElement.textContent || '0';
         
         // Animate cards sliding in
-        const squareCardElements = this.squareContainer.querySelectorAll('.square-card-element');
+        const squareCardElements = this.squareContainer.querySelectorAll('.square-card-element:not(.square-score-box)');
         squareCardElements.forEach(element => {
             element.style.animation = `cardSlideIn ${CONFIG.CARD_MOVE_DURATION}ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`;
         });
@@ -326,8 +314,10 @@ class TrumpsRenderer {
             if (isUser) {
                 button.style.background = 'linear-gradient(135deg, #e3f2fd, #f3e5f5)';
                 button.style.cursor = 'pointer';
+                button.style.pointerEvents = 'auto'; // User buttons should be clickable
             } else {
                 button.style.background = 'linear-gradient(135deg, #f5f5f5, #eeeeee)';
+                button.style.pointerEvents = 'none'; // Computer buttons not clickable
             }
             
             // Create label
@@ -386,33 +376,49 @@ class TrumpsRenderer {
     }
 
     async flipCard(cardId, player) {
-        // Hide card back, show card front and all elements
-        const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
-        const cardFront = this.squareContainer.querySelector(`.${player}-card-front[data-card-id="${cardId}"]`);
+        // Simply fade in all card elements (no flip transformation)
         const title = this.squareContainer.querySelector(`.${player}-title`);
         const picture = this.squareContainer.querySelector(`.${player}-picture`);
         const buttons = this.squareContainer.querySelectorAll(`.${player}-button-1, .${player}-button-2, .${player}-button-3`);
         
-        // Start flip animation
+        // Hide card back
+        const cardBack = this.squareContainer.querySelector(`.${player}-card-back[data-card-id="${cardId}"]`);
         if (cardBack) {
-            cardBack.style.transform = 'rotateY(90deg)';
-            cardBack.style.transition = `transform ${CONFIG.CARD_FLIP_DURATION / 2}ms ease-in`;
+            cardBack.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-out`;
+            cardBack.style.opacity = '0';
         }
         
         await this.wait(CONFIG.CARD_FLIP_DURATION / 2);
         
-        // Hide back, show front
-        if (cardBack) cardBack.classList.add('hidden');
-        if (cardFront) cardFront.classList.remove('hidden');
-        if (title) title.classList.remove('hidden');
-        if (picture) picture.classList.remove('hidden');
-        buttons.forEach(button => button.classList.remove('hidden'));
-        
-        // Complete flip animation
+        // Show card front and all elements
+        const cardFront = this.squareContainer.querySelector(`.${player}-card-front[data-card-id="${cardId}"]`);
         if (cardFront) {
-            cardFront.style.transform = 'rotateY(0deg)';
-            cardFront.style.transition = `transform ${CONFIG.CARD_FLIP_DURATION / 2}ms ease-out`;
+            cardFront.classList.remove('hidden');
+            cardFront.style.opacity = '0';
+            cardFront.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-in`;
+            cardFront.style.opacity = '1';
         }
+        
+        if (title) {
+            title.classList.remove('hidden');
+            title.style.opacity = '0';
+            title.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-in`;
+            title.style.opacity = '1';
+        }
+        
+        if (picture) {
+            picture.classList.remove('hidden');
+            picture.style.opacity = '0';
+            picture.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-in`;
+            picture.style.opacity = '1';
+        }
+        
+        buttons.forEach(button => {
+            button.classList.remove('hidden');
+            button.style.opacity = '0';
+            button.style.transition = `opacity ${CONFIG.CARD_FLIP_DURATION}ms ease-in`;
+            button.style.opacity = '1';
+        });
         
         await this.wait(CONFIG.CARD_FLIP_DURATION / 2);
     }
@@ -471,30 +477,15 @@ class TrumpsRenderer {
     }
 
     updateScores(userScore, computerScore) {
-        // Update both grid and square score displays with animation
-        const allUserScores = [this.gridUserScoreElement, this.squareUserScoreElement];
-        const allComputerScores = [this.gridComputerScoreElement, this.squareComputerScoreElement];
-        
-        allUserScores.forEach(element => {
-            if (element) element.style.transform = 'scale(1.2)';
-        });
-        allComputerScores.forEach(element => {
-            if (element) element.style.transform = 'scale(1.2)';
-        });
+        // Update square score displays with animation (no grid scores)
+        this.squareUserScoreElement.style.transform = 'scale(1.2)';
+        this.squareComputerScoreElement.style.transform = 'scale(1.2)';
         
         setTimeout(() => {
-            allUserScores.forEach(element => {
-                if (element) {
-                    element.textContent = userScore;
-                    element.style.transform = 'scale(1)';
-                }
-            });
-            allComputerScores.forEach(element => {
-                if (element) {
-                    element.textContent = computerScore;
-                    element.style.transform = 'scale(1)';
-                }
-            });
+            this.squareUserScoreElement.textContent = userScore;
+            this.squareComputerScoreElement.textContent = computerScore;
+            this.squareUserScoreElement.style.transform = 'scale(1)';
+            this.squareComputerScoreElement.style.transform = 'scale(1)';
         }, 150);
     }
 
@@ -526,9 +517,11 @@ class TrumpsRenderer {
     switchToGridLayout() {
         this.currentMode = 'grid';
         
+        // Disable pointer events on square container so grid cards can be clicked
+        this.squareContainer.style.pointerEvents = 'none';
+        
         // Show grid layout
         this.cardGrid.classList.remove('hidden');
-        this.cardGrid.parentElement.querySelector('.scores-container').style.display = 'flex';
         
         // Reset card opacities for next round
         const allCards = this.cardGrid.querySelectorAll('.card-slot');
