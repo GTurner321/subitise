@@ -63,7 +63,7 @@ class TrumpsRenderer {
         this.squareUserScoreElement.style.pointerEvents = 'auto'; // Score boxes should be clickable if needed
         this.positionSquareElement(this.squareUserScoreElement, 25, 4, 15, 15, squareSize);
         this.squareUserScoreElement.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.SCORE}px`;
-        this.squareUserScoreElement.style.boxShadow = '0 3% 6% rgba(0,0,0,0.3)'; // Added shadow
+        this.squareUserScoreElement.style.boxShadow = `0 ${squareSize * 0.03}px ${squareSize * 0.06}px rgba(0,0,0,0.3)`;
         
         // Create computer score box
         this.squareComputerScoreElement = document.createElement('div');
@@ -72,7 +72,7 @@ class TrumpsRenderer {
         this.squareComputerScoreElement.style.pointerEvents = 'auto'; // Score boxes should be clickable if needed
         this.positionSquareElement(this.squareComputerScoreElement, 60, 4, 15, 15, squareSize);
         this.squareComputerScoreElement.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.SCORE}px`;
-        this.squareComputerScoreElement.style.boxShadow = '0 3% 6% rgba(0,0,0,0.3)'; // Added shadow
+        this.squareComputerScoreElement.style.boxShadow = `0 ${squareSize * 0.03}px ${squareSize * 0.06}px rgba(0,0,0,0.3)`;
         
         this.squareContainer.appendChild(this.squareUserScoreElement);
         this.squareContainer.appendChild(this.squareComputerScoreElement);
