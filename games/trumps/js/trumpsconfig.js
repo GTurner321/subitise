@@ -7,11 +7,11 @@ const CONFIG = {
     GRID_COLS: 8,
     
     // Animation timings (milliseconds)
-    CARD_FADE_DURATION: 2000, // Increased from 500ms to 2000ms
-    CARD_MOVE_DURATION: 800,
-    CARD_FLIP_DURATION: 600,
-    RESULT_DISPLAY_DURATION: 2000,
-    RESET_DELAY: 1000,
+    CARD_FADE_DURATION: 2000, // Time to fade out non-selected cards
+    CARD_MOVE_DURATION: 800,   // Time for cards to slide into square layout
+    CARD_FLIP_DURATION: 600,   // Time for card flip animation
+    RESULT_DISPLAY_DURATION: 2000, // Time to show round result
+    RESET_DELAY: 1000,         // Delay before starting next round
     
     // Categories
     CATEGORIES: {
@@ -27,8 +27,36 @@ const CONFIG = {
         stars: { label: 'Stars', suffix: '', max: 5 } // No suffix for star display
     },
     
-    // Visual settings - now percentage-based
-    CARD_ASPECT_RATIO: 0.7, // height/width
+    // Square layout positioning (percentages of square size)
+    SQUARE_LAYOUT: {
+        // Score boxes
+        USER_SCORE: { x: 25, y: 4, width: 15, height: 15 },
+        COMPUTER_SCORE: { x: 60, y: 4, width: 15, height: 15 },
+        
+        // Cards
+        USER_CARD: { x: 2, y: 23, width: 45, height: 73 },
+        COMPUTER_CARD: { x: 53, y: 23, width: 45, height: 73 },
+        
+        // Card elements (relative to card position)
+        CARD_ELEMENTS: {
+            TITLE: { x: 5, y: 0, width: 35, height: 9 },
+            PICTURE: { x: 5, y: 9, width: 35, height: 30 },
+            BUTTON_1: { x: 5, y: 41, width: 35, height: 9 },
+            BUTTON_2: { x: 5, y: 51, width: 35, height: 9 },
+            BUTTON_3: { x: 5, y: 61, width: 35, height: 9 }
+        },
+        
+        // Font sizes (percentages of square size)
+        FONT_SIZES: {
+            SCORE: 0.08,      // 8% of square size
+            TITLE: 0.025,     // 2.5% of square size
+            BUTTON: 0.02,     // 2% of square size
+            STAR: 0.025       // 2.5% of square size
+        }
+    },
+    
+    // Visual settings
+    CARD_ASPECT_RATIO: 0.7, // height/width for grid cards
     
     // Audio settings - delegated to universal AudioSystem
     AUDIO_ENABLED: true,
