@@ -234,6 +234,24 @@ class TrumpsRenderer {
         cardBack.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
         cardBack.style.borderRadius = '8%';
         cardBack.style.boxShadow = '0 3% 6% rgba(0,0,0,0.3)';
+        
+        // Add diagonal pattern to card back
+        const pattern = document.createElement('div');
+        pattern.style.position = 'absolute';
+        pattern.style.top = '0';
+        pattern.style.left = '0';
+        pattern.style.right = '0';
+        pattern.style.bottom = '0';
+        pattern.style.background = `repeating-linear-gradient(
+            45deg,
+            rgba(255,255,255,0.1) 0,
+            rgba(255,255,255,0.1) ${squareSize * 0.008}px,
+            transparent ${squareSize * 0.008}px,
+            transparent ${squareSize * 0.016}px
+        )`;
+        pattern.style.borderRadius = '8%';
+        cardBack.appendChild(pattern);
+        
         this.squareContainer.appendChild(cardBack);
         
         // Create card front face (initially hidden behind back)
@@ -269,7 +287,7 @@ class TrumpsRenderer {
         pictureArea.style.borderRadius = '8%';
         pictureArea.style.background = 'linear-gradient(135deg, #e3f2fd, #f3e5f5)';
         pictureArea.style.boxShadow = 'inset 0 1% 3% rgba(135, 206, 250, 0.3)';
-        pictureArea.style.border = '1.5% solid #7DA3D9';
+        pictureArea.style.border = `${squareSize * 0.015}px solid #7DA3D9`; // Blue border
         pictureArea.style.display = 'flex';
         pictureArea.style.alignItems = 'center';
         pictureArea.style.justifyContent = 'center';
@@ -303,13 +321,14 @@ class TrumpsRenderer {
             this.positionSquareElement(button, cardX + 5, cardY + buttonYOffsets[index], 35, 9, squareSize);
             button.style.fontSize = `${squareSize * CONFIG.SQUARE_LAYOUT.FONT_SIZES.BUTTON}px`;
             button.style.borderRadius = '8%';
-            button.style.border = '1.5% solid #7DA3D9';
+            button.style.border = `${squareSize * 0.015}px solid #7DA3D9`; // Blue border
             button.style.display = 'flex';
             button.style.alignItems = 'center';
             button.style.paddingLeft = '8%';
             button.style.fontWeight = 'bold';
             button.style.textTransform = 'uppercase';
             button.style.transition = 'all 0.3s ease';
+            button.style.boxShadow = '0 2% 4% rgba(0,0,0,0.2)'; // Add shadow
             
             if (isUser) {
                 button.style.background = 'linear-gradient(135deg, #e3f2fd, #f3e5f5)';
