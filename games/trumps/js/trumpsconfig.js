@@ -161,3 +161,26 @@ const CONFIG = {
         }
     ]
 };
+
+// Image Preloader Class
+class ImagePreloader {
+    static preloadImages() {
+        console.log('Starting image preload...');
+        return Promise.all(
+            CONFIG.CARDS.map(card => {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        console.log(`Loaded: ${card.image}`);
+                        resolve();
+                    };
+                    img.onerror = () => {
+                        console.warn(`Failed to load: ${card.image}`);
+                        reject();
+                    };
+                    img.src = card.image;
+                });
+            })
+        );
+    }
+}
