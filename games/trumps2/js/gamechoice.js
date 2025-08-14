@@ -1,23 +1,14 @@
-// Add touch support for buttons
-        teddyBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.selectGame('teddy');
-        });
-
-        animalBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.selectGame('animal');
-        });class GameChoice {
+class GameChoice {
     constructor() {
         console.log('🎮 GameChoice constructor called');
         this.modal = null;
-        this.onGameSelected = null; // Callback function
+        this.onGameSelected = null;
         this.createChoiceModal();
         console.log('✅ GameChoice constructor complete');
     }
 
     createChoiceModal() {
-        // Create modal HTML structure
+        // Create modal HTML
         const modalHTML = `
             <div class="modal full-screen-modal" id="gameChoiceModal">
                 <div class="modal-content game-choice-content">
@@ -33,19 +24,16 @@
             </div>
         `;
 
-        // Add modal to DOM
+        // Add to DOM
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         this.modal = document.getElementById('gameChoiceModal');
 
-        // Add event listeners
-        this.setupEventListeners();
-
-        // Add CSS styles
+        // Setup styles and events
         this.addStyles();
+        this.setupEventListeners();
     }
 
     addStyles() {
-        // Check if styles already exist
         if (document.getElementById('game-choice-styles')) return;
 
         const styles = document.createElement('style');
@@ -66,17 +54,12 @@
 
             .game-choice-content {
                 background: transparent;
-                padding: 40px;
-                border-radius: 0;
-                text-align: center;
-                animation: modalAppear 0.5s ease;
-                pointer-events: auto;
-                box-shadow: none;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
                 height: 100%;
+                width: 100%;
             }
 
             .game-choice-buttons {
@@ -97,7 +80,6 @@
                 box-shadow: 0 8px 16px rgba(0,0,0,0.3);
                 transition: all 0.3s ease;
                 touch-action: manipulation;
-                pointer-events: auto;
                 outline: none;
                 min-width: 400px;
                 text-transform: uppercase;
@@ -127,15 +109,8 @@
 
             .game-choice-btn:active {
                 transform: translateY(-2px);
-                transition: all 0.1s ease;
             }
 
-            .game-choice-btn:focus {
-                outline: none;
-                box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.5);
-            }
-
-            /* Responsive design */
             @media (max-width: 600px) {
                 .game-choice-btn {
                     font-size: 2rem;
@@ -149,89 +124,93 @@
     }
 
     setupEventListeners() {
-        // Teddy Trumps button
         const teddyBtn = document.getElementById('teddyTrumpsBtn');
         const animalBtn = document.getElementById('animalTrumpsBtn');
 
-        teddyBtn.addEventListener('click', () => {
+        if (!teddyBtn || !animalBtn) {
+            console.error('❌ Could not find game choice buttons');
+            return;
+        }
+
+        // Mouse clicks
+        teddyBtn.addEventListener('click', () => this.selectGame('teddy'));
+        animalBtn.addEventListener('click', () => this.selectGame('animal'));
+
+        // Touch events
+        teddyBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
             this.selectGame('teddy');
         });
 
-        animalBtn.addEventListener('click', () => {
+        animalBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
             this.selectGame('animal');
         });
 
-        // Keyboard support
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (!this.isVisible()) return;
 
-            if (e.code === 'Digit1' || e.code === 'KeyT') {
+            if (e.key === '1' || e.key.toLowerCase() === 't') {
                 e.preventDefault();
                 this.selectGame('teddy');
-            } else if (e.code === 'Digit2' || e.code === 'KeyA') {
+            } else if (e.key === '2' || e.key.toLowerCase() === 'a') {
                 e.preventDefault();
                 this.selectGame('animal');
-            } else if (e.code === 'Enter') {
-                // Default to Animal Trumps on Enter
+            } else if (e.key === 'Enter') {
                 e.preventDefault();
                 this.selectGame('animal');
             }
         });
+
+        console.log('✅ Event listeners setup complete');
     }
 
     selectGame(gameType) {
-        console.log(`Game selected: ${gameType}`);
+        console.log(`🎮 Game selected: ${gameType}`);
 
-        // Add selection animation
+        // Visual feedback
         const selectedBtn = gameType === 'teddy' ? 
             document.getElementById('teddyTrumpsBtn') : 
             document.getElementById('animalTrumpsBtn');
 
         if (selectedBtn) {
             selectedBtn.style.transform = 'scale(0.95)';
-            selectedBtn.style.transition = 'transform 0.1s ease';
         }
 
-        // Hide modal with animation
+        // Hide modal
         this.hide();
 
-        // Execute action after animation
+        // Execute action
         setTimeout(() => {
             if (gameType === 'teddy') {
-                // Redirect to Teddy Trumps
                 window.location.href = 'https://gturner321.github.io/subitise/games/trumps/index.html';
-            } else {
-                // Start Animal Trumps game
-                if (this.onGameSelected) {
-                    this.onGameSelected('animal');
-                }
+            } else if (this.onGameSelected) {
+                this.onGameSelected('animal');
             }
         }, 300);
     }
 
     show(callback) {
-        console.log('🎪 GameChoice.show() called');
+        console.log('🎪 Showing game choice modal');
         this.onGameSelected = callback;
         
         if (this.modal) {
-            console.log('📺 Showing modal');
             this.modal.classList.remove('hidden');
             
-            // Give audio instruction
+            // Audio instruction
             if (window.AudioSystem) {
                 setTimeout(() => {
-                    console.log('🔊 Playing audio instruction');
                     window.AudioSystem.speakText('Choose between the card games, teddy trumps and animal trumps.');
                 }, 500);
             }
         } else {
-            console.error('❌ Modal not found!');
+            console.error('❌ Modal not found');
         }
     }
 
     hide() {
         if (this.modal) {
-            // Add fade out animation
             this.modal.style.opacity = '0';
             this.modal.style.transition = 'opacity 0.3s ease';
             
@@ -253,13 +232,11 @@
             this.modal = null;
         }
 
-        // Remove styles
         const styles = document.getElementById('game-choice-styles');
         if (styles) {
             styles.remove();
         }
 
-        // Remove event listeners (they'll be removed with the modal)
         this.onGameSelected = null;
     }
 }
