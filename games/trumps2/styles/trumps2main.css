@@ -161,6 +161,10 @@
     cursor: pointer !important;
 }
 
+.rect-card:active {
+    background: linear-gradient(135deg, rgba(245, 245, 220, 0.7), rgba(245, 245, 220, 0.7)) !important;
+}
+
 .rect-card.revealed {
     cursor: default;
 }
