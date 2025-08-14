@@ -87,7 +87,7 @@
     position: absolute;
     font-family: 'Comic Sans MS', cursive;
     font-weight: bold;
-    color: #667eea; /* Same blue as card borders */
+    color: #d32f2f; /* Red color like card numbers */
     display: flex;
     align-items: center;
     justify-content: flex-end; /* Right-aligned */
@@ -112,15 +112,15 @@
 }
 
 .rect-score-box.user-score {
-    background: linear-gradient(135deg, #C8E6C9, #A5D6A7); /* Subtle green pastels */
+    background: linear-gradient(135deg, #A5D6A7, #81C784); /* Darker green pastels */
 }
 
 .rect-score-box.player-a-score {
-    background: linear-gradient(135deg, #FFE0B2, #FFCC80); /* Subtle orange pastels */
+    background: linear-gradient(135deg, #FFCC80, #FFB74D); /* Darker orange pastels */
 }
 
 .rect-score-box.player-b-score {
-    background: linear-gradient(135deg, #BBDEFB, #90CAF9); /* Subtle blue pastels */
+    background: linear-gradient(135deg, #90CAF9, #64B5F6); /* Darker blue pastels */
 }
 
 /* Rectangular layout cards */
@@ -129,13 +129,13 @@
     background: #f5f5dc; /* Dull light yellow background */
     border-radius: 8%;
     box-shadow: 0 3% 6% rgba(0,0,0,0.3);
-    border: 0.5% solid #667eea;
+    /* No border */
     cursor: pointer;
     transition: all 0.3s ease;
     /* Position and size will be set by JavaScript */
 }
 
-/* Add diagonal pattern to card front */
+/* Add simpler diagonal pattern to card front */
 .rect-card::after {
     content: '';
     position: absolute;
@@ -145,10 +145,10 @@
     bottom: 0;
     background: repeating-linear-gradient(
         45deg,
-        rgba(255, 215, 0, 0.3) 0,
-        rgba(255, 215, 0, 0.3) 1%,
-        transparent 1%,
-        transparent 2%
+        rgba(255, 165, 0, 0.2) 0,
+        rgba(255, 165, 0, 0.2) 1%,
+        rgba(255, 215, 0, 0.2) 1%,
+        rgba(255, 215, 0, 0.2) 2%
     );
     border-radius: 8%;
     pointer-events: none;
@@ -225,7 +225,7 @@
     position: absolute;
     font-family: 'Comic Sans MS', cursive;
     font-weight: bold;
-    color: #333;
+    color: #5a4fb5; /* Darker version of the blue/purple border color */
     text-align: center;
     text-transform: uppercase;
     display: flex;
@@ -269,7 +269,7 @@
     z-index: 25;
     background: transparent; /* Transparent container */
     border-radius: 8%;
-    border: 0.3% solid #667eea;
+    /* No border */
     /* Position, size, and font-size will be set by JavaScript */
 }
 
@@ -279,7 +279,7 @@
         transform: scale(1);
     }
     50% {
-        transform: scale(1.05);
+        transform: scale(1.02); /* Much smaller pulse - only 2% instead of 5% */
     }
 }
 
