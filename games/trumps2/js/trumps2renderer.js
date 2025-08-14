@@ -489,21 +489,37 @@ class Trumps2Renderer {
     }
 
     async revealCard(card, position) {
-        console.log(`Revealing card for ${position} at ${Date.now()}`);
-        // Sideways reveal - card back width reduces to 0 within card boundaries
+        console.log(`🎭 Revealing card for ${position}`);
+        
+        // Check if card is already revealed
+        if (this.revealedCards && this.revealedCards.has(position)) {
+            console.log(`⚠️ Card ${position} already revealed`);
+            return;
+        }
+        
+        // For left card, there's no back to reveal - it's already visible
+        if (position === 'left') {
+            console.log(`👁️ Left card already visible`);
+            return;
+        }
+        
+        // Find and animate the card back
         const cardBack = this.rectContainer.querySelector(`.rect-card-back-${position}`);
         
         if (cardBack) {
-            // Set up for width animation - blue moves to the right (reveals from right edge)
-            cardBack.style.transformOrigin = 'right center'; // Blue disappears to the right
-            cardBack.style.transition = 'transform 0.3s ease-out'; // Faster (0.3s instead of 0.6s)
+            console.log(`🎬 Animating reveal for ${position}`);
+            cardBack.style.transformOrigin = 'right center';
+            cardBack.style.transition = 'transform 0.4s ease-out';
             cardBack.style.transform = 'scaleX(0)';
             
-            // Wait for animation to complete
-            await this.wait(300); // Match the 0.3s duration
+            // Wait for animation
+            await this.wait(400);
             
-            // Hide the back completely
-            cardBack.style.display = 'none';
+            // Remove the back element
+            cardBack.remove();
+            console.log(`✅ Card ${position} revealed`);
+        } else {
+            console.log(`❌ No card back found for ${position}`);
         }
     }
 
