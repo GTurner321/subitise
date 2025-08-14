@@ -25,7 +25,7 @@
 .card-slot {
     position: absolute;
     width: 7.7vw;
-    height: 10.4vw; /* Updated from 11.2vw */
+    height: 10vw; /* Updated from 10.4vw */
     border-radius: 1vh;
     transition: all 0.3s ease;
     z-index: 5; /* Ensure cards are above rainbow */
@@ -156,8 +156,7 @@
 }
 
 .rect-card:hover {
-    transform: translateY(-1%);
-    box-shadow: 0 4% 8% rgba(0,0,0,0.4);
+    animation: cardPulse 1s infinite;
 }
 
 .rect-card.revealed {
@@ -195,17 +194,12 @@
     pointer-events: auto;
 }
 
+.rect-card-back:hover {
+    animation: cardPulse 1s infinite;
+}
+
 .rect-card-back.hidden {
     transform: scaleX(0);
-}
-
-/* Prevent hover effects on cards with backs */
-.rect-card:has(.rect-card-back) {
-    pointer-events: none;
-}
-
-.rect-card:has(.rect-card-back) .rect-card-back {
-    pointer-events: auto;
 }
 
 /* Add diagonal pattern to card back */
