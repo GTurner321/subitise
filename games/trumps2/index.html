@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Trumps Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="styles/trumps2main.css">
+</head>
+<body>
+    <!-- Main game area -->
+    <div class="game-area">
+        <!-- Rainbow container for celebration -->
+        <div class="rainbow-container" id="rainbowContainer"></div>
+        
+        <!-- Card grid and rectangular layout will be dynamically created -->
+    </div>
+    
+    <!-- Game completion modal -->
+    <div class="modal hidden" id="gameModal">
+        <div class="modal-content">
+            <h2>🎉 Well Done! 🎉</h2>
+            <button class="play-again-btn" id="playAgainBtn">PLAY AGAIN</button>
+        </div>
+    </div>
+    
+    <!-- JavaScript files - Universal systems first, then game-specific -->
+    <script src="../../js/shared/audio.js"></script>
+    <script src="../../js/shared/buttonbar.js"></script>
+    <script src="../../js/shared/rainbow.js"></script>
+    <script src="../../js/shared/Bear.js"></script>
+    <script src="js/trumps2config.js"></script>
+    <script src="js/trumps2renderer.js"></script>
+    <script src="js/trumps2gamecontroller.js"></script>
+    
+    <script>
+        // Initialize universal systems for Animal Trumps game
+        document.addEventListener('DOMContentLoaded', () => {
+            // Create a full-screen game area for proper rainbow and bear integration
+            const gameArea = document.querySelector('.game-area');
+            if (gameArea) {
+                // Ensure game area is properly sized for rainbow system
+                gameArea.style.width = '100vw';
+                gameArea.style.height = '100vh';
+                gameArea.style.position = 'relative';
+                gameArea.style.overflow = 'hidden';
+            }
+            
+            // Initialize ButtonBar system (required by Rainbow for resize handling)
+            // Even though this game doesn't use buttons, the rainbow system needs it
+            if (window.ButtonBar && typeof window.ButtonBar.create === 'function') {
+                // Create an empty button bar to satisfy rainbow system requirements
+                window.ButtonBar.create(0, 0, 0, [], [], null);
+                console.log('ButtonBar initialized for rainbow system compatibility');
+            } else {
+                console.log('ButtonBar not available - rainbow may not work properly');
+            }
+            
+            // Configure audio system for Animal Trumps game
+            if (window.AudioSystem && typeof window.AudioSystem.setBottomPosition === 'function') {
+                window.AudioSystem.setBottomPosition(false, '../../index.html');
+            }
+            
+            // Initialize rainbow system after a brief delay to ensure game area is ready
+            setTimeout(() => {
+                if (window.Rainbow && window.rainbow) {
+                    window.rainbow.initializeArcs();
+                    console.log('Rainbow system reinitialized after game area setup');
+                }
+            }, 500);
+        });
+        
+        // Handle page visibility for proper audio management
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && window.AudioSystem) {
+                window.AudioSystem.stopAllAudio();
+            }
+        });
+        
+        // Handle before unload for proper cleanup
+        window.addEventListener('beforeunload', () => {
+            if (window.trumps2Game) {
+                window.trumps2Game.destroy();
+            }
+            if (window.AudioSystem) {
+                window.AudioSystem.destroy();
+            }
+        });
+        
+        // Error handling for missing assets
+        window.addEventListener('error', (e) => {
+            if (e.target.tagName === 'IMG') {
+                console.warn('Failed to load image:', e.target.src);
+                // Provide fallback or placeholder image
+                e.target.style.display = 'none';
+            }
+        });
+        
+        // Prevent context menu on images and cards
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.tagName === 'IMG' || e.target.closest('.card-slot') || e.target.closest('.rect-card')) {
+                e.preventDefault();
+            }
+        });
+        
+        // Prevent drag and drop on game elements
+        document.addEventListener('dragstart', (e) => {
+            if (e.target.tagName === 'IMG' || e.target.closest('.card-slot') || e.target.closest('.rect-card')) {
+                e.preventDefault();
+            }
+        });
+        
+        // Add keyboard support for accessibility
+        document.addEventListener('keydown', (e) => {
+            // Space or Enter to restart game when modal is visible
+            if ((e.code === 'Space' || e.code === 'Enter')) {
+                const modal = document.getElementById('gameModal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    e.preventDefault();
+                    const playAgainBtn = document.getElementById('playAgainBtn');
+                    if (playAgainBtn) {
+                        playAgainBtn.click();
+                    }
+                }
+            }
+            
+            // Escape to mute/unmute audio
+            if (e.code === 'Escape' && window.AudioSystem) {
+                e.preventDefault();
+                window.AudioSystem.toggleAudio();
+            }
+        });
+        
+        // Performance optimization: Preload critical images
+        function preloadCriticalImages() {
+            const criticalImages = [
+                '../../assets/bear.png', // For bear celebration
+                '../../assets/trumps2/chicken.jpg', // First animal
+                '../../assets/trumps2/lion.png' // Last animal
+            ];
+            
+            criticalImages.forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+        }
+        
+        // Start preloading when DOM is ready
+        document.addEventListener('DOMContentLoaded', preloadCriticalImages);
+        
+        // Debug helpers for development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            // Development mode - add debug helpers
+            window.debugGame = {
+                skipToEnd: () => {
+                    if (window.trumps2Game) {
+                        window.trumps2Game.currentRound = 10;
+                        window.trumps2Game.completeGame();
+                    }
+                },
+                addRainbow: (pieces = 1) => {
+                    if (window.trumps2Game && window.trumps2Game.rainbow) {
+                        for (let i = 0; i < pieces; i++) {
+                            window.trumps2Game.rainbow.addPiece();
+                        }
+                    }
+                },
+                getGameState: () => {
+                    if (window.trumps2Game) {
+                        return {
+                            round: window.trumps2Game.currentRound,
+                            scores: window.trumps2Game.scores,
+                            phase: window.trumps2Game.gamePhase,
+                            availableCards: window.trumps2Game.availableCards.length
+                        };
+                    }
+                }
+            };
+            console.log('Debug helpers available: window.debugGame');
+        }
+    </script>
+</body>
+</html>
