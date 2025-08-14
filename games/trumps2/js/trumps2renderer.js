@@ -322,7 +322,7 @@ class Trumps2Renderer {
         cardFront.style.background = '#f5f5dc';
         cardFront.style.borderRadius = '8%';
         cardFront.style.boxShadow = `0 ${rectHeight * 0.04}px ${rectHeight * 0.08}px rgba(0,0,0,0.4)`;
-        cardFront.style.border = `${rectHeight * 0.005}px solid #667eea`;
+        // No border
         cardFront.style.zIndex = '25'; // Below back, visible when back is removed
         cardFront.style.cursor = 'pointer';
         cardFront.style.pointerEvents = 'auto';
@@ -434,7 +434,7 @@ class Trumps2Renderer {
         numberDisplay.style.zIndex = '25';
         numberDisplay.style.background = 'transparent';
         numberDisplay.style.borderRadius = '8%';
-        numberDisplay.style.border = `${rectHeight * 0.003}px solid #667eea`;
+        // No border
         this.rectContainer.appendChild(numberDisplay);
     }
 
