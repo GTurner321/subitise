@@ -13,10 +13,11 @@ const CONFIG = {
     CARD_FLIP_DURATION: 600,   // Time for card flip animation
     RESULT_DISPLAY_DURATION: 2000, // Time to show round result
     RESET_DELAY: 1000,         // Delay before starting next round
-    PAUSE_BETWEEN_REVEALS: 1500, // Pause between card reveals
+    PAUSE_BETWEEN_REVEALS: 2500, // Pause between card reveals (increased from 1500)
+    SPEECH_COMPLETION_BUFFER: 2500, // Extra time for speech to complete (new)
     
     // Visual settings
-    CARD_ASPECT_RATIO: 0.74, // height/width for grid cards (10.4/7.7)
+    CARD_ASPECT_RATIO: 0.77, // height/width for grid cards (10/7.7)
     
     // Audio settings - delegated to universal AudioSystem
     AUDIO_ENABLED: true,
@@ -64,17 +65,17 @@ const CONFIG = {
     // Grid layout positioning for 30 cards (vw units)
     GRID_LAYOUT: {
         CARD_WIDTH: 7.7,  // vw
-        CARD_HEIGHT: 10.4, // vw (reduced from 11.2)
+        CARD_HEIGHT: 10, // vw (reduced from 10.4)
         POSITIONS: [
             // Row 1 (y: 22)
             { x: 7, y: 22 }, { x: 15.7, y: 22 }, { x: 24.4, y: 22 }, { x: 33.1, y: 22 }, { x: 41.8, y: 22 },
             { x: 50.5, y: 22 }, { x: 59.2, y: 22 }, { x: 67.9, y: 22 }, { x: 76.6, y: 22 }, { x: 85.3, y: 22 },
-            // Row 2 (y: 46)
-            { x: 7, y: 46 }, { x: 15.7, y: 46 }, { x: 24.4, y: 46 }, { x: 33.1, y: 46 }, { x: 41.8, y: 46 },
-            { x: 50.5, y: 46 }, { x: 59.2, y: 46 }, { x: 67.9, y: 46 }, { x: 76.6, y: 46 }, { x: 85.3, y: 46 },
-            // Row 3 (y: 70)
-            { x: 7, y: 70 }, { x: 15.7, y: 70 }, { x: 24.4, y: 70 }, { x: 33.1, y: 70 }, { x: 41.8, y: 70 },
-            { x: 50.5, y: 70 }, { x: 59.2, y: 70 }, { x: 67.9, y: 70 }, { x: 76.6, y: 70 }, { x: 85.3, y: 70 }
+            // Row 2 (y: 47 - changed from 46)
+            { x: 7, y: 47 }, { x: 15.7, y: 47 }, { x: 24.4, y: 47 }, { x: 33.1, y: 47 }, { x: 41.8, y: 47 },
+            { x: 50.5, y: 47 }, { x: 59.2, y: 47 }, { x: 67.9, y: 47 }, { x: 76.6, y: 47 }, { x: 85.3, y: 47 },
+            // Row 3 (y: 72 - changed from 70)
+            { x: 7, y: 72 }, { x: 15.7, y: 72 }, { x: 24.4, y: 72 }, { x: 33.1, y: 72 }, { x: 41.8, y: 72 },
+            { x: 50.5, y: 72 }, { x: 59.2, y: 72 }, { x: 67.9, y: 72 }, { x: 76.6, y: 72 }, { x: 85.3, y: 72 }
         ]
     },
     
