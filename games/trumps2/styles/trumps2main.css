@@ -156,17 +156,37 @@
 }
 
 /* Hover effects for all rect cards (including left card front) */
-.rect-card:hover,
-.rect-card:active,
-.rect-card-front-left:hover,
-.rect-card-front-left:active {
+.rect-card:hover:not(.card-selected-no-hover),
+.rect-card:active:not(.card-selected-no-hover),
+.rect-card-front-left:hover:not(.card-selected-no-hover),
+.rect-card-front-left:active:not(.card-selected-no-hover),
+.rect-card-back:hover:not(.card-selected-no-hover) {
     animation: cardPulse 1s infinite;
     cursor: pointer !important;
 }
 
-.rect-card:active,
-.rect-card-front-left:active {
+.rect-card:active:not(.card-selected-no-hover),
+.rect-card-front-left:active:not(.card-selected-no-hover) {
     background: linear-gradient(135deg, rgba(245, 245, 220, 0.7), rgba(245, 245, 220, 0.7)) !important;
+}
+
+.rect-card-back:active:not(.card-selected-no-hover) {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.7), rgba(118, 75, 162, 0.7));
+}
+
+/* Click pulse animation - stronger than hover pulse */
+.card-click-pulse {
+    animation: cardClickPulse 1s ease-out !important;
+}
+
+/* Disable hover effects for selected cards */
+.card-selected-no-hover {
+    cursor: default !important;
+}
+
+.card-selected-no-hover:hover {
+    animation: none !important;
+    transform: none !important;
 }
 
 .rect-card.revealed {
@@ -298,6 +318,24 @@
     }
     50% {
         transform: scale(1.02); /* Much smaller pulse - only 2% instead of 5% */
+    }
+}
+
+@keyframes cardClickPulse {
+    0% {
+        transform: scale(1);
+    }
+    25% {
+        transform: scale(1.08);
+    }
+    50% {
+        transform: scale(0.95);
+    }
+    75% {
+        transform: scale(1.03);
+    }
+    100% {
+        transform: scale(1);
     }
 }
 
