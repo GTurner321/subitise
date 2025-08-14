@@ -352,6 +352,7 @@ class Trumps2Renderer {
         title.className = `rect-card-title ${position}-title`;
         title.textContent = card.name;
         title.style.position = 'absolute';
+        title.dataset.position = position; // Add position data attribute
         this.positionRectElement(title, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.x, 
                                 cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.y,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.width, 
@@ -372,6 +373,7 @@ class Trumps2Renderer {
         const pictureArea = document.createElement('div');
         pictureArea.className = `rect-card-picture ${position}-picture`;
         pictureArea.style.position = 'absolute';
+        pictureArea.dataset.position = position; // Add position data attribute
         this.positionRectElement(pictureArea, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.x,
                                 cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.y,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.width,
@@ -419,6 +421,7 @@ class Trumps2Renderer {
         numberDisplay.className = `rect-card-number ${position}-number`;
         numberDisplay.textContent = card.value;
         numberDisplay.style.position = 'absolute';
+        numberDisplay.dataset.position = position; // Add position data attribute
         this.positionRectElement(numberDisplay, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.x,
                                 cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.y,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.width,
