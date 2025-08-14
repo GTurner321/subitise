@@ -40,6 +40,8 @@ class Trumps2Renderer {
         
         // Create grid layout elements
         this.createGridLayout();
+        
+        // Don't render any cards initially - wait for game controller to start
     }
 
     createRectContainer() {
