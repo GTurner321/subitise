@@ -34,6 +34,17 @@ class Trumps2GameController {
         this.initializeEventListeners();
     }
     
+    showGameChoice() {
+        // Show the game choice modal
+        this.gameChoice.show((selectedGame) => {
+            if (selectedGame === 'animal') {
+                // Start Animal Trumps game
+                this.initializeGame();
+            }
+            // If teddy is selected, the GameChoice class handles the redirect
+        });
+    }
+
     generateUniquePlayerNames() {
         const playerA = AudioUtils.getRandomPlayerName();
         let playerB;
@@ -583,8 +594,8 @@ class Trumps2GameController {
         // Reset renderer
         this.renderer.reset();
         
-        // Reinitialize game
-        this.initializeGame();
+        // Show game choice again instead of directly restarting
+        this.showGameChoice();
     }
 
     // Utility method for waiting
@@ -593,6 +604,11 @@ class Trumps2GameController {
     }
 
     destroy() {
+        // Clean up game choice system
+        if (this.gameChoice) {
+            this.gameChoice.destroy();
+        }
+        
         // Clean up celebration systems
         if (this.rainbow) {
             this.rainbow.destroy();
