@@ -1,5 +1,5 @@
-// Clean Animal Trumps Game Controller - Version 1.1 - Fixed Card Reveal
-console.log('🔄 Loading Clean Trumps2 Game Controller v1.1 - Fixed');
+// Clean Animal Trumps Game Controller - Version 1.2 - Fixed Duplicate Selection
+console.log('🔄 Loading Clean Trumps2 Game Controller v1.2 - No Duplicates');
 
 class Trumps2GameController {
     constructor() {
@@ -26,6 +26,7 @@ class Trumps2GameController {
         this.currentRound = 1;
         this.scores = { user: 0, playerA: 0, playerB: 0 };
         this.selectedCards = [];
+        this.selectedCardIds = new Set(); // Track selected card IDs to prevent duplicates
         this.availableCards = [];
         this.gameComplete = false;
         
@@ -228,6 +229,7 @@ class Trumps2GameController {
         
         this.gamePhase = 'selection';
         this.selectedCards = [];
+        this.selectedCardIds.clear(); // Clear selected card IDs for new round
         this.userSelectedPosition = null;
         this.roundResults = [];
         this.currentTurn = null;
@@ -258,6 +260,12 @@ class Trumps2GameController {
             return;
         }
         
+        // Check if this card has already been selected
+        if (this.selectedCardIds.has(cardId)) {
+            console.log(`⚠️ Card ${cardId} already selected - ignoring duplicate selection`);
+            return;
+        }
+        
         // Clear reminder timeout
         if (this.reminderTimeout) {
             clearTimeout(this.reminderTimeout);
@@ -267,13 +275,19 @@ class Trumps2GameController {
         const selectedCard = this.availableCards.find(card => card.id === cardId);
         if (!selectedCard) return;
         
+        // Add to selected cards and track ID
         this.selectedCards.push(selectedCard);
+        this.selectedCardIds.add(cardId);
+        
         console.log(`✅ Selected card ${this.selectedCards.length}: ${selectedCard.name} (${selectedCard.value})`);
         
         // Visual feedback
         const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
         if (cardElement) {
             cardElement.classList.add('card-selected');
+            // Disable further clicks on this card
+            cardElement.style.pointerEvents = 'none';
+            cardElement.style.cursor = 'default';
         }
         
         if (this.selectedCards.length === CONFIG.CARDS_PER_ROUND) {
@@ -316,6 +330,9 @@ class Trumps2GameController {
         
         console.log(`🎯 User selected: ${position} (${selectedCard.name} - ${selectedCard.value})`);
         
+        // Add click pulse effect and disable hover animations
+        await this.renderer.pulseCardOnClick(position);
+        
         // Announce user choice with delay
         const userMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.USER_CARD_SELECTED, {
             animal: selectedCard.name,
@@ -342,10 +359,27 @@ class Trumps2GameController {
         
         const remainingPositions = ['left', 'middle', 'right'].filter(pos => pos !== userPosition);
         
-        // First AI player picks from remaining cards
-        const firstAICardIndex = Math.floor(Math.random() * remainingCards.length);
-        const firstAICard = remainingCards[firstAICardIndex];
-        const firstAIPosition = remainingPositions[firstAICardIndex];
+        // First AI player makes strategic choice
+        let firstAICardIndex;
+        let firstAICard;
+        let firstAIPosition;
+        
+        // Look for cards with value 14 or higher
+        const highValueCardIndex = remainingCards.findIndex(card => card.value >= 14);
+        
+        if (highValueCardIndex !== -1) {
+            // Pick the high value card (14+)
+            firstAICardIndex = highValueCardIndex;
+            firstAICard = remainingCards[firstAICardIndex];
+            firstAIPosition = remainingPositions[firstAICardIndex];
+            console.log(`🎯 AI chose high value card: ${firstAICard.name} (${firstAICard.value})`);
+        } else {
+            // No high value cards, pick randomly
+            firstAICardIndex = Math.floor(Math.random() * remainingCards.length);
+            firstAICard = remainingCards[firstAICardIndex];
+            firstAIPosition = remainingPositions[firstAICardIndex];
+            console.log(`🎲 AI chose randomly: ${firstAICard.name} (${firstAICard.value})`);
+        }
         
         // Second AI player gets the last remaining card
         const secondAICard = remainingCards.find(card => card !== firstAICard);
@@ -434,10 +468,15 @@ class Trumps2GameController {
         this.renderer.highlightWinner(null, results);
         this.renderer.updateScores(this.scores.user, this.scores.playerA, this.scores.playerB);
         
-        // Audio announcement
-        const winnerMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.WINNER_ANNOUNCEMENT, {
-            winner: winnerName
-        });
+        // Audio announcement - use different message for "You"
+        let winnerMessage;
+        if (winnerName === 'You') {
+            winnerMessage = CONFIG.AUDIO_MESSAGES.WINNER_ANNOUNCEMENT_YOU;
+        } else {
+            winnerMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.WINNER_ANNOUNCEMENT, {
+                winner: winnerName
+            });
+        }
         window.AudioSystem.speakText(winnerMessage);
         
         // Add rainbow piece
@@ -534,6 +573,7 @@ class Trumps2GameController {
         this.scores = { user: 0, playerA: 0, playerB: 0 };
         this.gamePhase = 'waiting';
         this.selectedCards = [];
+        this.selectedCardIds.clear(); // Clear selected card IDs
         this.gameComplete = false;
         this.userSelectedPosition = null;
         this.roundResults = [];
