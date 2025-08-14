@@ -14,6 +14,9 @@ class Trumps2Renderer {
         // Track current layout mode
         this.currentMode = 'grid'; // 'grid' or 'rect'
         
+        // Track revealed cards at renderer level
+        this.revealedCards = new Set();
+        
         this.initializeLayout();
     }
 
@@ -227,6 +230,9 @@ class Trumps2Renderer {
     switchToRectLayout(selectedCards) {
         this.currentMode = 'rect';
         
+        // Reset revealed cards for new round
+        this.revealedCards.clear();
+        
         // Hide grid layout
         this.cardGrid.classList.add('hidden');
         
@@ -239,6 +245,9 @@ class Trumps2Renderer {
         
         // Create front face for left card immediately (no blue back)
         this.createCardFronts(selectedCards[0], 'left');
+        
+        // Mark left card as revealed since it shows immediately
+        this.revealedCards.add('left');
         
         // Fade in left front face elements
         const leftElements = this.rectContainer.querySelectorAll('.left-title, .left-picture, .left-number, .rect-card-left');
@@ -326,9 +335,14 @@ class Trumps2Renderer {
         cardFront.style.boxShadow = `0 ${rectHeight * 0.04}px ${rectHeight * 0.08}px rgba(0,0,0,0.4)`;
         // No border
         cardFront.style.zIndex = '25'; // Below back, visible when back is removed
-        // Make left card clickable and add hover effect
+        // Make all cards clickable and add hover effect
         cardFront.style.cursor = 'pointer';
         cardFront.style.pointerEvents = 'auto';
+        
+        // Add specific class for left card to enable CSS hover effects
+        if (position === 'left') {
+            cardFront.classList.add('rect-card-front-left');
+        }
         
         // Add diagonal pattern to card front
         const frontPattern = document.createElement('div');
@@ -492,7 +506,7 @@ class Trumps2Renderer {
         console.log(`🎭 Revealing card for ${position}`);
         
         // Check if card is already revealed
-        if (this.revealedCards && this.revealedCards.has(position)) {
+        if (this.revealedCards.has(position)) {
             console.log(`⚠️ Card ${position} already revealed`);
             return;
         }
@@ -500,6 +514,7 @@ class Trumps2Renderer {
         // For left card, there's no back to reveal - it's already visible
         if (position === 'left') {
             console.log(`👁️ Left card already visible`);
+            this.revealedCards.add(position);
             return;
         }
         
@@ -517,9 +532,14 @@ class Trumps2Renderer {
             
             // Remove the back element
             cardBack.remove();
+            
+            // Mark as revealed
+            this.revealedCards.add(position);
             console.log(`✅ Card ${position} revealed`);
         } else {
             console.log(`❌ No card back found for ${position}`);
+            // Still mark as revealed even if no back found
+            this.revealedCards.add(position);
         }
     }
 
@@ -596,6 +616,9 @@ class Trumps2Renderer {
         
         // Remove rect card elements (keep score boxes)
         rectCardElements.forEach(element => element.remove());
+        
+        // Reset revealed cards for next round
+        this.revealedCards.clear();
         
         // Switch back to grid layout
         this.switchToGridLayoutWithoutRender();
@@ -678,6 +701,9 @@ class Trumps2Renderer {
         // Reset player names
         this.scoreElements.playerA.name.textContent = 'A';
         this.scoreElements.playerB.name.textContent = 'B';
+        
+        // Reset revealed cards
+        this.revealedCards.clear();
         
         this.initializeLayout();
     }
