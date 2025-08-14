@@ -318,7 +318,7 @@ class Trumps2GameController {
         
         console.log(`🎯 User selected: ${position} (${selectedCard.name} - ${selectedCard.value})`);
         
-        // Announce user choice with 2-second delay
+        // Announce user choice with delay
         const userMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.USER_CARD_SELECTED, {
             animal: selectedCard.name,
             number: selectedCard.value
@@ -327,8 +327,8 @@ class Trumps2GameController {
         
         this.revealedCards.add(position);
         
-        // Wait 2 seconds then handle AI
-        await this.wait(2000);
+        // Wait for speech + 1 second buffer + reveal delay
+        await this.wait(3000); // Increased delay
         await this.handleAIDecisions(selectedCard, position);
     }
     
@@ -371,14 +371,17 @@ class Trumps2GameController {
         });
         window.AudioSystem.speakText(pickMessage);
         
-        // Wait 2 seconds
-        await this.wait(2000);
+        // Wait for speech to complete
+        await this.wait(2500);
         
         // Reveal card if it's not already revealed
         if (!this.revealedCards.has(position)) {
             await this.renderer.revealCard(card, position);
             this.revealedCards.add(position);
         }
+        
+        // Wait briefly after reveal animation
+        await this.wait(500);
         
         // Announce the card details
         const revealType = pickType === 'SECOND_PICK' ? 'SECOND_PICK_REVEAL' : 'THIRD_PICK_REVEAL';
@@ -388,7 +391,8 @@ class Trumps2GameController {
         });
         window.AudioSystem.speakText(revealMessage);
         
-        await this.wait(1500);
+        // Wait for speech + buffer before next action
+        await this.wait(2500);
     }
     
     determineRoundWinner(userCard, firstAICard, secondAICard, userPos, firstAIPos, secondAIPos) {
