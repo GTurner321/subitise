@@ -49,7 +49,15 @@ class GameChoice {
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                z-index: 2000;
+                z-index: 1500;
+                clip-path: polygon(
+                    0 0,
+                    calc(100% - 120px) 0,
+                    calc(100% - 120px) 60px,
+                    100% 60px,
+                    100% 100%,
+                    0 100%
+                );
             }
 
             .game-choice-content {
@@ -60,6 +68,7 @@ class GameChoice {
                 align-items: center;
                 height: 100%;
                 width: 100%;
+                animation: none;
             }
 
             .game-choice-buttons {
@@ -112,6 +121,17 @@ class GameChoice {
             }
 
             @media (max-width: 600px) {
+                .full-screen-modal {
+                    clip-path: polygon(
+                        0 0,
+                        calc(100% - 80px) 0,
+                        calc(100% - 80px) 50px,
+                        100% 50px,
+                        100% 100%,
+                        0 100%
+                    );
+                }
+                
                 .game-choice-btn {
                     font-size: 2rem;
                     padding: 25px 50px;
