@@ -155,7 +155,8 @@
     z-index: 1;
 }
 
-.rect-card:hover {
+.rect-card:hover,
+.rect-card:active {
     animation: cardPulse 1s infinite;
     cursor: pointer !important;
 }
