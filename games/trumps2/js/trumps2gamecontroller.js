@@ -1,5 +1,5 @@
-// Clean Animal Trumps Game Controller - Version 1.0
-console.log('🔄 Loading Clean Trumps2 Game Controller v1.0');
+// Clean Animal Trumps Game Controller - Version 1.1 - Fixed Card Reveal
+console.log('🔄 Loading Clean Trumps2 Game Controller v1.1 - Fixed');
 
 class Trumps2GameController {
     constructor() {
@@ -33,7 +33,6 @@ class Trumps2GameController {
         this.playerNames = this.generateUniquePlayerNames();
         this.firstCardSelection = true;
         this.userSelectedPosition = null;
-        this.revealedCards = new Set();
         this.roundResults = [];
         this.currentTurn = null;
         this.aiFirstPlayer = Math.random() < 0.5 ? 'playerA' : 'playerB';
@@ -230,7 +229,6 @@ class Trumps2GameController {
         this.gamePhase = 'selection';
         this.selectedCards = [];
         this.userSelectedPosition = null;
-        this.revealedCards.clear();
         this.roundResults = [];
         this.currentTurn = null;
         
@@ -325,7 +323,8 @@ class Trumps2GameController {
         });
         window.AudioSystem.speakText(userMessage);
         
-        this.revealedCards.add(position);
+        // Mark card as revealed in renderer
+        await this.renderer.revealCard(selectedCard, position);
         
         // Wait for speech + 1 second buffer + reveal delay
         await this.wait(3000); // Increased delay
@@ -374,11 +373,8 @@ class Trumps2GameController {
         // Wait for speech to complete
         await this.wait(2500);
         
-        // Reveal card if it's not already revealed
-        if (!this.revealedCards.has(position)) {
-            await this.renderer.revealCard(card, position);
-            this.revealedCards.add(position);
-        }
+        // Reveal card
+        await this.renderer.revealCard(card, position);
         
         // Wait briefly after reveal animation
         await this.wait(500);
@@ -540,7 +536,6 @@ class Trumps2GameController {
         this.selectedCards = [];
         this.gameComplete = false;
         this.userSelectedPosition = null;
-        this.revealedCards.clear();
         this.roundResults = [];
         this.firstCardSelection = true;
         
