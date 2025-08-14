@@ -157,6 +157,7 @@
 
 .rect-card:hover {
     animation: cardPulse 1s infinite;
+    cursor: pointer !important;
 }
 
 .rect-card.revealed {
