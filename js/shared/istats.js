@@ -299,6 +299,7 @@ class InteractiveStats {
             'slider': 'games/slider/index.html',
             'stacks': 'games/stacks/index.html',
             'trumps': 'games/trumps/index.html'
+            'trumps2': 'games/trumps2/index.html'
         };
         
         const path = gamePaths[gameId];
