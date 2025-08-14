@@ -57,7 +57,7 @@ const CONFIG = {
             SCORE_NAME: 0.025,    // 2.5% of rectangle size
             SCORE_BOX: 0.06,      // 6% of rectangle size
             CARD_TITLE: 0.020,    // 2% of rectangle size
-            CARD_NUMBER: 0.035    // 3.5% of rectangle size
+            CARD_NUMBER: 0.070    // 7% of rectangle size (doubled from 3.5%)
         }
     },
     
