@@ -42,8 +42,9 @@ class Trumps2GameController {
             console.log(`🎮 Game selected: ${selectedGame}`);
             if (selectedGame === 'animal') {
                 // Start Animal Trumps game
-                console.log('🔄 Setting phase to selection and starting game');
-                this.gamePhase = 'selection'; // Set proper phase
+                console.log('🔄 Clearing wait flag and starting game');
+                window.GAME_SHOULD_WAIT = false;
+                this.gamePhase = 'selection';
                 this.initializeGame();
             }
             // If teddy is selected, the GameChoice class handles the redirect
@@ -85,13 +86,15 @@ class Trumps2GameController {
     }
 
     initializeGame() {
-        console.log('🎯 initializeGame called, current phase:', this.gamePhase);
+        console.log('🎯 initializeGame called');
+        console.log('🛡️ Global wait flag:', window.GAME_SHOULD_WAIT);
+        console.log('📍 Current phase:', this.gamePhase);
         console.log('📍 Stack trace:');
         console.trace();
         
-        // Don't start if we're still waiting for game choice
-        if (this.gamePhase === 'waiting') {
-            console.log('⛔ BLOCKED: Ignoring initializeGame - still in waiting phase');
+        // Don't start if we should wait OR if we're in waiting phase
+        if (window.GAME_SHOULD_WAIT || this.gamePhase === 'waiting') {
+            console.log('⛔ BLOCKED: Not starting game - still waiting for choice');
             return;
         }
         
