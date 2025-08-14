@@ -198,6 +198,14 @@
     animation: cardPulse 1s infinite;
 }
 
+.rect-card-back:active {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.7), rgba(118, 75, 162, 0.7));
+}
+
+.rect-card:active {
+    background: linear-gradient(135deg, rgba(245, 245, 220, 0.7), rgba(245, 245, 220, 0.7));
+}
+
 .rect-card-back.hidden {
     transform: scaleX(0);
 }
