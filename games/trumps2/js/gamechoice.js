@@ -1,4 +1,13 @@
-class GameChoice {
+// Add touch support for buttons
+        teddyBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.selectGame('teddy');
+        });
+
+        animalBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.selectGame('animal');
+        });class GameChoice {
     constructor() {
         console.log('🎮 GameChoice constructor called');
         this.modal = null;
@@ -10,9 +19,8 @@ class GameChoice {
     createChoiceModal() {
         // Create modal HTML structure
         const modalHTML = `
-            <div class="modal" id="gameChoiceModal">
+            <div class="modal full-screen-modal" id="gameChoiceModal">
                 <div class="modal-content game-choice-content">
-                    <h2>🎮 Choose Your Game 🎮</h2>
                     <div class="game-choice-buttons">
                         <button class="game-choice-btn teddy-trumps-btn" id="teddyTrumpsBtn">
                             🧸 TEDDY TRUMPS
@@ -43,53 +51,61 @@ class GameChoice {
         const styles = document.createElement('style');
         styles.id = 'game-choice-styles';
         styles.textContent = `
+            .full-screen-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 2000;
+            }
+
             .game-choice-content {
-                background: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #f5576c);
+                background: transparent;
                 padding: 40px;
-                border-radius: 20px;
+                border-radius: 0;
                 text-align: center;
                 animation: modalAppear 0.5s ease;
                 pointer-events: auto;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-                min-width: 300px;
-            }
-
-            .game-choice-content h2 {
-                color: white;
-                font-size: 2.5rem;
-                margin-bottom: 30px;
-                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-                font-family: 'Comic Sans MS', cursive;
+                box-shadow: none;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100%;
             }
 
             .game-choice-buttons {
                 display: flex;
                 flex-direction: column;
-                gap: 20px;
+                gap: 40px;
                 align-items: center;
             }
 
             .game-choice-btn {
-                background: linear-gradient(135deg, #4CAF50, #45a049);
-                color: white;
                 border: none;
-                padding: 20px 40px;
-                font-size: 1.8rem;
-                border-radius: 15px;
+                padding: 30px 60px;
+                font-size: 2.5rem;
+                border-radius: 20px;
                 cursor: pointer;
                 font-weight: bold;
                 font-family: 'Comic Sans MS', cursive;
-                box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+                box-shadow: 0 8px 16px rgba(0,0,0,0.3);
                 transition: all 0.3s ease;
                 touch-action: manipulation;
                 pointer-events: auto;
                 outline: none;
-                min-width: 280px;
+                min-width: 400px;
                 text-transform: uppercase;
+                color: white;
             }
 
             .teddy-trumps-btn {
-                background: linear-gradient(135deg, #FF9800, #F57C00);
+                background: linear-gradient(135deg, #4CAF50, #45a049);
             }
 
             .animal-trumps-btn {
@@ -97,12 +113,12 @@ class GameChoice {
             }
 
             .game-choice-btn:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+                transform: translateY(-5px);
+                box-shadow: 0 12px 20px rgba(0,0,0,0.4);
             }
 
             .teddy-trumps-btn:hover {
-                background: linear-gradient(135deg, #FFB74D, #FF9800);
+                background: linear-gradient(135deg, #66BB6A, #4CAF50);
             }
 
             .animal-trumps-btn:hover {
@@ -110,31 +126,21 @@ class GameChoice {
             }
 
             .game-choice-btn:active {
-                transform: translateY(-1px);
+                transform: translateY(-2px);
                 transition: all 0.1s ease;
             }
 
             .game-choice-btn:focus {
                 outline: none;
-                box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+                box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.5);
             }
 
             /* Responsive design */
-            @media (max-width: 480px) {
-                .game-choice-content {
-                    padding: 30px 20px;
-                    min-width: 250px;
-                }
-
-                .game-choice-content h2 {
-                    font-size: 2rem;
-                    margin-bottom: 20px;
-                }
-
+            @media (max-width: 600px) {
                 .game-choice-btn {
-                    font-size: 1.5rem;
-                    padding: 15px 30px;
-                    min-width: 240px;
+                    font-size: 2rem;
+                    padding: 25px 50px;
+                    min-width: 300px;
                 }
             }
         `;
