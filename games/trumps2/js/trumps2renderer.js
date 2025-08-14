@@ -231,30 +231,46 @@ class Trumps2Renderer {
         // Enable pointer events on rect container for card interaction
         this.rectContainer.style.pointerEvents = 'auto';
         
-        // Create the three cards
-        this.createRectCards(selectedCards);
+        // Create blue backs for middle and right cards only
+        this.createCardBacks(selectedCards[1], 'middle');
+        this.createCardBacks(selectedCards[2], 'right');
         
-        // Left card is revealed immediately (no back)
-        this.revealCard(selectedCards[0], 'left');
+        // Create front face for left card immediately (no blue back)
+        this.createCardFronts(selectedCards[0], 'left');
         
-        // Create card backs for middle and right cards AFTER a delay
-        setTimeout(() => {
-            this.createCardBack(selectedCards[1], 'middle');
-            this.createCardBack(selectedCards[2], 'right');
-        }, 1000); // Delay to ensure front cards are hidden
-        
-        // Fade in card elements (but not the backs yet)
-        const cardElements = this.rectContainer.querySelectorAll('.rect-card, .rect-card-title, .rect-card-picture, .rect-card-number');
-        cardElements.forEach(element => {
+        // Fade in left front face elements
+        const leftElements = this.rectContainer.querySelectorAll('.left-title, .left-picture, .left-number, .rect-card-left');
+        leftElements.forEach(element => {
             element.style.opacity = '0';
-            element.style.transition = 'opacity 1s ease-in';
+            element.style.transition = 'none';
             
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
+                    element.style.transition = 'opacity 1s ease-in';
                     element.style.opacity = '1';
                 });
             });
         });
+        
+        // Fade in middle and right blue backs
+        const cardBacks = this.rectContainer.querySelectorAll('.rect-card-back-middle, .rect-card-back-right');
+        cardBacks.forEach(cardBack => {
+            cardBack.style.opacity = '0';
+            cardBack.style.transition = 'none';
+            
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    cardBack.style.transition = 'opacity 1s ease-in';
+                    cardBack.style.opacity = '1';
+                });
+            });
+        });
+        
+        // After 1.1 seconds, create middle and right front faces behind blue backs
+        setTimeout(() => {
+            this.createCardFronts(selectedCards[1], 'middle');
+            this.createCardFronts(selectedCards[2], 'right');
+        }, 1100);
     }
 
     createRectCards(cards) {
@@ -288,34 +304,93 @@ class Trumps2Renderer {
         });
     }
 
-    createCardContent(cardElement, card, position, rectWidth, rectHeight) {
-        const cardLayout = position === 'left' ? CONFIG.RECT_LAYOUT.LEFT_CARD : 
-                          position === 'middle' ? CONFIG.RECT_LAYOUT.MIDDLE_CARD : 
+    createCardFronts(card, position) {
+        const { rectWidth, rectHeight } = this.calculateRectDimensions();
+        const isLeft = position === 'left';
+        const isMiddle = position === 'middle';
+        const cardLayout = isLeft ? CONFIG.RECT_LAYOUT.LEFT_CARD : 
+                          isMiddle ? CONFIG.RECT_LAYOUT.MIDDLE_CARD : 
                           CONFIG.RECT_LAYOUT.RIGHT_CARD;
+        
+        // Create card front face (underneath back)
+        const cardFront = document.createElement('div');
+        cardFront.className = `rect-card rect-card-${position}`;
+        cardFront.dataset.cardId = card.id;
+        cardFront.dataset.position = position;
+        cardFront.style.position = 'absolute';
+        this.positionRectElement(cardFront, cardLayout.x, cardLayout.y, cardLayout.width, cardLayout.height, rectWidth, rectHeight);
+        cardFront.style.background = '#f5f5dc';
+        cardFront.style.borderRadius = '8%';
+        cardFront.style.boxShadow = `0 ${rectHeight * 0.04}px ${rectHeight * 0.08}px rgba(0,0,0,0.4)`;
+        cardFront.style.border = `${rectHeight * 0.005}px solid #667eea`;
+        cardFront.style.zIndex = '25'; // Below back, visible when back is removed
+        cardFront.style.cursor = 'pointer';
+        cardFront.style.pointerEvents = 'auto';
+        
+        // Add diagonal pattern to card front
+        const frontPattern = document.createElement('div');
+        frontPattern.style.position = 'absolute';
+        frontPattern.style.top = '0';
+        frontPattern.style.left = '0';
+        frontPattern.style.right = '0';
+        frontPattern.style.bottom = '0';
+        frontPattern.style.background = `repeating-linear-gradient(
+            45deg,
+            rgba(255, 215, 0, 0.3) 0,
+            rgba(255, 215, 0, 0.3) ${rectWidth * 0.008}px,
+            transparent ${rectWidth * 0.008}px,
+            transparent ${rectWidth * 0.016}px
+        )`;
+        frontPattern.style.borderRadius = '8%';
+        frontPattern.style.pointerEvents = 'none';
+        cardFront.appendChild(frontPattern);
+        
+        this.rectContainer.appendChild(cardFront);
         
         // Create title
         const title = document.createElement('div');
-        title.className = `rect-card-title rect-card-title-${position}`;
+        title.className = `rect-card-title ${position}-title`;
         title.textContent = card.name;
+        title.style.position = 'absolute';
         this.positionRectElement(title, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.x, 
                                 cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.y,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.width, 
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.height, rectWidth, rectHeight);
-        title.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.CARD_TITLE}px`;
+        title.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.CARD_TITLE * 1.2}px`;
+        title.style.fontFamily = 'Comic Sans MS, cursive';
+        title.style.fontWeight = 'bold';
+        title.style.color = '#333';
+        title.style.textTransform = 'uppercase';
+        title.style.display = 'flex';
+        title.style.alignItems = 'center';
+        title.style.justifyContent = 'center';
+        title.style.lineHeight = '1.2';
+        title.style.zIndex = '25';
         this.rectContainer.appendChild(title);
         
         // Create picture area
         const pictureArea = document.createElement('div');
-        pictureArea.className = `rect-card-picture rect-card-picture-${position}`;
+        pictureArea.className = `rect-card-picture ${position}-picture`;
+        pictureArea.style.position = 'absolute';
         this.positionRectElement(pictureArea, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.x,
                                 cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.y,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.width,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.height, rectWidth, rectHeight);
+        pictureArea.style.borderRadius = '8%';
+        pictureArea.style.display = 'flex';
+        pictureArea.style.alignItems = 'center';
+        pictureArea.style.justifyContent = 'center';
+        pictureArea.style.overflow = 'hidden';
+        pictureArea.style.zIndex = '25';
         
         const image = document.createElement('img');
         image.src = card.image;
         image.alt = card.name;
         image.className = 'rect-card-image';
+        image.style.borderRadius = '4%';
+        image.style.background = 'transparent';
+        image.style.border = `${rectHeight * 0.003}px solid #667eea`;
+        image.style.boxShadow = `0 ${rectHeight * 0.003}px ${rectHeight * 0.006}px rgba(0,0,0,0.3)`;
         
         // Calculate image size to fit within picture area while maintaining aspect ratio
         const pictureWidth = (CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.width / 100) * rectWidth;
@@ -341,55 +416,88 @@ class Trumps2Renderer {
         
         // Create number display
         const numberDisplay = document.createElement('div');
-        numberDisplay.className = `rect-card-number rect-card-number-${position}`;
+        numberDisplay.className = `rect-card-number ${position}-number`;
         numberDisplay.textContent = card.value;
+        numberDisplay.style.position = 'absolute';
         this.positionRectElement(numberDisplay, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.x,
                                 cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.y,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.width,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.height, rectWidth, rectHeight);
         numberDisplay.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.CARD_NUMBER}px`;
+        numberDisplay.style.fontFamily = 'Arial, sans-serif';
+        numberDisplay.style.fontWeight = 'bold';
+        numberDisplay.style.color = '#d32f2f';
+        numberDisplay.style.textAlign = 'center';
+        numberDisplay.style.display = 'flex';
+        numberDisplay.style.alignItems = 'center';
+        numberDisplay.style.justifyContent = 'center';
+        numberDisplay.style.zIndex = '25';
+        numberDisplay.style.background = 'transparent';
+        numberDisplay.style.borderRadius = '8%';
+        numberDisplay.style.border = `${rectHeight * 0.003}px solid #667eea`;
         this.rectContainer.appendChild(numberDisplay);
     }
 
-    createCardBack(card, position) {
-        const cardElement = this.rectContainer.querySelector(`.rect-card-${position}`);
-        if (!cardElement) return;
+    createCardBacks(card, position) {
+        const { rectWidth, rectHeight } = this.calculateRectDimensions();
+        const isLeft = position === 'left';
+        const isMiddle = position === 'middle';
+        const cardLayout = isLeft ? CONFIG.RECT_LAYOUT.LEFT_CARD : 
+                          isMiddle ? CONFIG.RECT_LAYOUT.MIDDLE_CARD : 
+                          CONFIG.RECT_LAYOUT.RIGHT_CARD;
         
-        // Create card back overlay
+        // Create only the card back face
         const cardBack = document.createElement('div');
         cardBack.className = `rect-card-back rect-card-back-${position}`;
         cardBack.dataset.cardId = card.id;
         cardBack.dataset.position = position;
+        cardBack.style.position = 'absolute';
+        this.positionRectElement(cardBack, cardLayout.x, cardLayout.y, cardLayout.width, cardLayout.height, rectWidth, rectHeight);
+        cardBack.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+        cardBack.style.borderRadius = '8%';
+        cardBack.style.boxShadow = `0 ${rectHeight * 0.04}px ${rectHeight * 0.08}px rgba(0,0,0,0.4)`;
+        cardBack.style.zIndex = '30'; // Highest z-index to cover everything
         cardBack.style.cursor = 'pointer';
         cardBack.style.pointerEvents = 'auto';
         
-        // Start invisible and fade in
-        cardBack.style.opacity = '0';
-        cardBack.style.transition = 'opacity 1s ease-in';
+        // Add diagonal pattern to card back
+        const pattern = document.createElement('div');
+        pattern.style.position = 'absolute';
+        pattern.style.top = '0';
+        pattern.style.left = '0';
+        pattern.style.right = '0';
+        pattern.style.bottom = '0';
+        pattern.style.background = `repeating-linear-gradient(
+            45deg,
+            rgba(255,255,255,0.1) 0,
+            rgba(255,255,255,0.1) ${rectWidth * 0.008}px,
+            transparent ${rectWidth * 0.008}px,
+            transparent ${rectWidth * 0.016}px
+        )`;
+        pattern.style.borderRadius = '8%';
+        pattern.style.pointerEvents = 'none';
+        cardBack.appendChild(pattern);
         
-        cardElement.appendChild(cardBack);
-        
-        // Fade in the back after a short delay
-        setTimeout(() => {
-            cardBack.style.opacity = '1';
-        }, 100);
+        this.rectContainer.appendChild(cardBack);
+        console.log(`Creating card back for ${position}, opacity: ${cardBack.style.opacity}`);
     }
 
     async revealCard(card, position) {
-        // Remove the card back if it exists
+        console.log(`Revealing card for ${position} at ${Date.now()}`);
+        // Sideways reveal - card back width reduces to 0 within card boundaries
         const cardBack = this.rectContainer.querySelector(`.rect-card-back-${position}`);
+        
         if (cardBack) {
-            cardBack.style.transition = 'transform 0.3s ease-out';
+            // Set up for width animation - blue moves to the right (reveals from right edge)
+            cardBack.style.transformOrigin = 'right center'; // Blue disappears to the right
+            cardBack.style.transition = 'transform 0.3s ease-out'; // Faster (0.3s instead of 0.6s)
             cardBack.style.transform = 'scaleX(0)';
             
-            await this.wait(300);
-            cardBack.remove();
-        }
-        
-        // Mark card as revealed
-        const cardElement = this.rectContainer.querySelector(`.rect-card-${position}`);
-        if (cardElement) {
-            cardElement.classList.add('revealed');
+            // Wait for animation to complete
+            await this.wait(300); // Match the 0.3s duration
+            
+            // Hide the back completely
+            cardBack.style.display = 'none';
         }
     }
 
