@@ -155,13 +155,17 @@
     z-index: 1;
 }
 
+/* Hover effects for all rect cards (including left card front) */
 .rect-card:hover,
-.rect-card:active {
+.rect-card:active,
+.rect-card-front-left:hover,
+.rect-card-front-left:active {
     animation: cardPulse 1s infinite;
     cursor: pointer !important;
 }
 
-.rect-card:active {
+.rect-card:active,
+.rect-card-front-left:active {
     background: linear-gradient(135deg, rgba(245, 245, 220, 0.7), rgba(245, 245, 220, 0.7)) !important;
 }
 
@@ -208,10 +212,6 @@
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.7), rgba(118, 75, 162, 0.7));
 }
 
-.rect-card:active {
-    background: linear-gradient(135deg, rgba(245, 245, 220, 0.7), rgba(245, 245, 220, 0.7));
-}
-
 .rect-card-back.hidden {
     transform: scaleX(0);
 }
@@ -247,6 +247,7 @@
     justify-content: center;
     line-height: 1.2;
     z-index: 25;
+    pointer-events: none; /* Allow clicks to pass through to card */
     /* Position, size, and font-size will be set by JavaScript */
 }
 
@@ -259,6 +260,7 @@
     justify-content: center;
     overflow: hidden;
     z-index: 25;
+    pointer-events: none; /* Allow clicks to pass through to card */
     /* Position and size will be set by JavaScript */
 }
 
@@ -267,6 +269,7 @@
     background: transparent;
     border: 0.3% solid #667eea;
     box-shadow: 0 0.3% 0.6% rgba(0,0,0,0.3);
+    pointer-events: none; /* Allow clicks to pass through to card */
     /* Size will be calculated to fit within picture area while maintaining aspect ratio */
 }
 
@@ -283,6 +286,7 @@
     z-index: 25;
     background: transparent; /* Transparent container */
     border-radius: 8%;
+    pointer-events: none; /* Allow clicks to pass through to card */
     /* No border */
     /* Position, size, and font-size will be set by JavaScript */
 }
