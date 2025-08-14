@@ -10,11 +10,8 @@ class Trumps2GameController {
         this.selectedCards = [];
         this.gameComplete = false;
         
-        // Player names
-        this.playerNames = {
-            playerA: AudioUtils.getRandomPlayerName(),
-            playerB: AudioUtils.getRandomPlayerName()
-        };
+        // Player names - ensure they are different
+        this.playerNames = this.generateUniquePlayerNames();
         
         // Round state
         this.userSelectedPosition = null;
@@ -34,6 +31,18 @@ class Trumps2GameController {
         this.initializeEventListeners();
     }
     
+    generateUniquePlayerNames() {
+        const playerA = AudioUtils.getRandomPlayerName();
+        let playerB;
+        
+        // Ensure playerB is different from playerA
+        do {
+            playerB = AudioUtils.getRandomPlayerName();
+        } while (playerB === playerA);
+        
+        return { playerA, playerB };
+    }
+
     initializeCelebrationSystems() {
         // Initialize rainbow system
         try {
@@ -529,11 +538,8 @@ class Trumps2GameController {
         this.revealedCards.clear();
         this.roundResults = [];
         
-        // Generate new player names
-        this.playerNames = {
-            playerA: AudioUtils.getRandomPlayerName(),
-            playerB: AudioUtils.getRandomPlayerName()
-        };
+        // Generate new unique player names
+        this.playerNames = this.generateUniquePlayerNames();
         
         // Hide modal
         const modal = document.getElementById('gameModal');
