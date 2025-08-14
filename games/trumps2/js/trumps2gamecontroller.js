@@ -13,11 +13,14 @@ class Trumps2GameController {
         // Player names - ensure they are different
         this.playerNames = this.generateUniquePlayerNames();
         
-        // Round state
-        this.userSelectedPosition = null;
+        // Track first time reaching card selection phase
+        this.firstCardSelection = true;
         this.revealedCards = new Set();
         this.roundResults = [];
         this.currentTurn = null;
+        
+        // Alternate who goes first each round
+        this.aiFirstPlayer = this.currentRound % 2 === 1 ? 'playerA' : 'playerB';
         
         // AI decision making
         this.aiFirstPlayer = Math.random() < 0.5 ? 'playerA' : 'playerB';
@@ -119,22 +122,24 @@ class Trumps2GameController {
         
         this.gamePhase = 'selection';
         this.selectedCards = [];
+        // Track first time reaching card selection phase
+        this.firstCardSelection = true;
+        
+        // Round state
         this.userSelectedPosition = null;
         this.revealedCards.clear();
         this.roundResults = [];
         this.currentTurn = null;
         
-        // Alternate who goes first each round
-        this.aiFirstPlayer = this.currentRound % 2 === 1 ? 'playerA' : 'playerB';
-        
         // Render the current card grid
         this.renderer.renderCardGrid(this.availableCards);
         
         // Give instructions
-        const message = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.ROUND_START, {
-            round: this.currentRound
-        });
-        window.AudioSystem.speakText(message);
+        if (this.currentRound === 1) {
+            window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.GAME_START);
+        } else {
+            window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.ROUND_START);
+        }
     }
 
     async handleCardSelection(cardId) {
@@ -163,8 +168,17 @@ class Trumps2GameController {
             // Animate card selection and movement to rectangular layout
             await this.renderer.selectAndMoveCards(this.selectedCards);
             
-            // Give instruction for card choice
-            window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.CARD_SELECTION_PHASE);
+            // Give instruction for card choice - different message for first time
+            if (this.firstCardSelection) {
+                const firstTimeMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.CARD_SELECTION_PHASE_START, {
+                    playerA: this.playerNames.playerA,
+                    playerB: this.playerNames.playerB
+                });
+                window.AudioSystem.speakText(firstTimeMessage);
+                this.firstCardSelection = false;
+            } else {
+                window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.CARD_SELECTION_PHASE);
+            }
         }
     }
 
@@ -499,6 +513,30 @@ class Trumps2GameController {
         this.gameComplete = true;
         console.log(`Game complete! Final scores: User ${this.scores.user} - ${this.playerNames.playerA} ${this.scores.playerA} - ${this.playerNames.playerB} ${this.scores.playerB}`);
         
+        // Determine game winner and appropriate message
+        const maxScore = Math.max(this.scores.user, this.scores.playerA, this.scores.playerB);
+        const winners = [];
+        
+        if (this.scores.user === maxScore) winners.push('user');
+        if (this.scores.playerA === maxScore) winners.push('playerA');
+        if (this.scores.playerB === maxScore) winners.push('playerB');
+        
+        let finalMessage;
+        
+        if (winners.length > 1) {
+            // Draw
+            finalMessage = CONFIG.AUDIO_MESSAGES.GAME_COMPLETE_DRAW;
+        } else if (winners[0] === 'user') {
+            // User wins
+            finalMessage = CONFIG.AUDIO_MESSAGES.GAME_COMPLETE_WIN;
+        } else {
+            // AI player wins
+            const winnerName = winners[0] === 'playerA' ? this.playerNames.playerA : this.playerNames.playerB;
+            finalMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.GAME_COMPLETE_LOSE, {
+                winner: winnerName
+            });
+        }
+        
         // Show game complete modal
         this.renderer.showGameComplete();
         
@@ -510,10 +548,6 @@ class Trumps2GameController {
         }
         
         // Give final message
-        const finalMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.GAME_COMPLETE, {
-            rounds: CONFIG.ROUNDS
-        });
-        
         setTimeout(() => {
             window.AudioSystem.speakText(finalMessage);
         }, 1000);
@@ -537,6 +571,7 @@ class Trumps2GameController {
         this.userSelectedPosition = null;
         this.revealedCards.clear();
         this.roundResults = [];
+        this.firstCardSelection = true; // Reset first card selection flag
         
         // Generate new unique player names
         this.playerNames = this.generateUniquePlayerNames();
