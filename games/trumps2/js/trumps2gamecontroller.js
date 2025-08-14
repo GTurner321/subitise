@@ -98,8 +98,15 @@ class Trumps2GameController {
     }
 
     initializeEventListeners() {
-        // Handle card selection
+        // Handle card selection - both mouse and touch
         document.addEventListener('click', (e) => {
+            this.handleClick(e);
+        });
+        
+        // Add touch support for mobile devices
+        document.addEventListener('touchend', (e) => {
+            // Prevent default to avoid double-firing with click
+            e.preventDefault();
             this.handleClick(e);
         });
         
@@ -624,6 +631,7 @@ class Trumps2GameController {
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Only create the game controller, don't start the game yet
     window.trumps2Game = new Trumps2GameController();
 });
 
