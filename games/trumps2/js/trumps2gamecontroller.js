@@ -214,11 +214,14 @@ class Trumps2GameController {
     }
     
     setupGameCards() {
-        this.availableCards = CONFIG.CARDS.map((card, index) => ({
+        // Shuffle the cards for random order
+        const shuffledCards = [...CONFIG.CARDS].sort(() => Math.random() - 0.5);
+        
+        this.availableCards = shuffledCards.map((card, index) => ({
             ...card,
             originalPosition: index
         }));
-        console.log('🃏 Game cards ready:', this.availableCards.length);
+        console.log('🃏 Game cards shuffled and ready:', this.availableCards.length);
     }
     
     startNewRound() {
@@ -237,17 +240,30 @@ class Trumps2GameController {
         // Render grid
         this.renderer.renderCardGrid(this.availableCards);
         
-        // Audio instruction
+        // Audio instruction with 10-second reminder
         if (this.currentRound === 1) {
             window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.GAME_START);
         } else {
             window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.ROUND_START);
         }
+        
+        // Set reminder timeout
+        this.reminderTimeout = setTimeout(() => {
+            if (this.gamePhase === 'selection' && this.selectedCards.length === 0) {
+                window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.START_REMIND);
+            }
+        }, 10000);
     }
     
     selectCard(cardId) {
         if (this.gamePhase !== 'selection' || this.selectedCards.length >= CONFIG.CARDS_PER_ROUND) {
             return;
+        }
+        
+        // Clear reminder timeout
+        if (this.reminderTimeout) {
+            clearTimeout(this.reminderTimeout);
+            this.reminderTimeout = null;
         }
         
         const selectedCard = this.availableCards.find(card => card.id === cardId);
@@ -302,161 +318,77 @@ class Trumps2GameController {
         
         console.log(`🎯 User selected: ${position} (${selectedCard.name} - ${selectedCard.value})`);
         
-        // Announce user choice
+        // Announce user choice with 2-second delay
         const userMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.USER_CARD_SELECTED, {
-            number: selectedCard.value,
-            animal: selectedCard.name
+            animal: selectedCard.name,
+            number: selectedCard.value
         });
         window.AudioSystem.speakText(userMessage);
         
         this.revealedCards.add(position);
         
-        // Wait for speech then handle AI
-        await this.wait(CONFIG.SPEECH_COMPLETION_BUFFER);
+        // Wait 2 seconds then handle AI
+        await this.wait(2000);
         await this.handleAIDecisions(selectedCard, position);
     }
     
     async handleAIDecisions(userCard, userPosition) {
         console.log('🤖 AI Making Decisions');
         
-        const remainingPositions = ['left', 'middle', 'right'].filter(pos => pos !== userPosition);
+        // Get remaining cards (excluding user's selection)
         const remainingCards = this.selectedCards.filter((_, index) => {
             const cardPosition = index === 0 ? 'left' : index === 1 ? 'middle' : 'right';
             return cardPosition !== userPosition;
         });
         
-        let firstAIPosition, secondAIPosition, firstAICard, secondAICard;
+        const remainingPositions = ['left', 'middle', 'right'].filter(pos => pos !== userPosition);
         
-        if (userPosition === 'left') {
-            // User picked first card
-            const leftCardValue = userCard.value;
-            
-            if (leftCardValue < 15) {
-                // AI chooses one of remaining cards
-                const chosenIndex = Math.random() < 0.5 ? 0 : 1;
-                firstAIPosition = remainingPositions[chosenIndex];
-                secondAIPosition = remainingPositions[1 - chosenIndex];
-                firstAICard = remainingCards[chosenIndex];
-                secondAICard = remainingCards[1 - chosenIndex];
-                
-                await this.announceAndRevealAI(firstAICard, firstAIPosition, this.aiFirstPlayer);
-                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
-                
-                const secondPlayerName = this.aiFirstPlayer === 'playerA' ? this.playerNames.playerB : this.playerNames.playerA;
-                await this.announceAICard(secondAICard, secondAIPosition, secondPlayerName);
-                
-            } else {
-                // AI takes first card
-                firstAIPosition = userPosition;
-                firstAICard = userCard;
-                
-                const takeFirstMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.AI_TAKES_FIRST, {
-                    player: this.playerNames[this.aiFirstPlayer]
-                });
-                window.AudioSystem.speakText(takeFirstMessage);
-                
-                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
-                
-                const chosenIndex = Math.random() < 0.5 ? 0 : 1;
-                secondAIPosition = remainingPositions[chosenIndex];
-                secondAICard = remainingCards[chosenIndex];
-                
-                const secondPlayerName = this.aiFirstPlayer === 'playerA' ? this.playerNames.playerB : this.playerNames.playerA;
-                await this.announceAICard(secondAICard, secondAIPosition, secondPlayerName);
-            }
-        } else {
-            // User picked middle or right card
-            await this.renderer.revealCard(userCard, userPosition);
-            await this.wait(1000);
-            
-            const leftCard = this.selectedCards[0];
-            
-            if (leftCard.value < 15) {
-                // First AI takes remaining non-left card
-                const nonUserPositions = remainingPositions.filter(pos => pos !== 'left');
-                firstAIPosition = nonUserPositions[0];
-                firstAICard = remainingCards.find((_, index) => {
-                    const cardPos = remainingPositions[index];
-                    return cardPos === firstAIPosition;
-                });
-                
-                const selectMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.AI_TAKES_REMAINING, {
-                    player: this.playerNames[this.aiFirstPlayer],
-                    position: AudioUtils.getPositionName(firstAIPosition)
-                });
-                window.AudioSystem.speakText(selectMessage);
-                
-                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
-                
-                secondAIPosition = 'left';
-                secondAICard = leftCard;
-                
-                const secondPlayerName = this.aiFirstPlayer === 'playerA' ? this.playerNames.playerB : this.playerNames.playerA;
-                await this.announceAICard(secondAICard, secondAIPosition, secondPlayerName);
-                
-                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
-                await this.announceAndRevealAI(firstAICard, firstAIPosition, this.aiFirstPlayer);
-                
-            } else {
-                // First AI takes left card
-                firstAIPosition = 'left';
-                firstAICard = leftCard;
-                
-                const selectFirstMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.AI_TAKES_FIRST, {
-                    player: this.playerNames[this.aiFirstPlayer]
-                });
-                window.AudioSystem.speakText(selectFirstMessage);
-                
-                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
-                await this.announceAndRevealAI(firstAICard, firstAIPosition, this.aiFirstPlayer);
-                
-                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
-                
-                const remainingPosition = remainingPositions.find(pos => pos !== firstAIPosition);
-                secondAIPosition = remainingPosition;
-                secondAICard = remainingCards.find((_, index) => {
-                    const cardPos = remainingPositions[index];
-                    return cardPos === secondAIPosition;
-                });
-                
-                const secondPlayerName = this.aiFirstPlayer === 'playerA' ? this.playerNames.playerB : this.playerNames.playerA;
-                await this.announceAICard(secondAICard, secondAIPosition, secondPlayerName);
-            }
-        }
+        // First AI player picks from remaining cards
+        const firstAICardIndex = Math.floor(Math.random() * remainingCards.length);
+        const firstAICard = remainingCards[firstAICardIndex];
+        const firstAIPosition = remainingPositions[firstAICardIndex];
         
-        await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
+        // Second AI player gets the last remaining card
+        const secondAICard = remainingCards.find(card => card !== firstAICard);
+        const secondAIPosition = remainingPositions.find(pos => pos !== firstAIPosition);
+        
+        // Announce and reveal first AI pick
+        await this.announceAIPick(firstAICard, firstAIPosition, this.aiFirstPlayer, 'SECOND_PICK');
+        
+        // Announce and reveal second AI pick (the remaining card)
+        const secondPlayerName = this.aiFirstPlayer === 'playerA' ? 'playerB' : 'playerA';
+        await this.announceAIPick(secondAICard, secondAIPosition, secondPlayerName, 'THIRD_PICK');
+        
+        await this.wait(1000);
         this.determineRoundWinner(userCard, firstAICard, secondAICard, userPosition, firstAIPosition, secondAIPosition);
     }
     
-    async announceAndRevealAI(card, position, playerKey) {
-        const choiceMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.AI_CHOOSES_CARD, {
+    async announceAIPick(card, position, playerKey, pickType) {
+        // Announce the pick
+        const pickMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES[pickType], {
             player: this.playerNames[playerKey],
             position: AudioUtils.getPositionName(position)
         });
-        window.AudioSystem.speakText(choiceMessage);
+        window.AudioSystem.speakText(pickMessage);
         
-        await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
-        await this.renderer.revealCard(card, position);
-        this.revealedCards.add(position);
+        // Wait 2 seconds
+        await this.wait(2000);
         
-        const revealMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.AI_REVEALED, {
-            player: this.playerNames[playerKey],
-            number: card.value,
-            animal: card.name
+        // Reveal card if it's not already revealed
+        if (!this.revealedCards.has(position)) {
+            await this.renderer.revealCard(card, position);
+            this.revealedCards.add(position);
+        }
+        
+        // Announce the card details
+        const revealType = pickType === 'SECOND_PICK' ? 'SECOND_PICK_REVEAL' : 'THIRD_PICK_REVEAL';
+        const revealMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES[revealType], {
+            animal: card.name,
+            number: card.value
         });
         window.AudioSystem.speakText(revealMessage);
-    }
-    
-    async announceAICard(card, position, playerName) {
-        await this.renderer.revealCard(card, position);
-        this.revealedCards.add(position);
         
-        const revealMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.AI_REVEALED, {
-            player: playerName,
-            number: card.value,
-            animal: card.name
-        });
-        window.AudioSystem.speakText(revealMessage);
+        await this.wait(1500);
     }
     
     determineRoundWinner(userCard, firstAICard, secondAICard, userPos, firstAIPos, secondAIPos) {
