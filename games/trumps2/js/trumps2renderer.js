@@ -17,6 +17,9 @@ class Trumps2Renderer {
         // Track revealed cards at renderer level
         this.revealedCards = new Set();
         
+        // Store player names for card labeling
+        this.playerNames = { playerA: 'A', playerB: 'B' };
+        
         this.initializeLayout();
     }
 
@@ -77,6 +80,11 @@ class Trumps2Renderer {
         // Player B score elements (name will be set when game starts)
         this.scoreElements.playerB.name = this.createScoreElement('B', 'player-b-score-name', CONFIG.RECT_LAYOUT.RIGHT_SCORE_NAME, rectWidth, rectHeight);
         this.scoreElements.playerB.box = this.createScoreElement('0', 'player-b-score rect-score-box player-b-score', CONFIG.RECT_LAYOUT.RIGHT_SCORE_BOX, rectWidth, rectHeight);
+
+        // Set player-specific colors for score names
+        this.scoreElements.user.name.style.color = '#2E7D32'; // Dark green
+        this.scoreElements.playerA.name.style.color = '#E65100'; // Dark orange  
+        this.scoreElements.playerB.name.style.color = '#1565C0'; // Blue
 
         // Add all score elements to container
         Object.values(this.scoreElements).forEach(player => {
@@ -282,6 +290,11 @@ class Trumps2Renderer {
             this.createCardFronts(selectedCards[1], 'middle');
             this.createCardFronts(selectedCards[2], 'right');
         }, 1100);
+        
+        // After 2 seconds, fade in player names on cards
+        setTimeout(() => {
+            this.addPlayerNamesToCards();
+        }, 2000);
     }
 
     createRectCards(cards) {
@@ -502,6 +515,32 @@ class Trumps2Renderer {
         console.log(`Creating card back for ${position}, opacity: ${cardBack.style.opacity}`);
     }
 
+    async pulseCardOnClick(position) {
+        console.log(`💓 Adding click pulse to ${position} card`);
+        
+        // Find all elements for this position (card, back, title, picture, number)
+        const cardElements = this.rectContainer.querySelectorAll(
+            `.rect-card-${position}, .rect-card-back-${position}, .${position}-title, .${position}-picture, .${position}-number`
+        );
+        
+        // Add click pulse class
+        cardElements.forEach(element => {
+            element.classList.add('card-click-pulse');
+            // Disable hover animations once clicked
+            element.classList.add('card-selected-no-hover');
+        });
+        
+        // Wait for pulse animation to complete (1 second)
+        await this.wait(1000);
+        
+        // Remove pulse class but keep no-hover class
+        cardElements.forEach(element => {
+            element.classList.remove('card-click-pulse');
+        });
+        
+        console.log(`✅ Click pulse completed for ${position} card`);
+    }
+
     async revealCard(card, position) {
         console.log(`🎭 Revealing card for ${position}`);
         
@@ -576,7 +615,68 @@ class Trumps2Renderer {
         }, 400);
     }
 
+    addPlayerNamesToCards() {
+        console.log('👥 Adding player names to cards');
+        const { rectWidth, rectHeight } = this.calculateRectDimensions();
+        
+        const positions = ['left', 'middle', 'right'];
+        const playerNames = ['YOU', this.playerNames.playerA, this.playerNames.playerB];
+        const colors = ['#2E7D32', '#E65100', '#1565C0']; // Dark green, dark orange, blue
+        
+        positions.forEach((position, index) => {
+            const cardLayout = position === 'left' ? CONFIG.RECT_LAYOUT.LEFT_CARD : 
+                              position === 'middle' ? CONFIG.RECT_LAYOUT.MIDDLE_CARD : 
+                              CONFIG.RECT_LAYOUT.RIGHT_CARD;
+            
+            // Create player name element
+            const playerNameElement = document.createElement('div');
+            playerNameElement.className = `rect-card-player-name ${position}-player-name`;
+            playerNameElement.textContent = playerNames[index];
+            playerNameElement.style.position = 'absolute';
+            playerNameElement.dataset.position = position;
+            
+            // Position same as title but with player name styling
+            this.positionRectElement(playerNameElement, 
+                                   cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.x, 
+                                   cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.y,
+                                   CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.width, 
+                                   CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.height, 
+                                   rectWidth, rectHeight);
+            
+            // Style the player name
+            playerNameElement.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.CARD_TITLE * 1.2}px`;
+            playerNameElement.style.fontFamily = 'Comic Sans MS, cursive';
+            playerNameElement.style.fontWeight = 'bold';
+            playerNameElement.style.color = colors[index];
+            playerNameElement.style.textTransform = 'uppercase';
+            playerNameElement.style.display = 'flex';
+            playerNameElement.style.alignItems = 'center';
+            playerNameElement.style.justifyContent = 'center';
+            playerNameElement.style.lineHeight = '1.2';
+            playerNameElement.style.zIndex = '30'; // Above everything else
+            playerNameElement.style.opacity = '0'; // Start invisible
+            playerNameElement.style.pointerEvents = 'none'; // Don't block clicks
+            
+            this.rectContainer.appendChild(playerNameElement);
+            
+            // Fade in with animation
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    playerNameElement.style.transition = 'opacity 1s ease-in';
+                    playerNameElement.style.opacity = '1';
+                });
+            });
+        });
+        
+        console.log('✅ Player names added to cards');
+    }
+
     setPlayerNames(playerAName, playerBName) {
+        // Store player names for card labeling
+        this.playerNames.playerA = playerAName;
+        this.playerNames.playerB = playerBName;
+        
+        // Update score display names
         this.scoreElements.playerA.name.textContent = playerAName.toUpperCase();
         this.scoreElements.playerB.name.textContent = playerBName.toUpperCase();
     }
@@ -605,7 +705,7 @@ class Trumps2Renderer {
 
     async clearRectCards() {
         // Clear rectangular card elements with fade out
-        const rectCardElements = this.rectContainer.querySelectorAll('.rect-card, .rect-card-title, .rect-card-picture, .rect-card-number, .rect-card-back');
+        const rectCardElements = this.rectContainer.querySelectorAll('.rect-card, .rect-card-title, .rect-card-picture, .rect-card-number, .rect-card-back, .rect-card-player-name');
         
         rectCardElements.forEach(element => {
             element.style.transition = `opacity ${CONFIG.CARD_FADE_DURATION}ms ease-out`;
