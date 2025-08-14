@@ -33,13 +33,13 @@ const CONFIG = {
         // Rectangle aspect ratio (width:height)
         ASPECT_RATIO: 1.62, // 162:100
         
-        // Score elements
-        LEFT_SCORE_NAME: { x: 1.23, y: 4, width: 20.37, height: 15 },
-        LEFT_SCORE_BOX: { x: 22.84, y: 4, width: 9.26, height: 15 },
-        MIDDLE_SCORE_NAME: { x: 34.57, y: 4, width: 20.37, height: 15 },
-        MIDDLE_SCORE_BOX: { x: 56.17, y: 4, width: 9.26, height: 15 },
-        RIGHT_SCORE_NAME: { x: 67.9, y: 4, width: 20.37, height: 15 },
-        RIGHT_SCORE_BOX: { x: 89.51, y: 4, width: 9.26, height: 15 },
+        // Score elements (converted from 162-unit system to percentages)
+        LEFT_SCORE_NAME: { x: 1.23, y: 4, width: 16.05, height: 15 },
+        LEFT_SCORE_BOX: { x: 18.52, y: 4, width: 9.26, height: 15 },
+        MIDDLE_SCORE_NAME: { x: 34.57, y: 4, width: 16.05, height: 15 },
+        MIDDLE_SCORE_BOX: { x: 51.85, y: 4, width: 9.26, height: 15 },
+        RIGHT_SCORE_NAME: { x: 67.9, y: 4, width: 16.05, height: 15 },
+        RIGHT_SCORE_BOX: { x: 85.19, y: 4, width: 9.26, height: 15 },
         
         // Cards
         LEFT_CARD: { x: 1.23, y: 23, width: 30.86, height: 73 },
@@ -299,7 +299,7 @@ const CONFIG = {
         {
             id: 30,
             name: "Lion",
-            image: "../../assets/trumps2/lion.png",
+            image: "../../assets/trumps2/lion.jpg",
             value: 30
         }
     ]
