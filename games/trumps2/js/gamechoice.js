@@ -1,8 +1,10 @@
 class GameChoice {
     constructor() {
+        console.log('🎮 GameChoice constructor called');
         this.modal = null;
         this.onGameSelected = null; // Callback function
         this.createChoiceModal();
+        console.log('✅ GameChoice constructor complete');
     }
 
     createChoiceModal() {
@@ -202,17 +204,22 @@ class GameChoice {
     }
 
     show(callback) {
+        console.log('🎪 GameChoice.show() called');
         this.onGameSelected = callback;
         
         if (this.modal) {
+            console.log('📺 Showing modal');
             this.modal.classList.remove('hidden');
             
             // Give audio instruction
             if (window.AudioSystem) {
                 setTimeout(() => {
+                    console.log('🔊 Playing audio instruction');
                     window.AudioSystem.speakText('Choose between the card games, teddy trumps and animal trumps.');
                 }, 500);
             }
+        } else {
+            console.error('❌ Modal not found!');
         }
     }
 
