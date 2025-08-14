@@ -89,7 +89,7 @@ const CONFIG = {
     // Audio messages - centralized for easy editing
     AUDIO_MESSAGES: {
         GAME_START: "Here are my animal cards. They each have a different animal and a different number from 1 to 30. Choose 3 cards to start.",
-        CARD_SELECTION_PHASE_START: "Choose one of the three cards, the other two cards will be chosen by {playerA} and {playerB}. You want the highest number. You can choose the first card if you think it has a high number, otherwise choose one of the other two cards. Remember: the lowest card number is 1, the highest is 30. Good luck!",
+        CARD_SELECTION_PHASE_START: "Choose one of the three cards, the other two cards will be chosen by {playerA} and {playerB}. The highest number wins the round.",
         CARD_SELECTION_PHASE: "Choose one of the three cards.",
         
         // User card selection
