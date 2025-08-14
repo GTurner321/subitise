@@ -34,6 +34,22 @@ class Trumps2GameController {
         this.initializeEventListeners();
     }
     
+    manuallyShowGameChoice() {
+        console.log('🎪 Manually triggering game choice modal');
+        if (this.gameChoice) {
+            this.showGameChoice();
+        } else {
+            console.log('❌ GameChoice not available');
+        }
+    }
+    
+    manuallyStartGame() {
+        console.log('🎮 Manually starting animal trumps game');
+        window.GAME_SHOULD_WAIT = false;
+        this.gamePhase = 'selection';
+        this.initializeGame();
+    }
+
     showGameChoice() {
         console.log('🎯 showGameChoice called');
         console.log('📺 Showing game choice modal');
@@ -120,9 +136,24 @@ class Trumps2GameController {
     initializeEventListeners() {
         console.log('🎧 Setting up event listeners');
         
-        // Test basic click detection
+        // Test basic click detection on entire document
         document.addEventListener('click', (e) => {
-            console.log('🖱️ BASIC CLICK DETECTED:', e.target.tagName, e.target.className);
+            console.log('🖱️ CLICK DETECTED:', e.target.tagName, e.target.className, e.target.id);
+            console.log('🎯 Click coordinates:', e.clientX, e.clientY);
+            console.log('🎮 Current game phase:', this.gamePhase);
+            console.log('🖼️ Current render mode:', this.renderer.currentMode);
+        });
+        
+        // Test if we can manually show the game choice
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'g') {
+                console.log('🎮 G key pressed - manually showing game choice');
+                this.manuallyShowGameChoice();
+            }
+            if (e.key === 's') {
+                console.log('🎮 S key pressed - manually starting game');
+                this.manuallyStartGame();
+            }
         });
         
         // Handle card selection - both mouse and touch
@@ -146,6 +177,8 @@ class Trumps2GameController {
         });
         
         console.log('✅ Event listeners set up complete');
+        console.log('💡 Press G to manually show game choice');
+        console.log('💡 Press S to manually start the animal game');
     }
 
     handleClick(e) {
