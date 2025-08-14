@@ -104,6 +104,7 @@ const CONFIG = {
         
         // Round results
         WINNER_ANNOUNCEMENT: "{winner} wins this round!",
+        WINNER_ANNOUNCEMENT_YOU: "You win this round!",
         
         // Game completion messages
         GAME_COMPLETE_WIN: "Congratulations! You've won the game! Play again or return to the home page.",
