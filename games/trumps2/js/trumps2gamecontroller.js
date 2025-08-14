@@ -41,8 +41,7 @@ class Trumps2GameController {
         this.gameChoice.show((selectedGame) => {
             console.log(`🎮 Game selected: ${selectedGame}`);
             if (selectedGame === 'animal') {
-                // Start Animal Trumps game
-                console.log('🔄 Clearing wait flag and starting game');
+                console.log('🔓 EXPLICITLY ALLOWING GAME START');
                 window.GAME_SHOULD_WAIT = false;
                 this.gamePhase = 'selection';
                 this.initializeGame();
@@ -86,19 +85,20 @@ class Trumps2GameController {
     }
 
     initializeGame() {
-        console.log('🎯 initializeGame called');
+        console.log('🚨 SOMEONE IS CALLING initializeGame!!!');
         console.log('🛡️ Global wait flag:', window.GAME_SHOULD_WAIT);
         console.log('📍 Current phase:', this.gamePhase);
-        console.log('📍 Stack trace:');
+        console.log('🕵️ Full stack trace:');
         console.trace();
         
-        // Don't start if we should wait OR if we're in waiting phase
-        if (window.GAME_SHOULD_WAIT || this.gamePhase === 'waiting') {
-            console.log('⛔ BLOCKED: Not starting game - still waiting for choice');
+        // ALWAYS block if we haven't explicitly allowed it
+        if (window.GAME_SHOULD_WAIT !== false) {
+            console.log('⛔ BLOCKING: Game start not explicitly allowed');
+            console.log('⛔ This call is being ignored');
             return;
         }
         
-        console.log('✅ PROCEEDING: Starting game initialization');
+        console.log('✅ ALLOWING: Game start has been explicitly permitted');
         
         // Set up available cards with original positions
         this.availableCards = CONFIG.CARDS.map((card, index) => ({
@@ -118,6 +118,13 @@ class Trumps2GameController {
     }
 
     initializeEventListeners() {
+        console.log('🎧 Setting up event listeners');
+        
+        // Test basic click detection
+        document.addEventListener('click', (e) => {
+            console.log('🖱️ BASIC CLICK DETECTED:', e.target.tagName, e.target.className);
+        });
+        
         // Handle card selection - both mouse and touch
         document.addEventListener('click', (e) => {
             this.handleClick(e);
@@ -125,6 +132,7 @@ class Trumps2GameController {
         
         // Add touch support for mobile devices
         document.addEventListener('touchend', (e) => {
+            console.log('👆 TOUCH EVENT:', e.target.tagName, e.target.className);
             // Prevent default to avoid double-firing with click
             e.preventDefault();
             this.handleClick(e);
@@ -136,6 +144,8 @@ class Trumps2GameController {
                 this.restartGame();
             }
         });
+        
+        console.log('✅ Event listeners set up complete');
     }
 
     handleClick(e) {
@@ -649,10 +659,12 @@ class Trumps2GameController {
     }
 }
 
-// Initialize game when DOM is loaded
+// Initialize game when DOM is loaded - DO NOT START GAME IMMEDIATELY
 document.addEventListener('DOMContentLoaded', () => {
-    // Only create the game controller, don't start the game yet
+    console.log('🌐 DOM Content Loaded - creating game controller');
+    // Only create the game controller, it will handle showing the choice modal
     window.trumps2Game = new Trumps2GameController();
+    console.log('✅ Game controller created - waiting for user choice');
 });
 
 // Clean up resources when page is about to unload
