@@ -35,12 +35,14 @@ class Trumps2GameController {
     }
     
     showGameChoice() {
-        console.log('Showing game choice modal');
+        console.log('🎯 showGameChoice called');
+        console.log('📺 Showing game choice modal');
         // Show the game choice modal
         this.gameChoice.show((selectedGame) => {
-            console.log(`Game selected: ${selectedGame}`);
+            console.log(`🎮 Game selected: ${selectedGame}`);
             if (selectedGame === 'animal') {
                 // Start Animal Trumps game
+                console.log('🔄 Setting phase to selection and starting game');
                 this.gamePhase = 'selection'; // Set proper phase
                 this.initializeGame();
             }
@@ -83,13 +85,17 @@ class Trumps2GameController {
     }
 
     initializeGame() {
-        console.log('initializeGame called, current phase:', this.gamePhase);
+        console.log('🎯 initializeGame called, current phase:', this.gamePhase);
+        console.log('📍 Stack trace:');
+        console.trace();
         
         // Don't start if we're still waiting for game choice
         if (this.gamePhase === 'waiting') {
-            console.log('Ignoring initializeGame - still in waiting phase');
+            console.log('⛔ BLOCKED: Ignoring initializeGame - still in waiting phase');
             return;
         }
+        
+        console.log('✅ PROCEEDING: Starting game initialization');
         
         // Set up available cards with original positions
         this.availableCards = CONFIG.CARDS.map((card, index) => ({
