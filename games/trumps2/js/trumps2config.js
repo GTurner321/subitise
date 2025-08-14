@@ -33,23 +33,23 @@ const CONFIG = {
         ASPECT_RATIO: 1.62, // 162:100
         
         // Score elements
-        LEFT_SCORE_NAME: { x: 2, y: 4, width: 33, height: 15 },
-        LEFT_SCORE_BOX: { x: 37, y: 4, width: 15, height: 15 },
-        MIDDLE_SCORE_NAME: { x: 56, y: 4, width: 33, height: 15 },
-        MIDDLE_SCORE_BOX: { x: 91, y: 4, width: 15, height: 15 },
-        RIGHT_SCORE_NAME: { x: 110, y: 4, width: 33, height: 15 },
-        RIGHT_SCORE_BOX: { x: 145, y: 4, width: 15, height: 15 },
+        LEFT_SCORE_NAME: { x: 1.23, y: 4, width: 20.37, height: 15 },
+        LEFT_SCORE_BOX: { x: 22.84, y: 4, width: 9.26, height: 15 },
+        MIDDLE_SCORE_NAME: { x: 34.57, y: 4, width: 20.37, height: 15 },
+        MIDDLE_SCORE_BOX: { x: 56.17, y: 4, width: 9.26, height: 15 },
+        RIGHT_SCORE_NAME: { x: 67.9, y: 4, width: 20.37, height: 15 },
+        RIGHT_SCORE_BOX: { x: 89.51, y: 4, width: 9.26, height: 15 },
         
         // Cards
-        LEFT_CARD: { x: 2, y: 23, width: 50, height: 73 },
-        MIDDLE_CARD: { x: 56, y: 23, width: 50, height: 73 },
-        RIGHT_CARD: { x: 110, y: 23, width: 50, height: 73 },
+        LEFT_CARD: { x: 1.23, y: 23, width: 30.86, height: 73 },
+        MIDDLE_CARD: { x: 34.57, y: 23, width: 30.86, height: 73 },
+        RIGHT_CARD: { x: 67.9, y: 23, width: 30.86, height: 73 },
         
         // Card elements (relative to card position)
         CARD_ELEMENTS: {
-            TITLE: { x: 2, y: 0, width: 46, height: 9 },
-            PICTURE: { x: 2, y: 9, width: 46, height: 46 },
-            NUMBER: { x: 2, y: 55, width: 46, height: 18 }
+            TITLE: { x: 1.23, y: 0, width: 28.4, height: 9 },
+            PICTURE: { x: 1.23, y: 9, width: 28.4, height: 46 },
+            NUMBER: { x: 1.23, y: 55, width: 28.4, height: 18 }
         },
         
         // Font sizes (percentages of rectangle size)
