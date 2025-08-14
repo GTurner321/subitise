@@ -88,8 +88,9 @@ const CONFIG = {
     
     // Audio messages - centralized for easy editing
     AUDIO_MESSAGES: {
-        GAME_START: "Choose 3 cards to start the round.",
-        CARD_SELECTION_PHASE: "Select any card to see its value.",
+        GAME_START: "Here are my animal cards. They each have a different animal and a different number from 1 to 30. Choose 3 cards to start.",
+        CARD_SELECTION_PHASE_START: "Choose one of the three cards, the other two cards will be chosen by {playerA} and {playerB}. You want the highest number. You can choose the first card if you think it has a high number, otherwise choose one of the other two cards. Remember: the lowest card number is 1, the highest is 30. Good luck!",
+        CARD_SELECTION_PHASE: "Choose one of the three cards.",
         
         // User card selection
         USER_CARD_SELECTED: "You have picked number {number}, the {animal}.",
@@ -104,13 +105,14 @@ const CONFIG = {
         
         // Round results
         WINNER_ANNOUNCEMENT: "{winner} has won this round!",
-        DRAW_ANNOUNCEMENT: "It's a draw! No points awarded.",
         
-        // Game completion
-        GAME_COMPLETE: "Congratulations! You completed all {rounds} rounds! Play again or return to the home page.",
+        // Game completion messages
+        GAME_COMPLETE_WIN: "Congratulations! You've won the game! Play again or return to the home page.",
+        GAME_COMPLETE_LOSE: "{winner} wins this time. Play again or return to the home page.",
+        GAME_COMPLETE_DRAW: "The game is a draw. Play again or return to the home page.",
         
         // Round announcements
-        ROUND_START: "Round {round}. Choose 3 cards.",
+        ROUND_START: "Choose 3 cards.",
         
         // Position names for audio
         POSITIONS: {
