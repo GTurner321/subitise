@@ -189,7 +189,7 @@ class Trumps2GameController {
         this.revealedCards.add(position);
         
         // Wait for speech to finish
-        await this.wait(2000);
+        await this.wait(CONFIG.SPEECH_COMPLETION_BUFFER);
         
         // Now handle AI decisions
         await this.handleAIDecisions(selectedCard, position);
@@ -223,7 +223,7 @@ class Trumps2GameController {
                 });
                 window.AudioSystem.speakText(firstChoiceMessage);
                 
-                await this.wait(1500);
+                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
                 
                 // Reveal first AI card
                 await this.renderer.revealCard(firstAICard, firstAIPosition);
@@ -236,7 +236,7 @@ class Trumps2GameController {
                 });
                 window.AudioSystem.speakText(firstRevealMessage);
                 
-                await this.wait(1500);
+                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
                 
                 // Second AI player gets the remaining card
                 const secondPlayerName = this.aiFirstPlayer === 'playerA' ? this.playerNames.playerB : this.playerNames.playerA;
@@ -257,7 +257,7 @@ class Trumps2GameController {
                 });
                 window.AudioSystem.speakText(firstTakeMessage);
                 
-                await this.wait(1500);
+                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
                 
                 // Remaining cards go to the other AI player
                 const chosenIndex = Math.random() < 0.5 ? 0 : 1;
@@ -304,7 +304,7 @@ class Trumps2GameController {
                 });
                 window.AudioSystem.speakText(firstSelectMessage);
                 
-                await this.wait(1500);
+                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
                 
                 // Second AI player gets the left card
                 secondAIPosition = 'left';
@@ -321,7 +321,7 @@ class Trumps2GameController {
                 this.revealedCards.add(secondAIPosition);
                 window.AudioSystem.speakText(secondRevealMessage);
                 
-                await this.wait(1500);
+                await this.wait(CONFIG.PAUSE_BETWEEN_REVEALS);
                 
                 // Reveal first AI card
                 await this.renderer.revealCard(firstAICard, firstAIPosition);
