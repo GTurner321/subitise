@@ -1,356 +1,503 @@
-// Animal Trumps Game Configuration
-const CONFIG = {
-    // Game settings
-    TOTAL_CARDS: 30,
-    ROUNDS: 10,
-    CARDS_PER_ROUND: 3,
-    GRID_ROWS: 3,
-    GRID_COLS: 10,
-    
-    // Animation timings (milliseconds)
-    CARD_FADE_DURATION: 2000, // Time to fade out non-selected cards
-    CARD_MOVE_DURATION: 800,   // Time for cards to slide into rectangular layout
-    CARD_FLIP_DURATION: 600,   // Time for card flip animation
-    RESULT_DISPLAY_DURATION: 2000, // Time to show round result
-    RESET_DELAY: 1000,         // Delay before starting next round
-    PAUSE_BETWEEN_REVEALS: 2500, // Pause between card reveals (increased from 1500)
-    SPEECH_COMPLETION_BUFFER: 2500, // Extra time for speech to complete (new)
-    
-    // Visual settings
-    CARD_ASPECT_RATIO: 0.77, // height/width for grid cards (10/7.7)
-    
-    // Audio settings - delegated to universal AudioSystem
-    AUDIO_ENABLED: true,
-    
-    // Player names (randomly assigned to A and B each game)
-    PLAYER_NAMES: {
-        BOYS: ['Oliver', 'Noah', 'Jack', 'Harry', 'George', 'Aarav', 'Yusuf', 'Leo', 'Freddie', 'Amir'],
-        GIRLS: ['Olivia', 'Amelia', 'Isla', 'Ava', 'Aisha', 'Grace', 'Sophie', 'Zainab', 'Lily', 'Amira']
-    },
-    
-    // Rectangular layout positioning (percentages of rectangle size)
-    RECT_LAYOUT: {
-        // Rectangle aspect ratio (width:height)
-        ASPECT_RATIO: 1.62, // 162:100
-        
-        // Score elements (converted from 162-unit system to percentages)
-        LEFT_SCORE_NAME: { x: 1.23, y: 4, width: 16.05, height: 15 },
-        LEFT_SCORE_BOX: { x: 18.52, y: 4, width: 9.26, height: 15 },
-        MIDDLE_SCORE_NAME: { x: 34.57, y: 4, width: 16.05, height: 15 },
-        MIDDLE_SCORE_BOX: { x: 51.85, y: 4, width: 9.26, height: 15 },
-        RIGHT_SCORE_NAME: { x: 67.9, y: 4, width: 16.05, height: 15 },
-        RIGHT_SCORE_BOX: { x: 85.19, y: 4, width: 9.26, height: 15 },
-        
-        // Cards
-        LEFT_CARD: { x: 1.23, y: 23, width: 30.86, height: 73 },
-        MIDDLE_CARD: { x: 34.57, y: 23, width: 30.86, height: 73 },
-        RIGHT_CARD: { x: 67.9, y: 23, width: 30.86, height: 73 },
-        
-        // Card elements (relative to card position)
-        CARD_ELEMENTS: {
-            TITLE: { x: 1.23, y: 0, width: 28.4, height: 9 },
-            PICTURE: { x: 1.23, y: 9, width: 28.4, height: 46 },
-            NUMBER: { x: 1.23, y: 55, width: 28.4, height: 18 }
-        },
-        
-        // Font sizes (percentages of rectangle size)
-        FONT_SIZES: {
-            SCORE_NAME: 0.025,    // 2.5% of rectangle size
-            SCORE_BOX: 0.06,      // 6% of rectangle size
-            CARD_TITLE: 0.020,    // 2% of rectangle size
-            CARD_NUMBER: 0.070    // 7% of rectangle size (doubled from 3.5%)
-        }
-    },
-    
-    // Grid layout positioning for 30 cards (vw units)
-    GRID_LAYOUT: {
-        CARD_WIDTH: 7.7,  // vw
-        CARD_HEIGHT: 10, // vw (reduced from 10.4)
-        POSITIONS: [
-            // Row 1 (y: 22)
-            { x: 7, y: 22 }, { x: 15.7, y: 22 }, { x: 24.4, y: 22 }, { x: 33.1, y: 22 }, { x: 41.8, y: 22 },
-            { x: 50.5, y: 22 }, { x: 59.2, y: 22 }, { x: 67.9, y: 22 }, { x: 76.6, y: 22 }, { x: 85.3, y: 22 },
-            // Row 2 (y: 47 - changed from 46)
-            { x: 7, y: 47 }, { x: 15.7, y: 47 }, { x: 24.4, y: 47 }, { x: 33.1, y: 47 }, { x: 41.8, y: 47 },
-            { x: 50.5, y: 47 }, { x: 59.2, y: 47 }, { x: 67.9, y: 47 }, { x: 76.6, y: 47 }, { x: 85.3, y: 47 },
-            // Row 3 (y: 72 - changed from 70)
-            { x: 7, y: 72 }, { x: 15.7, y: 72 }, { x: 24.4, y: 72 }, { x: 33.1, y: 72 }, { x: 41.8, y: 72 },
-            { x: 50.5, y: 72 }, { x: 59.2, y: 72 }, { x: 67.9, y: 72 }, { x: 76.6, y: 72 }, { x: 85.3, y: 72 }
-        ]
-    },
-    
-    // Score box colors for the three players
-    SCORE_COLORS: {
-        USER: '#4CAF50',     // Green
-        PLAYER_A: '#FF9800', // Orange
-        PLAYER_B: '#2196F3'  // Blue
-    },
-    
-    // Audio messages - centralized for easy editing
-    AUDIO_MESSAGES: {
-        GAME_START: "Here are my animal cards. They each have a different animal and a different number from 1 to 30. Choose 3 cards to start.",
-        CARD_SELECTION_PHASE_START: "Choose one of the three cards, the other two cards will be chosen by {playerA} and {playerB}. The highest number wins the round.",
-        CARD_SELECTION_PHASE: "Choose one of the three cards.",
-        
-        // User card selection
-        USER_CARD_SELECTED: "You have picked number {number}, the {animal}.",
-        
-        // AI player card selections
-        AI_CHOOSES_CARD: "{player} chooses the {position} card.",
-        AI_REVEALED: "{player} has number {number}, the {animal}.",
-        
-        // AI strategy announcements
-        AI_TAKES_REMAINING: "{player} has selected the {position} card.",
-        AI_TAKES_FIRST: "{player} has selected the first card.",
-        
-        // Round results
-        WINNER_ANNOUNCEMENT: "{winner} has won this round!",
-        
-        // Game completion messages
-        GAME_COMPLETE_WIN: "Congratulations! You've won the game! Play again or return to the home page.",
-        GAME_COMPLETE_LOSE: "{winner} wins this time. Play again or return to the home page.",
-        GAME_COMPLETE_DRAW: "The game is a draw. Play again or return to the home page.",
-        
-        // Round announcements
-        ROUND_START: "Choose 3 cards.",
-        
-        // Position names for audio
-        POSITIONS: {
-            LEFT: "first",
-            MIDDLE: "second", 
-            RIGHT: "third"
-        }
-    },
-    
-    // Card database - 30 animals with consistent numbering
-    CARDS: [
-        {
-            id: 1,
-            name: "Chicken",
-            image: "../../assets/trumps2/chicken.jpg",
-            value: 1
-        },
-        {
-            id: 2,
-            name: "Snail",
-            image: "../../assets/trumps2/snail.jpg",
-            value: 2
-        },
-        {
-            id: 3,
-            name: "Ladybird",
-            image: "../../assets/trumps2/ladybird.jpg",
-            value: 3
-        },
-        {
-            id: 4,
-            name: "Bee",
-            image: "../../assets/trumps2/bee.jpg",
-            value: 4
-        },
-        {
-            id: 5,
-            name: "Butterfly",
-            image: "../../assets/trumps2/butterfly.jpg",
-            value: 5
-        },
-        {
-            id: 6,
-            name: "Falcon",
-            image: "../../assets/trumps2/falcon.jpg",
-            value: 6
-        },
-        {
-            id: 7,
-            name: "Starfish",
-            image: "../../assets/trumps2/starfish.jpg",
-            value: 7
-        },
-        {
-            id: 8,
-            name: "Seahorse",
-            image: "../../assets/trumps2/seahorse.jpg",
-            value: 8
-        },
-        {
-            id: 9,
-            name: "Shark",
-            image: "../../assets/trumps2/shark.jpg",
-            value: 9
-        },
-        {
-            id: 10,
-            name: "Clownfish",
-            image: "../../assets/trumps2/clownfish.jpg",
-            value: 10
-        },
-        {
-            id: 11,
-            name: "Cow",
-            image: "../../assets/trumps2/cow.jpg",
-            value: 11
-        },
-        {
-            id: 12,
-            name: "Sheep",
-            image: "../../assets/trumps2/sheep.jpg",
-            value: 12
-        },
-        {
-            id: 13,
-            name: "Chameleon",
-            image: "../../assets/trumps2/chameleon.jpg",
-            value: 13
-        },
-        {
-            id: 14,
-            name: "Frog",
-            image: "../../assets/trumps2/frog.jpg",
-            value: 14
-        },
-        {
-            id: 15,
-            name: "Turtle",
-            image: "../../assets/trumps2/turtle.jpg",
-            value: 15
-        },
-        {
-            id: 16,
-            name: "Duck",
-            image: "../../assets/trumps2/duck.jpg",
-            value: 16
-        },
-        {
-            id: 17,
-            name: "Flamingo",
-            image: "../../assets/trumps2/flamengo.jpg",
-            value: 17
-        },
-        {
-            id: 18,
-            name: "Owl",
-            image: "../../assets/trumps2/owl.jpg",
-            value: 18
-        },
-        {
-            id: 19,
-            name: "Penguin",
-            image: "../../assets/trumps2/penguin.jpg",
-            value: 19
-        },
-        {
-            id: 20,
-            name: "Parrot",
-            image: "../../assets/trumps2/parrot.jpg",
-            value: 20
-        },
-        {
-            id: 21,
-            name: "Dolphin",
-            image: "../../assets/trumps2/dolphin.jpg",
-            value: 21
-        },
-        {
-            id: 22,
-            name: "Horse",
-            image: "../../assets/trumps2/horse.jpg",
-            value: 22
-        },
-        {
-            id: 23,
-            name: "Kangaroo",
-            image: "../../assets/trumps2/kangaroo.jpg",
-            value: 23
-        },
-        {
-            id: 24,
-            name: "Panda",
-            image: "../../assets/trumps2/panda.jpg",
-            value: 24
-        },
-        {
-            id: 25,
-            name: "Monkey",
-            image: "../../assets/trumps2/monkey.jpg",
-            value: 25
-        },
-        {
-            id: 26,
-            name: "Zebra",
-            image: "../../assets/trumps2/zebra.jpg",
-            value: 26
-        },
-        {
-            id: 27,
-            name: "Giraffe",
-            image: "../../assets/trumps2/giraffe.jpg",
-            value: 27
-        },
-        {
-            id: 28,
-            name: "Elephant",
-            image: "../../assets/trumps2/elephant.jpg",
-            value: 28
-        },
-        {
-            id: 29,
-            name: "Tiger",
-            image: "../../assets/trumps2/tiger.jpg",
-            value: 29
-        },
-        {
-            id: 30,
-            name: "Lion",
-            image: "../../assets/trumps2/lion.jpg",
-            value: 30
-        }
-    ]
-};
+/* Animal Trumps Game Styles - Fully Responsive with Rectangular Layout */
 
-// Image Preloader Class
-class ImagePreloader {
-    static preloadImages() {
-        console.log('Starting image preload...');
-        return Promise.all(
-            CONFIG.CARDS.map(card => {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        console.log(`Loaded: ${card.image}`);
-                        resolve();
-                    };
-                    img.onerror = () => {
-                        console.warn(`Failed to load: ${card.image}`);
-                        reject();
-                    };
-                    img.src = card.image;
-                });
-            })
-        );
+.game-area {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    padding: 0;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ===== CARD SELECTION PHASE (30-card grid) ===== */
+
+/* Card Grid - 30 cards positioned absolutely */
+.card-grid {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10; /* Ensure cards are visible above rainbow */
+}
+
+.card-slot {
+    position: absolute;
+    width: 7.7vw;
+    height: 10vw; /* Updated from 10.4vw */
+    border-radius: 1vh;
+    transition: all 0.3s ease;
+    z-index: 5; /* Ensure cards are above rainbow */
+}
+
+.card-slot.card-back {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    cursor: pointer;
+    box-shadow: 0 0.4vh 1vh rgba(0,0,0,0.3);
+}
+
+.card-slot.card-back:hover {
+    transform: translateY(-0.4vh);
+    box-shadow: 0 0.8vh 2vh rgba(0,0,0,0.4);
+}
+
+.card-slot.empty-slot {
+    background: rgba(255,255,255,0.1);
+    border: 0.2vh dashed rgba(255,255,255,0.3);
+}
+
+.card-back-design {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1vh;
+    overflow: hidden;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,0.1) 0,
+        rgba(255,255,255,0.1) 0.8vh,
+        transparent 0.8vh,
+        transparent 1.6vh
+    );
+}
+
+/* ===== RECTANGULAR LAYOUT PHASE (3-card comparison) ===== */
+
+/* Rectangular container - dynamically positioned and sized */
+.rect-container {
+    position: absolute;
+    background: transparent;
+    z-index: 15; /* Higher z-index for revealed cards */
+    /* Position and size will be set by JavaScript */
+}
+
+.rect-container.hidden {
+    display: none;
+}
+
+/* Score name labels */
+.rect-score-name {
+    position: absolute;
+    font-family: 'Comic Sans MS', cursive;
+    font-weight: bold;
+    color: #d32f2f; /* Red color like card numbers */
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* Right-aligned */
+    padding-right: 2%;
+    text-transform: uppercase;
+    /* Position, size, and font-size will be set by JavaScript */
+}
+
+/* Score boxes */
+.rect-score-box {
+    position: absolute;
+    border-radius: 15%; /* Responsive rounded corners */
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center both horizontally and vertically */
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    color: white;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2% 5% rgba(0,0,0,0.2);
+    /* Position, size, and font-size will be set by JavaScript */
+}
+
+.rect-score-box.user-score {
+    background: linear-gradient(135deg, #A5D6A7, #81C784); /* Darker green pastels */
+}
+
+.rect-score-box.player-a-score {
+    background: linear-gradient(135deg, #FFCC80, #FFB74D); /* Darker orange pastels */
+}
+
+.rect-score-box.player-b-score {
+    background: linear-gradient(135deg, #90CAF9, #64B5F6); /* Darker blue pastels */
+}
+
+/* Rectangular layout cards */
+.rect-card {
+    position: absolute;
+    background: #f5f5dc; /* Dull light yellow background */
+    border-radius: 8%;
+    box-shadow: 0 3% 6% rgba(0,0,0,0.3);
+    /* No border */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    /* Position and size will be set by JavaScript */
+}
+
+/* Add simpler diagonal pattern to card front */
+.rect-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(255, 165, 0, 0.2) 0,
+        rgba(255, 165, 0, 0.2) 1%,
+        rgba(255, 215, 0, 0.2) 1%,
+        rgba(255, 215, 0, 0.2) 2%
+    );
+    border-radius: 8%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.rect-card:hover,
+.rect-card:active {
+    animation: cardPulse 1s infinite;
+    cursor: pointer !important;
+}
+
+.rect-card.revealed {
+    cursor: default;
+}
+
+.rect-card.winner {
+    animation: cardPulse 1s infinite;
+    background: linear-gradient(135deg, #c8e6c9, #4caf50);
+    box-shadow: 0 0 6% #4caf50;
+}
+
+.rect-card.loser {
+    background: linear-gradient(135deg, #ffcdd2, #f44336);
+    opacity: 0.7;
+}
+
+.rect-card.draw {
+    background: linear-gradient(135deg, #fff3e0, #ff9800);
+}
+
+/* Card back face for unrevealed cards */
+.rect-card-back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 8%;
+    z-index: 30; /* Above card front */
+    transition: transform 0.3s ease-out;
+    transform-origin: right center;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.rect-card-back:hover {
+    animation: cardPulse 1s infinite;
+}
+
+.rect-card-back:active {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.7), rgba(118, 75, 162, 0.7));
+}
+
+.rect-card:active {
+    background: linear-gradient(135deg, rgba(245, 245, 220, 0.7), rgba(245, 245, 220, 0.7));
+}
+
+.rect-card-back.hidden {
+    transform: scaleX(0);
+}
+
+/* Add diagonal pattern to card back */
+.rect-card-back::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,0.1) 0,
+        rgba(255,255,255,0.1) 1%,
+        transparent 1%,
+        transparent 2%
+    );
+    border-radius: 8%;
+}
+
+/* Card title */
+.rect-card-title {
+    position: absolute;
+    font-family: 'Comic Sans MS', cursive;
+    font-weight: bold;
+    color: #5a4fb5; /* Darker version of the blue/purple border color */
+    text-align: center;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    z-index: 25;
+    /* Position, size, and font-size will be set by JavaScript */
+}
+
+/* Card picture area */
+.rect-card-picture {
+    position: absolute;
+    border-radius: 8%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    z-index: 25;
+    /* Position and size will be set by JavaScript */
+}
+
+.rect-card-image {
+    border-radius: 4%;
+    background: transparent;
+    border: 0.3% solid #667eea;
+    box-shadow: 0 0.3% 0.6% rgba(0,0,0,0.3);
+    /* Size will be calculated to fit within picture area while maintaining aspect ratio */
+}
+
+/* Card number display */
+.rect-card-number {
+    position: absolute;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    color: #d32f2f; /* Bold red color */
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 25;
+    background: transparent; /* Transparent container */
+    border-radius: 8%;
+    /* No border */
+    /* Position, size, and font-size will be set by JavaScript */
+}
+
+/* Winner/Loser Effects for rectangular layout */
+@keyframes cardPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02); /* Much smaller pulse - only 2% instead of 5% */
     }
 }
 
-// Utility functions for audio message formatting
-const AudioUtils = {
-    formatMessage: (template, replacements = {}) => {
-        let message = template;
-        Object.keys(replacements).forEach(key => {
-            message = message.replace(new RegExp(`{${key}}`, 'g'), replacements[key]);
-        });
-        return message;
-    },
-    
-    getRandomPlayerName: () => {
-        const allNames = [...CONFIG.PLAYER_NAMES.BOYS, ...CONFIG.PLAYER_NAMES.GIRLS];
-        return allNames[Math.floor(Math.random() * allNames.length)];
-    },
-    
-    getPositionName: (position) => {
-        switch(position) {
-            case 'left': return CONFIG.AUDIO_MESSAGES.POSITIONS.LEFT;
-            case 'middle': return CONFIG.AUDIO_MESSAGES.POSITIONS.MIDDLE;
-            case 'right': return CONFIG.AUDIO_MESSAGES.POSITIONS.RIGHT;
-            default: return position;
-        }
+/* Card Animations */
+@keyframes cardSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-15vh) scale(0.8);
     }
-};
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes cardSlideOut {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8) translateY(8vh);
+    }
+}
+
+@keyframes cardReveal {
+    0% {
+        transform: scaleX(1);
+    }
+    100% {
+        transform: scaleX(0);
+    }
+}
+
+/* Rainbow background - positioned behind game content */
+.rainbow-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.rainbow-container svg {
+    z-index: 1 !important;
+}
+
+/* Game completion modal */
+@keyframes modalAppear {
+    from { 
+        opacity: 0; 
+        transform: scale(0.5); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.modal.hidden {
+    display: none !important;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    animation: modalAppear 0.5s ease;
+    pointer-events: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.modal h2 {
+    color: white;
+    font-size: 3rem;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-family: 'Comic Sans MS', cursive;
+}
+
+.play-again-btn {
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-family: 'Comic Sans MS', cursive;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    touch-action: manipulation;
+    pointer-events: auto;
+    outline: none;
+}
+
+.play-again-btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+}
+
+.play-again-btn:focus {
+    outline: none;
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.fade-out {
+    animation: fadeOut 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Responsive text scaling - uses calc() for minimum sizes where needed */
+.responsive-text {
+    font-size: calc(1rem + 1vw);
+}
+
+/* Card selection feedback */
+.card-selected {
+    border: 0.3vw solid #4CAF50 !important;
+    box-shadow: 0 0 2vw rgba(76, 175, 80, 0.6) !important;
+}
+
+/* Player turn indicators */
+.player-turn {
+    animation: playerGlow 2s infinite;
+}
+
+@keyframes playerGlow {
+    0%, 100% {
+        box-shadow: 0 2% 5% rgba(0,0,0,0.2);
+    }
+    50% {
+        box-shadow: 0 0 3% rgba(255, 215, 0, 0.8);
+    }
+}
+
+/* Score animation */
+.score-update {
+    animation: scoreFlash 0.8s ease;
+}
+
+@keyframes scoreFlash {
+    0%, 100% { 
+        transform: scale(1);
+    }
+    50% { 
+        transform: scale(1.3);
+    }
+}
+
+/* Bear celebration positioning (inherits from main.css) */
+.celebration-bear {
+    pointer-events: none;
+    user-select: none;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    object-fit: contain;
+}
+
+/* Responsive behavior for extreme aspect ratios */
+@media (max-aspect-ratio: 1/2) {
+    /* Very tall screens - adjust card sizes slightly */
+    .card-slot {
+        width: 9vw;
+        height: 13vw;
+    }
+}
+
+@media (min-aspect-ratio: 3/1) {
+    /* Very wide screens - adjust card positions slightly */
+    .card-slot {
+        width: 6.5vw;
+        height: 9.5vw;
+    }
+}
