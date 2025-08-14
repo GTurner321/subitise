@@ -16,7 +16,7 @@ const CONFIG = {
     PAUSE_BETWEEN_REVEALS: 1500, // Pause between card reveals
     
     // Visual settings
-    CARD_ASPECT_RATIO: 0.69, // height/width for grid cards (11.2/7.7)
+    CARD_ASPECT_RATIO: 0.74, // height/width for grid cards (10.4/7.7)
     
     // Audio settings - delegated to universal AudioSystem
     AUDIO_ENABLED: true,
@@ -64,7 +64,7 @@ const CONFIG = {
     // Grid layout positioning for 30 cards (vw units)
     GRID_LAYOUT: {
         CARD_WIDTH: 7.7,  // vw
-        CARD_HEIGHT: 11.2, // vw
+        CARD_HEIGHT: 10.4, // vw (reduced from 11.2)
         POSITIONS: [
             // Row 1 (y: 22)
             { x: 7, y: 22 }, { x: 15.7, y: 22 }, { x: 24.4, y: 22 }, { x: 33.1, y: 22 }, { x: 41.8, y: 22 },
