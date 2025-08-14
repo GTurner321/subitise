@@ -326,6 +326,7 @@ class Trumps2Renderer {
         cardFront.style.boxShadow = `0 ${rectHeight * 0.04}px ${rectHeight * 0.08}px rgba(0,0,0,0.4)`;
         // No border
         cardFront.style.zIndex = '25'; // Below back, visible when back is removed
+        // Make left card clickable and add hover effect
         cardFront.style.cursor = 'pointer';
         cardFront.style.pointerEvents = 'auto';
         
