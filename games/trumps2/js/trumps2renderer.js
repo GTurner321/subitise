@@ -88,6 +88,11 @@ class Trumps2Renderer {
         
         this.positionRectElement(element, layout.x, layout.y, layout.width, layout.height, rectWidth, rectHeight);
         
+        // Add shadow to score boxes
+        if (className.includes('rect-score-box')) {
+            element.style.boxShadow = `0 ${rectWidth * 0.03}px ${rectWidth * 0.06}px rgba(0,0,0,0.3)`;
+        }
+        
         // Set font size based on element type
         if (className.includes('rect-score-box')) {
             element.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.SCORE_BOX}px`;
@@ -229,13 +234,17 @@ class Trumps2Renderer {
         // Create the three cards
         this.createRectCards(selectedCards);
         
-        // Left card is revealed immediately, others show blue backs
+        // Left card is revealed immediately (no back)
         this.revealCard(selectedCards[0], 'left');
-        this.createCardBack(selectedCards[1], 'middle');
-        this.createCardBack(selectedCards[2], 'right');
         
-        // Fade in all card elements
-        const cardElements = this.rectContainer.querySelectorAll('.rect-card, .rect-card-back');
+        // Create card backs for middle and right cards AFTER a delay
+        setTimeout(() => {
+            this.createCardBack(selectedCards[1], 'middle');
+            this.createCardBack(selectedCards[2], 'right');
+        }, 1000); // Delay to ensure front cards are hidden
+        
+        // Fade in card elements (but not the backs yet)
+        const cardElements = this.rectContainer.querySelectorAll('.rect-card, .rect-card-title, .rect-card-picture, .rect-card-number');
         cardElements.forEach(element => {
             element.style.opacity = '0';
             element.style.transition = 'opacity 1s ease-in';
@@ -264,6 +273,13 @@ class Trumps2Renderer {
             cardElement.dataset.position = position;
             
             this.positionRectElement(cardElement, layout.x, layout.y, layout.width, layout.height, rectWidth, rectHeight);
+            
+            // Add shadow to card
+            cardElement.style.boxShadow = `0 ${rectHeight * 0.04}px ${rectHeight * 0.08}px rgba(0,0,0,0.4)`;
+            
+            // Make all cards clickable (including left)
+            cardElement.style.cursor = 'pointer';
+            cardElement.style.pointerEvents = 'auto';
             
             // Create card front face content
             this.createCardContent(cardElement, card, position, rectWidth, rectHeight);
@@ -344,8 +360,19 @@ class Trumps2Renderer {
         cardBack.className = `rect-card-back rect-card-back-${position}`;
         cardBack.dataset.cardId = card.id;
         cardBack.dataset.position = position;
+        cardBack.style.cursor = 'pointer';
+        cardBack.style.pointerEvents = 'auto';
+        
+        // Start invisible and fade in
+        cardBack.style.opacity = '0';
+        cardBack.style.transition = 'opacity 1s ease-in';
         
         cardElement.appendChild(cardBack);
+        
+        // Fade in the back after a short delay
+        setTimeout(() => {
+            cardBack.style.opacity = '1';
+        }, 100);
     }
 
     async revealCard(card, position) {
