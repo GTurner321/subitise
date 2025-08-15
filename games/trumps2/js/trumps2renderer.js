@@ -73,16 +73,16 @@ class Trumps2Renderer {
         const { rectWidth, rectHeight } = this.calculateRectDimensions();
         
         // Create user score elements
-        this.scoreElements.user.name = this.createScoreElement('YOU', 'user-score-name', Trumps2Config.RECT_LAYOUT.LEFT_SCORE_NAME, rectWidth, rectHeight);
-        this.scoreElements.user.box = this.createScoreElement('0', 'user-score rect-score-box user-score', Trumps2Config.RECT_LAYOUT.LEFT_SCORE_BOX, rectWidth, rectHeight);
+        this.scoreElements.user.name = this.createScoreElement('YOU', 'user-score-name', CONFIG.RECT_LAYOUT.LEFT_SCORE_NAME, rectWidth, rectHeight);
+        this.scoreElements.user.box = this.createScoreElement('0', 'user-score rect-score-box user-score', CONFIG.RECT_LAYOUT.LEFT_SCORE_BOX, rectWidth, rectHeight);
         
         // Player A score elements (name will be set when game starts)
-        this.scoreElements.playerA.name = this.createScoreElement('A', 'player-a-score-name', Trumps2Config.RECT_LAYOUT.MIDDLE_SCORE_NAME, rectWidth, rectHeight);
-        this.scoreElements.playerA.box = this.createScoreElement('0', 'player-a-score rect-score-box player-a-score', Trumps2Config.RECT_LAYOUT.MIDDLE_SCORE_BOX, rectWidth, rectHeight);
+        this.scoreElements.playerA.name = this.createScoreElement('A', 'player-a-score-name', CONFIG.RECT_LAYOUT.MIDDLE_SCORE_NAME, rectWidth, rectHeight);
+        this.scoreElements.playerA.box = this.createScoreElement('0', 'player-a-score rect-score-box player-a-score', CONFIG.RECT_LAYOUT.MIDDLE_SCORE_BOX, rectWidth, rectHeight);
         
         // Player B score elements (name will be set when game starts)
-        this.scoreElements.playerB.name = this.createScoreElement('B', 'player-b-score-name', Trumps2Config.RECT_LAYOUT.RIGHT_SCORE_NAME, rectWidth, rectHeight);
-        this.scoreElements.playerB.box = this.createScoreElement('0', 'player-b-score rect-score-box player-b-score', Trumps2Config.RECT_LAYOUT.RIGHT_SCORE_BOX, rectWidth, rectHeight);
+        this.scoreElements.playerB.name = this.createScoreElement('B', 'player-b-score-name', CONFIG.RECT_LAYOUT.RIGHT_SCORE_NAME, rectWidth, rectHeight);
+        this.scoreElements.playerB.box = this.createScoreElement('0', 'player-b-score rect-score-box player-b-score', CONFIG.RECT_LAYOUT.RIGHT_SCORE_BOX, rectWidth, rectHeight);
 
         // Set player-specific colors for score names
         this.scoreElements.user.name.style.color = '#2E7D32'; // Dark green
@@ -108,7 +108,7 @@ class Trumps2Renderer {
         if (className.includes('rect-score-box')) {
             // Score boxes - centered text with shadow
             element.style.boxShadow = `0 ${rectWidth * 0.03}px ${rectWidth * 0.06}px rgba(0,0,0,0.3)`;
-            element.style.fontSize = `${rectWidth * Trumps2Config.RECT_LAYOUT.FONT_SIZES.SCORE_BOX}px`;
+            element.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.SCORE_BOX}px`;
             element.style.display = 'flex';
             element.style.alignItems = 'center';
             element.style.justifyContent = 'center';
@@ -118,7 +118,7 @@ class Trumps2Renderer {
             element.style.borderRadius = '15%';
         } else {
             // Name labels - centered text both vertically and horizontally
-            element.style.fontSize = `${rectWidth * Trumps2Config.RECT_LAYOUT.FONT_SIZES.SCORE_NAME}px`;
+            element.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.SCORE_NAME}px`;
             element.style.display = 'flex';
             element.style.alignItems = 'center'; // Vertical centering
             element.style.justifyContent = 'center'; // Horizontal centering
@@ -148,16 +148,16 @@ class Trumps2Renderer {
         let rectWidth, rectHeight, left, top;
         
         // Check if screen width is less than 1.62 times the height
-        if (screenWidth < screenHeight * Trumps2Config.RECT_LAYOUT.ASPECT_RATIO) {
+        if (screenWidth < screenHeight * CONFIG.RECT_LAYOUT.ASPECT_RATIO) {
             // Width-constrained: rectangle width = 100vw
             rectWidth = screenWidth;
-            rectHeight = rectWidth / Trumps2Config.RECT_LAYOUT.ASPECT_RATIO;
+            rectHeight = rectWidth / CONFIG.RECT_LAYOUT.ASPECT_RATIO;
             left = 0;
             top = (screenHeight - rectHeight) / 2;
         } else {
             // Height-constrained: rectangle height = 100vh
             rectHeight = screenHeight;
-            rectWidth = rectHeight * Trumps2Config.RECT_LAYOUT.ASPECT_RATIO;
+            rectWidth = rectHeight * CONFIG.RECT_LAYOUT.ASPECT_RATIO;
             left = (screenWidth - rectWidth) / 2;
             top = 0;
         }
@@ -193,17 +193,17 @@ class Trumps2Renderer {
         this.cardGrid.innerHTML = '';
         
         // Create 30 card slots with direct positioning
-        for (let position = 0; position < Trumps2Config.TOTAL_CARDS; position++) {
+        for (let position = 0; position < CONFIG.TOTAL_CARDS; position++) {
             const cardElement = document.createElement('div');
             cardElement.className = 'card-slot';
             cardElement.dataset.position = position;
             
-            // Position using Trumps2Config coordinates
-            const pos = Trumps2Config.GRID_LAYOUT.POSITIONS[position];
+            // Position using CONFIG coordinates
+            const pos = CONFIG.GRID_LAYOUT.POSITIONS[position];
             cardElement.style.left = `${pos.x}vw`;
             cardElement.style.top = `${pos.y}vh`;
-            cardElement.style.width = `${Trumps2Config.GRID_LAYOUT.CARD_WIDTH}vw`;
-            cardElement.style.height = `${Trumps2Config.GRID_LAYOUT.CARD_HEIGHT}vw`;
+            cardElement.style.width = `${CONFIG.GRID_LAYOUT.CARD_WIDTH}vw`;
+            cardElement.style.height = `${CONFIG.GRID_LAYOUT.CARD_HEIGHT}vw`;
             
             // Check if this position has a card
             const card = availableCards.find(c => c.originalPosition === position);
@@ -242,12 +242,12 @@ class Trumps2Renderer {
         });
         
         // Wait for fade out
-        await this.wait(Trumps2Config.CARD_FADE_DURATION);
+        await this.wait(CONFIG.CARD_FADE_DURATION);
         
         // Switch to rectangular layout
         this.switchToRectLayout(selectedCards);
         
-        await this.wait(Trumps2Config.CARD_MOVE_DURATION);
+        await this.wait(CONFIG.CARD_MOVE_DURATION);
     }
 
     switchToRectLayout(selectedCards) {
@@ -314,9 +314,9 @@ class Trumps2Renderer {
         const { rectWidth, rectHeight } = this.calculateRectDimensions();
         const isLeft = position === 'left';
         const isMiddle = position === 'middle';
-        const cardLayout = isLeft ? Trumps2Config.RECT_LAYOUT.LEFT_CARD : 
-                          isMiddle ? Trumps2Config.RECT_LAYOUT.MIDDLE_CARD : 
-                          Trumps2Config.RECT_LAYOUT.RIGHT_CARD;
+        const cardLayout = isLeft ? CONFIG.RECT_LAYOUT.LEFT_CARD : 
+                          isMiddle ? CONFIG.RECT_LAYOUT.MIDDLE_CARD : 
+                          CONFIG.RECT_LAYOUT.RIGHT_CARD;
         
         // Create card front face (underneath back)
         const cardFront = document.createElement('div');
@@ -363,11 +363,11 @@ class Trumps2Renderer {
         title.textContent = ''; // Start empty - player names will be added later
         title.style.position = 'absolute';
         title.dataset.position = position;
-        this.positionRectElement(title, cardLayout.x + Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.TITLE.x, 
-                                cardLayout.y + Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.TITLE.y,
-                                Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.TITLE.width, 
-                                Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.TITLE.height, rectWidth, rectHeight);
-        title.style.fontSize = `${rectWidth * Trumps2Config.RECT_LAYOUT.FONT_SIZES.CARD_TITLE * 1.8}px`; // Increased from 1.2 to 1.8 (50% larger)
+        this.positionRectElement(title, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.x, 
+                                cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.y,
+                                CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.width, 
+                                CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.height, rectWidth, rectHeight);
+        title.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.CARD_TITLE * 1.8}px`; // Increased from 1.2 to 1.8 (50% larger)
         title.style.fontFamily = 'Comic Sans MS, cursive';
         title.style.fontWeight = 'bold';
         title.style.color = '#333'; // Default color - will be changed when player assigned
@@ -384,10 +384,10 @@ class Trumps2Renderer {
         pictureArea.className = `rect-card-picture ${position}-picture`;
         pictureArea.style.position = 'absolute';
         pictureArea.dataset.position = position;
-        this.positionRectElement(pictureArea, cardLayout.x + Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.x,
-                                cardLayout.y + Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.y,
-                                Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.width,
-                                Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.height, rectWidth, rectHeight);
+        this.positionRectElement(pictureArea, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.x,
+                                cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.y,
+                                CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.width,
+                                CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.height, rectWidth, rectHeight);
         pictureArea.style.borderRadius = '8%';
         pictureArea.style.display = 'flex';
         pictureArea.style.alignItems = 'center';
@@ -405,8 +405,8 @@ class Trumps2Renderer {
         image.style.boxShadow = `0 ${rectHeight * 0.003}px ${rectHeight * 0.006}px rgba(0,0,0,0.3)`;
         
         // Calculate image size to fit within picture area while maintaining aspect ratio
-        const pictureWidth = (Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.width / 100) * rectWidth;
-        const pictureHeight = (Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.height / 100) * rectHeight;
+        const pictureWidth = (CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.width / 100) * rectWidth;
+        const pictureHeight = (CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.height / 100) * rectHeight;
         
         image.onload = () => {
             const imageAspect = image.naturalWidth / image.naturalHeight;
@@ -432,11 +432,11 @@ class Trumps2Renderer {
         numberDisplay.textContent = card.value;
         numberDisplay.style.position = 'absolute';
         numberDisplay.dataset.position = position;
-        this.positionRectElement(numberDisplay, cardLayout.x + Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.x,
-                                cardLayout.y + Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.y,
-                                Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.width,
-                                Trumps2Config.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.height, rectWidth, rectHeight);
-        numberDisplay.style.fontSize = `${rectWidth * Trumps2Config.RECT_LAYOUT.FONT_SIZES.CARD_NUMBER}px`;
+        this.positionRectElement(numberDisplay, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.x,
+                                cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.y,
+                                CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.width,
+                                CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.height, rectWidth, rectHeight);
+        numberDisplay.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.CARD_NUMBER}px`;
         numberDisplay.style.fontFamily = 'Arial, sans-serif';
         numberDisplay.style.fontWeight = 'bold';
         numberDisplay.style.color = '#d32f2f';
@@ -454,9 +454,9 @@ class Trumps2Renderer {
         const { rectWidth, rectHeight } = this.calculateRectDimensions();
         const isLeft = position === 'left';
         const isMiddle = position === 'middle';
-        const cardLayout = isLeft ? Trumps2Config.RECT_LAYOUT.LEFT_CARD : 
-                          isMiddle ? Trumps2Config.RECT_LAYOUT.MIDDLE_CARD : 
-                          Trumps2Config.RECT_LAYOUT.RIGHT_CARD;
+        const cardLayout = isLeft ? CONFIG.RECT_LAYOUT.LEFT_CARD : 
+                          isMiddle ? CONFIG.RECT_LAYOUT.MIDDLE_CARD : 
+                          CONFIG.RECT_LAYOUT.RIGHT_CARD;
         
         // Create only the card back face
         const cardBack = document.createElement('div');
@@ -799,11 +799,11 @@ class Trumps2Renderer {
         const rectCardElements = this.rectContainer.querySelectorAll('.rect-card, .rect-card-title, .rect-card-picture, .rect-card-number, .rect-card-back, .rect-card-player-name');
         
         rectCardElements.forEach(element => {
-            element.style.transition = `opacity ${Trumps2Config.CARD_FADE_DURATION}ms ease-out`;
+            element.style.transition = `opacity ${CONFIG.CARD_FADE_DURATION}ms ease-out`;
             element.style.opacity = '0';
         });
         
-        await this.wait(Trumps2Config.CARD_FADE_DURATION);
+        await this.wait(CONFIG.CARD_FADE_DURATION);
         
         // Remove rect card elements (keep score boxes)
         rectCardElements.forEach(element => element.remove());
@@ -854,18 +854,18 @@ class Trumps2Renderer {
         
         // Update score name elements
         Object.entries(this.scoreElements).forEach(([player, elements]) => {
-            const nameLayout = player === 'user' ? Trumps2Config.RECT_LAYOUT.LEFT_SCORE_NAME :
-                              player === 'playerA' ? Trumps2Config.RECT_LAYOUT.MIDDLE_SCORE_NAME :
-                              Trumps2Config.RECT_LAYOUT.RIGHT_SCORE_NAME;
-            const boxLayout = player === 'user' ? Trumps2Config.RECT_LAYOUT.LEFT_SCORE_BOX :
-                             player === 'playerA' ? Trumps2Config.RECT_LAYOUT.MIDDLE_SCORE_BOX :
-                             Trumps2Config.RECT_LAYOUT.RIGHT_SCORE_BOX;
+            const nameLayout = player === 'user' ? CONFIG.RECT_LAYOUT.LEFT_SCORE_NAME :
+                              player === 'playerA' ? CONFIG.RECT_LAYOUT.MIDDLE_SCORE_NAME :
+                              CONFIG.RECT_LAYOUT.RIGHT_SCORE_NAME;
+            const boxLayout = player === 'user' ? CONFIG.RECT_LAYOUT.LEFT_SCORE_BOX :
+                             player === 'playerA' ? CONFIG.RECT_LAYOUT.MIDDLE_SCORE_BOX :
+                             CONFIG.RECT_LAYOUT.RIGHT_SCORE_BOX;
             
             this.positionRectElement(elements.name, nameLayout.x, nameLayout.y, nameLayout.width, nameLayout.height, rectWidth, rectHeight);
             this.positionRectElement(elements.box, boxLayout.x, boxLayout.y, boxLayout.width, boxLayout.height, rectWidth, rectHeight);
             
-            elements.name.style.fontSize = `${rectWidth * Trumps2Config.RECT_LAYOUT.FONT_SIZES.SCORE_NAME}px`;
-            elements.box.style.fontSize = `${rectWidth * Trumps2Config.RECT_LAYOUT.FONT_SIZES.SCORE_BOX}px`;
+            elements.name.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.SCORE_NAME}px`;
+            elements.box.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.SCORE_BOX}px`;
         });
         
         // If in rect mode, reposition all card elements
