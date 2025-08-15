@@ -65,6 +65,12 @@ const Trumps2Config = {
         PLAYER_B: '#2196F3'  // Blue
     },
     
+    // Player names (randomly assigned to A and B each game)
+    PLAYER_NAMES: {
+        BOYS: ['Oliver', 'Noah', 'Jack', 'Harry', 'George', 'Aarav', 'Yusuf', 'Leo', 'Freddie', 'Amir'],
+        GIRLS: ['Olivia', 'Amelia', 'Isla', 'Ava', 'Aisha', 'Grace', 'Sophie', 'Zainab', 'Lily', 'Amira']
+    },
+    
     // Audio messages - centralized for easy editing
     AUDIO_MESSAGES: {
         GAME_START: "Choose 3 cards. They each have a different animal and a different number from 1 to 30.",
@@ -322,5 +328,30 @@ class ImagePreloader {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { Trumps2Config, ImagePreloader };
 }
+
+// Utility functions for audio message formatting
+const AudioUtils = {
+    formatMessage: (template, replacements = {}) => {
+        let message = template;
+        Object.keys(replacements).forEach(key => {
+            message = message.replace(new RegExp(`{${key}}`, 'g'), replacements[key]);
+        });
+        return message;
+    },
+    
+    getRandomPlayerName: () => {
+        const allNames = [...Trumps2Config.PLAYER_NAMES.BOYS, ...Trumps2Config.PLAYER_NAMES.GIRLS];
+        return allNames[Math.floor(Math.random() * allNames.length)];
+    },
+    
+    getPositionName: (position) => {
+        switch(position) {
+            case 'left': return Trumps2Config.AUDIO_MESSAGES.POSITIONS.LEFT;
+            case 'middle': return Trumps2Config.AUDIO_MESSAGES.POSITIONS.MIDDLE;
+            case 'right': return Trumps2Config.AUDIO_MESSAGES.POSITIONS.RIGHT;
+            default: return position;
+        }
+    }
+};
 
 console.log('✅ Trumps2 Config Loaded - No Reveal Messages');
