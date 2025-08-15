@@ -82,33 +82,34 @@
     display: none;
 }
 
-/* Score name labels */
-.rect-score-name {
+/* Score name labels - now positioned below score boxes */
+.rect-score-element {
     position: absolute;
+    transition: transform 0.3s ease;
+    /* Position, size, and font-size will be set by JavaScript */
+}
+
+/* Score name styling */
+.rect-score-element:not(.rect-score-box) {
     font-family: 'Comic Sans MS', cursive;
     font-weight: bold;
     color: #d32f2f; /* Red color like card numbers */
     display: flex;
     align-items: center;
-    justify-content: flex-end; /* Right-aligned */
-    padding-right: 2%;
+    justify-content: center; /* Centered instead of right-aligned */
     text-transform: uppercase;
-    /* Position, size, and font-size will be set by JavaScript */
 }
 
 /* Score boxes */
 .rect-score-box {
-    position: absolute;
     border-radius: 15%; /* Responsive rounded corners */
     display: flex;
     align-items: center;
-    justify-content: center; /* Center both horizontally and vertically */
+    justify-content: center;
     font-family: Arial, sans-serif;
     font-weight: bold;
     color: white;
-    transition: transform 0.3s ease;
     box-shadow: 0 2% 5% rgba(0,0,0,0.2);
-    /* Position, size, and font-size will be set by JavaScript */
 }
 
 .rect-score-box.user-score {
