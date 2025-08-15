@@ -332,6 +332,12 @@ class Trumps2Renderer {
         cardFront.style.cursor = 'pointer';
         cardFront.style.pointerEvents = 'auto';
         
+        // For middle and right cards, start them mirrored (they'll be flipped later)
+        if (position === 'middle' || position === 'right') {
+            cardFront.style.transform = 'scaleX(-1)'; // Start mirrored
+            cardFront.style.transformOrigin = '50% 50%';
+        }
+        
         // Add specific class for left card to enable CSS hover effects
         if (position === 'left') {
             cardFront.classList.add('rect-card-front-left');
@@ -377,6 +383,13 @@ class Trumps2Renderer {
         title.style.justifyContent = 'center';
         title.style.lineHeight = '1.2';
         title.style.zIndex = '25';
+        
+        // For middle and right cards, start title mirrored
+        if (position === 'middle' || position === 'right') {
+            title.style.transform = 'scaleX(-1)'; // Start mirrored
+            title.style.transformOrigin = '50% 50%';
+        }
+        
         this.rectContainer.appendChild(title);
         
         // Create picture area
@@ -394,6 +407,12 @@ class Trumps2Renderer {
         pictureArea.style.justifyContent = 'center';
         pictureArea.style.overflow = 'hidden';
         pictureArea.style.zIndex = '25';
+        
+        // For middle and right cards, start picture mirrored
+        if (position === 'middle' || position === 'right') {
+            pictureArea.style.transform = 'scaleX(-1)'; // Start mirrored
+            pictureArea.style.transformOrigin = '50% 50%';
+        }
         
         const image = document.createElement('img');
         image.src = card.image;
@@ -447,6 +466,13 @@ class Trumps2Renderer {
         numberDisplay.style.zIndex = '25';
         numberDisplay.style.background = 'transparent';
         numberDisplay.style.borderRadius = '8%';
+        
+        // For middle and right cards, start number mirrored
+        if (position === 'middle' || position === 'right') {
+            numberDisplay.style.transform = 'scaleX(-1)'; // Start mirrored
+            numberDisplay.style.transformOrigin = '50% 50%';
+        }
+        
         this.rectContainer.appendChild(numberDisplay);
     }
 
@@ -504,12 +530,15 @@ class Trumps2Renderer {
         
         console.log(`Found ${cardElements.length} elements to pulse for ${position}`);
         
-        // Immediately disable hover animations to prevent double pulse
+        // FIRST: Immediately disable hover animations to prevent any hover pulse
         cardElements.forEach(element => {
             element.classList.add('card-selected-no-hover');
         });
         
-        // Add click pulse class to ALL elements
+        // Small delay to ensure hover animations stop
+        await this.wait(50);
+        
+        // THEN: Add click pulse class to ALL elements
         cardElements.forEach(element => {
             element.classList.add('card-click-pulse');
         });
@@ -517,7 +546,7 @@ class Trumps2Renderer {
         // Wait for pulse animation to complete (1 second)
         await this.wait(1000);
         
-        // Remove pulse class but keep no-hover class for now
+        // Remove pulse class but keep no-hover class
         cardElements.forEach(element => {
             element.classList.remove('card-click-pulse');
         });
@@ -541,38 +570,67 @@ class Trumps2Renderer {
             return;
         }
         
-        // Find the card back to flip
+        // Find the card back and all yellow elements to flip together
         const cardBack = this.rectContainer.querySelector(`.rect-card-back-${position}`);
+        const yellowCard = this.rectContainer.querySelector(`.rect-card-${position}`);
+        const yellowTitle = this.rectContainer.querySelector(`.${position}-title`);
+        const yellowPicture = this.rectContainer.querySelector(`.${position}-picture`);
+        const yellowNumber = this.rectContainer.querySelector(`.${position}-number`);
         
         if (cardBack) {
-            console.log(`🔄 Animating complete 90-degree vertical flip for ${position}`);
+            console.log(`🔄 Animating complete 180-degree card flip for ${position}`);
             
-            // Set up the flip animation on the card back
-            // Use center of the card (50% 50%) as transform-origin since it's positioned within the container
-            cardBack.style.transformOrigin = '50% 50%';
-            cardBack.style.transition = 'transform 0.6s ease-out';
-            cardBack.style.backfaceVisibility = 'hidden'; // Hide back face when rotated
+            // Collect all elements that need to flip
+            const allElements = [cardBack, yellowCard, yellowTitle, yellowPicture, yellowNumber].filter(el => el);
+            
+            // Set up the flip animation for ALL elements
+            allElements.forEach(element => {
+                element.style.transformOrigin = '50% 50%';
+                element.style.transition = 'transform 0.6s ease-out';
+                element.style.backfaceVisibility = 'hidden';
+            });
             
             // Small delay to ensure styles are applied
             await this.wait(50);
             
-            // Start the 90-degree rotation around vertical axis
+            // Start the 180-degree rotation for ALL elements
             requestAnimationFrame(() => {
-                cardBack.style.transform = 'rotateY(90deg)';
+                allElements.forEach(element => {
+                    const currentTransform = element.style.transform || '';
+                    // If element was already mirrored (scaleX(-1)), rotate to +180deg
+                    // If element was normal, rotate to +180deg
+                    if (currentTransform.includes('scaleX(-1)')) {
+                        element.style.transform = 'rotateY(180deg) scaleX(-1)';
+                    } else {
+                        element.style.transform = 'rotateY(180deg)';
+                    }
+                });
             });
             
-            // Wait for the COMPLETE animation to finish (full 600ms)
-            await this.wait(600);
+            // Wait for animation to reach 90 degrees (halfway)
+            await this.wait(300);
             
-            // After the complete animation, remove the card
+            // At 90 degrees, remove the blue back and make yellow elements visible
             if (cardBack.parentNode) {
                 cardBack.remove();
-                console.log(`🗑️ Card back removed after complete 90-degree flip for ${position}`);
+                console.log(`🗑️ Blue back removed at 90-degree point for ${position}`);
             }
+            
+            // Wait for the remaining animation to complete (300ms more)
+            await this.wait(300);
+            
+            // After 180 degrees, the yellow elements should be right-way around
+            // Fix their final transform to be normal (remove any mirroring)
+            [yellowCard, yellowTitle, yellowPicture, yellowNumber].forEach(element => {
+                if (element) {
+                    element.style.transform = 'rotateY(0deg) scaleX(1)'; // Normal orientation
+                    element.style.transition = 'none'; // Remove transition for instant fix
+                }
+            });
             
             // Mark as revealed
             this.revealedCards.add(position);
-            console.log(`✅ Card ${position} revealed with complete 90-degree vertical flip animation`);
+            console.log(`✅ Card ${position} revealed with complete 180-degree flip animation`);
         } else {
             console.log(`❌ No card back found for ${position}`);
             // Still mark as revealed even if no back found
@@ -745,13 +803,13 @@ class Trumps2Renderer {
     }
     
     createStarSpiral(centerX, centerY, starSize) {
-        const numStars = 8; // Number of stars in the spiral
-        const maxRadius = 60; // Maximum distance from center
+        const numStars = 5; // Reduced from 8 to 5 stars
+        const maxRadius = 100; // Increased from 60 to 100 for more outward spiral
         
         for (let i = 0; i < numStars; i++) {
-            // Calculate position in spiral
-            const angle = (i / numStars) * Math.PI * 2; // Evenly distribute around circle
-            const radius = (i / numStars) * maxRadius; // Spiral outward
+            // Calculate position in spiral - more spread out
+            const angle = (i / numStars) * Math.PI * 4; // Increased from 2 to 4 for more spiral turns
+            const radius = (i / numStars) * maxRadius; // Spiral outward more dramatically
             
             const x = centerX + Math.cos(angle) * radius;
             const y = centerY + Math.sin(angle) * radius;
@@ -768,8 +826,8 @@ class Trumps2Renderer {
             star.style.transform = 'translate(-50%, -50%)';
             star.style.opacity = '1';
             
-            // Stagger the animation start time
-            const delay = i * 100; // 100ms delay between each star
+            // Stagger the animation start time more
+            const delay = i * 150; // Increased from 100ms to 150ms delay between each star
             
             // Add pulsing animation
             star.style.animation = `starSpiral 2s ease-out ${delay}ms forwards`;
