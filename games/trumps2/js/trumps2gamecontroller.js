@@ -159,33 +159,63 @@ class Trumps2GameController {
     }
     
     handleRectClick(e) {
-        // Check for card containers first
-        const rectCard = e.target.closest('.rect-card');
+        // Check for card containers - PRIORITIZE blue backs over yellow fronts
         const rectCardBack = e.target.closest('.rect-card-back');
+        const rectCard = e.target.closest('.rect-card');
         
         let position = null;
         
+        // If there's a blue back, ONLY use that - ignore yellow cards underneath
         if (rectCardBack && rectCardBack.dataset.position) {
             position = rectCardBack.dataset.position;
             console.log('🔵 Card back clicked:', position);
-        } else if (rectCard && rectCard.dataset.position) {
-            position = rectCard.dataset.position;
-            console.log('🟡 Card front clicked:', position);
-        } else {
-            // Check for card elements with position data
+        } 
+        // Only check for yellow cards if NO blue back was found
+        else if (rectCard && rectCard.dataset.position) {
+            // Double-check: make sure there's no blue back at this position
+            const blueBackAtPosition = document.querySelector(`.rect-card-back-${rectCard.dataset.position}`);
+            if (!blueBackAtPosition) {
+                position = rectCard.dataset.position;
+                console.log('🟡 Card front clicked:', position);
+            } else {
+                console.log('🚫 Yellow card ignored - blue back present');
+                return; // Don't process click if blue back exists
+            }
+        } 
+        else {
+            // Check for card elements with position data - only if no blue back
             const cardElement = e.target.closest('[data-position]');
             if (cardElement && cardElement.dataset.position) {
-                position = cardElement.dataset.position;
-                console.log('🟢 Card element clicked:', position);
+                // Double-check: make sure there's no blue back at this position
+                const blueBackAtPosition = document.querySelector(`.rect-card-back-${cardElement.dataset.position}`);
+                if (!blueBackAtPosition) {
+                    position = cardElement.dataset.position;
+                    console.log('🟢 Card element clicked:', position);
+                } else {
+                    console.log('🚫 Yellow element ignored - blue back present');
+                    return; // Don't process click if blue back exists
+                }
             } else {
-                // Fallback: parse from class names
+                // Fallback: parse from class names - only if no blue back
                 const element = e.target.closest('.left-title, .left-picture, .left-number, .middle-title, .middle-picture, .middle-number, .right-title, .right-picture, .right-number');
                 if (element) {
                     const classes = element.className;
-                    if (classes.includes('left-')) position = 'left';
-                    else if (classes.includes('middle-')) position = 'middle';
-                    else if (classes.includes('right-')) position = 'right';
-                    console.log('🔍 Position from class:', position);
+                    let elementPosition = null;
+                    if (classes.includes('left-')) elementPosition = 'left';
+                    else if (classes.includes('middle-')) elementPosition = 'middle';
+                    else if (classes.includes('right-')) elementPosition = 'right';
+                    
+                    if (elementPosition) {
+                        // Double-check: make sure there's no blue back at this position
+                        const blueBackAtPosition = document.querySelector(`.rect-card-back-${elementPosition}`);
+                        if (!blueBackAtPosition) {
+                            position = elementPosition;
+                            console.log('🔍 Position from class:', position);
+                        } else {
+                            console.log('🚫 Yellow class element ignored - blue back present');
+                            return; // Don't process click if blue back exists
+                        }
+                    }
                 }
             }
         }
@@ -401,8 +431,8 @@ class Trumps2GameController {
         // Add player name to card immediately (no delay)
         await this.renderer.addPlayerNameToCard(position, 'YOU', 'user');
         
-        // Wait for speech + 1 second buffer + reveal delay
-        await this.wait(3000);
+        // Wait for speech + reduced buffer (reduced from 3000ms to 1000ms)
+        await this.wait(1000);
         await this.handleAIDecisions(selectedCard, position);
     }
     
@@ -463,8 +493,8 @@ class Trumps2GameController {
         });
         window.AudioSystem.speakText(pickMessage);
         
-        // Wait for speech to complete
-        await this.wait(2500);
+        // Wait for speech to complete (reduced from 2500ms to 500ms)
+        await this.wait(500);
         
         // Reveal card
         await this.renderer.revealCard(card, position);
@@ -472,18 +502,14 @@ class Trumps2GameController {
         // Add player name to card immediately (no delay)
         await this.renderer.addPlayerNameToCard(position, this.playerNames[playerKey], playerKey);
         
-        // Wait briefly after reveal animation
-        await this.wait(500);
+        // Wait briefly after reveal animation (reduced from 500ms to 200ms)
+        await this.wait(200);
         
-        // Announce the card details (just animal name, no number)
-        const revealType = pickType === 'SECOND_PICK' ? 'SECOND_PICK_REVEAL' : 'THIRD_PICK_REVEAL';
-        const revealMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES[revealType], {
-            animal: card.name
-        });
-        window.AudioSystem.speakText(revealMessage);
+        // Skip the reveal message announcement since we removed those from config
+        // The SECOND_PICK_REVEAL and THIRD_PICK_REVEAL messages no longer exist
         
-        // Wait for speech + buffer before next action (reduced by 1 second)
-        await this.wait(1500);
+        // Minimal wait before next action (reduced from 1500ms to 300ms)
+        await this.wait(300);
     }
     
     async startHighestSelectionPhase(userCard, firstAICard, secondAICard, userPos, firstAIPos, secondAIPos) {
@@ -515,8 +541,10 @@ class Trumps2GameController {
         
         console.log(`🎯 Highest card is at position: ${this.highestCardPosition} with value: ${maxValue}`);
         
-        // Ask user to identify highest card immediately (no delay)
-        window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTION);
+        // Ask user to identify highest card with reduced delay (small delay instead of immediate)
+        setTimeout(() => {
+            window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTION);
+        }, 200);
         
         // Set inactivity timeout for 10 seconds
         this.inactivityTimeout = setTimeout(() => {
@@ -561,8 +589,8 @@ class Trumps2GameController {
             // Play positive sound
             window.AudioSystem.playCompletionSound();
             
-            // Create star sparkle on the highest number
-            this.createStarSparkle(selectedPosition);
+            // Create star sparkle on the highest number using RENDERER method
+            this.renderer.createStarSparkle(selectedPosition);
             
             // Announce correct selection and winner
             const correctMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTED_CORRECT, {
@@ -757,37 +785,6 @@ class Trumps2GameController {
         
         // Show choice again
         this.displayGameChoice();
-    }
-    
-    createStarSparkle(cardPosition) {
-        // Find the card number element to center the sparkle on
-        const numberElement = document.querySelector(`.${cardPosition}-number`);
-        if (!numberElement) return;
-        
-        const rect = numberElement.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        
-        // Create star sparkle using the main.css animation
-        const star = document.createElement('div');
-        star.innerHTML = '⭐';
-        star.className = 'completion-star';
-        star.style.position = 'fixed';
-        star.style.left = centerX + 'px';
-        star.style.top = centerY + 'px';
-        star.style.fontSize = '24px';
-        star.style.pointerEvents = 'none';
-        star.style.zIndex = '1000';
-        star.style.transform = 'translate(-50%, -50%)'; // Center the star
-        
-        document.body.appendChild(star);
-        
-        // Remove after animation completes (1.5s from main.css)
-        setTimeout(() => {
-            if (star.parentNode) {
-                star.parentNode.removeChild(star);
-            }
-        }, 1500);
     }
     
     generateUniquePlayerNames() {
