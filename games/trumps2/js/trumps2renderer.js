@@ -485,10 +485,12 @@ class Trumps2Renderer {
     async pulseCardOnClick(position) {
         console.log(`💓 Adding click pulse to ${position} card`);
         
-        // Find all elements for this position (card, back, title, picture, number)
+        // Find ALL elements for this position including specific text elements
         const cardElements = this.rectContainer.querySelectorAll(
-            `.rect-card-${position}, .rect-card-back-${position}, .${position}-title, .${position}-picture, .${position}-number`
+            `.rect-card-${position}, .rect-card-back-${position}, .${position}-title, .${position}-picture, .${position}-number, .rect-card-title.${position}-title, .rect-card-picture.${position}-picture, .rect-card-number.${position}-number`
         );
+        
+        console.log(`Found ${cardElements.length} elements to pulse for ${position}`);
         
         // Add click pulse class to ALL elements
         cardElements.forEach(element => {
@@ -524,31 +526,52 @@ class Trumps2Renderer {
             return;
         }
         
-        // Find and animate the card back with pure edge-to-center reveal
+        // Find and animate the card back with proper edge-to-center reveal
         const cardBack = this.rectContainer.querySelector(`.rect-card-back-${position}`);
         
         if (cardBack) {
-            console.log(`🎬 Animating pure edge-to-center reveal for ${position}`);
+            console.log(`🎬 Animating edge-to-center reveal for ${position}`);
             
-            // Use a single element with clip-path animation from edges to center
-            cardBack.style.transformOrigin = 'center center';
-            cardBack.style.transition = 'clip-path 0.4s ease-out';
+            // Create two halves for smooth edge-to-center reveal
+            const leftHalf = cardBack.cloneNode(true);
+            const rightHalf = cardBack.cloneNode(true);
             
-            // Start the reveal animation - clip from edges to center
+            // Set up left half - reveals from left edge toward center
+            leftHalf.style.clipPath = 'inset(0 50% 0 0)'; // Show left half only
+            leftHalf.style.transformOrigin = 'right center'; // Pivot from the right edge (toward center)
+            leftHalf.style.transition = 'transform 0.6s ease-out'; // Slightly longer for smoother animation
+            leftHalf.style.zIndex = cardBack.style.zIndex || '30';
+            
+            // Set up right half - reveals from right edge toward center
+            rightHalf.style.clipPath = 'inset(0 0 0 50%)'; // Show right half only
+            rightHalf.style.transformOrigin = 'left center'; // Pivot from the left edge (toward center)
+            rightHalf.style.transition = 'transform 0.6s ease-out'; // Slightly longer for smoother animation
+            rightHalf.style.zIndex = cardBack.style.zIndex || '30';
+            
+            // Replace original back with the two halves
+            cardBack.parentNode.insertBefore(leftHalf, cardBack);
+            cardBack.parentNode.insertBefore(rightHalf, cardBack);
+            cardBack.remove();
+            
+            // Small delay to ensure elements are in DOM
+            await this.wait(50);
+            
+            // Start the reveal animation - both halves flip toward center
             requestAnimationFrame(() => {
-                // Animate clip-path from full card to center line (edges disappear toward center)
-                cardBack.style.clipPath = 'inset(0 50% 0 50%)'; // Clips to center vertical line (width = 0)
+                leftHalf.style.transform = 'scaleX(0)'; // Left half shrinks from its right edge toward center
+                rightHalf.style.transform = 'scaleX(0)'; // Right half shrinks from its left edge toward center
             });
             
-            // Wait for animation
-            await this.wait(400);
+            // Wait for animation to complete
+            await this.wait(600);
             
-            // Remove the card back element
-            cardBack.remove();
+            // Clean up - remove the half elements
+            if (leftHalf.parentNode) leftHalf.remove();
+            if (rightHalf.parentNode) rightHalf.remove();
             
             // Mark as revealed
             this.revealedCards.add(position);
-            console.log(`✅ Card ${position} revealed with pure edge-to-center animation`);
+            console.log(`✅ Card ${position} revealed with smooth edge-to-center animation`);
         } else {
             console.log(`❌ No card back found for ${position}`);
             // Still mark as revealed even if no back found
@@ -666,20 +689,60 @@ class Trumps2Renderer {
         });
     }
 
-    updateScores(userScore, playerAScore, playerBScore) {
-        // Update score displays with animation
-        this.animateScoreUpdate(this.scoreElements.user.box, userScore);
-        this.animateScoreUpdate(this.scoreElements.playerA.box, playerAScore);
-        this.animateScoreUpdate(this.scoreElements.playerB.box, playerBScore);
+    updateScores(userScore, playerAScore, playerBScore, winningPlayer = null) {
+        // Update score displays with animation - only pulse the winning player's score
+        this.animateScoreUpdate(this.scoreElements.user.box, userScore, winningPlayer === 'user');
+        this.animateScoreUpdate(this.scoreElements.playerA.box, playerAScore, winningPlayer === 'playerA');
+        this.animateScoreUpdate(this.scoreElements.playerB.box, playerBScore, winningPlayer === 'playerB');
+        
+        // Create star sparkle on the winning player's score box
+        if (winningPlayer) {
+            this.createScoreStarSparkle(winningPlayer);
+        }
     }
 
-    animateScoreUpdate(scoreElement, newScore) {
-        scoreElement.classList.add('score-update');
+    animateScoreUpdate(scoreElement, newScore, shouldPulse = false) {
+        // Only add pulse class if this is the winning score
+        if (shouldPulse) {
+            scoreElement.classList.add('score-update');
+        }
         
         setTimeout(() => {
             scoreElement.textContent = newScore;
-            scoreElement.classList.remove('score-update');
+            if (shouldPulse) {
+                scoreElement.classList.remove('score-update');
+            }
         }, 400);
+    }
+    
+    createScoreStarSparkle(winningPlayer) {
+        const scoreBox = this.scoreElements[winningPlayer].box;
+        if (!scoreBox) return;
+        
+        const rect = scoreBox.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        // Create star sparkle using the main.css animation
+        const star = document.createElement('div');
+        star.innerHTML = '⭐';
+        star.className = 'completion-star';
+        star.style.position = 'fixed';
+        star.style.left = centerX + 'px';
+        star.style.top = centerY + 'px';
+        star.style.fontSize = '20px';
+        star.style.pointerEvents = 'none';
+        star.style.zIndex = '1000';
+        star.style.transform = 'translate(-50%, -50%)'; // Center the star
+        
+        document.body.appendChild(star);
+        
+        // Remove after animation completes (1.5s from main.css)
+        setTimeout(() => {
+            if (star.parentNode) {
+                star.parentNode.removeChild(star);
+            }
+        }, 1500);
     }
 
     setPlayerNames(playerAName, playerBName) {
