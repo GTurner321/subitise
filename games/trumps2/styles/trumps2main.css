@@ -515,6 +515,30 @@
     }
 }
 
+/* Star spiral animation */
+@keyframes starSpiral {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 0;
+    }
+    25% {
+        transform: translate(-50%, -50%) scale(1.5) rotate(90deg);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1) rotate(180deg);
+        opacity: 1;
+    }
+    75% {
+        transform: translate(-50%, -50%) scale(1.2) rotate(270deg);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(0.3) rotate(360deg);
+        opacity: 0;
+    }
+}
+
 /* ===== RAINBOW BACKGROUND ===== */
 
 .rainbow-container {
