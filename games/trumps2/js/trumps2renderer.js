@@ -538,52 +538,54 @@ class Trumps2Renderer {
             return;
         }
         
-        // Find and animate the card back with proper edge-to-center reveal
+        // Find the card back to flip
         const cardBack = this.rectContainer.querySelector(`.rect-card-back-${position}`);
         
         if (cardBack) {
-            console.log(`🎬 Animating edge-to-center reveal for ${position}`);
+            console.log(`🔄 Animating 90-degree vertical flip for ${position}`);
             
-            // Create two halves for smooth edge-to-center reveal
-            const leftHalf = cardBack.cloneNode(true);
-            const rightHalf = cardBack.cloneNode(true);
+            // Get card rotation centers based on position (in vw units relative to viewport)
+            const rotationCenters = {
+                'left': { x: 16.67, y: 59.5 },    // Not used currently but available
+                'middle': { x: 50, y: 59.5 },     // Center of middle card
+                'right': { x: 83.33, y: 59.5 }   // Center of right card
+            };
             
-            // Set up left half - reveals from left edge toward center
-            leftHalf.style.clipPath = 'inset(0 50% 0 0)'; // Show left half only
-            leftHalf.style.transformOrigin = 'right center'; // Pivot from the right edge (toward center)
-            leftHalf.style.transition = 'transform 0.6s ease-out'; // Slightly longer for smoother animation
-            leftHalf.style.zIndex = cardBack.style.zIndex || '30';
+            const center = rotationCenters[position];
+            if (!center) {
+                console.warn(`No rotation center defined for position: ${position}`);
+                return;
+            }
             
-            // Set up right half - reveals from right edge toward center
-            rightHalf.style.clipPath = 'inset(0 0 0 50%)'; // Show right half only
-            rightHalf.style.transformOrigin = 'left center'; // Pivot from the left edge (toward center)
-            rightHalf.style.transition = 'transform 0.6s ease-out'; // Slightly longer for smoother animation
-            rightHalf.style.zIndex = cardBack.style.zIndex || '30';
+            // Set up the flip animation on the card back
+            // Use the specified rotation center as transform-origin
+            cardBack.style.transformOrigin = `${center.x}vw ${center.y}vh`;
+            cardBack.style.transition = 'transform 0.6s ease-out';
+            cardBack.style.backfaceVisibility = 'hidden'; // Hide back face when rotated
             
-            // Replace original back with the two halves
-            cardBack.parentNode.insertBefore(leftHalf, cardBack);
-            cardBack.parentNode.insertBefore(rightHalf, cardBack);
-            cardBack.remove();
-            
-            // Small delay to ensure elements are in DOM
+            // Small delay to ensure styles are applied
             await this.wait(50);
             
-            // Start the reveal animation - both halves flip toward center
+            // Start the 90-degree rotation around vertical axis
             requestAnimationFrame(() => {
-                leftHalf.style.transform = 'scaleX(0)'; // Left half shrinks from its right edge toward center
-                rightHalf.style.transform = 'scaleX(0)'; // Right half shrinks from its left edge toward center
+                cardBack.style.transform = 'rotateY(90deg)';
             });
             
-            // Wait for animation to complete
-            await this.wait(600);
+            // Wait for animation to reach 90 degrees (halfway point)
+            await this.wait(300);
             
-            // Clean up - remove the half elements
-            if (leftHalf.parentNode) leftHalf.remove();
-            if (rightHalf.parentNode) rightHalf.remove();
+            // At 90 degrees, the card is edge-on and invisible - remove it completely
+            if (cardBack.parentNode) {
+                cardBack.remove();
+                console.log(`🗑️ Card back removed at 90-degree point for ${position}`);
+            }
+            
+            // Wait for the remaining animation time
+            await this.wait(300);
             
             // Mark as revealed
             this.revealedCards.add(position);
-            console.log(`✅ Card ${position} revealed with smooth edge-to-center animation`);
+            console.log(`✅ Card ${position} revealed with 90-degree vertical flip animation`);
         } else {
             console.log(`❌ No card back found for ${position}`);
             // Still mark as revealed even if no back found
@@ -591,15 +593,18 @@ class Trumps2Renderer {
         }
     }
 
-    // Add player name to card after selection with fade-in effect
+    // UPDATED: Add player name to card after selection with 1-second delay and 1.2-second fade-in - JOB 4
     async addPlayerNameToCard(position, playerName, playerType) {
-        console.log(`👤 Adding player name ${playerName} to ${position} card`);
+        console.log(`👤 Adding player name ${playerName} to ${position} card with 1s delay`);
         
         const titleElement = this.rectContainer.querySelector(`.${position}-title`);
         if (!titleElement) {
             console.warn(`No title element found for position ${position}`);
             return;
         }
+        
+        // Wait for 1 second before starting the name assignment
+        await this.wait(1000);
         
         // Set the player name and color
         titleElement.textContent = playerName.toUpperCase();
@@ -612,18 +617,18 @@ class Trumps2Renderer {
         };
         titleElement.style.color = colors[playerType] || '#333';
         
-        // Start invisible and fade in
+        // Start invisible and fade in over 1.2 seconds
         titleElement.style.opacity = '0';
-        titleElement.style.transition = 'opacity 1s ease-in';
+        titleElement.style.transition = 'opacity 1.2s ease-in';
         
-        // Trigger fade-in
+        // Trigger fade-in after a brief delay to ensure the transition takes effect
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 titleElement.style.opacity = '1';
             });
         });
         
-        console.log(`✅ Player name ${playerName} added to ${position} card with fade-in`);
+        console.log(`✅ Player name ${playerName} added to ${position} card with 1s delay and 1.2s fade-in`);
     }
 
     // Show incorrect selection feedback for highest selection phase
