@@ -1,6 +1,7 @@
 /**
  * Universal Audio System
  * Handles audio functionality and responsive UI buttons across all games
+ * Enhanced with complete tab visibility audio management
  */
 class AudioSystem {
     constructor(options = {}) {
@@ -19,6 +20,10 @@ class AudioSystem {
         this.muteButton = null;
         this.muteContainer = null;
         this.backButton = null;
+        
+        // Audio tracking for complete tab management
+        this.activeOscillators = new Set();
+        this.activeUtterances = new Set();
         
         this.initializeAudio();
         this.createButtons();
@@ -283,13 +288,34 @@ class AudioSystem {
     }
     
     setupVisibilityHandling() {
-        // Handle tab visibility changes
+        // Enhanced tab visibility handling for all audio types
         document.addEventListener('visibilitychange', () => {
             this.isTabVisible = !document.hidden;
             
             if (!this.isTabVisible) {
-                // Tab is hidden - stop all audio
+                console.log('🔇 Tab hidden - stopping all audio');
+                // Tab is hidden - stop all audio completely
                 this.stopAllAudio();
+            } else {
+                console.log('🔊 Tab visible - audio ready');
+                // Tab is visible - audio is ready for new sounds
+                // Don't automatically resume anything, just be ready
+            }
+        });
+        
+        // Also handle window focus/blur for additional browser compatibility
+        window.addEventListener('blur', () => {
+            if (this.isTabVisible) { // Only if visibility API didn't already handle it
+                console.log('🔇 Window blur - stopping all audio');
+                this.stopAllAudio();
+                this.isTabVisible = false;
+            }
+        });
+        
+        window.addEventListener('focus', () => {
+            if (!this.isTabVisible) { // Only if visibility API didn't already handle it
+                console.log('🔊 Window focus - audio ready');
+                this.isTabVisible = true;
             }
         });
     }
@@ -298,7 +324,7 @@ class AudioSystem {
         this.audioEnabled = !this.audioEnabled;
         this.updateMuteButtonIcon();
         
-        // Stop any current speech
+        // Stop any current audio when disabling
         this.stopAllAudio();
         
         // Provide feedback
@@ -317,13 +343,46 @@ class AudioSystem {
     }
     
     stopAllAudio() {
+        console.log('🛑 Stopping all audio types');
+        
+        // Stop speech synthesis
         if ('speechSynthesis' in window) {
             speechSynthesis.cancel();
         }
+        
+        // Stop all active oscillators (Web Audio API sounds)
+        this.activeOscillators.forEach(oscillator => {
+            try {
+                if (oscillator && typeof oscillator.stop === 'function') {
+                    oscillator.stop();
+                }
+            } catch (error) {
+                // Oscillator might already be stopped
+                console.warn('Error stopping oscillator:', error);
+            }
+        });
+        this.activeOscillators.clear();
+        
+        // Clear any active utterance tracking
+        this.activeUtterances.clear();
+        
+        // Suspend audio context to free resources
+        if (this.audioContext && this.audioContext.state === 'running') {
+            try {
+                this.audioContext.suspend();
+            } catch (error) {
+                console.warn('Error suspending audio context:', error);
+            }
+        }
+        
+        console.log('✅ All audio stopped and cleaned up');
     }
     
     speakText(text, options = {}) {
-        if (!this.audioEnabled || !this.isTabVisible) return;
+        if (!this.audioEnabled || !this.isTabVisible) {
+            console.log('🔇 Speech blocked: audioEnabled=' + this.audioEnabled + ', tabVisible=' + this.isTabVisible);
+            return;
+        }
         
         const defaults = {
             rate: 0.9,
@@ -336,7 +395,9 @@ class AudioSystem {
         
         try {
             if ('speechSynthesis' in window) {
+                // Stop any existing speech first
                 speechSynthesis.cancel();
+                this.activeUtterances.clear();
                 
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = settings.rate;
@@ -358,6 +419,19 @@ class AudioSystem {
                     if (selectedVoice) utterance.voice = selectedVoice;
                 }
                 
+                // Track utterance for cleanup
+                this.activeUtterances.add(utterance);
+                
+                // Clean up when utterance ends
+                utterance.onend = () => {
+                    this.activeUtterances.delete(utterance);
+                };
+                
+                utterance.onerror = () => {
+                    this.activeUtterances.delete(utterance);
+                };
+                
+                console.log('🗣️ Speaking:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
                 speechSynthesis.speak(utterance);
             }
         } catch (error) {
@@ -366,9 +440,17 @@ class AudioSystem {
     }
     
     playTone(frequency, duration = 0.5, type = 'sine', volume = 0.3) {
-        if (!this.audioEnabled || !this.audioContext) return;
+        if (!this.audioEnabled || !this.isTabVisible || !this.audioContext) {
+            console.log('🔇 Tone blocked: audioEnabled=' + this.audioEnabled + ', tabVisible=' + this.isTabVisible + ', audioContext=' + !!this.audioContext);
+            return;
+        }
         
         try {
+            // Resume audio context if suspended
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+            
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
             
@@ -381,17 +463,32 @@ class AudioSystem {
             gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
             
+            // Track oscillator for cleanup
+            this.activeOscillators.add(oscillator);
+            
+            // Remove from tracking when it ends
+            oscillator.onended = () => {
+                this.activeOscillators.delete(oscillator);
+            };
+            
             oscillator.start(this.audioContext.currentTime);
             oscillator.stop(this.audioContext.currentTime + duration);
+            
+            console.log('🎵 Playing tone:', frequency + 'Hz');
         } catch (error) {
             console.warn('Audio tone error:', error);
         }
     }
     
     playCompletionSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
+        if (!this.audioEnabled || !this.isTabVisible || !this.audioContext) return;
         
         try {
+            // Resume audio context if suspended
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+            
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
             
@@ -406,17 +503,30 @@ class AudioSystem {
             gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
             
+            // Track oscillator
+            this.activeOscillators.add(oscillator);
+            oscillator.onended = () => {
+                this.activeOscillators.delete(oscillator);
+            };
+            
             oscillator.start(this.audioContext.currentTime);
             oscillator.stop(this.audioContext.currentTime + 0.5);
+            
+            console.log('🎉 Playing completion sound');
         } catch (error) {
             console.warn('Completion sound error:', error);
         }
     }
     
     playFailureSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
+        if (!this.audioEnabled || !this.isTabVisible || !this.audioContext) return;
         
         try {
+            // Resume audio context if suspended
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+            
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
             
@@ -430,8 +540,16 @@ class AudioSystem {
             gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
             
+            // Track oscillator
+            this.activeOscillators.add(oscillator);
+            oscillator.onended = () => {
+                this.activeOscillators.delete(oscillator);
+            };
+            
             oscillator.start(this.audioContext.currentTime);
             oscillator.stop(this.audioContext.currentTime + 0.3);
+            
+            console.log('❌ Playing failure sound');
         } catch (error) {
             console.warn('Failure sound error:', error);
         }
