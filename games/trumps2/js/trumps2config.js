@@ -1,4 +1,4 @@
-// Animal Trumps Game Configuration
+// Animal Trumps Game Configuration - Version 2.0 - Highest Selection Phase
 const CONFIG = {
     // Game settings
     TOTAL_CARDS: 30,
@@ -93,18 +93,20 @@ const CONFIG = {
         CARD_SELECTION_PHASE_START: "Choose one of the cards, the others will be chosen by {playerA} and {playerB}. The highest number wins the round.",
         CARD_SELECTION_PHASE: "Choose a card.",
         
-        // User card selection
-        USER_CARD_SELECTED: "You have picked the {animal}, number {number}.",
+        // User card selection - removed animal name
+        USER_CARD_SELECTED: "You have picked number {number}.",
         
-        // AI player card selections
+        // AI player card selections - removed animal names and numbers from reveals
         SECOND_PICK: "{player} chooses the {position} card.",
-        SECOND_PICK_REVEAL: "It's the {animal}, number {number}.",
+        SECOND_PICK_REVEAL: "It's the {animal}.",
         THIRD_PICK: "{player} is left with the {position} card.",
-        THIRD_PICK_REVEAL: "It's the {animal}, number {number}.",
+        THIRD_PICK_REVEAL: "It's the {animal}.",
         
-        // Round results
-        WINNER_ANNOUNCEMENT: "{winner} wins this round!",
-        WINNER_ANNOUNCEMENT_YOU: "You win this round!",
+        // New highest selection phase messages
+        HIGHEST_SELECTION: "Which card is the highest?",
+        HIGHEST_SELECTION_PROMPT: "Click on the card with the highest score.",
+        HIGHEST_SELECTED_CORRECT: "That's right, {number} is the highest number. {winner} {wins} this round!",
+        HIGHEST_SELECTED_FAIL: "Try again.",
         
         // Game completion messages
         GAME_COMPLETE_WIN: "Congratulations! You've won the game! Play again or return to the home page.",
