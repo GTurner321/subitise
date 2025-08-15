@@ -1,7 +1,5 @@
-wait(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }// Clean Animal Trumps Game Controller - Version 2.0 - Highest Selection Phase
-console.log('🔄 Loading Clean Trumps2 Game Controller v2.0 - With Highest Selection Phase');
+// Clean Animal Trumps Game Controller - Version 2.0 - Highest Selection Phase
+console.log('🔄 Loading Clean Trumps2 Game Controller v2.0 - No Duplicates');
 
 class Trumps2GameController {
     constructor() {
@@ -630,7 +628,7 @@ class Trumps2GameController {
         
         // Visual feedback
         this.renderer.highlightWinner(null, results);
-        this.renderer.updateScores(this.scores.user, this.scores.playerA, this.scores.playerB, winner.player);
+        this.renderer.updateScores(this.scores.user, this.scores.playerA, this.scores.playerB, winners[0].player);
         
         // Add rainbow piece
         this.addRainbowPiece();
@@ -761,17 +759,6 @@ class Trumps2GameController {
         this.displayGameChoice();
     }
     
-    generateUniquePlayerNames() {
-        const playerA = AudioUtils.getRandomPlayerName();
-        let playerB;
-        
-        do {
-            playerB = AudioUtils.getRandomPlayerName();
-        } while (playerB === playerA);
-        
-        return { playerA, playerB };
-    }
-    
     createStarSparkle(cardPosition) {
         // Find the card number element to center the sparkle on
         const numberElement = document.querySelector(`.${cardPosition}-number`);
@@ -801,6 +788,21 @@ class Trumps2GameController {
                 star.parentNode.removeChild(star);
             }
         }, 1500);
+    }
+    
+    generateUniquePlayerNames() {
+        const playerA = AudioUtils.getRandomPlayerName();
+        let playerB;
+        
+        do {
+            playerB = AudioUtils.getRandomPlayerName();
+        } while (playerB === playerA);
+        
+        return { playerA, playerB };
+    }
+    
+    wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
     
     destroy() {
