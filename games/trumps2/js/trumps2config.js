@@ -337,7 +337,10 @@ const AudioUtils = {
     formatMessage: (template, replacements = {}) => {
         let message = template;
         Object.keys(replacements).forEach(key => {
-            message = message.replace(new RegExp(`{${key}}`, 'g'), replacements[key]);
+            const value = replacements[key];
+            // Handle undefined/null values by converting to empty string
+            const safeValue = (value !== undefined && value !== null) ? String(value) : '';
+            message = message.replace(new RegExp(`{${key}}`, 'g'), safeValue);
         });
         return message;
     },
