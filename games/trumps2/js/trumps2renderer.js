@@ -332,9 +332,9 @@ class Trumps2Renderer {
         cardFront.style.cursor = 'pointer';
         cardFront.style.pointerEvents = 'auto';
         
-        // For middle and right cards, start them mirrored (they'll be flipped later)
+        // For middle and right cards, start them rotated 180 degrees (back side)
         if (position === 'middle' || position === 'right') {
-            cardFront.style.transform = 'scaleX(-1)'; // Start mirrored
+            cardFront.style.transform = 'rotateY(180deg)'; // Start as back side
             cardFront.style.transformOrigin = '50% 50%';
         }
         
@@ -384,9 +384,9 @@ class Trumps2Renderer {
         title.style.lineHeight = '1.2';
         title.style.zIndex = '25';
         
-        // For middle and right cards, start title mirrored
+        // For middle and right cards, start title rotated 180 degrees
         if (position === 'middle' || position === 'right') {
-            title.style.transform = 'scaleX(-1)'; // Start mirrored
+            title.style.transform = 'rotateY(180deg)'; // Start as back side
             title.style.transformOrigin = '50% 50%';
         }
         
@@ -408,9 +408,9 @@ class Trumps2Renderer {
         pictureArea.style.overflow = 'hidden';
         pictureArea.style.zIndex = '25';
         
-        // For middle and right cards, start picture mirrored
+        // For middle and right cards, start picture rotated 180 degrees
         if (position === 'middle' || position === 'right') {
-            pictureArea.style.transform = 'scaleX(-1)'; // Start mirrored
+            pictureArea.style.transform = 'rotateY(180deg)'; // Start as back side
             pictureArea.style.transformOrigin = '50% 50%';
         }
         
@@ -467,9 +467,9 @@ class Trumps2Renderer {
         numberDisplay.style.background = 'transparent';
         numberDisplay.style.borderRadius = '8%';
         
-        // For middle and right cards, start number mirrored
+        // For middle and right cards, start number rotated 180 degrees
         if (position === 'middle' || position === 'right') {
-            numberDisplay.style.transform = 'scaleX(-1)'; // Start mirrored
+            numberDisplay.style.transform = 'rotateY(180deg)'; // Start as back side
             numberDisplay.style.transformOrigin = '50% 50%';
         }
         
@@ -523,32 +523,45 @@ class Trumps2Renderer {
     async pulseCardOnClick(position) {
         console.log(`💓 Adding single click pulse to ${position} card`);
         
-        // Find ALL elements for this position including specific text elements
-        const cardElements = this.rectContainer.querySelectorAll(
+        // Find different types of elements for different pulse styles
+        const cardAndPictureElements = this.rectContainer.querySelectorAll(
+            `.rect-card-${position}, .rect-card-back-${position}, .${position}-picture, .rect-card-picture.${position}-picture`
+        );
+        
+        const textElements = this.rectContainer.querySelectorAll(
+            `.${position}-title, .${position}-number, .rect-card-title.${position}-title, .rect-card-number.${position}-number`
+        );
+        
+        const allElements = this.rectContainer.querySelectorAll(
             `.rect-card-${position}, .rect-card-back-${position}, .${position}-title, .${position}-picture, .${position}-number, .rect-card-title.${position}-title, .rect-card-picture.${position}-picture, .rect-card-number.${position}-number`
         );
         
-        console.log(`Found ${cardElements.length} elements to pulse for ${position}`);
+        console.log(`Found ${allElements.length} elements to pulse for ${position}`);
         
         // FIRST: Immediately disable hover animations to prevent any hover pulse
-        cardElements.forEach(element => {
+        allElements.forEach(element => {
             element.classList.add('card-selected-no-hover');
         });
         
         // Small delay to ensure hover animations stop
         await this.wait(50);
         
-        // THEN: Add click pulse class to ALL elements
-        cardElements.forEach(element => {
-            element.classList.add('card-click-pulse');
+        // Apply different pulse animations to different element types
+        cardAndPictureElements.forEach(element => {
+            element.classList.add('card-click-pulse'); // Subtle pulse
+        });
+        
+        textElements.forEach(element => {
+            element.classList.add('text-click-pulse'); // More noticeable pulse
         });
         
         // Wait for pulse animation to complete (1 second)
         await this.wait(1000);
         
-        // Remove pulse class but keep no-hover class
-        cardElements.forEach(element => {
+        // Remove pulse classes but keep no-hover class
+        allElements.forEach(element => {
             element.classList.remove('card-click-pulse');
+            element.classList.remove('text-click-pulse');
         });
         
         console.log(`✅ Single click pulse completed for ${position} card`);
@@ -597,12 +610,12 @@ class Trumps2Renderer {
             requestAnimationFrame(() => {
                 allElements.forEach(element => {
                     const currentTransform = element.style.transform || '';
-                    // If element was already mirrored (scaleX(-1)), rotate to +180deg
-                    // If element was normal, rotate to +180deg
-                    if (currentTransform.includes('scaleX(-1)')) {
-                        element.style.transform = 'rotateY(180deg) scaleX(-1)';
+                    // If element was rotated 180deg (back side), rotate to 0deg (front side)
+                    // If element was normal (blue back), rotate to 180deg (disappear)
+                    if (currentTransform.includes('rotateY(180deg)')) {
+                        element.style.transform = 'rotateY(0deg)'; // Yellow elements flip to front
                     } else {
-                        element.style.transform = 'rotateY(180deg)';
+                        element.style.transform = 'rotateY(180deg)'; // Blue back flips away
                     }
                 });
             });
@@ -619,11 +632,10 @@ class Trumps2Renderer {
             // Wait for the remaining animation to complete (300ms more)
             await this.wait(300);
             
-            // After 180 degrees, the yellow elements should be right-way around
-            // Fix their final transform to be normal (remove any mirroring)
+            // After 180 degrees, ensure yellow elements are in normal front-facing position
             [yellowCard, yellowTitle, yellowPicture, yellowNumber].forEach(element => {
                 if (element) {
-                    element.style.transform = 'rotateY(0deg) scaleX(1)'; // Normal orientation
+                    element.style.transform = 'rotateY(0deg)'; // Normal front-facing orientation
                     element.style.transition = 'none'; // Remove transition for instant fix
                 }
             });
