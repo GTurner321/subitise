@@ -267,6 +267,11 @@
     animation: cardClickPulse 1s ease-out !important;
 }
 
+/* Text click pulse animation - more noticeable for text */
+.text-click-pulse {
+    animation: textClickPulse 1s ease-out !important;
+}
+
 /* Disable hover effects for selected cards */
 .card-selected-no-hover {
     cursor: default !important;
@@ -434,19 +439,38 @@
     animation: cardBackPulse 1s infinite !important;
 }
 
-/* Card click pulse animation - more moderate feedback */
+/* Card click pulse animation - more moderate feedback with separate pulses for different elements */
 @keyframes cardClickPulse {
     0% {
         transform: scale(1);
     }
     25% {
-        transform: scale(1.04); /* Reduced from 1.08 */
+        transform: scale(1.02); /* Reduced from 1.04 - very subtle for cards/pictures */
     }
     50% {
-        transform: scale(0.98); /* Reduced from 0.95 */
+        transform: scale(0.99); /* Reduced from 0.98 */
     }
     75% {
-        transform: scale(1.02); /* Reduced from 1.03 */
+        transform: scale(1.01); /* Reduced from 1.02 */
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Text click pulse animation - slightly more noticeable for text elements */
+@keyframes textClickPulse {
+    0% {
+        transform: scale(1);
+    }
+    25% {
+        transform: scale(1.06); /* Increased from barely noticeable */
+    }
+    50% {
+        transform: scale(0.97);
+    }
+    75% {
+        transform: scale(1.03);
     }
     100% {
         transform: scale(1);
