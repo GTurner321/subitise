@@ -8,7 +8,7 @@ const CONFIG = {
     GRID_COLS: 10,
     
     // Animation timings (milliseconds)
-    CARD_FADE_DURATION: 2000, // Time to fade out non-selected cards
+    CARD_FADE_DURATION: 1000, // Time to fade out non-selected cards (reduced from 2000)
     CARD_MOVE_DURATION: 800,   // Time for cards to slide into rectangular layout
     CARD_FLIP_DURATION: 600,   // Time for card flip animation
     RESULT_DISPLAY_DURATION: 2000, // Time to show round result
