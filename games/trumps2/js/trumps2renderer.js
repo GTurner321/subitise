@@ -490,17 +490,17 @@ class Trumps2Renderer {
             `.rect-card-${position}, .rect-card-back-${position}, .${position}-title, .${position}-picture, .${position}-number`
         );
         
-        // Add click pulse class
+        // Add click pulse class to ALL elements
         cardElements.forEach(element => {
             element.classList.add('card-click-pulse');
-            // Disable hover animations once clicked
+            // Disable hover animations once clicked (but only temporarily)
             element.classList.add('card-selected-no-hover');
         });
         
         // Wait for pulse animation to complete (1 second)
         await this.wait(1000);
         
-        // Remove pulse class but keep no-hover class
+        // Remove pulse class but keep no-hover class for now
         cardElements.forEach(element => {
             element.classList.remove('card-click-pulse');
         });
@@ -631,6 +631,22 @@ class Trumps2Renderer {
         this.rectContainer.style.pointerEvents = 'auto';
         
         console.log('✅ Cards restored and re-enabled');
+    }
+    
+    // Enable hover effects for highest selection phase
+    enableHoverEffectsForHighestSelection() {
+        console.log('🎯 Enabling hover effects for highest selection phase');
+        
+        // Remove no-hover class from all card elements to re-enable hover effects
+        const allCardElements = this.rectContainer.querySelectorAll(
+            '.rect-card, .rect-card-title, .rect-card-picture, .rect-card-number'
+        );
+        
+        allCardElements.forEach(element => {
+            element.classList.remove('card-selected-no-hover');
+        });
+        
+        console.log('✅ Hover effects enabled for all cards');
     }
 
     highlightWinner(winnerPosition, results) {
