@@ -398,10 +398,8 @@ class Trumps2GameController {
         // Mark card as revealed in renderer
         await this.renderer.revealCard(selectedCard, position);
         
-        // Wait 2 seconds then add player name to card
-        setTimeout(async () => {
-            await this.renderer.addPlayerNameToCard(position, 'YOU', 'user');
-        }, 2000);
+        // Add player name to card immediately (no delay)
+        await this.renderer.addPlayerNameToCard(position, 'YOU', 'user');
         
         // Wait for speech + 1 second buffer + reveal delay
         await this.wait(3000);
@@ -452,9 +450,8 @@ class Trumps2GameController {
         const secondPlayerName = this.aiFirstPlayer === 'playerA' ? 'playerB' : 'playerA';
         await this.announceAIPick(secondAICard, secondAIPosition, secondPlayerName, 'THIRD_PICK');
         
-        // All cards are now revealed - move to highest selection phase
+        // All cards are now revealed - move to highest selection phase immediately
         this.allCardsRevealed = true;
-        await this.wait(1000);
         this.startHighestSelectionPhase(userCard, firstAICard, secondAICard, userPosition, firstAIPosition, secondAIPosition);
     }
     
@@ -472,10 +469,8 @@ class Trumps2GameController {
         // Reveal card
         await this.renderer.revealCard(card, position);
         
-        // Wait 2 seconds then add player name to card
-        setTimeout(async () => {
-            await this.renderer.addPlayerNameToCard(position, this.playerNames[playerKey], playerKey);
-        }, 2000);
+        // Add player name to card immediately (no delay)
+        await this.renderer.addPlayerNameToCard(position, this.playerNames[playerKey], playerKey);
         
         // Wait briefly after reveal animation
         await this.wait(500);
