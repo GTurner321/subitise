@@ -20,6 +20,9 @@ class Trumps2Renderer {
         // Store player names for card labeling
         this.playerNames = { playerA: 'A', playerB: 'B' };
         
+        // Track card selection state for highest selection phase
+        this.cardsEnabled = true;
+        
         this.initializeLayout();
     }
 
@@ -241,6 +244,9 @@ class Trumps2Renderer {
         // Reset revealed cards for new round
         this.revealedCards.clear();
         
+        // Reset card selection state
+        this.cardsEnabled = true;
+        
         // Hide grid layout
         this.cardGrid.classList.add('hidden');
         
@@ -290,42 +296,6 @@ class Trumps2Renderer {
             this.createCardFronts(selectedCards[1], 'middle');
             this.createCardFronts(selectedCards[2], 'right');
         }, 1100);
-        
-        // After 2 seconds, fade in player names on cards
-        setTimeout(() => {
-            this.addPlayerNamesToCards();
-        }, 2000);
-    }
-
-    createRectCards(cards) {
-        const { rectWidth, rectHeight } = this.calculateRectDimensions();
-        const positions = ['left', 'middle', 'right'];
-        const layouts = [CONFIG.RECT_LAYOUT.LEFT_CARD, CONFIG.RECT_LAYOUT.MIDDLE_CARD, CONFIG.RECT_LAYOUT.RIGHT_CARD];
-        
-        cards.forEach((card, index) => {
-            const position = positions[index];
-            const layout = layouts[index];
-            
-            // Create card container
-            const cardElement = document.createElement('div');
-            cardElement.className = `rect-card rect-card-${position}`;
-            cardElement.dataset.cardId = card.id;
-            cardElement.dataset.position = position;
-            
-            this.positionRectElement(cardElement, layout.x, layout.y, layout.width, layout.height, rectWidth, rectHeight);
-            
-            // Add shadow to card
-            cardElement.style.boxShadow = `0 ${rectHeight * 0.04}px ${rectHeight * 0.08}px rgba(0,0,0,0.4)`;
-            
-            // Make all cards clickable (including left)
-            cardElement.style.cursor = 'pointer';
-            cardElement.style.pointerEvents = 'auto';
-            
-            // Create card front face content
-            this.createCardContent(cardElement, card, position, rectWidth, rectHeight);
-            
-            this.rectContainer.appendChild(cardElement);
-        });
     }
 
     createCardFronts(card, position) {
@@ -346,9 +316,7 @@ class Trumps2Renderer {
         cardFront.style.background = '#f5f5dc';
         cardFront.style.borderRadius = '8%';
         cardFront.style.boxShadow = `0 ${rectHeight * 0.04}px ${rectHeight * 0.08}px rgba(0,0,0,0.4)`;
-        // No border
         cardFront.style.zIndex = '25'; // Below back, visible when back is removed
-        // Make all cards clickable and add hover effect
         cardFront.style.cursor = 'pointer';
         cardFront.style.pointerEvents = 'auto';
         
@@ -377,12 +345,12 @@ class Trumps2Renderer {
         
         this.rectContainer.appendChild(cardFront);
         
-        // Create title
+        // Create title (initially empty - no animal names)
         const title = document.createElement('div');
         title.className = `rect-card-title ${position}-title`;
-        title.textContent = card.name;
+        title.textContent = ''; // Start empty - player names will be added later
         title.style.position = 'absolute';
-        title.dataset.position = position; // Add position data attribute
+        title.dataset.position = position;
         this.positionRectElement(title, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.x, 
                                 cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.y,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.width, 
@@ -390,7 +358,7 @@ class Trumps2Renderer {
         title.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.CARD_TITLE * 1.2}px`;
         title.style.fontFamily = 'Comic Sans MS, cursive';
         title.style.fontWeight = 'bold';
-        title.style.color = '#333';
+        title.style.color = '#333'; // Default color - will be changed when player assigned
         title.style.textTransform = 'uppercase';
         title.style.display = 'flex';
         title.style.alignItems = 'center';
@@ -403,7 +371,7 @@ class Trumps2Renderer {
         const pictureArea = document.createElement('div');
         pictureArea.className = `rect-card-picture ${position}-picture`;
         pictureArea.style.position = 'absolute';
-        pictureArea.dataset.position = position; // Add position data attribute
+        pictureArea.dataset.position = position;
         this.positionRectElement(pictureArea, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.x,
                                 cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.y,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.PICTURE.width,
@@ -451,7 +419,7 @@ class Trumps2Renderer {
         numberDisplay.className = `rect-card-number ${position}-number`;
         numberDisplay.textContent = card.value;
         numberDisplay.style.position = 'absolute';
-        numberDisplay.dataset.position = position; // Add position data attribute
+        numberDisplay.dataset.position = position;
         this.positionRectElement(numberDisplay, cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.x,
                                 cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.y,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.NUMBER.width,
@@ -467,7 +435,6 @@ class Trumps2Renderer {
         numberDisplay.style.zIndex = '25';
         numberDisplay.style.background = 'transparent';
         numberDisplay.style.borderRadius = '8%';
-        // No border
         this.rectContainer.appendChild(numberDisplay);
     }
 
@@ -557,29 +524,129 @@ class Trumps2Renderer {
             return;
         }
         
-        // Find and animate the card back
+        // Find and animate the card back with bidirectional reveal
         const cardBack = this.rectContainer.querySelector(`.rect-card-back-${position}`);
         
         if (cardBack) {
-            console.log(`🎬 Animating reveal for ${position}`);
-            cardBack.style.transformOrigin = 'right center';
-            cardBack.style.transition = 'transform 0.4s ease-out';
-            cardBack.style.transform = 'scaleX(0)';
+            console.log(`🎬 Animating bidirectional reveal for ${position}`);
+            
+            // Create two halves for bidirectional reveal
+            const leftHalf = cardBack.cloneNode(true);
+            const rightHalf = cardBack.cloneNode(true);
+            
+            // Set up left half (reveals from left edge)
+            leftHalf.style.clipPath = 'inset(0 50% 0 0)'; // Show left half only
+            leftHalf.style.transformOrigin = 'left center';
+            leftHalf.style.transition = 'transform 0.4s ease-out';
+            
+            // Set up right half (reveals from right edge)
+            rightHalf.style.clipPath = 'inset(0 0 0 50%)'; // Show right half only
+            rightHalf.style.transformOrigin = 'right center';
+            rightHalf.style.transition = 'transform 0.4s ease-out';
+            
+            // Replace original back with the two halves
+            cardBack.parentNode.insertBefore(leftHalf, cardBack);
+            cardBack.parentNode.insertBefore(rightHalf, cardBack);
+            cardBack.remove();
+            
+            // Start the reveal animation
+            requestAnimationFrame(() => {
+                leftHalf.style.transform = 'scaleX(0)';
+                rightHalf.style.transform = 'scaleX(0)';
+            });
             
             // Wait for animation
             await this.wait(400);
             
-            // Remove the back element
-            cardBack.remove();
+            // Remove the half elements
+            leftHalf.remove();
+            rightHalf.remove();
             
             // Mark as revealed
             this.revealedCards.add(position);
-            console.log(`✅ Card ${position} revealed`);
+            console.log(`✅ Card ${position} revealed with bidirectional animation`);
         } else {
             console.log(`❌ No card back found for ${position}`);
             // Still mark as revealed even if no back found
             this.revealedCards.add(position);
         }
+    }
+
+    // Add player name to card after selection with fade-in effect
+    async addPlayerNameToCard(position, playerName, playerType) {
+        console.log(`👤 Adding player name ${playerName} to ${position} card`);
+        
+        const titleElement = this.rectContainer.querySelector(`.${position}-title`);
+        if (!titleElement) {
+            console.warn(`No title element found for position ${position}`);
+            return;
+        }
+        
+        // Set the player name and color
+        titleElement.textContent = playerName.toUpperCase();
+        
+        // Set color based on player type
+        const colors = {
+            'user': '#2E7D32',    // Dark green
+            'playerA': '#E65100', // Dark orange
+            'playerB': '#1565C0'  // Blue
+        };
+        titleElement.style.color = colors[playerType] || '#333';
+        
+        // Start invisible and fade in
+        titleElement.style.opacity = '0';
+        titleElement.style.transition = 'opacity 1s ease-in';
+        
+        // Trigger fade-in
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                titleElement.style.opacity = '1';
+            });
+        });
+        
+        console.log(`✅ Player name ${playerName} added to ${position} card with fade-in`);
+    }
+
+    // Show incorrect selection feedback for highest selection phase
+    async showIncorrectSelection() {
+        console.log('❌ Showing incorrect selection feedback');
+        
+        // Make all cards partially transparent
+        const allCardElements = this.rectContainer.querySelectorAll(
+            '.rect-card, .rect-card-back, .rect-card-title, .rect-card-picture, .rect-card-number'
+        );
+        
+        allCardElements.forEach(element => {
+            element.style.transition = 'opacity 0.3s ease';
+            element.style.opacity = '0.3';
+        });
+        
+        // Disable card clicks
+        this.cardsEnabled = false;
+        this.rectContainer.style.pointerEvents = 'none';
+        
+        console.log('✅ Cards made transparent and disabled');
+    }
+
+    // Re-enable card selection after incorrect attempt
+    enableCardSelection() {
+        console.log('✅ Re-enabling card selection');
+        
+        // Restore full opacity
+        const allCardElements = this.rectContainer.querySelectorAll(
+            '.rect-card, .rect-card-back, .rect-card-title, .rect-card-picture, .rect-card-number'
+        );
+        
+        allCardElements.forEach(element => {
+            element.style.transition = 'opacity 0.3s ease';
+            element.style.opacity = '1';
+        });
+        
+        // Re-enable card clicks
+        this.cardsEnabled = true;
+        this.rectContainer.style.pointerEvents = 'auto';
+        
+        console.log('✅ Cards restored and re-enabled');
     }
 
     highlightWinner(winnerPosition, results) {
@@ -613,62 +680,6 @@ class Trumps2Renderer {
             scoreElement.textContent = newScore;
             scoreElement.classList.remove('score-update');
         }, 400);
-    }
-
-    addPlayerNamesToCards() {
-        console.log('👥 Adding player names to cards');
-        const { rectWidth, rectHeight } = this.calculateRectDimensions();
-        
-        const positions = ['left', 'middle', 'right'];
-        const playerNames = ['YOU', this.playerNames.playerA, this.playerNames.playerB];
-        const colors = ['#2E7D32', '#E65100', '#1565C0']; // Dark green, dark orange, blue
-        
-        positions.forEach((position, index) => {
-            const cardLayout = position === 'left' ? CONFIG.RECT_LAYOUT.LEFT_CARD : 
-                              position === 'middle' ? CONFIG.RECT_LAYOUT.MIDDLE_CARD : 
-                              CONFIG.RECT_LAYOUT.RIGHT_CARD;
-            
-            // Create player name element
-            const playerNameElement = document.createElement('div');
-            playerNameElement.className = `rect-card-player-name ${position}-player-name`;
-            playerNameElement.textContent = playerNames[index];
-            playerNameElement.style.position = 'absolute';
-            playerNameElement.dataset.position = position;
-            
-            // Position same as title but with player name styling
-            this.positionRectElement(playerNameElement, 
-                                   cardLayout.x + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.x, 
-                                   cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.y,
-                                   CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.width, 
-                                   CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.height, 
-                                   rectWidth, rectHeight);
-            
-            // Style the player name
-            playerNameElement.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.CARD_TITLE * 1.2}px`;
-            playerNameElement.style.fontFamily = 'Comic Sans MS, cursive';
-            playerNameElement.style.fontWeight = 'bold';
-            playerNameElement.style.color = colors[index];
-            playerNameElement.style.textTransform = 'uppercase';
-            playerNameElement.style.display = 'flex';
-            playerNameElement.style.alignItems = 'center';
-            playerNameElement.style.justifyContent = 'center';
-            playerNameElement.style.lineHeight = '1.2';
-            playerNameElement.style.zIndex = '30'; // Above everything else
-            playerNameElement.style.opacity = '0'; // Start invisible
-            playerNameElement.style.pointerEvents = 'none'; // Don't block clicks
-            
-            this.rectContainer.appendChild(playerNameElement);
-            
-            // Fade in with animation
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    playerNameElement.style.transition = 'opacity 1s ease-in';
-                    playerNameElement.style.opacity = '1';
-                });
-            });
-        });
-        
-        console.log('✅ Player names added to cards');
     }
 
     setPlayerNames(playerAName, playerBName) {
@@ -719,6 +730,9 @@ class Trumps2Renderer {
         
         // Reset revealed cards for next round
         this.revealedCards.clear();
+        
+        // Reset card selection state
+        this.cardsEnabled = true;
         
         // Switch back to grid layout
         this.switchToGridLayoutWithoutRender();
@@ -804,6 +818,9 @@ class Trumps2Renderer {
         
         // Reset revealed cards
         this.revealedCards.clear();
+        
+        // Reset card selection state
+        this.cardsEnabled = true;
         
         this.initializeLayout();
     }
