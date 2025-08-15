@@ -431,8 +431,9 @@ class Trumps2GameController {
         // Add click pulse effect and disable hover animations
         await this.renderer.pulseCardOnClick(position);
         
-        // Announce user choice with delay (no animal name, just number)
+        // Announce user choice with animal name and number
         const userMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.USER_CARD_SELECTED, {
+            animal: selectedCard.name,
             number: selectedCard.value
         });
         window.AudioSystem.speakText(userMessage);
@@ -443,8 +444,8 @@ class Trumps2GameController {
         // Add player name to card immediately (no delay)
         await this.renderer.addPlayerNameToCard(position, 'YOU', 'user');
         
-        // Wait for speech + reduced buffer (reduced from 3000ms to 1000ms)
-        await this.wait(1000);
+        // Wait for speech + extra 1 second for longer animal name announcement (increased from 1000ms to 2000ms)
+        await this.wait(2000);
         await this.handleAIDecisions(selectedCard, position);
     }
     
@@ -604,16 +605,18 @@ class Trumps2GameController {
             // Create star sparkle on the highest number using RENDERER method
             this.renderer.createStarSparkle(selectedPosition);
             
-            // Announce correct selection and winner
+            // Announce correct selection and winner with random praise and animal name
             const correctMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTED_CORRECT, {
+                praise: AudioUtils.getRandomPraise(),
                 number: winningCard.card.value,
                 winner: winnerName,
-                wins: winnerName === 'You' ? 'win' : 'wins'
+                wins: winnerName === 'You' ? 'win' : 'wins',
+                animal: winningCard.card.name
             });
             window.AudioSystem.speakText(correctMessage);
             
-            // Proceed to determine round winner
-            await this.wait(3000);
+            // Proceed to determine round winner with extra 1 second for longer message (increased from 3000ms to 4000ms)
+            await this.wait(4000);
             this.determineRoundWinner();
             
         } else {
