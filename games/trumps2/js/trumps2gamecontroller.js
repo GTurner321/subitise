@@ -1,5 +1,5 @@
-// Clean Animal Trumps Game Controller - Version 1.2 - Fixed Duplicate Selection
-console.log('🔄 Loading Clean Trumps2 Game Controller v1.2 - No Duplicates');
+// Clean Animal Trumps Game Controller - Version 2.0 - Highest Selection Phase
+console.log('🔄 Loading Clean Trumps2 Game Controller v2.0 - With Highest Selection Phase');
 
 class Trumps2GameController {
     constructor() {
@@ -22,7 +22,7 @@ class Trumps2GameController {
         console.log('📋 Initializing Properties');
         
         // Game state
-        this.gamePhase = 'waiting';
+        this.gamePhase = 'waiting'; // waiting, selection, comparison, highest_selection, ai_turn
         this.currentRound = 1;
         this.scores = { user: 0, playerA: 0, playerB: 0 };
         this.selectedCards = [];
@@ -37,6 +37,12 @@ class Trumps2GameController {
         this.roundResults = [];
         this.currentTurn = null;
         this.aiFirstPlayer = Math.random() < 0.5 ? 'playerA' : 'playerB';
+        
+        // Highest selection phase state
+        this.allCardsRevealed = false;
+        this.highestCardPosition = null;
+        this.userHighestAttempts = 0;
+        this.inactivityTimeout = null;
         
         console.log('✅ Properties Initialized');
     }
@@ -94,6 +100,11 @@ class Trumps2GameController {
             this.handleAllClicks(e);
         });
         
+        // Disable right-click context menu document-wide
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+        
         // Keyboard shortcuts for testing
         document.addEventListener('keydown', (e) => {
             if (e.key === 's' || e.key === 'S') {
@@ -126,6 +137,10 @@ class Trumps2GameController {
         
         if (this.gamePhase === 'comparison' && this.renderer.currentMode === 'rect') {
             this.handleRectClick(e);
+        }
+        
+        if (this.gamePhase === 'highest_selection' && this.renderer.currentMode === 'rect') {
+            this.handleHighestSelectionClick(e);
         }
         
         // Handle play again button
@@ -183,6 +198,38 @@ class Trumps2GameController {
         }
     }
     
+    handleHighestSelectionClick(e) {
+        // Similar to handleRectClick but for highest selection phase
+        const rectCard = e.target.closest('.rect-card');
+        const rectCardBack = e.target.closest('.rect-card-back');
+        
+        let position = null;
+        
+        if (rectCard && rectCard.dataset.position) {
+            position = rectCard.dataset.position;
+        } else if (rectCardBack && rectCardBack.dataset.position) {
+            position = rectCardBack.dataset.position;
+        } else {
+            const cardElement = e.target.closest('[data-position]');
+            if (cardElement && cardElement.dataset.position) {
+                position = cardElement.dataset.position;
+            } else {
+                const element = e.target.closest('.left-title, .left-picture, .left-number, .middle-title, .middle-picture, .middle-number, .right-title, .right-picture, .right-number');
+                if (element) {
+                    const classes = element.className;
+                    if (classes.includes('left-')) position = 'left';
+                    else if (classes.includes('middle-')) position = 'middle';
+                    else if (classes.includes('right-')) position = 'right';
+                }
+            }
+        }
+        
+        if (position) {
+            console.log('🎯 User selected highest card:', position);
+            this.selectHighestCard(position);
+        }
+    }
+    
     displayGameChoice() {
         console.log('🎪 Displaying Game Choice Modal');
         
@@ -233,6 +280,15 @@ class Trumps2GameController {
         this.userSelectedPosition = null;
         this.roundResults = [];
         this.currentTurn = null;
+        this.allCardsRevealed = false;
+        this.highestCardPosition = null;
+        this.userHighestAttempts = 0;
+        
+        // Clear any existing timeouts
+        if (this.inactivityTimeout) {
+            clearTimeout(this.inactivityTimeout);
+            this.inactivityTimeout = null;
+        }
         
         // Alternate AI first player
         this.aiFirstPlayer = this.currentRound % 2 === 1 ? 'playerA' : 'playerB';
@@ -333,9 +389,8 @@ class Trumps2GameController {
         // Add click pulse effect and disable hover animations
         await this.renderer.pulseCardOnClick(position);
         
-        // Announce user choice with delay
+        // Announce user choice with delay (no animal name, just number)
         const userMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.USER_CARD_SELECTED, {
-            animal: selectedCard.name,
             number: selectedCard.value
         });
         window.AudioSystem.speakText(userMessage);
@@ -343,8 +398,13 @@ class Trumps2GameController {
         // Mark card as revealed in renderer
         await this.renderer.revealCard(selectedCard, position);
         
+        // Wait 2 seconds then add player name to card
+        setTimeout(async () => {
+            await this.renderer.addPlayerNameToCard(position, 'YOU', 'user');
+        }, 2000);
+        
         // Wait for speech + 1 second buffer + reveal delay
-        await this.wait(3000); // Increased delay
+        await this.wait(3000);
         await this.handleAIDecisions(selectedCard, position);
     }
     
@@ -392,8 +452,10 @@ class Trumps2GameController {
         const secondPlayerName = this.aiFirstPlayer === 'playerA' ? 'playerB' : 'playerA';
         await this.announceAIPick(secondAICard, secondAIPosition, secondPlayerName, 'THIRD_PICK');
         
+        // All cards are now revealed - move to highest selection phase
+        this.allCardsRevealed = true;
         await this.wait(1000);
-        this.determineRoundWinner(userCard, firstAICard, secondAICard, userPosition, firstAIPosition, secondAIPosition);
+        this.startHighestSelectionPhase(userCard, firstAICard, secondAICard, userPosition, firstAIPosition, secondAIPosition);
     }
     
     async announceAIPick(card, position, playerKey, pickType) {
@@ -410,14 +472,18 @@ class Trumps2GameController {
         // Reveal card
         await this.renderer.revealCard(card, position);
         
+        // Wait 2 seconds then add player name to card
+        setTimeout(async () => {
+            await this.renderer.addPlayerNameToCard(position, this.playerNames[playerKey], playerKey);
+        }, 2000);
+        
         // Wait briefly after reveal animation
         await this.wait(500);
         
-        // Announce the card details
+        // Announce the card details (just animal name, no number)
         const revealType = pickType === 'SECOND_PICK' ? 'SECOND_PICK_REVEAL' : 'THIRD_PICK_REVEAL';
         const revealMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES[revealType], {
-            animal: card.name,
-            number: card.value
+            animal: card.name
         });
         window.AudioSystem.speakText(revealMessage);
         
@@ -425,20 +491,126 @@ class Trumps2GameController {
         await this.wait(2500);
     }
     
-    determineRoundWinner(userCard, firstAICard, secondAICard, userPos, firstAIPos, secondAIPos) {
+    async startHighestSelectionPhase(userCard, firstAICard, secondAICard, userPos, firstAIPos, secondAIPos) {
+        console.log('🔢 Starting Highest Selection Phase');
+        
+        this.gamePhase = 'highest_selection';
+        
+        // Store round data for later use
+        this.roundData = {
+            cards: [
+                { card: userCard, player: 'user', position: userPos },
+                { card: firstAICard, player: this.aiFirstPlayer, position: firstAIPos },
+                { card: secondAICard, player: this.aiFirstPlayer === 'playerA' ? 'playerB' : 'playerA', position: secondAIPos }
+            ]
+        };
+        
+        // Determine the highest card position
+        const maxValue = Math.max(userCard.value, firstAICard.value, secondAICard.value);
+        if (userCard.value === maxValue) {
+            this.highestCardPosition = userPos;
+        } else if (firstAICard.value === maxValue) {
+            this.highestCardPosition = firstAIPos;
+        } else {
+            this.highestCardPosition = secondAIPos;
+        }
+        
+        console.log(`🎯 Highest card is at position: ${this.highestCardPosition} with value: ${maxValue}`);
+        
+        // Wait 2 seconds then ask user to identify highest card
+        await this.wait(2000);
+        window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTION);
+        
+        // Set inactivity timeout for 10 seconds
+        this.inactivityTimeout = setTimeout(() => {
+            if (this.gamePhase === 'highest_selection') {
+                window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTION_PROMPT);
+            }
+        }, 10000);
+    }
+    
+    async selectHighestCard(selectedPosition) {
+        if (this.gamePhase !== 'highest_selection') {
+            return;
+        }
+        
+        // Clear inactivity timeout
+        if (this.inactivityTimeout) {
+            clearTimeout(this.inactivityTimeout);
+            this.inactivityTimeout = null;
+        }
+        
+        console.log(`🎯 User selected position ${selectedPosition} as highest. Correct is ${this.highestCardPosition}`);
+        
+        // Add click pulse effect
+        await this.renderer.pulseCardOnClick(selectedPosition);
+        
+        if (selectedPosition === this.highestCardPosition) {
+            // Correct selection
+            console.log('✅ Correct highest card selected');
+            this.userHighestAttempts++;
+            
+            // Find the winning card value
+            const winningCard = this.roundData.cards.find(c => c.position === selectedPosition);
+            const winnerPlayer = winningCard.player;
+            let winnerName;
+            
+            if (winnerPlayer === 'user') {
+                winnerName = 'You';
+            } else {
+                winnerName = this.playerNames[winnerPlayer];
+            }
+            
+            // Play positive sound
+            window.AudioSystem.playCompletionSound();
+            
+            // Announce correct selection and winner
+            const correctMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTED_CORRECT, {
+                number: winningCard.card.value,
+                winner: winnerName,
+                wins: winnerName === 'You' ? 'win' : 'wins'
+            });
+            window.AudioSystem.speakText(correctMessage);
+            
+            // Proceed to determine round winner
+            await this.wait(3000);
+            this.determineRoundWinner();
+            
+        } else {
+            // Incorrect selection
+            console.log('❌ Incorrect highest card selected');
+            this.userHighestAttempts++;
+            
+            // Play negative sound
+            window.AudioSystem.playFailureSound();
+            
+            // Make all cards partially transparent and disable clicks temporarily
+            await this.renderer.showIncorrectSelection();
+            
+            // Announce try again
+            window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTED_FAIL);
+            
+            // Re-enable cards after 2 seconds
+            setTimeout(() => {
+                this.renderer.enableCardSelection();
+                // Reset inactivity timeout
+                this.inactivityTimeout = setTimeout(() => {
+                    if (this.gamePhase === 'highest_selection') {
+                        window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTION_PROMPT);
+                    }
+                }, 10000);
+            }, 2000);
+        }
+    }
+    
+    determineRoundWinner() {
         console.log('🏆 Determining Round Winner');
         
-        const cards = [
-            { card: userCard, player: 'user', position: userPos },
-            { card: firstAICard, player: this.aiFirstPlayer, position: firstAIPos },
-            { card: secondAICard, player: this.aiFirstPlayer === 'playerA' ? 'playerB' : 'playerA', position: secondAIPos }
-        ];
-        
+        const cards = this.roundData.cards;
         const maxValue = Math.max(...cards.map(c => c.card.value));
         const winners = cards.filter(c => c.card.value === maxValue);
         
         let results = ['loser', 'loser', 'loser'];
-        let winnerName = '';
         
         if (winners.length === 1) {
             const winner = winners[0];
@@ -446,38 +618,17 @@ class Trumps2GameController {
             results[winnerIndex] = 'winner';
             
             this.scores[winner.player]++;
-            
-            if (winner.player === 'user') {
-                winnerName = 'You';
-                window.AudioSystem.playCompletionSound();
-            } else {
-                winnerName = this.playerNames[winner.player];
-                window.AudioSystem.playFailureSound();
-            }
         } else {
             // Multiple winners (shouldn't happen with unique values 1-30)
             winners.forEach(winner => {
                 const winnerIndex = cards.findIndex(c => c.position === winner.position);
                 results[winnerIndex] = 'draw';
             });
-            window.AudioSystem.playTone(440, 0.2, 'sine', 0.2);
-            winnerName = 'draw';
         }
         
         // Visual feedback
         this.renderer.highlightWinner(null, results);
         this.renderer.updateScores(this.scores.user, this.scores.playerA, this.scores.playerB);
-        
-        // Audio announcement - use different message for "You"
-        let winnerMessage;
-        if (winnerName === 'You') {
-            winnerMessage = CONFIG.AUDIO_MESSAGES.WINNER_ANNOUNCEMENT_YOU;
-        } else {
-            winnerMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.WINNER_ANNOUNCEMENT, {
-                winner: winnerName
-            });
-        }
-        window.AudioSystem.speakText(winnerMessage);
         
         // Add rainbow piece
         this.addRainbowPiece();
@@ -506,6 +657,12 @@ class Trumps2GameController {
     
     async completeRound() {
         console.log('✅ Round Complete');
+        
+        // Clear any remaining timeouts
+        if (this.inactivityTimeout) {
+            clearTimeout(this.inactivityTimeout);
+            this.inactivityTimeout = null;
+        }
         
         // Remove used cards
         this.availableCards = this.availableCards.filter(
@@ -568,16 +725,25 @@ class Trumps2GameController {
         if (this.rainbow) this.rainbow.reset();
         if (this.bear) this.bear.stopCelebration();
         
+        // Clear any timeouts
+        if (this.inactivityTimeout) {
+            clearTimeout(this.inactivityTimeout);
+            this.inactivityTimeout = null;
+        }
+        
         // Reset state
         this.currentRound = 1;
         this.scores = { user: 0, playerA: 0, playerB: 0 };
         this.gamePhase = 'waiting';
         this.selectedCards = [];
-        this.selectedCardIds.clear(); // Clear selected card IDs
+        this.selectedCardIds.clear();
         this.gameComplete = false;
         this.userSelectedPosition = null;
         this.roundResults = [];
         this.firstCardSelection = true;
+        this.allCardsRevealed = false;
+        this.highestCardPosition = null;
+        this.userHighestAttempts = 0;
         
         // Generate new names
         this.playerNames = this.generateUniquePlayerNames();
@@ -612,6 +778,10 @@ class Trumps2GameController {
         if (this.rainbow) this.rainbow.destroy();
         if (this.bear) this.bear.stopCelebration();
         if (this.gameChoice) this.gameChoice.destroy();
+        if (this.inactivityTimeout) {
+            clearTimeout(this.inactivityTimeout);
+            this.inactivityTimeout = null;
+        }
         this.renderer.reset();
     }
 }
