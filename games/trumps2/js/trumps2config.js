@@ -33,13 +33,15 @@ const CONFIG = {
         // Rectangle aspect ratio (width:height)
         ASPECT_RATIO: 1.62, // 162:100
         
-        // Score elements (converted from 162-unit system to percentages)
-        LEFT_SCORE_NAME: { x: 1.23, y: 4, width: 16.05, height: 15 },
-        LEFT_SCORE_BOX: { x: 18.52, y: 4, width: 9.26, height: 15 },
-        MIDDLE_SCORE_NAME: { x: 34.57, y: 4, width: 16.05, height: 15 },
-        MIDDLE_SCORE_BOX: { x: 51.85, y: 4, width: 9.26, height: 15 },
-        RIGHT_SCORE_NAME: { x: 67.9, y: 4, width: 16.05, height: 15 },
-        RIGHT_SCORE_BOX: { x: 85.19, y: 4, width: 9.26, height: 15 },
+        // Score elements (updated positioning)
+        LEFT_SCORE_BOX: { x: 12.96, y: 2, width: 7.41, height: 12 },
+        MIDDLE_SCORE_BOX: { x: 46.3, y: 2, width: 7.41, height: 12 },
+        RIGHT_SCORE_BOX: { x: 79.6, y: 2, width: 7.41, height: 12 },
+        
+        // Player name labels (moved below score boxes)
+        LEFT_SCORE_NAME: { x: 1.23, y: 14, width: 30.86, height: 8 },
+        MIDDLE_SCORE_NAME: { x: 34.6, y: 14, width: 30.86, height: 8 },
+        RIGHT_SCORE_NAME: { x: 67.9, y: 14, width: 30.86, height: 8 },
         
         // Cards
         LEFT_CARD: { x: 1.23, y: 23, width: 30.86, height: 73 },
