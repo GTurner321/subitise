@@ -434,19 +434,19 @@
     animation: cardBackPulse 1s infinite !important;
 }
 
-/* Card click pulse animation - stronger feedback */
+/* Card click pulse animation - more moderate feedback */
 @keyframes cardClickPulse {
     0% {
         transform: scale(1);
     }
     25% {
-        transform: scale(1.08);
+        transform: scale(1.04); /* Reduced from 1.08 */
     }
     50% {
-        transform: scale(0.95);
+        transform: scale(0.98); /* Reduced from 0.95 */
     }
     75% {
-        transform: scale(1.03);
+        transform: scale(1.02); /* Reduced from 1.03 */
     }
     100% {
         transform: scale(1);
