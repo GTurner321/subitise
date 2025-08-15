@@ -1,5 +1,6 @@
 class RaisinRenderer {
     constructor() {
+        console.log('🍇 RaisinRenderer - Universal Systems Version');
         this.gameArea = document.querySelector('.game-area');
         this.raisins = [];
         this.raisinElements = [];
@@ -7,57 +8,109 @@ class RaisinRenderer {
         this.guineaPig2 = document.getElementById('guineaPig2');
         this.guineaPig1 = document.getElementById('guineaPig1');
         
+        // Wait for game area to be properly sized by ButtonBar
+        this.setupResizeHandling();
         this.setupGuineaPigSizes();
     }
     
+    setupResizeHandling() {
+        // Listen for ButtonBar dimension updates
+        if (window.ButtonBar) {
+            window.ButtonBar.addObserver(() => {
+                this.setupGuineaPigSizes();
+            });
+        }
+        
+        // Also handle window resize
+        window.addEventListener('resize', () => {
+            setTimeout(() => {
+                this.setupGuineaPigSizes();
+            }, 100);
+        });
+    }
+    
     setupGuineaPigSizes() {
-        const screenWidth = window.innerWidth;
+        if (!this.gameArea) return;
         
-        // Set guinea pig sizes - guinea pig 2 and 1 are now 20% larger
-        const gp3Size = screenWidth * CONFIG.GUINEA_PIG_3_SIZE;
-        const gp2Size = screenWidth * CONFIG.GUINEA_PIG_2_SIZE * 1.2; // 20% larger
-        const gp1Size = screenWidth * CONFIG.GUINEA_PIG_1_SIZE * 1.2; // 20% larger
+        // Get actual game area dimensions (set by ButtonBar)
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+        const gameAreaWidth = gameAreaRect.width;
         
-        this.guineaPig3.style.cssText = `
-            width: ${gp3Size}px;
-            height: ${gp3Size}px;
-        `;
+        // Use game area width for sizing (more consistent than screen width)
+        const gp3Size = gameAreaWidth * CONFIG.GUINEA_PIG_3_SIZE;
+        const gp2Size = gameAreaWidth * CONFIG.GUINEA_PIG_2_SIZE * 1.2; // 20% larger
+        const gp1Size = gameAreaWidth * CONFIG.GUINEA_PIG_1_SIZE * 1.2; // 20% larger
         
-        this.guineaPig2.style.cssText = `
-            width: ${gp2Size}px;
-            height: ${gp2Size}px;
-        `;
+        if (this.guineaPig3) {
+            this.guineaPig3.style.cssText = `
+                width: ${gp3Size}px;
+                height: ${gp3Size}px;
+            `;
+        }
         
-        this.guineaPig1.style.cssText = `
-            width: ${gp1Size}px;
-            height: ${gp1Size}px;
-        `;
+        if (this.guineaPig2) {
+            this.guineaPig2.style.cssText = `
+                width: ${gp2Size}px;
+                height: ${gp2Size}px;
+            `;
+        }
+        
+        if (this.guineaPig1) {
+            this.guineaPig1.style.cssText = `
+                width: ${gp1Size}px;
+                height: ${gp1Size}px;
+            `;
+        }
+        
+        console.log('🐹 Guinea pig sizes updated:', {
+            gp3: Math.round(gp3Size),
+            gp2: Math.round(gp2Size), 
+            gp1: Math.round(gp1Size),
+            gameAreaWidth: Math.round(gameAreaWidth)
+        });
     }
     
     generateRaisinPositions() {
-        const gameAreaRect = this.gameArea.getBoundingClientRect();
-        const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
+        if (!this.gameArea) {
+            console.error('Game area not found for raisin positioning');
+            return [];
+        }
         
-        // Calculate raisin size
-        const raisinSize = Math.min(screenWidth * CONFIG.RAISIN_SIZE, screenHeight * CONFIG.RAISIN_SIZE);
-        const minDistance = Math.min(screenWidth * CONFIG.RAISIN_MIN_DISTANCE, screenHeight * CONFIG.RAISIN_MIN_DISTANCE);
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+        const gameAreaWidth = gameAreaRect.width;
+        const gameAreaHeight = gameAreaRect.height;
+        
+        // Calculate raisin size based on game area
+        const raisinSize = gameAreaWidth * CONFIG.RAISIN_SIZE;
+        const minDistance = gameAreaWidth * CONFIG.RAISIN_MIN_DISTANCE;
         
         // Calculate usable area (excluding guinea pig 3 area - top left)
         const exclusionZone = CONFIG.GUINEA_PIG_3_EXCLUSION;
-        const exclusionX = gameAreaRect.width * exclusionZone.x;
-        const exclusionY = gameAreaRect.height * exclusionZone.y;
-        const exclusionWidth = gameAreaRect.width * exclusionZone.width;
-        const exclusionHeight = gameAreaRect.height * exclusionZone.height;
+        const exclusionX = gameAreaWidth * exclusionZone.x;
+        const exclusionY = gameAreaHeight * exclusionZone.y;
+        const exclusionWidth = gameAreaWidth * exclusionZone.width;
+        const exclusionHeight = gameAreaHeight * exclusionZone.height;
         
         // Add margin to prevent raisins from going off-screen
         const margin = raisinSize / 2;
-        const usableWidth = gameAreaRect.width - (2 * margin);
-        const usableHeight = gameAreaRect.height - (2 * margin);
+        const usableWidth = gameAreaWidth - (2 * margin);
+        const usableHeight = gameAreaHeight - (2 * margin);
         
         const positions = [];
         let attempts = 0;
         const maxAttempts = 2000;
+        
+        console.log('🍇 Generating raisin positions:', {
+            gameAreaSize: `${Math.round(gameAreaWidth)}x${Math.round(gameAreaHeight)}`,
+            raisinSize: Math.round(raisinSize),
+            minDistance: Math.round(minDistance),
+            exclusionZone: {
+                x: Math.round(exclusionX),
+                y: Math.round(exclusionY),
+                width: Math.round(exclusionWidth),
+                height: Math.round(exclusionHeight)
+            }
+        });
         
         // Generate exactly 10 raisin positions with proper overlap detection
         while (positions.length < 10 && attempts < maxAttempts) {
@@ -111,7 +164,7 @@ class RaisinRenderer {
         
         // If we couldn't generate 10 positions, reduce constraints progressively
         if (positions.length < 10) {
-            console.warn(`Only generated ${positions.length} raisin positions, reducing constraints...`);
+            console.warn(`🍇 Only generated ${positions.length} raisin positions, reducing constraints...`);
             const reducedMinDistance = minDistance * 0.5;
             
             while (positions.length < 10 && attempts < maxAttempts + 1000) {
@@ -159,6 +212,8 @@ class RaisinRenderer {
             }
         }
         
+        console.log(`🍇 Generated ${positions.length} raisin positions after ${attempts} attempts`);
+        
         return positions.map(pos => ({
             x: pos.x,
             y: pos.y,
@@ -172,6 +227,11 @@ class RaisinRenderer {
         
         // Generate new positions
         this.raisins = this.generateRaisinPositions();
+        
+        if (this.raisins.length === 0) {
+            console.error('🍇 No raisin positions generated!');
+            return;
+        }
         
         // Create raisin elements using exactly the 10 different PNG files
         this.raisins.forEach((raisin, index) => {
@@ -207,10 +267,12 @@ class RaisinRenderer {
                 raisinElement.style.opacity = '1';
                 raisinElement.style.animation = 'raisinStaggeredAppear 0.5s ease-in forwards';
                 
-                // Play pat sound with reduced volume to minimize lag
+                // Play pat sound with reduced volume using AudioSystem
                 this.playPatSound();
             }, staggerDelay);
         });
+        
+        console.log(`🍇 Created ${this.raisinElements.length} raisin elements`);
     }
     
     clearRaisins() {
@@ -221,20 +283,30 @@ class RaisinRenderer {
         });
         this.raisinElements = [];
         this.raisins = [];
+        console.log('🍇 Cleared all raisins');
     }
     
     hideGuineaPig3() {
-        this.guineaPig3.classList.add('hidden');
-        this.guineaPig3.classList.remove('bounce');
+        if (this.guineaPig3) {
+            this.guineaPig3.classList.add('hidden');
+            this.guineaPig3.classList.remove('bounce');
+        }
     }
     
     showGuineaPig3() {
-        this.guineaPig3.classList.remove('hidden');
-        this.guineaPig3.classList.add('bounce');
+        if (this.guineaPig3) {
+            this.guineaPig3.classList.remove('hidden');
+            this.guineaPig3.classList.add('bounce');
+        }
     }
     
     async fadeOutGuineaPig3() {
         return new Promise((resolve) => {
+            if (!this.guineaPig3) {
+                resolve();
+                return;
+            }
+            
             this.guineaPig3.style.transition = 'opacity 0.5s ease-out';
             this.guineaPig3.style.opacity = '0';
             this.guineaPig3.classList.remove('bounce');
@@ -248,6 +320,11 @@ class RaisinRenderer {
     
     async fadeInGuineaPig3() {
         return new Promise((resolve) => {
+            if (!this.guineaPig3) {
+                resolve();
+                return;
+            }
+            
             this.guineaPig3.classList.remove('hidden');
             this.guineaPig3.style.transition = 'opacity 0.5s ease-in';
             this.guineaPig3.style.opacity = '1';
@@ -261,6 +338,11 @@ class RaisinRenderer {
     
     async moveGuineaPig2(raisinsToEat) {
         return new Promise((resolve) => {
+            if (!this.guineaPig2 || !this.gameArea) {
+                resolve();
+                return;
+            }
+            
             const gameAreaRect = this.gameArea.getBoundingClientRect();
             const startX = -this.guineaPig2.offsetWidth;
             const endX = gameAreaRect.width;
@@ -289,6 +371,11 @@ class RaisinRenderer {
     
     async moveGuineaPig1(raisinsToEat) {
         return new Promise((resolve) => {
+            if (!this.guineaPig1 || !this.gameArea) {
+                resolve();
+                return;
+            }
+            
             const gameAreaRect = this.gameArea.getBoundingClientRect();
             
             // Show guinea pig 1 and position it on the right side
@@ -320,6 +407,8 @@ class RaisinRenderer {
     }
     
     eatRaisinsOnPath(guineaPig, raisinsToEat, direction) {
+        if (!guineaPig || !this.gameArea) return;
+        
         const animationDuration = CONFIG.GUINEA_PIG_ANIMATION_DURATION;
         const checkInterval = 20; // Check every 20ms for smoother detection
         const totalChecks = animationDuration / checkInterval;
@@ -404,44 +493,42 @@ class RaisinRenderer {
     }
     
     playPatSound() {
-        // Optimized pat sound with reduced complexity to minimize lag
-        if (window.raisinGame && window.raisinGame.audioContext && window.raisinGame.audioEnabled) {
-            try {
-                const oscillator = window.raisinGame.audioContext.createOscillator();
-                const gainNode = window.raisinGame.audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(window.raisinGame.audioContext.destination);
-                
-                oscillator.frequency.setValueAtTime(800, window.raisinGame.audioContext.currentTime);
-                oscillator.type = 'sine'; // Changed from square to sine for smoother sound
-                
-                gainNode.gain.setValueAtTime(0.05, window.raisinGame.audioContext.currentTime); // Reduced volume
-                gainNode.gain.exponentialRampToValueAtTime(0.001, window.raisinGame.audioContext.currentTime + 0.08); // Shorter duration
-                
-                oscillator.start(window.raisinGame.audioContext.currentTime);
-                oscillator.stop(window.raisinGame.audioContext.currentTime + 0.08);
-            } catch (error) {
-                // Silent failure
-            }
+        // Use AudioSystem for pat sound with reduced complexity to minimize lag
+        if (window.AudioSystem) {
+            window.AudioSystem.playTone(800, 0.08, 'sine', 0.05); // Reduced volume and duration
         }
     }
     
     reset() {
+        console.log('🍇 Resetting raisin renderer');
+        
         this.clearRaisins();
-        this.guineaPig2.classList.add('hidden');
-        this.guineaPig1.classList.add('hidden');
+        
+        if (this.guineaPig2) {
+            this.guineaPig2.classList.add('hidden');
+        }
+        
+        if (this.guineaPig1) {
+            this.guineaPig1.classList.add('hidden');
+        }
         
         // Reset guinea pig 3 to initial state
-        this.guineaPig3.style.opacity = '1';
-        this.guineaPig3.style.transition = '';
-        this.showGuineaPig3();
+        if (this.guineaPig3) {
+            this.guineaPig3.style.opacity = '1';
+            this.guineaPig3.style.transition = '';
+            this.showGuineaPig3();
+        }
         
         // Reset guinea pig positions properly
-        this.guineaPig2.style.left = '-25%';
-        this.guineaPig2.style.right = 'auto';
-        this.guineaPig1.style.right = '-25%';
-        this.guineaPig1.style.left = 'auto';
+        if (this.guineaPig2) {
+            this.guineaPig2.style.left = '-25%';
+            this.guineaPig2.style.right = 'auto';
+        }
+        
+        if (this.guineaPig1) {
+            this.guineaPig1.style.right = '-25%';
+            this.guineaPig1.style.left = 'auto';
+        }
         
         // Clear any remaining nom effects
         const nomEffects = this.gameArea.querySelectorAll('.nom-effect');
@@ -456,5 +543,16 @@ class RaisinRenderer {
         return this.raisinElements.filter(element => 
             !element.classList.contains('eaten') && element.parentNode
         ).length;
+    }
+    
+    destroy() {
+        // Clean up resize observer
+        if (window.ButtonBar) {
+            window.ButtonBar.removeObserver(this.setupGuineaPigSizes);
+        }
+        
+        window.removeEventListener('resize', this.setupGuineaPigSizes);
+        
+        this.reset();
     }
 }
