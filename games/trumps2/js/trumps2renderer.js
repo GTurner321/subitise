@@ -544,22 +544,9 @@ class Trumps2Renderer {
         if (cardBack) {
             console.log(`🔄 Animating 90-degree vertical flip for ${position}`);
             
-            // Get card rotation centers based on position (in vw units relative to viewport)
-            const rotationCenters = {
-                'left': { x: 16.67, y: 59.5 },    // Not used currently but available
-                'middle': { x: 50, y: 59.5 },     // Center of middle card
-                'right': { x: 83.33, y: 59.5 }   // Center of right card
-            };
-            
-            const center = rotationCenters[position];
-            if (!center) {
-                console.warn(`No rotation center defined for position: ${position}`);
-                return;
-            }
-            
             // Set up the flip animation on the card back
-            // Use the specified rotation center as transform-origin
-            cardBack.style.transformOrigin = `${center.x}vw ${center.y}vh`;
+            // Use center of the card (50% 50%) as transform-origin since it's positioned within the container
+            cardBack.style.transformOrigin = '50% 50%';
             cardBack.style.transition = 'transform 0.6s ease-out';
             cardBack.style.backfaceVisibility = 'hidden'; // Hide back face when rotated
             
@@ -593,9 +580,9 @@ class Trumps2Renderer {
         }
     }
 
-    // UPDATED: Add player name to card after selection with 1-second delay and 1.2-second fade-in - JOB 4
+    // UPDATED: Add player name to card after selection with shorter delay and faster fade-in - JOB 4 MODIFIED
     async addPlayerNameToCard(position, playerName, playerType) {
-        console.log(`👤 Adding player name ${playerName} to ${position} card with 1s delay`);
+        console.log(`👤 Adding player name ${playerName} to ${position} card with 0.5s delay`);
         
         const titleElement = this.rectContainer.querySelector(`.${position}-title`);
         if (!titleElement) {
@@ -603,8 +590,8 @@ class Trumps2Renderer {
             return;
         }
         
-        // Wait for 1 second before starting the name assignment
-        await this.wait(1000);
+        // Wait for 0.5 seconds before starting the name assignment (reduced from 1 second)
+        await this.wait(500);
         
         // Set the player name and color
         titleElement.textContent = playerName.toUpperCase();
@@ -617,9 +604,9 @@ class Trumps2Renderer {
         };
         titleElement.style.color = colors[playerType] || '#333';
         
-        // Start invisible and fade in over 1.2 seconds
+        // Start invisible and fade in over 0.8 seconds (reduced from 1.2 seconds)
         titleElement.style.opacity = '0';
-        titleElement.style.transition = 'opacity 1.2s ease-in';
+        titleElement.style.transition = 'opacity 0.8s ease-in';
         
         // Trigger fade-in after a brief delay to ensure the transition takes effect
         requestAnimationFrame(() => {
@@ -628,7 +615,7 @@ class Trumps2Renderer {
             });
         });
         
-        console.log(`✅ Player name ${playerName} added to ${position} card with 1s delay and 1.2s fade-in`);
+        console.log(`✅ Player name ${playerName} added to ${position} card with 0.5s delay and 0.8s fade-in`);
     }
 
     // Show incorrect selection feedback for highest selection phase
