@@ -13,7 +13,7 @@ const CONFIG = {
     CARD_FLIP_DURATION: 600,   // Time for card flip animation
     RESULT_DISPLAY_DURATION: 2000, // Time to show round result
     RESET_DELAY: 1000,         // Delay before starting next round
-    PAUSE_BETWEEN_REVEALS: 1500, // Pause between card reveals (reduced from 2500 for Job 1)
+    PAUSE_BETWEEN_REVEALS: 1000, // Pause between card reveals (reduced from 1500 for Issues 2&3)
     SPEECH_COMPLETION_BUFFER: 2500, // Extra time for speech to complete (new)
     
     // Visual settings
@@ -335,12 +335,22 @@ class ImagePreloader {
 // Utility functions for audio message formatting
 const AudioUtils = {
     formatMessage: (template, replacements = {}) => {
+        if (!template) {
+            console.warn('formatMessage: template is undefined or empty');
+            return '';
+        }
+        
         let message = template;
         Object.keys(replacements).forEach(key => {
             const value = replacements[key];
             // Handle undefined/null values by converting to empty string
-            const safeValue = (value !== undefined && value !== null) ? String(value) : '';
-            message = message.replace(new RegExp(`{${key}}`, 'g'), safeValue);
+            let safeValue = '';
+            if (value !== undefined && value !== null) {
+                safeValue = String(value);
+            } else {
+                console.warn(`formatMessage: replacement value for key "${key}" is undefined/null in template "${template}"`);
+            }
+            message = message.replace(new RegExp(`\\{${key}\\}`, 'g'), safeValue);
         });
         return message;
     },
