@@ -1,6 +1,7 @@
 /**
  * Universal Button Bar System
  * Handles responsive button layout across all games and coordinates with game areas
+ * Styles managed through CSS classes for better separation of concerns
  */
 class ButtonBar {
     constructor() {
@@ -207,31 +208,14 @@ class ButtonBar {
     styleContainer() {
         const container = this.container;
         
-        // Base container styles - FULL WIDTH background with proper spacing
-        // Total height: 3vh (bottom) + button height + 2vh (top)
+        // Apply height via CSS custom property for dynamic height calculation
         const buttonHeightVw = (this.config.y * this.dimensions.buttonPanelWidth) / 100;
-        
-        container.style.cssText = `
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100vw;
-            height: calc(${buttonHeightVw}vw + 5vh);
-            background: #f5f5f5;
-            display: flex;
-            align-items: flex-end;
-            justify-content: flex-start;
-            padding: 0;
-            margin: 0;
-            z-index: 100;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-        `;
+        container.style.setProperty('--button-bar-height', `calc(${buttonHeightVw}vw + 5vh)`);
+        container.style.height = `calc(${buttonHeightVw}vw + 5vh)`;
         
         // Add loaded class after brief delay for animations
         setTimeout(() => {
             container.classList.add('loaded');
-            container.style.opacity = '1';
         }, 200);
     }
     
@@ -250,75 +234,44 @@ class ButtonBar {
             button.dataset.number = buttonNumber;
             button.textContent = buttonNumber;
             
-            // Set button color
+            // Set button color and CSS variables
             const buttonColor = this.config.colors[i] || defaultColors[i % defaultColors.length];
+            button.style.setProperty('--btn-color', buttonColor);
+            button.style.backgroundColor = buttonColor;
             
-            // Calculate font size based on button dimensions - made even larger
-            const fontSize = this.dimensions.buttonWidth / 2; // Changed from /4 to /2 for twice as large
-            
-            button.style.cssText = `
-                position: absolute;
-                width: ${this.dimensions.buttonWidth}px;
-                height: ${this.dimensions.buttonHeight}px;
-                bottom: 3vh;
-                font-size: ${fontSize}px;
-                font-weight: bold;
-                color: white;
-                background-color: ${buttonColor};
-                border: none;
-                border-radius: 18px;
-                cursor: pointer;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                touch-action: manipulation;
-                -webkit-touch-callout: none;
-                -webkit-user-select: none;
-                user-select: none;
-                pointer-events: auto;
-                outline: none;
-                opacity: 0;
-                transform: translateY(10px);
-                transition: all 0.3s ease;
-                --btn-color: ${buttonColor};
-            `;
+            // Set dimensions and font size
+            const fontSize = this.dimensions.buttonWidth / 2; // Large font size
+            button.style.width = `${this.dimensions.buttonWidth}px`;
+            button.style.height = `${this.dimensions.buttonHeight}px`;
+            button.style.fontSize = `${fontSize}px`;
             
             // Add event listeners
-            if (this.clickHandler) {
-                button.addEventListener('click', (e) => {
-                    const selectedNumber = parseInt(e.target.dataset.number);
-                    this.clickHandler(selectedNumber, e.target);
-                });
-                
-                button.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    const selectedNumber = parseInt(e.target.dataset.number);
-                    this.clickHandler(selectedNumber, e.target);
-                });
-            }
-            
-            // Add hover effects
-            button.addEventListener('mouseenter', () => {
-                if (!button.classList.contains('disabled')) {
-                    button.style.transform = 'translateY(-2px)';
-                    button.style.boxShadow = '0 6px 12px rgba(0,0,0,0.3)';
-                }
-            });
-            
-            button.addEventListener('mouseleave', () => {
-                if (!button.classList.contains('disabled')) {
-                    button.style.transform = 'translateY(0)';
-                    button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                }
-            });
+            this.addButtonEventListeners(button);
             
             this.container.appendChild(button);
             this.buttons.push(button);
         }
     }
     
+    addButtonEventListeners(button) {
+        // Click and touch handlers
+        if (this.clickHandler) {
+            button.addEventListener('click', (e) => {
+                const selectedNumber = parseInt(e.target.dataset.number);
+                this.clickHandler(selectedNumber, e.target);
+            });
+            
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const selectedNumber = parseInt(e.target.dataset.number);
+                this.clickHandler(selectedNumber, e.target);
+            });
+        }
+    }
+    
     positionButtons() {
         this.buttons.forEach((button, index) => {
-            // Calculate left position for this button - ADD outside margin offset
-            // Use buttonSpacing (button width + actual gap) between buttons
+            // Calculate left position for this button with outside margin offset
             const leftPosition = this.dimensions.outsideMargin * (window.innerWidth / 100) + 
                 this.dimensions.insideMargin + 
                 (index * this.dimensions.buttonSpacing);
@@ -360,8 +313,7 @@ class ButtonBar {
             
             // Update button positions and sizes
             this.buttons.forEach((button, index) => {
-                const fontSize = this.dimensions.buttonWidth / 2; // Changed from /4 to /2 for twice as large
-                // ADD outside margin offset for resize
+                const fontSize = this.dimensions.buttonWidth / 2;
                 const leftPosition = this.dimensions.outsideMargin * (window.innerWidth / 100) + 
                     this.dimensions.insideMargin + 
                     (index * this.dimensions.buttonSpacing);
@@ -554,26 +506,14 @@ class ButtonBar {
     addCrossOverlay(buttonElement) {
         if (!buttonElement) return;
         
-        // Calculate cross size as 60% of button width
-        const buttonWidth = parseFloat(buttonElement.style.width) || this.dimensions.buttonWidth;
-        const crossSize = this.dimensions.buttonHeight * 0.6; // Use height instead of width
-        const crossThickness = crossSize * 0.133; // Maintain proportions (8px / 60px = 0.133)
+        // Calculate cross size as 60% of button height
+        const crossSize = this.dimensions.buttonHeight * 0.6;
+        const crossThickness = crossSize * 0.133; // Maintain proportions
         
         const crossOverlay = document.createElement('div');
         crossOverlay.className = 'cross-overlay';
-        crossOverlay.style.cssText = `
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: ${crossSize}px;
-            height: ${crossSize}px;
-            pointer-events: none;
-            z-index: 10;
-            animation: crossAppear 0.3s ease-out;
-        `;
         
-        // Create the cross lines as pseudo-elements via CSS custom properties
+        // Set CSS custom properties for cross dimensions
         crossOverlay.style.setProperty('--cross-size', `${crossSize}px`);
         crossOverlay.style.setProperty('--cross-thickness', `${crossThickness}px`);
         
@@ -601,14 +541,8 @@ class ButtonBar {
         this.buttons.forEach(button => {
             if (enabled) {
                 button.classList.remove('disabled');
-                button.style.opacity = '1';
-                button.style.cursor = 'pointer';
-                button.style.pointerEvents = 'auto';
             } else {
                 button.classList.add('disabled');
-                button.style.opacity = '0.6';
-                button.style.cursor = 'not-allowed';
-                button.style.pointerEvents = 'none';
             }
         });
     }
@@ -620,9 +554,6 @@ class ButtonBar {
         if (!buttonElement) return;
         
         buttonElement.classList.add('used');
-        buttonElement.style.opacity = '0.6';
-        buttonElement.style.filter = 'brightness(0.7)';
-        buttonElement.style.cursor = 'not-allowed';
     }
     
     /**
