@@ -158,7 +158,9 @@
 
 /* Modern browser synchronized hover using :has() selector */
 @supports (selector(:has(*))) {
-    /* Left card stack synchronized hover - for ALL visible elements (front yellow or blue back) */
+    /* Left card stack synchronized hover - only visible elements */
+    .rect-container:has(.rect-card-back-left:hover:not(.card-selected-no-hover)) .rect-card-back-left:not(.card-selected-no-hover),
+    
     .rect-container:has(.rect-card-left:hover:not(.card-selected-no-hover)) .rect-card-left:not(.card-selected-no-hover),
     .rect-container:has(.rect-card-left:hover:not(.card-selected-no-hover)) .left-title:not(.card-selected-no-hover),
     .rect-container:has(.rect-card-left:hover:not(.card-selected-no-hover)) .left-picture:not(.card-selected-no-hover),
@@ -177,63 +179,64 @@
     .rect-container:has(.left-number:hover:not(.card-selected-no-hover)) .rect-card-left:not(.card-selected-no-hover),
     .rect-container:has(.left-number:hover:not(.card-selected-no-hover)) .left-title:not(.card-selected-no-hover),
     .rect-container:has(.left-number:hover:not(.card-selected-no-hover)) .left-picture:not(.card-selected-no-hover),
-    .rect-container:has(.left-number:hover:not(.card-selected-no-hover)) .left-number:not(.card-selected-no-hover),
-    
-    /* Blue back hover for left card when present */
-    .rect-container:has(.rect-card-back-left:hover:not(.card-selected-no-hover)) .rect-card-back-left:not(.card-selected-no-hover) {
+    .rect-container:has(.left-number:hover:not(.card-selected-no-hover)) .left-number:not(.card-selected-no-hover) {
         animation: cardPulse 1s infinite;
     }
 
-    /* Middle card stack synchronized hover - for ALL visible elements */
-    .rect-container:has(.rect-card-middle:hover:not(.card-selected-no-hover)) .rect-card-middle:not(.card-selected-no-hover),
-    .rect-container:has(.rect-card-middle:hover:not(.card-selected-no-hover)) .middle-title:not(.card-selected-no-hover),
-    .rect-container:has(.rect-card-middle:hover:not(.card-selected-no-hover)) .middle-picture:not(.card-selected-no-hover),
-    .rect-container:has(.rect-card-middle:hover:not(.card-selected-no-hover)) .middle-number:not(.card-selected-no-hover),
-    
-    .rect-container:has(.middle-title:hover:not(.card-selected-no-hover)) .rect-card-middle:not(.card-selected-no-hover),
-    .rect-container:has(.middle-title:hover:not(.card-selected-no-hover)) .middle-title:not(.card-selected-no-hover),
-    .rect-container:has(.middle-title:hover:not(.card-selected-no-hover)) .middle-picture:not(.card-selected-no-hover),
-    .rect-container:has(.middle-title:hover:not(.card-selected-no-hover)) .middle-number:not(.card-selected-no-hover),
-    
-    .rect-container:has(.middle-picture:hover:not(.card-selected-no-hover)) .rect-card-middle:not(.card-selected-no-hover),
-    .rect-container:has(.middle-picture:hover:not(.card-selected-no-hover)) .middle-title:not(.card-selected-no-hover),
-    .rect-container:has(.middle-picture:hover:not(.card-selected-no-hover)) .middle-picture:not(.card-selected-no-hover),
-    .rect-container:has(.middle-picture:hover:not(.card-selected-no-hover)) .middle-number:not(.card-selected-no-hover),
-    
-    .rect-container:has(.middle-number:hover:not(.card-selected-no-hover)) .rect-card-middle:not(.card-selected-no-hover),
-    .rect-container:has(.middle-number:hover:not(.card-selected-no-hover)) .middle-title:not(.card-selected-no-hover),
-    .rect-container:has(.middle-number:hover:not(.card-selected-no-hover)) .middle-picture:not(.card-selected-no-hover),
-    .rect-container:has(.middle-number:hover:not(.card-selected-no-hover)) .middle-number:not(.card-selected-no-hover),
-    
-    /* Blue back hover for middle card when present */
+    /* Middle card stack synchronized hover - separate blue and yellow */
     .rect-container:has(.rect-card-back-middle:hover:not(.card-selected-no-hover)) .rect-card-back-middle:not(.card-selected-no-hover) {
         animation: cardBackPulse 1s infinite;
     }
+    
+    /* Only pulse yellow middle elements if NO blue back exists */
+    .rect-container:not(:has(.rect-card-back-middle)):has(.rect-card-middle:hover:not(.card-selected-no-hover)) .rect-card-middle:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.rect-card-middle:hover:not(.card-selected-no-hover)) .middle-title:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.rect-card-middle:hover:not(.card-selected-no-hover)) .middle-picture:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.rect-card-middle:hover:not(.card-selected-no-hover)) .middle-number:not(.card-selected-no-hover),
+    
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-title:hover:not(.card-selected-no-hover)) .rect-card-middle:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-title:hover:not(.card-selected-no-hover)) .middle-title:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-title:hover:not(.card-selected-no-hover)) .middle-picture:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-title:hover:not(.card-selected-no-hover)) .middle-number:not(.card-selected-no-hover),
+    
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-picture:hover:not(.card-selected-no-hover)) .rect-card-middle:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-picture:hover:not(.card-selected-no-hover)) .middle-title:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-picture:hover:not(.card-selected-no-hover)) .middle-picture:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-picture:hover:not(.card-selected-no-hover)) .middle-number:not(.card-selected-no-hover),
+    
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-number:hover:not(.card-selected-no-hover)) .rect-card-middle:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-number:hover:not(.card-selected-no-hover)) .middle-title:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-number:hover:not(.card-selected-no-hover)) .middle-picture:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-middle)):has(.middle-number:hover:not(.card-selected-no-hover)) .middle-number:not(.card-selected-no-hover) {
+        animation: cardPulse 1s infinite;
+    }
 
-    /* Right card stack synchronized hover - for ALL visible elements */
-    .rect-container:has(.rect-card-right:hover:not(.card-selected-no-hover)) .rect-card-right:not(.card-selected-no-hover),
-    .rect-container:has(.rect-card-right:hover:not(.card-selected-no-hover)) .right-title:not(.card-selected-no-hover),
-    .rect-container:has(.rect-card-right:hover:not(.card-selected-no-hover)) .right-picture:not(.card-selected-no-hover),
-    .rect-container:has(.rect-card-right:hover:not(.card-selected-no-hover)) .right-number:not(.card-selected-no-hover),
-    
-    .rect-container:has(.right-title:hover:not(.card-selected-no-hover)) .rect-card-right:not(.card-selected-no-hover),
-    .rect-container:has(.right-title:hover:not(.card-selected-no-hover)) .right-title:not(.card-selected-no-hover),
-    .rect-container:has(.right-title:hover:not(.card-selected-no-hover)) .right-picture:not(.card-selected-no-hover),
-    .rect-container:has(.right-title:hover:not(.card-selected-no-hover)) .right-number:not(.card-selected-no-hover),
-    
-    .rect-container:has(.right-picture:hover:not(.card-selected-no-hover)) .rect-card-right:not(.card-selected-no-hover),
-    .rect-container:has(.right-picture:hover:not(.card-selected-no-hover)) .right-title:not(.card-selected-no-hover),
-    .rect-container:has(.right-picture:hover:not(.card-selected-no-hover)) .right-picture:not(.card-selected-no-hover),
-    .rect-container:has(.right-picture:hover:not(.card-selected-no-hover)) .right-number:not(.card-selected-no-hover),
-    
-    .rect-container:has(.right-number:hover:not(.card-selected-no-hover)) .rect-card-right:not(.card-selected-no-hover),
-    .rect-container:has(.right-number:hover:not(.card-selected-no-hover)) .right-title:not(.card-selected-no-hover),
-    .rect-container:has(.right-number:hover:not(.card-selected-no-hover)) .right-picture:not(.card-selected-no-hover),
-    .rect-container:has(.right-number:hover:not(.card-selected-no-hover)) .right-number:not(.card-selected-no-hover),
-    
-    /* Blue back hover for right card when present */
+    /* Right card stack synchronized hover - separate blue and yellow */
     .rect-container:has(.rect-card-back-right:hover:not(.card-selected-no-hover)) .rect-card-back-right:not(.card-selected-no-hover) {
         animation: cardBackPulse 1s infinite;
+    }
+    
+    /* Only pulse yellow right elements if NO blue back exists */
+    .rect-container:not(:has(.rect-card-back-right)):has(.rect-card-right:hover:not(.card-selected-no-hover)) .rect-card-right:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.rect-card-right:hover:not(.card-selected-no-hover)) .right-title:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.rect-card-right:hover:not(.card-selected-no-hover)) .right-picture:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.rect-card-right:hover:not(.card-selected-no-hover)) .right-number:not(.card-selected-no-hover),
+    
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-title:hover:not(.card-selected-no-hover)) .rect-card-right:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-title:hover:not(.card-selected-no-hover)) .right-title:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-title:hover:not(.card-selected-no-hover)) .right-picture:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-title:hover:not(.card-selected-no-hover)) .right-number:not(.card-selected-no-hover),
+    
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-picture:hover:not(.card-selected-no-hover)) .rect-card-right:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-picture:hover:not(.card-selected-no-hover)) .right-title:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-picture:hover:not(.card-selected-no-hover)) .right-picture:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-picture:hover:not(.card-selected-no-hover)) .right-number:not(.card-selected-no-hover),
+    
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-number:hover:not(.card-selected-no-hover)) .rect-card-right:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-number:hover:not(.card-selected-no-hover)) .right-title:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-number:hover:not(.card-selected-no-hover)) .right-picture:not(.card-selected-no-hover),
+    .rect-container:not(:has(.rect-card-back-right)):has(.right-number:hover:not(.card-selected-no-hover)) .right-number:not(.card-selected-no-hover) {
+        animation: cardPulse 1s infinite;
     }
 }
 
