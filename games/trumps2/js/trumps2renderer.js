@@ -524,47 +524,31 @@ class Trumps2Renderer {
             return;
         }
         
-        // Find and animate the card back with edge-to-center reveal (like a flipping card)
+        // Find and animate the card back with pure edge-to-center reveal
         const cardBack = this.rectContainer.querySelector(`.rect-card-back-${position}`);
         
         if (cardBack) {
-            console.log(`🎬 Animating edge-to-center reveal for ${position}`);
+            console.log(`🎬 Animating pure edge-to-center reveal for ${position}`);
             
-            // Create two halves for edge-to-center reveal
-            const leftHalf = cardBack.cloneNode(true);
-            const rightHalf = cardBack.cloneNode(true);
+            // Use a single element with clip-path animation from edges to center
+            cardBack.style.transformOrigin = 'center center';
+            cardBack.style.transition = 'clip-path 0.4s ease-out';
             
-            // Set up left half (reveals from left edge toward center)
-            leftHalf.style.clipPath = 'inset(0 50% 0 0)'; // Show left half only
-            leftHalf.style.transformOrigin = 'right center'; // Pivot from right edge (toward center)
-            leftHalf.style.transition = 'transform 0.4s ease-out';
-            
-            // Set up right half (reveals from right edge toward center)  
-            rightHalf.style.clipPath = 'inset(0 0 0 50%)'; // Show right half only
-            rightHalf.style.transformOrigin = 'left center'; // Pivot from left edge (toward center)
-            rightHalf.style.transition = 'transform 0.4s ease-out';
-            
-            // Replace original back with the two halves
-            cardBack.parentNode.insertBefore(leftHalf, cardBack);
-            cardBack.parentNode.insertBefore(rightHalf, cardBack);
-            cardBack.remove();
-            
-            // Start the reveal animation - both halves flip toward center
+            // Start the reveal animation - clip from edges to center
             requestAnimationFrame(() => {
-                leftHalf.style.transform = 'scaleX(0)'; // Left half shrinks from right edge
-                rightHalf.style.transform = 'scaleX(0)'; // Right half shrinks from left edge
+                // Animate clip-path from full card to center line (edges disappear toward center)
+                cardBack.style.clipPath = 'inset(0 50% 0 50%)'; // Clips to center vertical line (width = 0)
             });
             
             // Wait for animation
             await this.wait(400);
             
-            // Remove the half elements
-            leftHalf.remove();
-            rightHalf.remove();
+            // Remove the card back element
+            cardBack.remove();
             
             // Mark as revealed
             this.revealedCards.add(position);
-            console.log(`✅ Card ${position} revealed with edge-to-center animation`);
+            console.log(`✅ Card ${position} revealed with pure edge-to-center animation`);
         } else {
             console.log(`❌ No card back found for ${position}`);
             // Still mark as revealed even if no back found
