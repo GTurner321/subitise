@@ -1,13 +1,15 @@
 /**
  * Universal Audio System
  * Handles audio functionality and responsive UI buttons across all games
- * Enhanced with complete tab visibility audio management
+ * Enhanced with complete tab visibility audio management and fullscreen support
+ * Styles managed through CSS classes for better separation of concerns
  */
 class AudioSystem {
     constructor(options = {}) {
         this.audioContext = null;
         this.audioEnabled = true;
         this.isTabVisible = true;
+        this.isFullscreen = false;
         
         // UI configuration
         this.config = {
@@ -19,6 +21,8 @@ class AudioSystem {
         // UI button references
         this.muteButton = null;
         this.muteContainer = null;
+        this.fullscreenButton = null;
+        this.fullscreenContainer = null;
         this.backButton = null;
         
         // Audio tracking for complete tab management
@@ -28,6 +32,8 @@ class AudioSystem {
         this.initializeAudio();
         this.createButtons();
         this.setupVisibilityHandling();
+        this.setupFullscreenHandling();
+        this.setupResponsiveRotation();
     }
     
     /**
@@ -36,30 +42,21 @@ class AudioSystem {
      */
     updateButtonPosition(options = {}) {
         this.config = { ...this.config, ...options };
-        this.updateButtonStyles();
+        this.updateButtonClasses();
     }
     
-    updateButtonStyles() {
-        const topPos = this.config.buttonsAtBottom ? 'auto' : '2vh';
-        const bottomPos = this.config.buttonsAtBottom ? '2vh' : 'auto';
+    updateButtonClasses() {
+        const body = document.body;
         
-        // Update mute button position
-        if (this.muteContainer) {
-            this.muteContainer.style.top = topPos;
-            this.muteContainer.style.bottom = bottomPos;
-            this.muteContainer.style.right = '2vh';
+        if (this.config.buttonsAtBottom) {
+            body.classList.add('buttons-bottom');
+        } else {
+            body.classList.remove('buttons-bottom');
         }
         
-        // Update back button position
-        if (this.backButton) {
-            this.backButton.style.top = topPos;
-            this.backButton.style.bottom = bottomPos;
-            this.backButton.style.left = '2vh';
-            
-            // Update back URL if provided
-            if (this.config.customBackUrl) {
-                this.backButton.href = this.config.customBackUrl;
-            }
+        // Update back button URL if provided
+        if (this.backButton && this.config.customBackUrl) {
+            this.backButton.href = this.config.customBackUrl;
         }
     }
     
@@ -75,62 +72,19 @@ class AudioSystem {
     
     createButtons() {
         this.createMuteButton();
+        this.createFullscreenButton();
         this.createBackButton();
-        this.setupResponsiveHandling();
+        this.updateButtonClasses();
     }
     
     createMuteButton() {
         // Create mute button container
         const muteContainer = document.createElement('div');
-        muteContainer.className = 'audio-button-container';
-        
-        const topPos = this.config.buttonsAtBottom ? 'auto' : '2vh';
-        const bottomPos = this.config.buttonsAtBottom ? '2vh' : 'auto';
-        
-        muteContainer.style.cssText = `
-            position: fixed;
-            top: ${topPos};
-            bottom: ${bottomPos};
-            right: 2vh;
-            z-index: 1000;
-            background-color: rgba(64, 64, 64, 0.9);
-            border-radius: 50%;
-            width: 8vh;
-            height: 8vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            touch-action: manipulation;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-            min-height: 44px;
-            min-width: 44px;
-        `;
+        muteContainer.className = 'button-container audio-button-container';
         
         // Create button
         this.muteButton = document.createElement('button');
-        this.muteButton.className = 'audio-button';
-        this.muteButton.style.cssText = `
-            background: none;
-            border: none;
-            color: white;
-            font-size: 3vh;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            outline: none;
-            touch-action: manipulation;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-        `;
+        this.muteButton.className = 'icon-button audio-button';
         
         // Set initial icon
         this.updateMuteButtonIcon();
@@ -142,31 +96,35 @@ class AudioSystem {
             this.toggleAudio();
         });
         
-        // Hover and focus effects
-        muteContainer.addEventListener('mouseenter', () => {
-            muteContainer.style.backgroundColor = 'rgba(64, 64, 64, 1)';
-            muteContainer.style.transform = 'scale(1.1)';
-        });
-        
-        muteContainer.addEventListener('mouseleave', () => {
-            muteContainer.style.backgroundColor = 'rgba(64, 64, 64, 0.9)';
-            muteContainer.style.transform = 'scale(1)';
-        });
-        
-        muteContainer.addEventListener('focus', () => {
-            muteContainer.style.backgroundColor = 'rgba(64, 64, 64, 1)';
-            muteContainer.style.transform = 'scale(1.1)';
-        });
-        
-        muteContainer.addEventListener('blur', () => {
-            muteContainer.style.backgroundColor = 'rgba(64, 64, 64, 0.9)';
-            muteContainer.style.transform = 'scale(1)';
-        });
-        
         muteContainer.appendChild(this.muteButton);
         document.body.appendChild(muteContainer);
         
         this.muteContainer = muteContainer;
+    }
+    
+    createFullscreenButton() {
+        // Create fullscreen button container
+        const fullscreenContainer = document.createElement('div');
+        fullscreenContainer.className = 'button-container fullscreen-button-container';
+        
+        // Create button
+        this.fullscreenButton = document.createElement('button');
+        this.fullscreenButton.className = 'icon-button fullscreen-button';
+        
+        // Set initial icon
+        this.updateFullscreenButtonIcon();
+        
+        // Add event listeners
+        this.fullscreenButton.addEventListener('click', () => this.toggleFullscreen());
+        this.fullscreenButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.toggleFullscreen();
+        });
+        
+        fullscreenContainer.appendChild(this.fullscreenButton);
+        document.body.appendChild(fullscreenContainer);
+        
+        this.fullscreenContainer = fullscreenContainer;
     }
     
     createBackButton() {
@@ -182,101 +140,53 @@ class AudioSystem {
             document.body.appendChild(backButton);
         }
         
-        const topPos = this.config.buttonsAtBottom ? 'auto' : '2vh';
-        const bottomPos = this.config.buttonsAtBottom ? '2vh' : 'auto';
-        
-        // Apply responsive styling
-        backButton.style.cssText = `
-            position: fixed;
-            top: ${topPos};
-            bottom: ${bottomPos};
-            left: 2vh;
-            background: rgba(64, 64, 64, 0.9);
-            color: white;
-            text-decoration: none;
-            padding: 0 3vh;
-            height: 8vh;
-            border-radius: 4vh;
-            font-weight: bold;
-            font-size: 2.4vh;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            z-index: 1003;
-            border: none;
-            outline: none;
-            touch-action: manipulation;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-            pointer-events: auto;
-            cursor: pointer;
-            min-height: 44px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1vh;
-        `;
-        
-        // Style the icon
-        const icon = backButton.querySelector('i');
-        if (icon) {
-            icon.style.fontSize = '2vh';
-        }
-        
-        // Add hover effects
-        backButton.addEventListener('mouseenter', () => {
-            backButton.style.background = 'rgba(64, 64, 64, 1)';
-            backButton.style.transform = 'translateY(-2px)';
-            backButton.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
-        });
-        
-        backButton.addEventListener('mouseleave', () => {
-            backButton.style.background = 'rgba(64, 64, 64, 0.9)';
-            backButton.style.transform = 'translateY(0)';
-            backButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-        });
-        
         this.backButton = backButton;
     }
     
-    setupResponsiveHandling() {
-        // Handle window resize for button sizing
-        const handleResize = () => {
-            const topPos = this.config.buttonsAtBottom ? 'auto' : '2vh';
-            const bottomPos = this.config.buttonsAtBottom ? '2vh' : 'auto';
+    setupResponsiveRotation() {
+        // Function to check and apply rotation based on viewport dimensions
+        const checkAndApplyRotation = () => {
+            const isPortrait = window.innerHeight > window.innerWidth;
+            const body = document.body;
             
-            // Update mute button
-            if (this.muteContainer && this.muteButton) {
-                this.muteContainer.style.width = '8vh';
-                this.muteContainer.style.height = '8vh';
-                this.muteContainer.style.top = topPos;
-                this.muteContainer.style.bottom = bottomPos;
-                this.muteContainer.style.right = '2vh';
-                this.muteButton.style.fontSize = '3vh';
-            }
-            
-            // Update back button
-            if (this.backButton) {
-                this.backButton.style.height = '8vh';
-                this.backButton.style.borderRadius = '4vh';
-                this.backButton.style.fontSize = '2.4vh';
-                this.backButton.style.padding = '0 3vh';
-                this.backButton.style.top = topPos;
-                this.backButton.style.bottom = bottomPos;
-                this.backButton.style.left = '2vh';
-                this.backButton.style.gap = '1vh';
+            if (isPortrait) {
+                // Apply 90-degree counter-clockwise rotation
+                body.style.transform = 'rotate(-90deg)';
+                body.style.transformOrigin = 'center center';
+                body.style.width = '100vh';
+                body.style.height = '100vw';
+                body.style.position = 'fixed';
+                body.style.top = '50%';
+                body.style.left = '50%';
+                body.style.marginTop = '-50vw';
+                body.style.marginLeft = '-50vh';
                 
-                const icon = this.backButton.querySelector('i');
-                if (icon) {
-                    icon.style.fontSize = '2vh';
-                }
+                console.log('🔄 Applied landscape rotation (portrait detected)');
+            } else {
+                // Remove rotation for landscape
+                body.style.transform = '';
+                body.style.transformOrigin = '';
+                body.style.width = '';
+                body.style.height = '';
+                body.style.position = '';
+                body.style.top = '';
+                body.style.left = '';
+                body.style.marginTop = '';
+                body.style.marginLeft = '';
+                
+                console.log('📱 Removed rotation (landscape detected)');
             }
         };
         
-        window.addEventListener('resize', handleResize);
+        // Apply rotation on load and resize
+        window.addEventListener('resize', checkAndApplyRotation);
+        window.addEventListener('orientationchange', () => {
+            // Delay to allow orientation change to complete
+            setTimeout(checkAndApplyRotation, 100);
+        });
         
-        // Initial resize call
-        setTimeout(handleResize, 100);
+        // Initial check
+        setTimeout(checkAndApplyRotation, 100);
     }
     
     updateMuteButtonIcon() {
@@ -284,6 +194,73 @@ class AudioSystem {
             this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
             this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
             this.muteButton.setAttribute('aria-label', this.audioEnabled ? 'Mute Audio' : 'Unmute Audio');
+        }
+    }
+    
+    updateFullscreenButtonIcon() {
+        if (this.fullscreenButton) {
+            this.fullscreenButton.innerHTML = this.isFullscreen ? '🗗' : '🗖';
+            this.fullscreenButton.title = this.isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen';
+            this.fullscreenButton.setAttribute('aria-label', this.isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen');
+        }
+    }
+    
+    setupFullscreenHandling() {
+        // Listen for fullscreen changes to update button state
+        document.addEventListener('fullscreenchange', () => {
+            this.isFullscreen = !!document.fullscreenElement;
+            this.updateFullscreenButtonIcon();
+        });
+        
+        document.addEventListener('webkitfullscreenchange', () => {
+            this.isFullscreen = !!document.webkitFullscreenElement;
+            this.updateFullscreenButtonIcon();
+        });
+        
+        document.addEventListener('mozfullscreenchange', () => {
+            this.isFullscreen = !!document.mozFullScreenElement;
+            this.updateFullscreenButtonIcon();
+        });
+        
+        document.addEventListener('MSFullscreenChange', () => {
+            this.isFullscreen = !!document.msFullscreenElement;
+            this.updateFullscreenButtonIcon();
+        });
+    }
+    
+    toggleFullscreen() {
+        try {
+            if (!this.isFullscreen) {
+                // Enter fullscreen
+                const element = document.documentElement;
+                
+                if (element.requestFullscreen) {
+                    element.requestFullscreen();
+                } else if (element.webkitRequestFullscreen) {
+                    element.webkitRequestFullscreen();
+                } else if (element.mozRequestFullScreen) {
+                    element.mozRequestFullScreen();
+                } else if (element.msRequestFullscreen) {
+                    element.msRequestFullscreen();
+                }
+                
+                console.log('🖥️ Entering fullscreen mode');
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+                
+                console.log('🖥️ Exiting fullscreen mode');
+            }
+        } catch (error) {
+            console.warn('Fullscreen toggle error:', error);
         }
     }
     
@@ -582,9 +559,16 @@ class AudioSystem {
             this.muteContainer.parentNode.removeChild(this.muteContainer);
         }
         
+        if (this.fullscreenContainer && this.fullscreenContainer.parentNode) {
+            this.fullscreenContainer.parentNode.removeChild(this.fullscreenContainer);
+        }
+        
         if (this.backButton && this.backButton.parentNode) {
             this.backButton.parentNode.removeChild(this.backButton);
         }
+        
+        // Remove body classes
+        document.body.classList.remove('buttons-bottom');
     }
 }
 
