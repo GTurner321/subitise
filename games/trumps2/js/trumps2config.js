@@ -95,8 +95,8 @@ const CONFIG = {
         CARD_SELECTION_PHASE_START: "Choose one of the cards, the others will be chosen by {playerA} and {playerB}. The highest number wins the round.",
         CARD_SELECTION_PHASE: "Choose a card.",
         
-        // User card selection - removed animal name
-        USER_CARD_SELECTED: "You have picked number {number}.",
+        // User card selection - now includes animal name
+        USER_CARD_SELECTED: "You have picked the {animal}, number {number}.",
         
         // AI player card selections - removed reveal messages for Job 1
         SECOND_PICK: "{player} chooses the {position} card.",
@@ -105,7 +105,7 @@ const CONFIG = {
         // New highest selection phase messages
         HIGHEST_SELECTION: "Which card is the highest?",
         HIGHEST_SELECTION_PROMPT: "Click on the card with the highest score.",
-        HIGHEST_SELECTED_CORRECT: "That's right, {number} is the highest number. {winner} {wins} this round!",
+        HIGHEST_SELECTED_CORRECT: "{praise} {number} is the highest number. {winner} {wins} this round with the {animal}!",
         HIGHEST_SELECTED_FAIL: "Try again.",
         
         // Game completion messages
@@ -358,6 +358,11 @@ const AudioUtils = {
     getRandomPlayerName: () => {
         const allNames = [...CONFIG.PLAYER_NAMES.BOYS, ...CONFIG.PLAYER_NAMES.GIRLS];
         return allNames[Math.floor(Math.random() * allNames.length)];
+    },
+    
+    getRandomPraise: () => {
+        const praises = ["That's right!", "Correct!", "Well done!", "Good job!"];
+        return praises[Math.floor(Math.random() * praises.length)];
     },
     
     getPositionName: (position) => {
