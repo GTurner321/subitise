@@ -355,7 +355,7 @@ class Trumps2Renderer {
                                 cardLayout.y + CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.y,
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.width, 
                                 CONFIG.RECT_LAYOUT.CARD_ELEMENTS.TITLE.height, rectWidth, rectHeight);
-        title.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.CARD_TITLE * 1.2}px`;
+        title.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.CARD_TITLE * 1.8}px`; // Increased from 1.2 to 1.8 (50% larger)
         title.style.fontFamily = 'Comic Sans MS, cursive';
         title.style.fontWeight = 'bold';
         title.style.color = '#333'; // Default color - will be changed when player assigned
@@ -524,24 +524,24 @@ class Trumps2Renderer {
             return;
         }
         
-        // Find and animate the card back with bidirectional reveal
+        // Find and animate the card back with edge-to-center reveal (like a flipping card)
         const cardBack = this.rectContainer.querySelector(`.rect-card-back-${position}`);
         
         if (cardBack) {
-            console.log(`🎬 Animating bidirectional reveal for ${position}`);
+            console.log(`🎬 Animating edge-to-center reveal for ${position}`);
             
-            // Create two halves for bidirectional reveal
+            // Create two halves for edge-to-center reveal
             const leftHalf = cardBack.cloneNode(true);
             const rightHalf = cardBack.cloneNode(true);
             
-            // Set up left half (reveals from left edge)
+            // Set up left half (reveals from left edge toward center)
             leftHalf.style.clipPath = 'inset(0 50% 0 0)'; // Show left half only
-            leftHalf.style.transformOrigin = 'left center';
+            leftHalf.style.transformOrigin = 'right center'; // Pivot from right edge (toward center)
             leftHalf.style.transition = 'transform 0.4s ease-out';
             
-            // Set up right half (reveals from right edge)
+            // Set up right half (reveals from right edge toward center)  
             rightHalf.style.clipPath = 'inset(0 0 0 50%)'; // Show right half only
-            rightHalf.style.transformOrigin = 'right center';
+            rightHalf.style.transformOrigin = 'left center'; // Pivot from left edge (toward center)
             rightHalf.style.transition = 'transform 0.4s ease-out';
             
             // Replace original back with the two halves
@@ -549,10 +549,10 @@ class Trumps2Renderer {
             cardBack.parentNode.insertBefore(rightHalf, cardBack);
             cardBack.remove();
             
-            // Start the reveal animation
+            // Start the reveal animation - both halves flip toward center
             requestAnimationFrame(() => {
-                leftHalf.style.transform = 'scaleX(0)';
-                rightHalf.style.transform = 'scaleX(0)';
+                leftHalf.style.transform = 'scaleX(0)'; // Left half shrinks from right edge
+                rightHalf.style.transform = 'scaleX(0)'; // Right half shrinks from left edge
             });
             
             // Wait for animation
@@ -564,7 +564,7 @@ class Trumps2Renderer {
             
             // Mark as revealed
             this.revealedCards.add(position);
-            console.log(`✅ Card ${position} revealed with bidirectional animation`);
+            console.log(`✅ Card ${position} revealed with edge-to-center animation`);
         } else {
             console.log(`❌ No card back found for ${position}`);
             // Still mark as revealed even if no back found
