@@ -495,7 +495,7 @@ class Trumps2Renderer {
     }
 
     async pulseCardOnClick(position) {
-        console.log(`💓 Adding click pulse to ${position} card`);
+        console.log(`💓 Adding single click pulse to ${position} card`);
         
         // Find ALL elements for this position including specific text elements
         const cardElements = this.rectContainer.querySelectorAll(
@@ -504,11 +504,14 @@ class Trumps2Renderer {
         
         console.log(`Found ${cardElements.length} elements to pulse for ${position}`);
         
+        // Immediately disable hover animations to prevent double pulse
+        cardElements.forEach(element => {
+            element.classList.add('card-selected-no-hover');
+        });
+        
         // Add click pulse class to ALL elements
         cardElements.forEach(element => {
             element.classList.add('card-click-pulse');
-            // Disable hover animations once clicked (but only temporarily)
-            element.classList.add('card-selected-no-hover');
         });
         
         // Wait for pulse animation to complete (1 second)
@@ -519,7 +522,7 @@ class Trumps2Renderer {
             element.classList.remove('card-click-pulse');
         });
         
-        console.log(`✅ Click pulse completed for ${position} card`);
+        console.log(`✅ Single click pulse completed for ${position} card`);
     }
 
     async revealCard(card, position) {
@@ -542,7 +545,7 @@ class Trumps2Renderer {
         const cardBack = this.rectContainer.querySelector(`.rect-card-back-${position}`);
         
         if (cardBack) {
-            console.log(`🔄 Animating 90-degree vertical flip for ${position}`);
+            console.log(`🔄 Animating complete 90-degree vertical flip for ${position}`);
             
             // Set up the flip animation on the card back
             // Use center of the card (50% 50%) as transform-origin since it's positioned within the container
@@ -558,21 +561,18 @@ class Trumps2Renderer {
                 cardBack.style.transform = 'rotateY(90deg)';
             });
             
-            // Wait for animation to reach 90 degrees (halfway point)
-            await this.wait(300);
+            // Wait for the COMPLETE animation to finish (full 600ms)
+            await this.wait(600);
             
-            // At 90 degrees, the card is edge-on and invisible - remove it completely
+            // After the complete animation, remove the card
             if (cardBack.parentNode) {
                 cardBack.remove();
-                console.log(`🗑️ Card back removed at 90-degree point for ${position}`);
+                console.log(`🗑️ Card back removed after complete 90-degree flip for ${position}`);
             }
-            
-            // Wait for the remaining animation time
-            await this.wait(300);
             
             // Mark as revealed
             this.revealedCards.add(position);
-            console.log(`✅ Card ${position} revealed with 90-degree vertical flip animation`);
+            console.log(`✅ Card ${position} revealed with complete 90-degree vertical flip animation`);
         } else {
             console.log(`❌ No card back found for ${position}`);
             // Still mark as revealed even if no back found
@@ -727,26 +727,62 @@ class Trumps2Renderer {
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
         
-        // Create star sparkle using the main.css animation
-        const star = document.createElement('div');
-        star.innerHTML = '⭐';
-        star.className = 'completion-star';
-        star.style.position = 'fixed';
-        star.style.left = centerX + 'px';
-        star.style.top = centerY + 'px';
-        star.style.fontSize = '20px';
-        star.style.pointerEvents = 'none';
-        star.style.zIndex = '1000';
-        star.style.transform = 'translate(-50%, -50%)'; // Center the star
+        // Create circular spiral of stars
+        this.createStarSpiral(centerX, centerY, 20); // Score box stars
+    }
+
+    createStarSparkle(cardPosition) {
+        // Find the card number element to center the sparkle on
+        const numberElement = document.querySelector(`.${cardPosition}-number`);
+        if (!numberElement) return;
         
-        document.body.appendChild(star);
+        const rect = numberElement.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
         
-        // Remove after animation completes (1.5s from main.css)
-        setTimeout(() => {
-            if (star.parentNode) {
-                star.parentNode.removeChild(star);
-            }
-        }, 1500);
+        // Create circular spiral of stars
+        this.createStarSpiral(centerX, centerY, 24); // Card number stars
+    }
+    
+    createStarSpiral(centerX, centerY, starSize) {
+        const numStars = 8; // Number of stars in the spiral
+        const maxRadius = 60; // Maximum distance from center
+        
+        for (let i = 0; i < numStars; i++) {
+            // Calculate position in spiral
+            const angle = (i / numStars) * Math.PI * 2; // Evenly distribute around circle
+            const radius = (i / numStars) * maxRadius; // Spiral outward
+            
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            
+            // Create star element
+            const star = document.createElement('div');
+            star.innerHTML = '⭐';
+            star.style.position = 'fixed';
+            star.style.left = x + 'px';
+            star.style.top = y + 'px';
+            star.style.fontSize = starSize + 'px';
+            star.style.pointerEvents = 'none';
+            star.style.zIndex = '1000';
+            star.style.transform = 'translate(-50%, -50%)';
+            star.style.opacity = '1';
+            
+            // Stagger the animation start time
+            const delay = i * 100; // 100ms delay between each star
+            
+            // Add pulsing animation
+            star.style.animation = `starSpiral 2s ease-out ${delay}ms forwards`;
+            
+            document.body.appendChild(star);
+            
+            // Remove after animation completes (2s + delay)
+            setTimeout(() => {
+                if (star.parentNode) {
+                    star.parentNode.removeChild(star);
+                }
+            }, 2000 + delay + 100);
+        }
     }
 
     setPlayerNames(playerAName, playerBName) {
