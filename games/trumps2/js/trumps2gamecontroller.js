@@ -482,8 +482,8 @@ class Trumps2GameController {
         });
         window.AudioSystem.speakText(revealMessage);
         
-        // Wait for speech + buffer before next action
-        await this.wait(2500);
+        // Wait for speech + buffer before next action (reduced by 1 second)
+        await this.wait(1500);
     }
     
     async startHighestSelectionPhase(userCard, firstAICard, secondAICard, userPos, firstAIPos, secondAIPos) {
@@ -512,8 +512,7 @@ class Trumps2GameController {
         
         console.log(`🎯 Highest card is at position: ${this.highestCardPosition} with value: ${maxValue}`);
         
-        // Wait 2 seconds then ask user to identify highest card
-        await this.wait(2000);
+        // Ask user to identify highest card immediately (no delay)
         window.AudioSystem.speakText(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTION);
         
         // Set inactivity timeout for 10 seconds
