@@ -98,22 +98,34 @@ class Trumps2Renderer {
 
     createScoreElement(text, className, layout, rectWidth, rectHeight) {
         const element = document.createElement('div');
-        element.className = `rect-score-name ${className}`;
+        element.className = `rect-score-element ${className}`;
         element.textContent = text;
         element.style.pointerEvents = 'auto';
         
         this.positionRectElement(element, layout.x, layout.y, layout.width, layout.height, rectWidth, rectHeight);
         
-        // Add shadow to score boxes
+        // Style based on element type
         if (className.includes('rect-score-box')) {
+            // Score boxes - centered text with shadow
             element.style.boxShadow = `0 ${rectWidth * 0.03}px ${rectWidth * 0.06}px rgba(0,0,0,0.3)`;
-        }
-        
-        // Set font size based on element type
-        if (className.includes('rect-score-box')) {
             element.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.SCORE_BOX}px`;
+            element.style.display = 'flex';
+            element.style.alignItems = 'center';
+            element.style.justifyContent = 'center';
+            element.style.fontFamily = 'Arial, sans-serif';
+            element.style.fontWeight = 'bold';
+            element.style.color = 'white';
+            element.style.borderRadius = '15%';
         } else {
+            // Name labels - centered text both vertically and horizontally
             element.style.fontSize = `${rectWidth * CONFIG.RECT_LAYOUT.FONT_SIZES.SCORE_NAME}px`;
+            element.style.display = 'flex';
+            element.style.alignItems = 'center'; // Vertical centering
+            element.style.justifyContent = 'center'; // Horizontal centering
+            element.style.fontFamily = 'Comic Sans MS, cursive';
+            element.style.fontWeight = 'bold';
+            element.style.textTransform = 'uppercase';
+            element.style.textAlign = 'center'; // Additional text centering
         }
         
         return element;
