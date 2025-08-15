@@ -1,4 +1,6 @@
-// Clean Animal Trumps Game Controller - Version 2.0 - Highest Selection Phase
+wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }// Clean Animal Trumps Game Controller - Version 2.0 - Highest Selection Phase
 console.log('🔄 Loading Clean Trumps2 Game Controller v2.0 - With Highest Selection Phase');
 
 class Trumps2GameController {
@@ -561,6 +563,9 @@ class Trumps2GameController {
             // Play positive sound
             window.AudioSystem.playCompletionSound();
             
+            // Create star sparkle on the highest number
+            this.createStarSparkle(selectedPosition);
+            
             // Announce correct selection and winner
             const correctMessage = AudioUtils.formatMessage(CONFIG.AUDIO_MESSAGES.HIGHEST_SELECTED_CORRECT, {
                 number: winningCard.card.value,
@@ -625,7 +630,7 @@ class Trumps2GameController {
         
         // Visual feedback
         this.renderer.highlightWinner(null, results);
-        this.renderer.updateScores(this.scores.user, this.scores.playerA, this.scores.playerB);
+        this.renderer.updateScores(this.scores.user, this.scores.playerA, this.scores.playerB, winner.player);
         
         // Add rainbow piece
         this.addRainbowPiece();
@@ -767,8 +772,35 @@ class Trumps2GameController {
         return { playerA, playerB };
     }
     
-    wait(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+    createStarSparkle(cardPosition) {
+        // Find the card number element to center the sparkle on
+        const numberElement = document.querySelector(`.${cardPosition}-number`);
+        if (!numberElement) return;
+        
+        const rect = numberElement.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        // Create star sparkle using the main.css animation
+        const star = document.createElement('div');
+        star.innerHTML = '⭐';
+        star.className = 'completion-star';
+        star.style.position = 'fixed';
+        star.style.left = centerX + 'px';
+        star.style.top = centerY + 'px';
+        star.style.fontSize = '24px';
+        star.style.pointerEvents = 'none';
+        star.style.zIndex = '1000';
+        star.style.transform = 'translate(-50%, -50%)'; // Center the star
+        
+        document.body.appendChild(star);
+        
+        // Remove after animation completes (1.5s from main.css)
+        setTimeout(() => {
+            if (star.parentNode) {
+                star.parentNode.removeChild(star);
+            }
+        }, 1500);
     }
     
     destroy() {
