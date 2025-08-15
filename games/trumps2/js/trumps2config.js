@@ -2,6 +2,11 @@
 console.log('📋 Loading Trumps2 Config - No Reveal Messages');
 
 const Trumps2Config = {
+    // Game settings
+    TOTAL_CARDS: 30,
+    ROUNDS: 10,
+    CARDS_PER_ROUND: 3,
+    
     // Game timing settings
     TIMING: {
         AUDIO_DELAY: 800,         // Delay before playing audio (ms)
@@ -12,6 +17,13 @@ const Trumps2Config = {
         CELEBRATION_DURATION: 3000, // How long celebrations last (ms)
         GAME_COMPLETE_DELAY: 2000   // Delay before showing completion modal (ms)
     },
+    
+    // Animation timings (milliseconds) - for compatibility
+    CARD_FADE_DURATION: 1000, // Time to fade out non-selected cards (reduced from 2000)
+    CARD_MOVE_DURATION: 800,   // Time for cards to slide into rectangular layout
+    CARD_FLIP_DURATION: 600,   // Time for card flip animation
+    RESULT_DISPLAY_DURATION: 2000, // Time to show round result
+    RESET_DELAY: 1000,         // Delay before starting next round
     
     // Layout configuration for rectangular card arrangement
     RECT_LAYOUT: {
@@ -56,6 +68,42 @@ const Trumps2Config = {
             { x: 7, y: 72 }, { x: 15.7, y: 72 }, { x: 24.4, y: 72 }, { x: 33.1, y: 72 }, { x: 41.8, y: 72 },
             { x: 50.5, y: 72 }, { x: 59.2, y: 72 }, { x: 67.9, y: 72 }, { x: 76.6, y: 72 }, { x: 85.3, y: 72 }
         ]
+    },
+    
+    // Rectangular layout positioning (percentages of rectangle size)
+    RECT_LAYOUT: {
+        // Rectangle aspect ratio (width:height)
+        ASPECT_RATIO: 1.62, // 162:100
+        
+        // Score elements (updated positioning)
+        LEFT_SCORE_BOX: { x: 12.96, y: 2, width: 7.41, height: 12 },
+        MIDDLE_SCORE_BOX: { x: 46.3, y: 2, width: 7.41, height: 12 },
+        RIGHT_SCORE_BOX: { x: 79.6, y: 2, width: 7.41, height: 12 },
+        
+        // Player name labels (moved below score boxes)
+        LEFT_SCORE_NAME: { x: 1.23, y: 14, width: 30.86, height: 8 },
+        MIDDLE_SCORE_NAME: { x: 34.6, y: 14, width: 30.86, height: 8 },
+        RIGHT_SCORE_NAME: { x: 67.9, y: 14, width: 30.86, height: 8 },
+        
+        // Cards
+        LEFT_CARD: { x: 1.23, y: 23, width: 30.86, height: 73 },
+        MIDDLE_CARD: { x: 34.57, y: 23, width: 30.86, height: 73 },
+        RIGHT_CARD: { x: 67.9, y: 23, width: 30.86, height: 73 },
+        
+        // Card elements (relative to card position)
+        CARD_ELEMENTS: {
+            TITLE: { x: 1.23, y: 0, width: 28.4, height: 9 },
+            PICTURE: { x: 1.23, y: 9, width: 28.4, height: 46 },
+            NUMBER: { x: 1.23, y: 55, width: 28.4, height: 18 }
+        },
+        
+        // Font sizes (percentages of rectangle size)
+        FONT_SIZES: {
+            SCORE_NAME: 0.025,    // 2.5% of rectangle size
+            SCORE_BOX: 0.06,      // 6% of rectangle size
+            CARD_TITLE: 0.020,    // 2% of rectangle size
+            CARD_NUMBER: 0.070    // 7% of rectangle size (doubled from 3.5%)
+        }
     },
     
     // Score box colors for the three players
