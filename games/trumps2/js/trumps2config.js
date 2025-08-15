@@ -13,8 +13,8 @@ const CONFIG = {
     CARD_FLIP_DURATION: 600,   // Time for card flip animation
     RESULT_DISPLAY_DURATION: 2000, // Time to show round result
     RESET_DELAY: 1000,         // Delay before starting next round
-    PAUSE_BETWEEN_REVEALS: 500, // Pause between card reveals (reduced by 2 seconds from 2500ms for Issue 3)
-    SPEECH_COMPLETION_BUFFER: 500, // Extra time for speech to complete (reduced by 2 seconds from 2500ms)
+    PAUSE_BETWEEN_REVEALS: 200, // Pause between card reveals (reduced from 500ms for faster gameplay)
+    SPEECH_COMPLETION_BUFFER: 200, // Extra time for speech to complete (reduced from 500ms)
     
     // Visual settings
     CARD_ASPECT_RATIO: 0.77, // height/width for grid cards (10/7.7)
