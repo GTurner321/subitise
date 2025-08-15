@@ -21,8 +21,8 @@ body {
     z-index: 1000;
     background-color: rgba(64, 64, 64, 0.9);
     border-radius: 50%;
-    width: 12vh;
-    height: 12vh;
+    width: 10vh;
+    height: 10vh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -37,8 +37,8 @@ body {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
-    min-height: 66px;
-    min-width: 66px;
+    min-height: 44px;
+    min-width: 44px;
 }
 
 .button-container:hover,
@@ -60,7 +60,7 @@ body {
     background: none;
     border: none;
     color: white;
-    font-size: 4.5vh;
+    font-size: 3.75vh;
     cursor: pointer;
     width: 100%;
     height: 100%;
@@ -76,6 +76,12 @@ body {
     user-select: none;
 }
 
+/* Specific adjustment for fullscreen button centering */
+.fullscreen-button {
+    padding-left: 0.15vh;
+    padding-bottom: 0.1vh;
+}
+
 .icon-button:focus {
     outline: none;
 }
@@ -89,13 +95,13 @@ body {
 }
 
 .fullscreen-button-container {
-    top: calc(2vh + 12vh + 1.5vh); /* Audio button top + height + gap */
+    top: calc(2vh + 10vh + 1.5vh); /* Audio button top + height + gap */
     right: 2vh;
 }
 
 /* Bottom positioning (for games that need buttons at bottom) */
 .buttons-bottom .audio-button-container {
-    bottom: calc(2vh + 12vh + 1.5vh); /* Leave space for fullscreen button */
+    bottom: calc(2vh + 10vh + 1.5vh); /* Leave space for fullscreen button */
     top: auto;
     right: 2vh;
 }
@@ -115,11 +121,11 @@ body {
     background: rgba(64, 64, 64, 0.9);
     color: white;
     text-decoration: none;
-    padding: 0 4.5vh;
-    height: 12vh;
-    border-radius: 6vh;
+    padding: 0 3vh;
+    height: 8vh;
+    border-radius: 4vh;
     font-weight: bold;
-    font-size: 3.6vh;
+    font-size: 2.4vh;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     z-index: 1003;
@@ -135,11 +141,11 @@ body {
     cursor: pointer;
     
     /* Proper touch target size */
-    min-height: 66px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 1.5vh;
+    gap: 1vh;
 }
 
 .back-button:hover,
@@ -155,11 +161,11 @@ body {
 .back-button:focus-visible {
     outline: 2px solid rgba(255, 255, 255, 0.6);
     outline-offset: 2px;
-    border-radius: 6vh;
+    border-radius: 4vh;
 }
 
 .back-button i {
-    font-size: 3vh;
+    font-size: 2vh;
 }
 
 /* Bottom positioning for back button */
@@ -502,36 +508,36 @@ body {
 @media (max-width: 768px) {
     /* Ensure minimum sizes on mobile */
     .button-container {
-        min-width: 66px;
-        min-height: 66px;
-        width: max(12vh, 66px);
-        height: max(12vh, 66px);
+        min-width: 44px;
+        min-height: 44px;
+        width: max(10vh, 44px);
+        height: max(10vh, 44px);
     }
     
     .icon-button {
-        font-size: max(4.5vh, 27px);
+        font-size: max(3.75vh, 22px);
     }
     
     .back-button {
-        min-height: 66px;
-        font-size: max(3.6vh, 21px);
-        padding: 0 max(4.5vh, 24px);
-        height: max(12vh, 66px);
-        border-radius: max(6vh, 33px);
-        gap: max(1.5vh, 12px);
+        min-height: 44px;
+        font-size: max(2.4vh, 14px);
+        padding: 0 max(3vh, 16px);
+        height: max(8vh, 44px);
+        border-radius: max(4vh, 22px);
+        gap: max(1vh, 8px);
     }
     
     .back-button i {
-        font-size: max(3vh, 18px);
+        font-size: max(2vh, 12px);
     }
     
     /* Adjust positioning for mobile */
     .fullscreen-button-container {
-        top: calc(max(2vh, 13px) + max(12vh, 66px) + max(1.5vh, 10px));
+        top: calc(max(2vh, 13px) + max(10vh, 44px) + max(1.5vh, 10px));
     }
     
     .buttons-bottom .audio-button-container {
-        bottom: calc(max(2vh, 13px) + max(12vh, 66px) + max(1.5vh, 10px));
+        bottom: calc(max(2vh, 13px) + max(10vh, 44px) + max(1.5vh, 10px));
     }
     
     .modal h2 {
