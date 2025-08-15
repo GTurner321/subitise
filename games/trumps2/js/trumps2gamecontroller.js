@@ -154,6 +154,10 @@ class Trumps2GameController {
         if (cardSlot) {
             const cardId = parseInt(cardSlot.dataset.cardId);
             console.log('🃏 Grid card clicked:', cardId);
+            
+            // Play click sound for grid card selection
+            this.playClickSound();
+            
             this.selectCard(cardId);
         }
     }
@@ -222,6 +226,10 @@ class Trumps2GameController {
         
         if (position) {
             console.log('✅ User selected card:', position);
+            
+            // Play click sound for card selection in phase 2
+            this.playClickSound();
+            
             this.selectUserCard(position);
         } else {
             console.log('❌ No valid card position found');
@@ -256,6 +264,10 @@ class Trumps2GameController {
         
         if (position) {
             console.log('🎯 User selected highest card:', position);
+            
+            // Play click sound for highest card selection in phase 3
+            this.playClickSound();
+            
             this.selectHighestCard(position);
         }
     }
@@ -796,6 +808,24 @@ class Trumps2GameController {
         } while (playerB === playerA);
         
         return { playerA, playerB };
+    }
+    
+    playClickSound() {
+        // Play click sound using the audio system
+        if (window.AudioSystem && typeof window.AudioSystem.playSound === 'function') {
+            window.AudioSystem.playSound('assets/slider/click.mp3');
+        } else {
+            // Fallback: create and play audio directly
+            try {
+                const audio = new Audio('assets/slider/click.mp3');
+                audio.volume = 0.5; // Set volume to 50%
+                audio.play().catch(error => {
+                    console.warn('Could not play click sound:', error);
+                });
+            } catch (error) {
+                console.warn('Could not create click sound:', error);
+            }
+        }
     }
     
     wait(ms) {
