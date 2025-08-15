@@ -491,6 +491,9 @@ class Trumps2GameController {
         
         this.gamePhase = 'highest_selection';
         
+        // Re-enable hover effects for all cards since they're now clickable again
+        this.renderer.enableHoverEffectsForHighestSelection();
+        
         // Store round data for later use
         this.roundData = {
             cards: [
