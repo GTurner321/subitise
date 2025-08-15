@@ -3,20 +3,6 @@ const CONFIG = {
     RAINBOW_PIECES: 10,
     TOTAL_QUESTIONS: 10,
     
-    // Rainbow colors (same as other games)
-    RAINBOW_COLORS: [
-        '#ff0000', // Red
-        '#ff8000', // Orange
-        '#ffff00', // Yellow
-        '#80ff00', // Yellow-green
-        '#00ff00', // Green
-        '#00ff80', // Green-cyan
-        '#00ffff', // Cyan
-        '#0080ff', // Cyan-blue
-        '#0000ff', // Blue
-        '#8000ff'  // Blue-purple
-    ],
-    
     // Timing configurations
     FLASH_DURATION: 800,
     NEXT_QUESTION_DELAY: 2000,
@@ -30,16 +16,13 @@ const CONFIG = {
     
     // Guinea pig sizes (relative to screen width)
     GUINEA_PIG_3_SIZE: 0.1, // 10% of screen width
-    GUINEA_PIG_2_SIZE: 0.22, // 22% of screen width (will be made 10% larger in renderer)
-    GUINEA_PIG_1_SIZE: 0.22, // 22% of screen width (will be made 10% larger in renderer)
+    GUINEA_PIG_2_SIZE: 0.22, // 22% of screen width (will be made 20% larger in renderer)
+    GUINEA_PIG_1_SIZE: 0.22, // 22% of screen width (will be made 20% larger in renderer)
     
     // Raisin settings
     RAISIN_SIZE: 0.08, // 8% of screen width
     RAISIN_MIN_DISTANCE: 0.12, // Minimum distance between raisins
     TOTAL_RAISINS: 10,
-    
-    // Audio settings
-    AUDIO_ENABLED: true,
     
     // Game area exclusions - area to avoid placing raisins
     GUINEA_PIG_3_EXCLUSION: {
