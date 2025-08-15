@@ -444,8 +444,8 @@ class Trumps2GameController {
         // Add player name to card immediately (no delay)
         await this.renderer.addPlayerNameToCard(position, 'YOU', 'user');
         
-        // Wait for speech + extra 1 second for longer animal name announcement (increased from 1000ms to 2000ms)
-        await this.wait(2000);
+        // Wait for speech + extra 1 second for longer animal name announcement (increased from 1000ms to 2500ms)
+        await this.wait(2500);
         await this.handleAIDecisions(selectedCard, position);
     }
     
@@ -506,8 +506,8 @@ class Trumps2GameController {
         });
         window.AudioSystem.speakText(pickMessage);
         
-        // Wait for speech to complete (reduced from 2500ms to 500ms)
-        await this.wait(500);
+        // Wait for speech to complete (reduced from 2500ms to 1000ms)
+        await this.wait(1000);
         
         // Reveal card
         await this.renderer.revealCard(card, position);
