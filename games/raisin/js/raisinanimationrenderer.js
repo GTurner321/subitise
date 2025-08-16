@@ -96,16 +96,22 @@ class RaisinAnimationRenderer {
         if (this.guineaPig3) {
             this.guineaPig3.style.width = `${gp3Size}px`;
             this.guineaPig3.style.height = `${gp3Size}px`;
+            // Show guinea pig 3 after sizing (it should be visible by default)
+            this.guineaPig3.classList.add('sized');
         }
         
         if (this.guineaPig2) {
             this.guineaPig2.style.width = `${gp2Size}px`;
             this.guineaPig2.style.height = `${gp2Size}px`;
+            // Add sized class but keep hidden class for now
+            this.guineaPig2.classList.add('sized');
         }
         
         if (this.guineaPig1) {
             this.guineaPig1.style.width = `${gp1Size}px`;
             this.guineaPig1.style.height = `${gp1Size}px`;
+            // Add sized class but keep hidden class for now
+            this.guineaPig1.classList.add('sized');
         }
         
         console.log('🐹 Guinea pig sizes updated:', {
