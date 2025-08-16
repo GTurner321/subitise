@@ -97,9 +97,8 @@ class RaisinGameController {
     }
     
     createButtons() {
-        // Create appropriate number of buttons based on game mode
-        const maxPossibleAnswer = this.getMaxPossibleAnswer();
-        const buttonCount = Math.min(maxPossibleAnswer, 9); // Max 9 buttons
+        // Create buttons 1-5 for tutorial mode, 1-10 for normal mode
+        const buttonCount = CONFIG.isTutorialMode(this.currentQuestion) ? 5 : 10;
         
         const colors = CONFIG.COLORS.slice(0, buttonCount);
         const numbers = Array.from({length: buttonCount}, (_, i) => i + 1);
@@ -128,15 +127,6 @@ class RaisinGameController {
                 );
             }
         }, 50);
-    }
-    
-    getMaxPossibleAnswer() {
-        // Return the maximum possible answer for current mode
-        if (CONFIG.isTutorialMode(this.currentQuestion)) {
-            return CONFIG.TUTORIAL_MODE.TOTAL_RAISINS - 1; // 5 raisins, max 4 eaten
-        } else {
-            return CONFIG.NORMAL_MODE.TOTAL_RAISINS - 1; // 10 raisins, max 9 eaten
-        }
     }
     
     initializeGame() {
