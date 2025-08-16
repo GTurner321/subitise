@@ -10,6 +10,17 @@
     z-index: 1;
     /* Override any white background from main.css */
     background-color: transparent !important;
+    /* UPDATED: Extend game area from top of page to button bar */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: var(--button-bar-height, 15vh);
+    /* Responsive margins set by ButtonBar system */
+    margin-left: var(--game-area-margin-left, 0);
+    margin-right: var(--game-area-margin-right, 0);
+    width: var(--game-area-width, 100vw);
+    overflow: hidden; /* Prevent scrolling */
 }
 
 /* Ensure rainbow container is positioned at bottom */
@@ -20,13 +31,13 @@
     transform: translateX(-50%);
     width: 100%;
     height: 50%;
-    z-index: 2;
+    z-index: 2; /* Below raisins and guinea pigs */
 }
 
 /* Raisin styles with shared properties */
 .raisin {
     position: absolute;
-    z-index: 3;
+    z-index: 3; /* Above rainbow, below guinea pigs */
     pointer-events: none;
     transition: all 0.3s ease;
     image-rendering: -webkit-optimize-contrast;
@@ -84,12 +95,15 @@
 /* Guinea pig shared styles */
 .guinea-pig {
     position: absolute;
-    z-index: 4;
+    z-index: 5; /* UPDATED: Above everything else for visibility */
     pointer-events: none;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     object-fit: contain;
     transition: all 0.3s ease;
+    /* ADDED: Ensure visibility */
+    opacity: 1;
+    visibility: visible;
 }
 
 .guinea-pig.hidden {
@@ -97,7 +111,7 @@
     visibility: hidden;
 }
 
-/* Individual guinea pig positioning - updated positions and faster movement */
+/* Individual guinea pig positioning - UPDATED for better visibility */
 .guinea-pig-3 {
     top: 5%;
     left: 5%;
@@ -105,21 +119,27 @@
 }
 
 .guinea-pig-2 {
-    top: 36%; /* Moved down from 33% */
-    left: -25%;
+    top: 36%; /* Positioned at 36% from top */
+    left: -25%; /* Start off-screen left */
     transform: translateY(-50%);
+    /* ADDED: Ensure proper visibility during animation */
+    z-index: 5;
 }
 
 .guinea-pig-1 {
-    top: 62%; /* Moved down from 60% */
-    right: -25%;
+    top: 62%; /* Positioned at 62% from top */
+    right: -25%; /* Start off-screen right */
     transform: translateY(-50%);
+    /* ADDED: Ensure proper visibility during animation */
+    z-index: 5;
 }
 
-/* Guinea pig movement - 50% faster */
+/* Guinea pig movement - UPDATED for better visibility */
 .guinea-pig.moving {
-    transition: all 2s linear; /* Changed from 3s to 2s for 50% faster speed */
-    z-index: 5; /* Above raisins when moving */
+    transition: all 2s linear; /* 2s animation duration */
+    z-index: 6; /* UPDATED: Highest z-index when moving */
+    opacity: 1 !important; /* Force visibility during movement */
+    visibility: visible !important; /* Force visibility during movement */
 }
 
 /* Guinea pig bounce animation for guinea pig 3 */
@@ -149,7 +169,7 @@
     color: #ff6b6b;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     pointer-events: none;
-    z-index: 6;
+    z-index: 7; /* Above guinea pigs */
     animation: nomAnimation 1s ease-out forwards;
 }
 
@@ -168,6 +188,13 @@
     }
 }
 
+/* DEBUGGING: Add visible border to guinea pigs during development */
+.guinea-pig {
+    /* Uncomment for debugging guinea pig positions */
+    /* border: 2px solid red; */
+    /* box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); */
+}
+
 /* Responsive adjustments for mobile - updated positions */
 @media (max-width: 768px) {
     .guinea-pig-3 {
@@ -184,17 +211,4 @@
     }
 }
 
-@media (max-width: 480px) {
-    .guinea-pig-3 {
-        top: 2%;
-        left: 2%;
-    }
-    
-    .guinea-pig-2 {
-        top: 36%;
-    }
-    
-    .guinea-pig-1 {
-        top: 62%;
-    }
-}
+@media (max-width: 480px)
