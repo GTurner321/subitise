@@ -282,12 +282,13 @@ class RaisinAnimationRenderer {
         console.log(`🍽️ Starting raisin eating for ${direction}:`, raisinsToEat);
         
         const animationDuration = CONFIG.GUINEA_PIG_ANIMATION_DURATION;
-        const checkInterval = 20; // Check every 20ms for smoother detection
+        const checkInterval = 15; // Faster checking - every 15ms instead of 20ms
         const totalChecks = animationDuration / checkInterval;
         const gameAreaRect = this.gameArea.getBoundingClientRect();
         
         let currentCheck = 0;
         let raisinsEaten = 0;
+        const eatenRaisins = new Set(); // Track which raisins have been eaten
         
         const checkEating = setInterval(() => {
             currentCheck++;
@@ -306,6 +307,9 @@ class RaisinAnimationRenderer {
             // Check each raisin that should be eaten
             const raisinElements = this.positionRenderer.getRaisinElements();
             raisinsToEat.forEach(raisinIndex => {
+                // Skip if already eaten
+                if (eatenRaisins.has(raisinIndex)) return;
+                
                 const raisinElement = raisinElements[raisinIndex];
                 if (raisinElement && !raisinElement.classList.contains('eaten')) {
                     const raisinRect = raisinElement.getBoundingClientRect();
@@ -341,6 +345,7 @@ class RaisinAnimationRenderer {
                     if (shouldEat) {
                         console.log(`🍽️ Eating raisin ${raisinIndex} (${direction})`);
                         this.positionRenderer.eatRaisin(raisinIndex);
+                        eatenRaisins.add(raisinIndex);
                         raisinsEaten++;
                     }
                 }
@@ -349,6 +354,17 @@ class RaisinAnimationRenderer {
             // Stop checking when animation is complete
             if (currentCheck >= totalChecks) {
                 console.log(`🍽️ Eating complete for ${direction}. Raisins eaten: ${raisinsEaten}/${raisinsToEat.length}`);
+                
+                // Backup cleanup: ensure all assigned raisins are eaten
+                setTimeout(() => {
+                    raisinsToEat.forEach(raisinIndex => {
+                        if (!eatenRaisins.has(raisinIndex)) {
+                            console.log(`🔧 Backup cleanup: eating missed raisin ${raisinIndex}`);
+                            this.positionRenderer.eatRaisin(raisinIndex);
+                        }
+                    });
+                }, 200);
+                
                 clearInterval(checkEating);
             }
         }, checkInterval);
