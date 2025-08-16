@@ -506,6 +506,14 @@ class RaisinGameController {
             window.ButtonBar.showIncorrectFeedback(selectedNumber, buttonElement);
         }
         
+        // Give specific wrong answer hint after button animation
+        if (this.isTabVisible) {
+            setTimeout(() => {
+                const audioMessages = CONFIG.getAudioMessages(this.currentQuestion);
+                this.speakText(audioMessages.WRONG_ANSWER_HINT);
+            }, 800);
+        }
+        
         // Re-enable buttons and restart inactivity timer after ButtonBar animation
         setTimeout(() => {
             this.buttonsDisabled = false;
