@@ -109,7 +109,7 @@
 }
 
 .guinea-pig-1 {
-    top: 62%; /* Positioned at 62% from top */
+    top: 67%; /* Positioned at 67% from top (was 62%, now 5% lower) */
     right: -25%; /* Start off-screen right */
     transform: translateY(-50%);
     z-index: 5;
