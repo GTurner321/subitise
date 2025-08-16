@@ -1,29 +1,20 @@
-/* Raisin game specific styles - universal styles removed */
+/* Raisin Game Styles - Universal Systems Version */
 
-/* Game area with background image - corrected path */
+/* Game area with background image */
 .game-area {
     background-image: url('../../assets/raisin/raisinbackground.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    position: fixed;
+    position: relative;
     z-index: 1;
     /* Override any white background from main.css */
     background-color: transparent !important;
-    /* CORRECTED: Game area dimensions as specified */
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: calc(100vh - var(--button-bar-height, 15vh));
-    /* Responsive margins set by ButtonBar system */
-    margin-left: var(--game-area-margin-left, 0);
-    margin-right: var(--game-area-margin-right, 0);
-    /* Adjust width to account for margins */
-    width: calc(100vw - var(--game-area-margin-left, 0) - var(--game-area-margin-right, 0));
     overflow: hidden; /* Prevent scrolling */
+    /* Game area dimensions managed by ButtonBar system */
 }
 
-/* Ensure rainbow container is positioned at bottom */
+/* Rainbow container positioned at bottom center */
 .rainbow-container {
     position: absolute;
     bottom: 0;
@@ -32,6 +23,7 @@
     width: 100%;
     height: 50%;
     z-index: 2; /* Below raisins and guinea pigs */
+    pointer-events: none;
 }
 
 /* Raisin styles with shared properties */
@@ -65,21 +57,6 @@
     }
 }
 
-.raisin.fade-in {
-    animation: raisinFadeIn 0.5s ease-in;
-}
-
-@keyframes raisinFadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.5);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
 /* Staggered appear animation for raisins */
 @keyframes raisinStaggeredAppear {
     from {
@@ -92,16 +69,16 @@
     }
 }
 
-/* Guinea pig shared styles */
+/* Guinea pig shared styles - Enhanced for better visibility */
 .guinea-pig {
     position: absolute;
-    z-index: 5; /* UPDATED: Above everything else for visibility */
+    z-index: 5; /* Above everything else for visibility */
     pointer-events: none;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     object-fit: contain;
     transition: all 0.3s ease;
-    /* ADDED: Ensure visibility */
+    /* Ensure visibility */
     opacity: 1;
     visibility: visible;
 }
@@ -111,7 +88,7 @@
     visibility: hidden;
 }
 
-/* Individual guinea pig positioning - UPDATED for better visibility */
+/* Individual guinea pig positioning - Updated for better visibility */
 .guinea-pig-3 {
     top: 5%;
     left: 5%;
@@ -122,7 +99,6 @@
     top: 36%; /* Positioned at 36% from top */
     left: -25%; /* Start off-screen left */
     transform: translateY(-50%);
-    /* ADDED: Ensure proper visibility during animation */
     z-index: 5;
 }
 
@@ -130,14 +106,13 @@
     top: 62%; /* Positioned at 62% from top */
     right: -25%; /* Start off-screen right */
     transform: translateY(-50%);
-    /* ADDED: Ensure proper visibility during animation */
     z-index: 5;
 }
 
-/* Guinea pig movement - UPDATED for better visibility */
+/* Guinea pig movement - Enhanced for better visibility */
 .guinea-pig.moving {
     transition: all 2s linear; /* 2s animation duration */
-    z-index: 6; /* UPDATED: Highest z-index when moving */
+    z-index: 6; /* Highest z-index when moving */
     opacity: 1 !important; /* Force visibility during movement */
     visibility: visible !important; /* Force visibility during movement */
 }
@@ -161,7 +136,7 @@
     pointer-events: none;
 }
 
-/* Nom nom visual effect (if still used) */
+/* Nom nom visual effect (for future use) */
 .nom-effect {
     position: absolute;
     font-size: 1.5rem;
@@ -188,14 +163,7 @@
     }
 }
 
-/* DEBUGGING: Add visible border to guinea pigs during development */
-.guinea-pig {
-    /* Uncomment for debugging guinea pig positions */
-    /* border: 2px solid red; */
-    /* box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); */
-}
-
-/* Responsive adjustments for mobile - updated positions */
+/* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
     .guinea-pig-3 {
         top: 3%;
@@ -211,4 +179,17 @@
     }
 }
 
-@media (max-width: 480px)
+@media (max-width: 480px) {
+    .guinea-pig-3 {
+        top: 2%;
+        left: 2%;
+    }
+    
+    .guinea-pig-2 {
+        top: 35%;
+    }
+    
+    .guinea-pig-1 {
+        top: 63%;
+    }
+}
