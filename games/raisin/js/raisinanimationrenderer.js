@@ -78,20 +78,20 @@ class RaisinAnimationRenderer {
         
         // Get actual game area dimensions (set by ButtonBar)
         const gameAreaRect = this.gameArea.getBoundingClientRect();
-        const gameAreaWidth = gameAreaRect.width;
+        const gameAreaHeight = gameAreaRect.height;
         
-        if (gameAreaWidth <= 0) {
-            console.warn('🐹 Game area width is 0, retrying guinea pig sizing...');
+        if (gameAreaHeight <= 0) {
+            console.warn('🐹 Game area height is 0, retrying guinea pig sizing...');
             setTimeout(() => {
                 this.setupGuineaPigSizes();
             }, 100);
             return;
         }
         
-        // Use game area width for sizing (more consistent than screen width)
-        const gp3Size = gameAreaWidth * CONFIG.GUINEA_PIG_3_SIZE * 1.3; // 30% larger
-        const gp2Size = gameAreaWidth * CONFIG.GUINEA_PIG_2_SIZE * 1.2; // 20% larger
-        const gp1Size = gameAreaWidth * CONFIG.GUINEA_PIG_1_SIZE * 1.2; // 20% larger
+        // Use game area height for sizing - much simpler system
+        const gp3Size = gameAreaHeight * (CONFIG.GUINEA_PIG_SIZES.GP3 / 100);
+        const gp2Size = gameAreaHeight * (CONFIG.GUINEA_PIG_SIZES.GP2 / 100);
+        const gp1Size = gameAreaHeight * (CONFIG.GUINEA_PIG_SIZES.GP1 / 100);
         
         if (this.guineaPig3) {
             this.guineaPig3.style.width = `${gp3Size}px`;
@@ -112,7 +112,7 @@ class RaisinAnimationRenderer {
             gp3: Math.round(gp3Size),
             gp2: Math.round(gp2Size), 
             gp1: Math.round(gp1Size),
-            gameAreaWidth: Math.round(gameAreaWidth)
+            gameAreaHeight: Math.round(gameAreaHeight)
         });
     }
     
