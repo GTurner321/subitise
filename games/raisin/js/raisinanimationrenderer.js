@@ -1,0 +1,421 @@
+/**
+ * Raisin Animation Renderer
+ * Handles guinea pig animations, movements, and eating sequences.
+ * Works with RaisinPositionRenderer which handles raisin placement and rendering.
+ * This file focuses on: guinea pig sizing, movement animations, eating logic,
+ * audio playback for guinea pig sounds, and coordinating the eating sequence.
+ */
+class RaisinAnimationRenderer {
+    constructor(positionRenderer) {
+        console.log('🐹 RaisinAnimationRenderer initialized');
+        this.positionRenderer = positionRenderer;
+        this.gameArea = document.querySelector('.game-area');
+        
+        // Guinea pig DOM elements
+        this.guineaPig3 = document.getElementById('guineaPig3');
+        this.guineaPig2 = document.getElementById('guineaPig2');
+        this.guineaPig1 = document.getElementById('guineaPig1');
+        
+        // Audio elements
+        this.guineaPigAudio = null;
+        this.guineaPigSoundInterval = null;
+        
+        // Debug: Log initial state of guinea pig elements
+        console.log('🐹 Guinea pig elements found:', {
+            gp3: !!this.guineaPig3,
+            gp2: !!this.guineaPig2,
+            gp1: !!this.guineaPig1
+        });
+        
+        this.setupGuineaPigSizes();
+        this.initializeAudio();
+    }
+    
+    initializeAudio() {
+        // Create audio element for guinea pig eating sounds
+        this.guineaPigAudio = new Audio(CONFIG.AUDIO.GUINEA_PIG_EATING_SOUND);
+        this.guineaPigAudio.volume = CONFIG.AUDIO.GUINEA_PIG_SOUND_VOLUME;
+        this.guineaPigAudio.preload = 'auto';
+        
+        // Handle audio loading errors (fallback to synthesized sounds)
+        this.guineaPigAudio.addEventListener('error', () => {
+            console.warn('🐹 Guinea pig audio file failed to load, using fallback sounds');
+            this.guineaPigAudio = null;
+        });
+    }
+    
+    setupGuineaPigSizes() {
+        if (!this.gameArea) return;
+        
+        // Get actual game area dimensions (set by ButtonBar)
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+        const gameAreaWidth = gameAreaRect.width;
+        
+        // Use game area width for sizing (more consistent than screen width)
+        const gp3Size = gameAreaWidth * CONFIG.GUINEA_PIG_3_SIZE * 1.3; // 30% larger
+        const gp2Size = gameAreaWidth * CONFIG.GUINEA_PIG_2_SIZE * 1.2; // 20% larger
+        const gp1Size = gameAreaWidth * CONFIG.GUINEA_PIG_1_SIZE * 1.2; // 20% larger
+        
+        if (this.guineaPig3) {
+            this.guineaPig3.style.cssText = `
+                width: ${gp3Size}px;
+                height: ${gp3Size}px;
+            `;
+        }
+        
+        if (this.guineaPig2) {
+            this.guineaPig2.style.cssText = `
+                width: ${gp2Size}px;
+                height: ${gp2Size}px;
+            `;
+        }
+        
+        if (this.guineaPig1) {
+            this.guineaPig1.style.cssText = `
+                width: ${gp1Size}px;
+                height: ${gp1Size}px;
+            `;
+        }
+        
+        console.log('🐹 Guinea pig sizes updated:', {
+            gp3: Math.round(gp3Size),
+            gp2: Math.round(gp2Size), 
+            gp1: Math.round(gp1Size),
+            gameAreaWidth: Math.round(gameAreaWidth)
+        });
+    }
+    
+    hideGuineaPig3() {
+        console.log('🐹 hideGuineaPig3 called');
+        if (this.guineaPig3) {
+            this.guineaPig3.classList.add('hidden');
+            this.guineaPig3.classList.remove('bounce');
+        }
+    }
+    
+    showGuineaPig3() {
+        console.log('🐹 showGuineaPig3 called');
+        if (this.guineaPig3) {
+            this.guineaPig3.classList.remove('hidden');
+            this.guineaPig3.classList.add('bounce');
+        }
+    }
+    
+    async fadeOutGuineaPig3() {
+        console.log('🐹 fadeOutGuineaPig3 called');
+        return new Promise((resolve) => {
+            if (!this.guineaPig3) {
+                resolve();
+                return;
+            }
+            
+            this.guineaPig3.style.transition = 'opacity 0.5s ease-out';
+            this.guineaPig3.style.opacity = '0';
+            this.guineaPig3.classList.remove('bounce');
+            
+            setTimeout(() => {
+                this.guineaPig3.classList.add('hidden');
+                resolve();
+            }, 500);
+        });
+    }
+    
+    async fadeInGuineaPig3() {
+        console.log('🐹 fadeInGuineaPig3 called');
+        return new Promise((resolve) => {
+            if (!this.guineaPig3) {
+                resolve();
+                return;
+            }
+            
+            this.guineaPig3.classList.remove('hidden');
+            this.guineaPig3.style.transition = 'opacity 0.5s ease-in';
+            this.guineaPig3.style.opacity = '1';
+            this.guineaPig3.classList.add('bounce');
+            
+            setTimeout(() => {
+                resolve();
+            }, 500);
+        });
+    }
+    
+    async moveGuineaPig2(raisinsToEat) {
+        console.log('🐹 === STARTING GUINEA PIG 2 MOVEMENT ===');
+        console.log('🐹 Raisins to eat:', raisinsToEat);
+        
+        return new Promise((resolve) => {
+            if (!this.guineaPig2 || !this.gameArea) {
+                console.error('🐹 ❌ Guinea pig 2 or game area not found!');
+                resolve();
+                return;
+            }
+            
+            const gameAreaRect = this.gameArea.getBoundingClientRect();
+            const gpWidth = this.guineaPig2.offsetWidth;
+            const startX = -gpWidth;
+            const endX = gameAreaRect.width + gpWidth;
+            
+            console.log('🐹 GP2 movement setup:', {
+                gameAreaWidth: gameAreaRect.width,
+                gpWidth,
+                startX,
+                endX,
+                animationDuration: CONFIG.GUINEA_PIG_ANIMATION_DURATION
+            });
+            
+            // Show guinea pig 2 and set initial position
+            this.guineaPig2.classList.remove('hidden');
+            this.guineaPig2.classList.add('moving');
+            this.guineaPig2.style.left = `${startX}px`;
+            
+            // Start moving after brief delay
+            setTimeout(() => {
+                this.guineaPig2.style.left = `${endX}px`;
+            }, 100);
+            
+            // Eat raisins as guinea pig passes over them
+            this.eatRaisinsOnPath(this.guineaPig2, raisinsToEat, 'left-to-right');
+            
+            // Hide guinea pig after animation
+            setTimeout(() => {
+                this.guineaPig2.classList.add('hidden');
+                this.guineaPig2.classList.remove('moving');
+                this.guineaPig2.style.left = '-25%'; // Reset position
+                
+                console.log('🐹 === GUINEA PIG 2 MOVEMENT COMPLETE ===');
+                resolve();
+            }, CONFIG.GUINEA_PIG_ANIMATION_DURATION);
+        });
+    }
+    
+    async moveGuineaPig1(raisinsToEat) {
+        console.log('🐹 === STARTING GUINEA PIG 1 MOVEMENT ===');
+        console.log('🐹 Raisins to eat:', raisinsToEat);
+        
+        return new Promise((resolve) => {
+            if (!this.guineaPig1 || !this.gameArea) {
+                console.error('🐹 ❌ Guinea pig 1 or game area not found!');
+                resolve();
+                return;
+            }
+            
+            const gameAreaRect = this.gameArea.getBoundingClientRect();
+            const gpWidth = this.guineaPig1.offsetWidth;
+            const startRight = -gpWidth;
+            const endRight = gameAreaRect.width + gpWidth;
+            
+            console.log('🐹 GP1 movement setup:', {
+                gameAreaWidth: gameAreaRect.width,
+                gpWidth,
+                startRight,
+                endRight,
+                animationDuration: CONFIG.GUINEA_PIG_ANIMATION_DURATION
+            });
+            
+            // Show guinea pig 1 and position it on the right side
+            this.guineaPig1.classList.remove('hidden');
+            this.guineaPig1.classList.add('moving');
+            this.guineaPig1.style.left = 'auto';
+            this.guineaPig1.style.right = `${startRight}px`;
+            
+            // Start moving from right to left after brief delay
+            setTimeout(() => {
+                this.guineaPig1.style.right = `${endRight}px`;
+            }, 100);
+            
+            // Eat raisins as guinea pig passes over them
+            this.eatRaisinsOnPath(this.guineaPig1, raisinsToEat, 'right-to-left');
+            
+            // Hide guinea pig after animation
+            setTimeout(() => {
+                this.guineaPig1.classList.add('hidden');
+                this.guineaPig1.classList.remove('moving');
+                this.guineaPig1.style.right = '-25%'; // Reset position
+                this.guineaPig1.style.left = 'auto';
+                
+                console.log('🐹 === GUINEA PIG 1 MOVEMENT COMPLETE ===');
+                resolve();
+            }, CONFIG.GUINEA_PIG_ANIMATION_DURATION);
+        });
+    }
+    
+    eatRaisinsOnPath(guineaPig, raisinsToEat, direction) {
+        if (!guineaPig || !this.gameArea) return;
+        
+        console.log(`🍽️ Starting raisin eating for ${direction}:`, raisinsToEat);
+        
+        const animationDuration = CONFIG.GUINEA_PIG_ANIMATION_DURATION;
+        const checkInterval = 20; // Check every 20ms for smoother detection
+        const totalChecks = animationDuration / checkInterval;
+        const gameAreaRect = this.gameArea.getBoundingClientRect();
+        
+        let currentCheck = 0;
+        let raisinsEaten = 0;
+        
+        const checkEating = setInterval(() => {
+            currentCheck++;
+            
+            // Get current guinea pig position
+            const guineaPigRect = guineaPig.getBoundingClientRect();
+            
+            // Determine which edge of the guinea pig to use for detection
+            let triggerX;
+            if (direction === 'left-to-right') {
+                triggerX = guineaPigRect.right; // Right edge for left-to-right movement
+            } else {
+                triggerX = guineaPigRect.left; // Left edge for right-to-left movement
+            }
+            
+            // Check each raisin that should be eaten
+            const raisinElements = this.positionRenderer.getRaisinElements();
+            raisinsToEat.forEach(raisinIndex => {
+                const raisinElement = raisinElements[raisinIndex];
+                if (raisinElement && !raisinElement.classList.contains('eaten')) {
+                    const raisinRect = raisinElement.getBoundingClientRect();
+                    
+                    // Determine if this raisin is in the correct half for this guinea pig
+                    const raisinCenterY = raisinRect.top + raisinRect.height / 2;
+                    const gameAreaTop = gameAreaRect.top;
+                    const gameAreaHeight = gameAreaRect.height;
+                    const raisinGameAreaY = (raisinCenterY - gameAreaTop) / gameAreaHeight;
+                    
+                    let shouldEat = false;
+                    
+                    if (direction === 'left-to-right') {
+                        // First guinea pig eats raisins in top half (0% to 50%)
+                        if (raisinGameAreaY <= 0.5) {
+                            // Check if guinea pig's right edge has passed raisin's center
+                            const raisinCenterX = raisinRect.left + raisinRect.width / 2;
+                            if (triggerX >= raisinCenterX) {
+                                shouldEat = true;
+                            }
+                        }
+                    } else {
+                        // Second guinea pig eats raisins in bottom half (50% to 100%)
+                        if (raisinGameAreaY > 0.5) {
+                            // Check if guinea pig's left edge has passed raisin's center
+                            const raisinCenterX = raisinRect.left + raisinRect.width / 2;
+                            if (triggerX <= raisinCenterX) {
+                                shouldEat = true;
+                            }
+                        }
+                    }
+                    
+                    if (shouldEat) {
+                        console.log(`🍽️ Eating raisin ${raisinIndex} (${direction})`);
+                        this.positionRenderer.eatRaisin(raisinIndex);
+                        raisinsEaten++;
+                    }
+                }
+            });
+            
+            // Stop checking when animation is complete
+            if (currentCheck >= totalChecks) {
+                console.log(`🍽️ Eating complete for ${direction}. Raisins eaten: ${raisinsEaten}/${raisinsToEat.length}`);
+                clearInterval(checkEating);
+            }
+        }, checkInterval);
+    }
+    
+    startGuineaPigSounds() {
+        if (!window.AudioSystem || !window.AudioSystem.isTabVisible) return;
+        
+        this.stopGuineaPigSounds(); // Clear any existing interval
+        
+        // Try to use MP3 audio first
+        if (this.guineaPigAudio) {
+            console.log('🐹 Playing MP3 guinea pig eating sounds');
+            this.guineaPigAudio.loop = true;
+            this.guineaPigAudio.currentTime = 0;
+            
+            const playPromise = this.guineaPigAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn('🐹 MP3 audio playback failed, using fallback sounds:', error);
+                    this.playFallbackSounds();
+                });
+            }
+        } else {
+            // Fallback to synthesized sounds
+            this.playFallbackSounds();
+        }
+    }
+    
+    playFallbackSounds() {
+        console.log('🐹 Using fallback synthesized guinea pig sounds');
+        
+        // Play first sound immediately using AudioSystem
+        this.playGuineaPigSound();
+        
+        // Continue playing sounds at intervals (faster for eating effect)
+        this.guineaPigSoundInterval = setInterval(() => {
+            this.playGuineaPigSound();
+        }, 200); // Play every 200ms
+    }
+    
+    playGuineaPigSound() {
+        if (window.AudioSystem) {
+            // Create a faster squeaky guinea pig sound using AudioSystem's playTone
+            window.AudioSystem.playTone(800, 0.083, 'sawtooth', 0.3);
+        }
+    }
+    
+    stopGuineaPigSounds() {
+        // Stop MP3 audio
+        if (this.guineaPigAudio) {
+            this.guineaPigAudio.pause();
+            this.guineaPigAudio.currentTime = 0;
+        }
+        
+        // Stop synthesized sound interval
+        if (this.guineaPigSoundInterval) {
+            clearInterval(this.guineaPigSoundInterval);
+            this.guineaPigSoundInterval = null;
+        }
+    }
+    
+    reset() {
+        console.log('🐹 Resetting guinea pig animation renderer');
+        
+        this.stopGuineaPigSounds();
+        
+        if (this.guineaPig2) {
+            this.guineaPig2.classList.add('hidden');
+            this.guineaPig2.style.left = '-25%';
+            this.guineaPig2.style.right = 'auto';
+        }
+        
+        if (this.guineaPig1) {
+            this.guineaPig1.classList.add('hidden');
+            this.guineaPig1.style.right = '-25%';
+            this.guineaPig1.style.left = 'auto';
+        }
+        
+        // Reset guinea pig 3 to initial state
+        if (this.guineaPig3) {
+            this.guineaPig3.style.opacity = '1';
+            this.guineaPig3.style.transition = '';
+            this.showGuineaPig3();
+        }
+        
+        // Clear any remaining nom effects
+        const nomEffects = this.gameArea.querySelectorAll('.nom-effect');
+        nomEffects.forEach(effect => {
+            if (effect.parentNode) {
+                effect.parentNode.removeChild(effect);
+            }
+        });
+    }
+    
+    destroy() {
+        this.stopGuineaPigSounds();
+        
+        // Clean up audio element
+        if (this.guineaPigAudio) {
+            this.guineaPigAudio.removeEventListener('error', () => {});
+            this.guineaPigAudio = null;
+        }
+        
+        this.reset();
+    }
+}
