@@ -78,7 +78,13 @@
     image-rendering: crisp-edges;
     object-fit: contain;
     transition: all 0.3s ease;
-    /* Ensure visibility */
+    /* Hide initially until proper sizing is applied */
+    opacity: 0;
+    visibility: hidden;
+}
+
+.guinea-pig.sized {
+    /* Show only after sizing is complete */
     opacity: 1;
     visibility: visible;
 }
