@@ -75,12 +75,12 @@ class RaisinPositionRenderer {
         const raisinSize = gameAreaWidth * CONFIG.RAISIN_SIZE;
         const minDistance = gameAreaWidth * CONFIG.RAISIN_MIN_DISTANCE;
         
-        // Internal padding of 1.5 * raisin width from all edges
+        // Internal padding from game area edges (but NOT around exclusion zone)
         const padding = raisinSize * 1.5;
         const usableWidth = gameAreaWidth - (2 * padding);
         const usableHeight = gameAreaHeight - (2 * padding);
         
-        // Define exclusion zone for Guinea Pig 3 (top-left area)
+        // Define exclusion zone for Guinea Pig 3 (top-left area only)
         const exclusionZone = {
             x: gameAreaWidth * CONFIG.GUINEA_PIG_3_EXCLUSION.x,
             y: gameAreaHeight * CONFIG.GUINEA_PIG_3_EXCLUSION.y,
@@ -109,11 +109,11 @@ class RaisinPositionRenderer {
         while (positions.length < totalRaisins && attempts < maxAttempts) {
             attempts++;
             
-            // Generate random position within usable area (with padding)
+            // Generate random position anywhere in game area (with padding from edges only)
             const x = padding + (Math.random() * usableWidth);
             const y = padding + (Math.random() * usableHeight);
             
-            // Check if position is in exclusion zone (guinea pig 3 area)
+            // Check if position overlaps with exclusion zone (guinea pig 3 area only)
             const inExclusionZone = this.isInExclusionZone(x, y, raisinSize, exclusionZone);
             
             if (inExclusionZone) {
