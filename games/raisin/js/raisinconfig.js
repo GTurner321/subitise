@@ -40,9 +40,9 @@ const CONFIG = {
     
     // Guinea pig sizes (relative to game area height - simpler system)
     GUINEA_PIG_SIZES: {
-        GP3: 16,  // 16% of game area height
-        GP2: 40,  // 40% of game area height  
-        GP1: 40   // 40% of game area height
+        GP3: 24,  // 24% of game area height (16% * 1.5)
+        GP2: 60,  // 60% of game area height (40% * 1.5)
+        GP1: 60   // 60% of game area height (40% * 1.5)
     },
     
     // Timing configurations
