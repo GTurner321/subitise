@@ -8,6 +8,43 @@ class RaisinRenderer {
         this.guineaPig2 = document.getElementById('guineaPig2');
         this.guineaPig1 = document.getElementById('guineaPig1');
         
+        // Debug: Log initial state of guinea pig elements
+        console.log('🐹 Guinea pig elements found:', {
+            gp3: !!this.guineaPig3,
+            gp2: !!this.guineaPig2,
+            gp1: !!this.guineaPig1,
+            gp3Element: this.guineaPig3,
+            gp2Element: this.guineaPig2,
+            gp1Element: this.guineaPig1
+        });
+        
+        if (this.guineaPig3) {
+            console.log('🐹 GP3 initial state:', {
+                classList: Array.from(this.guineaPig3.classList),
+                style: this.guineaPig3.style.cssText,
+                offsetWidth: this.guineaPig3.offsetWidth,
+                offsetHeight: this.guineaPig3.offsetHeight
+            });
+        }
+        
+        if (this.guineaPig2) {
+            console.log('🐹 GP2 initial state:', {
+                classList: Array.from(this.guineaPig2.classList),
+                style: this.guineaPig2.style.cssText,
+                offsetWidth: this.guineaPig2.offsetWidth,
+                offsetHeight: this.guineaPig2.offsetHeight
+            });
+        }
+        
+        if (this.guineaPig1) {
+            console.log('🐹 GP1 initial state:', {
+                classList: Array.from(this.guineaPig1.classList),
+                style: this.guineaPig1.style.cssText,
+                offsetWidth: this.guineaPig1.offsetWidth,
+                offsetHeight: this.guineaPig1.offsetHeight
+            });
+        }
+        
         // Wait for game area to be properly sized by ButtonBar
         this.setupResizeHandling();
         this.setupGuineaPigSizes();
@@ -37,7 +74,7 @@ class RaisinRenderer {
         const gameAreaWidth = gameAreaRect.width;
         
         // Use game area width for sizing (more consistent than screen width)
-        const gp3Size = gameAreaWidth * CONFIG.GUINEA_PIG_3_SIZE;
+        const gp3Size = gameAreaWidth * CONFIG.GUINEA_PIG_3_SIZE * 1.6; // 60% larger (1.0 + 0.6)
         const gp2Size = gameAreaWidth * CONFIG.GUINEA_PIG_2_SIZE * 1.2; // 20% larger
         const gp1Size = gameAreaWidth * CONFIG.GUINEA_PIG_1_SIZE * 1.2; // 20% larger
         
@@ -84,17 +121,18 @@ class RaisinRenderer {
         const raisinSize = gameAreaWidth * CONFIG.RAISIN_SIZE;
         const minDistance = gameAreaWidth * CONFIG.RAISIN_MIN_DISTANCE;
         
-        // Calculate usable area (excluding guinea pig 3 area - top left)
-        const exclusionZone = CONFIG.GUINEA_PIG_3_EXCLUSION;
-        const exclusionX = gameAreaWidth * exclusionZone.x;
-        const exclusionY = gameAreaHeight * exclusionZone.y;
-        const exclusionWidth = gameAreaWidth * exclusionZone.width;
-        const exclusionHeight = gameAreaHeight * exclusionZone.height;
+        // UPDATED: Internal padding of 1.5 * raisin width from all edges
+        const padding = raisinSize * 1.5;
+        const usableWidth = gameAreaWidth - (2 * padding);
+        const usableHeight = gameAreaHeight - (2 * padding);
         
-        // Add margin to prevent raisins from going off-screen
-        const margin = raisinSize / 2;
-        const usableWidth = gameAreaWidth - (2 * margin);
-        const usableHeight = gameAreaHeight - (2 * margin);
+        // UPDATED: Small left exclusion only for guinea pig 3 (no top-right exclusion)
+        const exclusionZone = {
+            x: 0,
+            y: 0,
+            width: gameAreaWidth * 0.15, // Small 15% width exclusion for GP3
+            height: gameAreaHeight * 0.15 // Small 15% height exclusion for GP3
+        };
         
         const positions = [];
         let attempts = 0;
@@ -103,12 +141,13 @@ class RaisinRenderer {
         console.log('🍇 Generating raisin positions:', {
             gameAreaSize: `${Math.round(gameAreaWidth)}x${Math.round(gameAreaHeight)}`,
             raisinSize: Math.round(raisinSize),
+            padding: Math.round(padding),
             minDistance: Math.round(minDistance),
             exclusionZone: {
-                x: Math.round(exclusionX),
-                y: Math.round(exclusionY),
-                width: Math.round(exclusionWidth),
-                height: Math.round(exclusionHeight)
+                x: Math.round(exclusionZone.x),
+                y: Math.round(exclusionZone.y),
+                width: Math.round(exclusionZone.width),
+                height: Math.round(exclusionZone.height)
             }
         });
         
@@ -116,16 +155,16 @@ class RaisinRenderer {
         while (positions.length < 10 && attempts < maxAttempts) {
             attempts++;
             
-            // Generate random position within usable area (with margin)
-            const x = margin + (Math.random() * usableWidth);
-            const y = margin + (Math.random() * usableHeight);
+            // Generate random position within usable area (with padding)
+            const x = padding + (Math.random() * usableWidth);
+            const y = padding + (Math.random() * usableHeight);
             
-            // Check if position is in exclusion zone (guinea pig 3 area)
+            // Check if position is in small exclusion zone (guinea pig 3 area)
             const inExclusionZone = (
-                x < exclusionX + exclusionWidth &&
-                x + raisinSize > exclusionX &&
-                y < exclusionY + exclusionHeight &&
-                y + raisinSize > exclusionY
+                x < exclusionZone.x + exclusionZone.width &&
+                x + raisinSize > exclusionZone.x &&
+                y < exclusionZone.y + exclusionZone.height &&
+                y + raisinSize > exclusionZone.y
             );
             
             if (inExclusionZone) {
@@ -170,14 +209,14 @@ class RaisinRenderer {
             while (positions.length < 10 && attempts < maxAttempts + 1000) {
                 attempts++;
                 
-                const x = margin + (Math.random() * usableWidth);
-                const y = margin + (Math.random() * usableHeight);
+                const x = padding + (Math.random() * usableWidth);
+                const y = padding + (Math.random() * usableHeight);
                 
                 const inExclusionZone = (
-                    x < exclusionX + exclusionWidth &&
-                    x + raisinSize > exclusionX &&
-                    y < exclusionY + exclusionHeight &&
-                    y + raisinSize > exclusionY
+                    x < exclusionZone.x + exclusionZone.width &&
+                    x + raisinSize > exclusionZone.x &&
+                    y < exclusionZone.y + exclusionZone.height &&
+                    y + raisinSize > exclusionZone.y
                 );
                 
                 if (inExclusionZone) {
@@ -245,7 +284,7 @@ class RaisinRenderer {
                 width: ${raisin.size}px;
                 height: ${raisin.size}px;
                 opacity: 0;
-                z-index: 2;
+                z-index: 3;
                 pointer-events: none;
                 transition: all 0.3s ease;
                 image-rendering: -webkit-optimize-contrast;
@@ -287,74 +326,147 @@ class RaisinRenderer {
     }
     
     hideGuineaPig3() {
+        console.log('🐹 hideGuineaPig3 called');
         if (this.guineaPig3) {
             this.guineaPig3.classList.add('hidden');
             this.guineaPig3.classList.remove('bounce');
+            console.log('🐹 GP3 hidden, classes:', Array.from(this.guineaPig3.classList));
+        } else {
+            console.warn('🐹 GP3 element not found in hideGuineaPig3');
         }
     }
     
     showGuineaPig3() {
+        console.log('🐹 showGuineaPig3 called');
         if (this.guineaPig3) {
             this.guineaPig3.classList.remove('hidden');
             this.guineaPig3.classList.add('bounce');
+            console.log('🐹 GP3 shown, classes:', Array.from(this.guineaPig3.classList));
+        } else {
+            console.warn('🐹 GP3 element not found in showGuineaPig3');
         }
     }
     
     async fadeOutGuineaPig3() {
+        console.log('🐹 fadeOutGuineaPig3 called');
         return new Promise((resolve) => {
             if (!this.guineaPig3) {
+                console.warn('🐹 GP3 element not found in fadeOutGuineaPig3');
                 resolve();
                 return;
             }
             
+            console.log('🐹 Starting GP3 fade out');
             this.guineaPig3.style.transition = 'opacity 0.5s ease-out';
             this.guineaPig3.style.opacity = '0';
             this.guineaPig3.classList.remove('bounce');
             
             setTimeout(() => {
                 this.guineaPig3.classList.add('hidden');
+                console.log('🐹 GP3 fade out complete, classes:', Array.from(this.guineaPig3.classList));
                 resolve();
             }, 500);
         });
     }
     
     async fadeInGuineaPig3() {
+        console.log('🐹 fadeInGuineaPig3 called');
         return new Promise((resolve) => {
             if (!this.guineaPig3) {
+                console.warn('🐹 GP3 element not found in fadeInGuineaPig3');
                 resolve();
                 return;
             }
             
+            console.log('🐹 Starting GP3 fade in');
             this.guineaPig3.classList.remove('hidden');
             this.guineaPig3.style.transition = 'opacity 0.5s ease-in';
             this.guineaPig3.style.opacity = '1';
             this.guineaPig3.classList.add('bounce');
             
             setTimeout(() => {
+                console.log('🐹 GP3 fade in complete, classes:', Array.from(this.guineaPig3.classList));
                 resolve();
             }, 500);
         });
     }
     
     async moveGuineaPig2(raisinsToEat) {
+        console.log('🐹 === STARTING GUINEA PIG 2 MOVEMENT ===');
+        console.log('🐹 Raisins to eat:', raisinsToEat);
+        
         return new Promise((resolve) => {
-            if (!this.guineaPig2 || !this.gameArea) {
+            if (!this.guineaPig2) {
+                console.error('🐹 ❌ Guinea pig 2 element not found!');
                 resolve();
                 return;
             }
             
-            const gameAreaRect = this.gameArea.getBoundingClientRect();
-            const startX = -this.guineaPig2.offsetWidth;
-            const endX = gameAreaRect.width;
+            if (!this.gameArea) {
+                console.error('🐹 ❌ Game area not found!');
+                resolve();
+                return;
+            }
             
-            // Show guinea pig 2
+            // Log initial state
+            console.log('🐹 GP2 initial state:', {
+                classList: Array.from(this.guineaPig2.classList),
+                style: this.guineaPig2.style.cssText,
+                offsetWidth: this.guineaPig2.offsetWidth,
+                offsetHeight: this.guineaPig2.offsetHeight,
+                computedStyle: {
+                    display: window.getComputedStyle(this.guineaPig2).display,
+                    visibility: window.getComputedStyle(this.guineaPig2).visibility,
+                    opacity: window.getComputedStyle(this.guineaPig2).opacity,
+                    zIndex: window.getComputedStyle(this.guineaPig2).zIndex,
+                    left: window.getComputedStyle(this.guineaPig2).left,
+                    top: window.getComputedStyle(this.guineaPig2).top
+                }
+            });
+            
+            const gameAreaRect = this.gameArea.getBoundingClientRect();
+            const gpWidth = this.guineaPig2.offsetWidth;
+            const startX = -gpWidth;
+            const endX = gameAreaRect.width + gpWidth;
+            
+            console.log('🐹 GP2 movement setup:', {
+                gameAreaWidth: gameAreaRect.width,
+                gameAreaHeight: gameAreaRect.height,
+                gpWidth,
+                startX,
+                endX,
+                animationDuration: CONFIG.GUINEA_PIG_ANIMATION_DURATION
+            });
+            
+            // Show guinea pig 2 and set initial position
             this.guineaPig2.classList.remove('hidden');
             this.guineaPig2.classList.add('moving');
             this.guineaPig2.style.left = `${startX}px`;
             
-            // Start moving
+            console.log('🐹 GP2 after setup:', {
+                classList: Array.from(this.guineaPig2.classList),
+                left: this.guineaPig2.style.left,
+                computedLeft: window.getComputedStyle(this.guineaPig2).left,
+                visibility: window.getComputedStyle(this.guineaPig2).visibility,
+                opacity: window.getComputedStyle(this.guineaPig2).opacity,
+                zIndex: window.getComputedStyle(this.guineaPig2).zIndex,
+                boundingRect: this.guineaPig2.getBoundingClientRect()
+            });
+            
+            // Start moving after brief delay
             setTimeout(() => {
+                console.log('🐹 Starting GP2 animation to endX:', endX);
                 this.guineaPig2.style.left = `${endX}px`;
+                
+                // Log position after animation start
+                setTimeout(() => {
+                    console.log('🐹 GP2 mid-animation check:', {
+                        left: this.guineaPig2.style.left,
+                        computedLeft: window.getComputedStyle(this.guineaPig2).left,
+                        boundingRect: this.guineaPig2.getBoundingClientRect()
+                    });
+                }, 1000);
+                
             }, 100);
             
             // Eat raisins as guinea pig passes over them
@@ -362,33 +474,102 @@ class RaisinRenderer {
             
             // Hide guinea pig after animation
             setTimeout(() => {
+                console.log('🐹 GP2 animation complete, hiding...');
                 this.guineaPig2.classList.add('hidden');
                 this.guineaPig2.classList.remove('moving');
+                this.guineaPig2.style.left = '-25%'; // Reset position
+                
+                console.log('🐹 GP2 final state:', {
+                    classList: Array.from(this.guineaPig2.classList),
+                    left: this.guineaPig2.style.left
+                });
+                
+                console.log('🐹 === GUINEA PIG 2 MOVEMENT COMPLETE ===');
                 resolve();
             }, CONFIG.GUINEA_PIG_ANIMATION_DURATION);
         });
     }
     
     async moveGuineaPig1(raisinsToEat) {
+        console.log('🐹 === STARTING GUINEA PIG 1 MOVEMENT ===');
+        console.log('🐹 Raisins to eat:', raisinsToEat);
+        
         return new Promise((resolve) => {
-            if (!this.guineaPig1 || !this.gameArea) {
+            if (!this.guineaPig1) {
+                console.error('🐹 ❌ Guinea pig 1 element not found!');
                 resolve();
                 return;
             }
             
+            if (!this.gameArea) {
+                console.error('🐹 ❌ Game area not found!');
+                resolve();
+                return;
+            }
+            
+            // Log initial state
+            console.log('🐹 GP1 initial state:', {
+                classList: Array.from(this.guineaPig1.classList),
+                style: this.guineaPig1.style.cssText,
+                offsetWidth: this.guineaPig1.offsetWidth,
+                offsetHeight: this.guineaPig1.offsetHeight,
+                computedStyle: {
+                    display: window.getComputedStyle(this.guineaPig1).display,
+                    visibility: window.getComputedStyle(this.guineaPig1).visibility,
+                    opacity: window.getComputedStyle(this.guineaPig1).opacity,
+                    zIndex: window.getComputedStyle(this.guineaPig1).zIndex,
+                    left: window.getComputedStyle(this.guineaPig1).left,
+                    right: window.getComputedStyle(this.guineaPig1).right,
+                    top: window.getComputedStyle(this.guineaPig1).top
+                }
+            });
+            
             const gameAreaRect = this.gameArea.getBoundingClientRect();
+            const gpWidth = this.guineaPig1.offsetWidth;
+            const startRight = -gpWidth;
+            const endRight = gameAreaRect.width + gpWidth;
+            
+            console.log('🐹 GP1 movement setup:', {
+                gameAreaWidth: gameAreaRect.width,
+                gameAreaHeight: gameAreaRect.height,
+                gpWidth,
+                startRight,
+                endRight,
+                animationDuration: CONFIG.GUINEA_PIG_ANIMATION_DURATION
+            });
             
             // Show guinea pig 1 and position it on the right side
             this.guineaPig1.classList.remove('hidden');
             this.guineaPig1.classList.add('moving');
-            
-            // Reset any previous positioning
             this.guineaPig1.style.left = 'auto';
-            this.guineaPig1.style.right = `${-this.guineaPig1.offsetWidth}px`;
+            this.guineaPig1.style.right = `${startRight}px`;
             
-            // Start moving from right to left
+            console.log('🐹 GP1 after setup:', {
+                classList: Array.from(this.guineaPig1.classList),
+                right: this.guineaPig1.style.right,
+                left: this.guineaPig1.style.left,
+                computedRight: window.getComputedStyle(this.guineaPig1).right,
+                computedLeft: window.getComputedStyle(this.guineaPig1).left,
+                visibility: window.getComputedStyle(this.guineaPig1).visibility,
+                opacity: window.getComputedStyle(this.guineaPig1).opacity,
+                zIndex: window.getComputedStyle(this.guineaPig1).zIndex,
+                boundingRect: this.guineaPig1.getBoundingClientRect()
+            });
+            
+            // Start moving from right to left after brief delay
             setTimeout(() => {
-                this.guineaPig1.style.right = `${gameAreaRect.width + this.guineaPig1.offsetWidth}px`;
+                console.log('🐹 Starting GP1 animation to endRight:', endRight);
+                this.guineaPig1.style.right = `${endRight}px`;
+                
+                // Log position after animation start
+                setTimeout(() => {
+                    console.log('🐹 GP1 mid-animation check:', {
+                        right: this.guineaPig1.style.right,
+                        computedRight: window.getComputedStyle(this.guineaPig1).right,
+                        boundingRect: this.guineaPig1.getBoundingClientRect()
+                    });
+                }, 1000);
+                
             }, 100);
             
             // Eat raisins as guinea pig passes over them
@@ -396,11 +577,19 @@ class RaisinRenderer {
             
             // Hide guinea pig after animation
             setTimeout(() => {
+                console.log('🐹 GP1 animation complete, hiding...');
                 this.guineaPig1.classList.add('hidden');
                 this.guineaPig1.classList.remove('moving');
-                // Reset position for next time
-                this.guineaPig1.style.right = '-25%';
+                this.guineaPig1.style.right = '-25%'; // Reset position
                 this.guineaPig1.style.left = 'auto';
+                
+                console.log('🐹 GP1 final state:', {
+                    classList: Array.from(this.guineaPig1.classList),
+                    right: this.guineaPig1.style.right,
+                    left: this.guineaPig1.style.left
+                });
+                
+                console.log('🐹 === GUINEA PIG 1 MOVEMENT COMPLETE ===');
                 resolve();
             }, CONFIG.GUINEA_PIG_ANIMATION_DURATION);
         });
@@ -409,12 +598,16 @@ class RaisinRenderer {
     eatRaisinsOnPath(guineaPig, raisinsToEat, direction) {
         if (!guineaPig || !this.gameArea) return;
         
+        console.log(`🍽️ Starting raisin eating for ${direction}:`, raisinsToEat);
+        
         const animationDuration = CONFIG.GUINEA_PIG_ANIMATION_DURATION;
         const checkInterval = 20; // Check every 20ms for smoother detection
         const totalChecks = animationDuration / checkInterval;
         const gameAreaRect = this.gameArea.getBoundingClientRect();
         
         let currentCheck = 0;
+        let raisinsEaten = 0;
+        
         const checkEating = setInterval(() => {
             currentCheck++;
             
@@ -464,13 +657,16 @@ class RaisinRenderer {
                     }
                     
                     if (shouldEat) {
+                        console.log(`🍽️ Eating raisin ${raisinIndex} (${direction})`);
                         this.eatRaisin(raisinIndex);
+                        raisinsEaten++;
                     }
                 }
             });
             
             // Stop checking when animation is complete
             if (currentCheck >= totalChecks) {
+                console.log(`🍽️ Eating complete for ${direction}. Raisins eaten: ${raisinsEaten}/${raisinsToEat.length}`);
                 clearInterval(checkEating);
             }
         }, checkInterval);
@@ -506,10 +702,14 @@ class RaisinRenderer {
         
         if (this.guineaPig2) {
             this.guineaPig2.classList.add('hidden');
+            this.guineaPig2.style.left = '-25%';
+            this.guineaPig2.style.right = 'auto';
         }
         
         if (this.guineaPig1) {
             this.guineaPig1.classList.add('hidden');
+            this.guineaPig1.style.right = '-25%';
+            this.guineaPig1.style.left = 'auto';
         }
         
         // Reset guinea pig 3 to initial state
@@ -517,17 +717,6 @@ class RaisinRenderer {
             this.guineaPig3.style.opacity = '1';
             this.guineaPig3.style.transition = '';
             this.showGuineaPig3();
-        }
-        
-        // Reset guinea pig positions properly
-        if (this.guineaPig2) {
-            this.guineaPig2.style.left = '-25%';
-            this.guineaPig2.style.right = 'auto';
-        }
-        
-        if (this.guineaPig1) {
-            this.guineaPig1.style.right = '-25%';
-            this.guineaPig1.style.left = 'auto';
         }
         
         // Clear any remaining nom effects
