@@ -1,9 +1,16 @@
+/**
+ * Raisin Game Controller - Universal Systems Version
+ * Manages game flow, tutorial mode, difficulty progression, and user interactions.
+ * Coordinates between RaisinPositionRenderer and RaisinAnimationRenderer.
+ * Handles 5-raisin tutorial mode for first 3 questions, then 10-raisin normal mode.
+ */
 class RaisinGameController {
     constructor() {
         console.log('🐹 Raisin Game Controller - Universal Systems Version');
         
         // Initialize universal components
-        this.raisinRenderer = new RaisinRenderer();
+        this.positionRenderer = new RaisinPositionRenderer();
+        this.animationRenderer = new RaisinAnimationRenderer(this.positionRenderer);
         this.rainbow = new Rainbow();
         this.bear = new Bear();
         
@@ -14,9 +21,9 @@ class RaisinGameController {
         this.buttonsDisabled = false;
         this.questionsCompleted = 0;
         
-        // Hidden difficulty levels
+        // Tutorial and normal mode tracking
         this.currentLevel = 1;
-        this.levelNames = ['Level 1', 'Level 2', 'Level 3'];
+        this.usedCombinations = new Set(); // Track used combinations to avoid repeats
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
@@ -90,14 +97,14 @@ class RaisinGameController {
     }
     
     createButtons() {
-        // Create 9 buttons (1-9) since at least 1 raisin must remain
-        const colors = CONFIG.COLORS ? CONFIG.COLORS.slice(0, 9) : [
-            '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
-            '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8'
-        ];
-        const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        // Create appropriate number of buttons based on game mode
+        const maxPossibleAnswer = this.getMaxPossibleAnswer();
+        const buttonCount = Math.min(maxPossibleAnswer, 9); // Max 9 buttons
         
-        console.log('Creating raisin game buttons: 9 buttons (1-9)');
+        const colors = CONFIG.COLORS.slice(0, buttonCount);
+        const numbers = Array.from({length: buttonCount}, (_, i) => i + 1);
+        
+        console.log(`Creating raisin game buttons: ${buttonCount} buttons for question ${this.currentQuestion + 1}`);
         
         if (window.ButtonBar) {
             window.ButtonBar.destroy();
@@ -106,7 +113,7 @@ class RaisinGameController {
         setTimeout(() => {
             if (window.ButtonBar) {
                 window.ButtonBar.create(
-                    9,      // 9 buttons
+                    buttonCount,
                     8,      // 8% width of button panel
                     8,      // 8% height of button panel  
                     colors,
@@ -121,6 +128,15 @@ class RaisinGameController {
                 );
             }
         }, 50);
+    }
+    
+    getMaxPossibleAnswer() {
+        // Return the maximum possible answer for current mode
+        if (CONFIG.isTutorialMode(this.currentQuestion)) {
+            return CONFIG.TUTORIAL_MODE.TOTAL_RAISINS - 1; // 5 raisins, max 4 eaten
+        } else {
+            return CONFIG.NORMAL_MODE.TOTAL_RAISINS - 1; // 10 raisins, max 9 eaten
+        }
     }
     
     initializeGame() {
@@ -143,6 +159,7 @@ class RaisinGameController {
             if (!this.isTabVisible) {
                 // Tab is hidden - stop all audio and clear timers
                 this.clearInactivityTimer();
+                this.animationRenderer.stopGuineaPigSounds();
                 if (window.AudioSystem) {
                     window.AudioSystem.stopAllAudio();
                 }
@@ -180,9 +197,8 @@ class RaisinGameController {
         // Mark that hint has been given for this question
         this.hintGiven = true;
         
-        this.speakText('Try counting how many more will make 10.');
-        
-        // Don't restart the timer - hint is only given once per question
+        const hintMessage = CONFIG.getHintMessage(this.currentQuestion);
+        this.speakText(hintMessage);
     }
     
     async startNewQuestion() {
@@ -194,16 +210,22 @@ class RaisinGameController {
         this.hintGiven = false;
         this.buttonsDisabled = false;
         
-        // Generate question based on current difficulty level
-        this.currentAnswer = this.generateAnswerForLevel();
+        // Generate question based on current mode and difficulty level
+        this.currentAnswer = this.generateAnswerForCurrentMode();
         
-        console.log(`Question ${this.currentQuestion + 1}: Level ${this.currentLevel}, Answer: ${this.currentAnswer}`);
+        console.log(`Question ${this.currentQuestion + 1}: ${CONFIG.isTutorialMode(this.currentQuestion) ? 'Tutorial' : 'Normal'} Mode, Level ${this.currentLevel}, Answer: ${this.currentAnswer}`);
+        
+        // Create appropriate buttons for this question
+        this.createButtons();
+        
+        // Wait for buttons to be created
+        await this.sleep(200);
         
         // Reset button states
         this.resetButtonStates();
         
-        // Render all 10 raisins with staggered appearance
-        await this.raisinRenderer.renderRaisinsStaggered();
+        // Render raisins with staggered appearance
+        await this.positionRenderer.renderRaisinsStaggered(this.currentQuestion);
         
         // Select exactly currentAnswer raisins to eat
         const raisinsToEat = this.selectRaisinsToEat();
@@ -218,14 +240,52 @@ class RaisinGameController {
         this.startInactivityTimer();
     }
     
-    generateAnswerForLevel() {
-        const level = CONFIG.DIFFICULTY_LEVELS[`LEVEL_${this.currentLevel}`];
+    generateAnswerForCurrentMode() {
+        const difficultyLevels = CONFIG.getDifficultyLevels(this.currentQuestion);
+        let level;
+        
+        if (CONFIG.isTutorialMode(this.currentQuestion)) {
+            // Tutorial mode: Level 1 for first question, Level 2 for questions 2-3
+            level = this.currentQuestion === 0 ? difficultyLevels.LEVEL_1 : difficultyLevels.LEVEL_2;
+        } else {
+            // Normal mode: Use current level
+            level = difficultyLevels[`LEVEL_${this.currentLevel}`];
+        }
+        
         const possibleAnswers = level.possibleRaisinsToEat;
-        return possibleAnswers[Math.floor(Math.random() * possibleAnswers.length)];
+        let selectedAnswer;
+        
+        // Avoid repeating combinations if possible
+        const availableAnswers = possibleAnswers.filter(answer => 
+            !this.usedCombinations.has(`${this.currentQuestion}_${answer}`)
+        );
+        
+        if (availableAnswers.length > 0) {
+            selectedAnswer = availableAnswers[Math.floor(Math.random() * availableAnswers.length)];
+        } else {
+            // All combinations used, reset and pick any
+            if (CONFIG.isTutorialMode(this.currentQuestion)) {
+                // Only clear tutorial combinations
+                for (let i = 0; i < CONFIG.TUTORIAL_MODE.QUESTIONS; i++) {
+                    possibleAnswers.forEach(answer => {
+                        this.usedCombinations.delete(`${i}_${answer}`);
+                    });
+                }
+            } else {
+                // Clear all combinations for normal mode
+                this.usedCombinations.clear();
+            }
+            selectedAnswer = possibleAnswers[Math.floor(Math.random() * possibleAnswers.length)];
+        }
+        
+        // Track this combination
+        this.usedCombinations.add(`${this.currentQuestion}_${selectedAnswer}`);
+        
+        return selectedAnswer;
     }
     
     selectRaisinsToEat() {
-        const totalRaisins = CONFIG.TOTAL_RAISINS;
+        const totalRaisins = CONFIG.getTotalRaisins(this.currentQuestion);
         const raisinsToEat = [];
         
         // Randomly select exactly currentAnswer raisins to eat
@@ -242,13 +302,15 @@ class RaisinGameController {
     giveStartingInstruction() {
         if (!this.isTabVisible) return;
         
+        const audioMessages = CONFIG.getAudioMessages(this.currentQuestion);
+        
         setTimeout(() => {
             if (this.currentQuestion === 0) {
                 // First question - full instruction
-                this.speakText('Watch the hungry guinea pig');
+                this.speakText(audioMessages.FIRST_QUESTION);
             } else {
                 // Subsequent questions - shorter instruction
-                this.speakText('How many of the 10 raisins does the guinea pig eat this time?');
+                this.speakText(audioMessages.SUBSEQUENT_QUESTION);
             }
         }, 500);
     }
@@ -257,7 +319,7 @@ class RaisinGameController {
         this.buttonsDisabled = true;
         
         // Show guinea pig 3 and raisins for 4 seconds
-        this.raisinRenderer.showGuineaPig3();
+        this.animationRenderer.showGuineaPig3();
         
         // Wait for initial display period
         await this.sleep(CONFIG.GUINEA_PIG_3_INITIAL_DISPLAY);
@@ -267,7 +329,8 @@ class RaisinGameController {
             await this.sleep(CONFIG.INITIAL_INSTRUCTION_DELAY);
             
             if (this.isTabVisible) {
-                this.speakText('There are 10 raisins. The hungry guinea pig is going to eat some of them.');
+                const audioMessages = CONFIG.getAudioMessages(this.currentQuestion);
+                this.speakText(audioMessages.FIRST_INSTRUCTION);
             }
             
             // Wait for instruction to finish (approximately 5 seconds)
@@ -275,30 +338,31 @@ class RaisinGameController {
         }
         
         // Fade out guinea pig 3 completely before moving guinea pigs appear
-        await this.raisinRenderer.fadeOutGuineaPig3();
+        await this.animationRenderer.fadeOutGuineaPig3();
         
-        // Start guinea pig sounds using AudioSystem
-        this.startGuineaPigSounds();
+        // Start guinea pig sounds
+        this.animationRenderer.startGuineaPigSounds();
         
         // Guinea pig 2 moves left to right (only after GP3 is completely gone)
-        await this.raisinRenderer.moveGuineaPig2(raisinsToEat);
+        await this.animationRenderer.moveGuineaPig2(raisinsToEat);
         
         // Short pause
         await this.sleep(CONFIG.GUINEA_PIG_PAUSE_DURATION);
         
         // Guinea pig 1 moves right to left (only after GP2 is completely gone)
-        await this.raisinRenderer.moveGuineaPig1(raisinsToEat);
+        await this.animationRenderer.moveGuineaPig1(raisinsToEat);
         
         // Stop guinea pig sounds
-        this.stopGuineaPigSounds();
+        this.animationRenderer.stopGuineaPigSounds();
         
         // Fade in guinea pig 3 again (only after GP1 is completely gone)
-        await this.raisinRenderer.fadeInGuineaPig3();
+        await this.animationRenderer.fadeInGuineaPig3();
         
         // Give question instruction
         setTimeout(() => {
             if (this.isTabVisible) {
-                this.speakText('How many raisins did the guinea pig eat?');
+                const audioMessages = CONFIG.getAudioMessages(this.currentQuestion);
+                this.speakText(audioMessages.QUESTION);
             }
         }, 500);
         
@@ -307,34 +371,6 @@ class RaisinGameController {
     
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
-    }
-    
-    startGuineaPigSounds() {
-        if (!this.isTabVisible) return;
-        
-        this.stopGuineaPigSounds(); // Clear any existing interval
-        
-        // Play first sound immediately using AudioSystem
-        this.playGuineaPigSound();
-        
-        // Continue playing sounds at intervals (3x faster)
-        this.guineaPigSoundInterval = setInterval(() => {
-            this.playGuineaPigSound();
-        }, 200); // Play every 200ms (was 600ms)
-    }
-    
-    playGuineaPigSound() {
-        if (window.AudioSystem) {
-            // Create a faster squeaky guinea pig sound using AudioSystem's playTone
-            window.AudioSystem.playTone(800, 0.083, 'sawtooth', 0.3);
-        }
-    }
-    
-    stopGuineaPigSounds() {
-        if (this.guineaPigSoundInterval) {
-            clearInterval(this.guineaPigSoundInterval);
-            this.guineaPigSoundInterval = null;
-        }
     }
     
     handleNumberClick(selectedNumber, buttonElement) {
@@ -366,7 +402,7 @@ class RaisinGameController {
         
         // Give encouragement for correct answer
         if (this.isTabVisible) {
-            const encouragements = ['Well done!', 'Excellent!', 'Perfect!', 'Great counting!'];
+            const encouragements = CONFIG.AUDIO.ENCOURAGEMENTS;
             const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
             setTimeout(() => {
                 this.speakText(randomEncouragement);
@@ -401,21 +437,27 @@ class RaisinGameController {
     }
     
     updateDifficultyOnSuccess() {
-        if (this.currentLevel === 1) {
-            this.currentLevel = 2; // Level 1 correct on first attempt → Level 2
-        } else if (this.currentLevel === 3) {
-            this.currentLevel = 2; // Level 3 correct on first attempt → Level 2
+        // Only update difficulty in normal mode (not tutorial)
+        if (!CONFIG.isTutorialMode(this.currentQuestion - 1)) { // -1 because we already incremented
+            if (this.currentLevel === 1) {
+                this.currentLevel = 2; // Level 1 correct on first attempt → Level 2
+            } else if (this.currentLevel === 3) {
+                this.currentLevel = 2; // Level 3 correct on first attempt → Level 2
+            }
+            // Level 2 stays at Level 2 when correct
         }
-        // Level 2 stays at Level 2 when correct
     }
     
     updateDifficultyOnFailure() {
-        if (this.currentLevel === 2) {
-            this.currentLevel = 3; // Level 2 not correct on first attempt → Level 3
-        } else if (this.currentLevel === 3) {
-            this.currentLevel = 1; // Level 3 not correct on first attempt → Level 1
+        // Only update difficulty in normal mode (not tutorial)
+        if (!CONFIG.isTutorialMode(this.currentQuestion - 1)) { // -1 because we already incremented
+            if (this.currentLevel === 2) {
+                this.currentLevel = 3; // Level 2 not correct on first attempt → Level 3
+            } else if (this.currentLevel === 3) {
+                this.currentLevel = 1; // Level 3 not correct on first attempt → Level 1
+            }
+            // Level 1 stays at Level 1 when not correct on first attempt
         }
-        // Level 1 stays at Level 1 when not correct on first attempt
     }
     
     hasAttemptedAnswer() {
@@ -471,7 +513,7 @@ class RaisinGameController {
     completeGame() {
         this.gameComplete = true;
         this.clearInactivityTimer();
-        this.stopGuineaPigSounds();
+        this.animationRenderer.stopGuineaPigSounds();
         this.modal.classList.remove('hidden');
         
         // Start bear celebration when modal opens
@@ -480,7 +522,7 @@ class RaisinGameController {
         // Give completion audio message
         if (this.isTabVisible) {
             setTimeout(() => {
-                this.speakText('Well done! You have correctly counted how many raisins the guinea pig ate in all of the questions. Play again or return to the home page.');
+                this.speakText(CONFIG.AUDIO.COMPLETION_MESSAGE);
             }, 1000);
         }
     }
@@ -492,13 +534,15 @@ class RaisinGameController {
         this.buttonsDisabled = false;
         this.questionsCompleted = 0;
         this.currentLevel = 1; // Reset to Level 1
+        this.usedCombinations.clear(); // Clear used combinations
         
         this.clearInactivityTimer();
-        this.stopGuineaPigSounds();
+        this.animationRenderer.stopGuineaPigSounds();
         
         this.rainbow.reset();
         this.bear.reset();
-        this.raisinRenderer.reset();
+        this.positionRenderer.reset();
+        this.animationRenderer.reset();
         this.modal.classList.add('hidden');
         
         // Reset button states
@@ -516,7 +560,7 @@ class RaisinGameController {
     destroy() {
         // Clean up timers
         this.clearInactivityTimer();
-        this.stopGuineaPigSounds();
+        this.animationRenderer.stopGuineaPigSounds();
         
         // Stop all audio using AudioSystem
         if (window.AudioSystem) {
@@ -526,7 +570,8 @@ class RaisinGameController {
         // Clean up other resources
         this.rainbow.reset();
         this.bear.reset();
-        this.raisinRenderer.reset();
+        this.positionRenderer.destroy();
+        this.animationRenderer.destroy();
         
         if (window.ButtonBar) {
             window.ButtonBar.destroy();
