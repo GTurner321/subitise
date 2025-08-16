@@ -27,8 +27,31 @@ class RaisinAnimationRenderer {
             gp1: !!this.guineaPig1
         });
         
-        this.setupGuineaPigSizes();
         this.initializeAudio();
+        this.setupResizeHandling();
+        
+        // Wait for game area to be sized by ButtonBar
+        setTimeout(() => {
+            this.setupGuineaPigSizes();
+        }, 200);
+    }
+    
+    setupResizeHandling() {
+        // Listen for ButtonBar dimension updates
+        if (window.ButtonBar) {
+            window.ButtonBar.addObserver(() => {
+                setTimeout(() => {
+                    this.setupGuineaPigSizes();
+                }, 100);
+            });
+        }
+        
+        // Also handle window resize
+        window.addEventListener('resize', () => {
+            setTimeout(() => {
+                this.setupGuineaPigSizes();
+            }, 100);
+        });
     }
     
     initializeAudio() {
@@ -45,11 +68,25 @@ class RaisinAnimationRenderer {
     }
     
     setupGuineaPigSizes() {
-        if (!this.gameArea) return;
+        if (!this.gameArea) {
+            console.warn('🐹 Game area not found for guinea pig sizing');
+            return;
+        }
+        
+        // Force a reflow to ensure we get accurate dimensions
+        this.gameArea.offsetHeight;
         
         // Get actual game area dimensions (set by ButtonBar)
         const gameAreaRect = this.gameArea.getBoundingClientRect();
         const gameAreaWidth = gameAreaRect.width;
+        
+        if (gameAreaWidth <= 0) {
+            console.warn('🐹 Game area width is 0, retrying guinea pig sizing...');
+            setTimeout(() => {
+                this.setupGuineaPigSizes();
+            }, 100);
+            return;
+        }
         
         // Use game area width for sizing (more consistent than screen width)
         const gp3Size = gameAreaWidth * CONFIG.GUINEA_PIG_3_SIZE * 1.3; // 30% larger
@@ -57,24 +94,18 @@ class RaisinAnimationRenderer {
         const gp1Size = gameAreaWidth * CONFIG.GUINEA_PIG_1_SIZE * 1.2; // 20% larger
         
         if (this.guineaPig3) {
-            this.guineaPig3.style.cssText = `
-                width: ${gp3Size}px;
-                height: ${gp3Size}px;
-            `;
+            this.guineaPig3.style.width = `${gp3Size}px`;
+            this.guineaPig3.style.height = `${gp3Size}px`;
         }
         
         if (this.guineaPig2) {
-            this.guineaPig2.style.cssText = `
-                width: ${gp2Size}px;
-                height: ${gp2Size}px;
-            `;
+            this.guineaPig2.style.width = `${gp2Size}px`;
+            this.guineaPig2.style.height = `${gp2Size}px`;
         }
         
         if (this.guineaPig1) {
-            this.guineaPig1.style.cssText = `
-                width: ${gp1Size}px;
-                height: ${gp1Size}px;
-            `;
+            this.guineaPig1.style.width = `${gp1Size}px`;
+            this.guineaPig1.style.height = `${gp1Size}px`;
         }
         
         console.log('🐹 Guinea pig sizes updated:', {
@@ -409,6 +440,13 @@ class RaisinAnimationRenderer {
     
     destroy() {
         this.stopGuineaPigSounds();
+        
+        // Clean up resize observer
+        if (window.ButtonBar) {
+            window.ButtonBar.removeObserver(this.setupGuineaPigSizes);
+        }
+        
+        window.removeEventListener('resize', this.setupGuineaPigSizes);
         
         // Clean up audio element
         if (this.guineaPigAudio) {
