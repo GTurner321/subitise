@@ -77,14 +77,16 @@ const CONFIG = {
             FIRST_QUESTION: 'Watch the hungry guinea pig',
             FIRST_INSTRUCTION: 'There are 5 raisins. The hungry guinea pig is going to eat some of them.',
             QUESTION: 'How many raisins did the guinea pig eat?',
-            SUBSEQUENT_QUESTION: 'How many of the 5 raisins does the guinea pig eat this time?'
+            SUBSEQUENT_QUESTION: 'There are 5 raisins. Watch the guinea pig.',
+            WRONG_ANSWER_HINT: 'We started with 5 raisins. Count how many there are left now, then count how many are missing - you can use your fingers to help you.'
         },
         
         NORMAL_MESSAGES: {
             FIRST_QUESTION: 'Watch the hungry guinea pig',
             FIRST_INSTRUCTION: 'There are 10 raisins. The hungry guinea pig is going to eat some of them.',
             QUESTION: 'How many raisins did the guinea pig eat?',
-            SUBSEQUENT_QUESTION: 'How many of the 10 raisins does the guinea pig eat this time?'
+            SUBSEQUENT_QUESTION: 'There are 10 raisins. Watch the guinea pig.',
+            WRONG_ANSWER_HINT: 'We started with 10 raisins. Count how many there are left now, then count how many are missing - you can use your fingers to help you.'
         },
         
         ENCOURAGEMENTS: [
