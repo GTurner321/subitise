@@ -74,7 +74,7 @@ class RaisinRenderer {
         const gameAreaWidth = gameAreaRect.width;
         
         // Use game area width for sizing (more consistent than screen width)
-        const gp3Size = gameAreaWidth * CONFIG.GUINEA_PIG_3_SIZE * 1.6; // 60% larger (1.0 + 0.6)
+        const gp3Size = gameAreaWidth * CONFIG.GUINEA_PIG_3_SIZE * 1.3; // 30% larger (1.0 + 0.3)
         const gp2Size = gameAreaWidth * CONFIG.GUINEA_PIG_2_SIZE * 1.2; // 20% larger
         const gp1Size = gameAreaWidth * CONFIG.GUINEA_PIG_1_SIZE * 1.2; // 20% larger
         
@@ -121,18 +121,12 @@ class RaisinRenderer {
         const raisinSize = gameAreaWidth * CONFIG.RAISIN_SIZE;
         const minDistance = gameAreaWidth * CONFIG.RAISIN_MIN_DISTANCE;
         
-        // UPDATED: Internal padding of 1.5 * raisin width from all edges
+        // UPDATED: Internal padding of 1.5 * raisin width from all edges, no exclusion zones
         const padding = raisinSize * 1.5;
         const usableWidth = gameAreaWidth - (2 * padding);
         const usableHeight = gameAreaHeight - (2 * padding);
         
-        // UPDATED: Small left exclusion only for guinea pig 3 (no top-right exclusion)
-        const exclusionZone = {
-            x: 0,
-            y: 0,
-            width: gameAreaWidth * 0.15, // Small 15% width exclusion for GP3
-            height: gameAreaHeight * 0.15 // Small 15% height exclusion for GP3
-        };
+        // No exclusion zones needed - raisins can appear anywhere with proper padding
         
         const positions = [];
         let attempts = 0;
