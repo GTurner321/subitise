@@ -6,20 +6,20 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    position: relative;
+    position: fixed;
     z-index: 1;
     /* Override any white background from main.css */
     background-color: transparent !important;
-    /* UPDATED: Extend game area from top of page to button bar */
-    position: fixed;
+    /* CORRECTED: Game area dimensions as specified */
     top: 0;
     left: 0;
-    right: 0;
-    bottom: var(--button-bar-height, 15vh);
+    width: 100vw;
+    height: calc(100vh - var(--button-bar-height, 15vh));
     /* Responsive margins set by ButtonBar system */
     margin-left: var(--game-area-margin-left, 0);
     margin-right: var(--game-area-margin-right, 0);
-    width: var(--game-area-width, 100vw);
+    /* Adjust width to account for margins */
+    width: calc(100vw - var(--game-area-margin-left, 0) - var(--game-area-margin-right, 0));
     overflow: hidden; /* Prevent scrolling */
 }
 
