@@ -139,6 +139,28 @@ class RaisinGameController {
         this.playAgainBtn.addEventListener('click', () => {
             this.startNewGame();
         });
+        
+        // Keyboard input support
+        document.addEventListener('keydown', (e) => {
+            if (this.buttonsDisabled || this.gameComplete) return;
+            
+            if (e.key >= '1' && e.key <= '9') {
+                e.preventDefault();
+                const selectedNumber = parseInt(e.key);
+                
+                // Check if this number is available on current buttons
+                const isTutorial = CONFIG.isTutorialMode(this.currentQuestion);
+                const maxButton = isTutorial ? 5 : 10;
+                
+                if (selectedNumber <= maxButton) {
+                    console.log('⌨️ Keyboard input:', selectedNumber);
+                    
+                    this.clearInactivityTimer();
+                    this.startInactivityTimer();
+                    this.handleNumberClick(selectedNumber, null); // null for buttonElement since it's keyboard
+                }
+            }
+        });
     }
     
     setupVisibilityHandling() {
@@ -377,9 +399,14 @@ class RaisinGameController {
         // Check if this was the first attempt
         const wasFirstAttempt = !this.hasAttemptedAnswer();
         
+        // For keyboard input, find the button element
+        if (!buttonElement && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(this.currentAnswer);
+        }
+        
         // Use ButtonBar for correct feedback
         if (window.ButtonBar) {
-            window.ButtonBar.showCorrectFeedback(parseInt(buttonElement.dataset.number), buttonElement);
+            window.ButtonBar.showCorrectFeedback(this.currentAnswer, buttonElement);
         }
 
         // Play completion sound using AudioSystem
@@ -460,6 +487,11 @@ class RaisinGameController {
     handleIncorrectAnswer(buttonElement, selectedNumber) {
         // Clear inactivity timer and give immediate hint
         this.clearInactivityTimer();
+        
+        // For keyboard input, find the button element
+        if (!buttonElement && window.ButtonBar) {
+            buttonElement = window.ButtonBar.findButtonByNumber(selectedNumber);
+        }
         
         // Play failure sound using AudioSystem
         if (window.AudioSystem) {
