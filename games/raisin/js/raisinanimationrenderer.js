@@ -279,95 +279,109 @@ class RaisinAnimationRenderer {
     eatRaisinsOnPath(guineaPig, raisinsToEat, direction) {
         if (!guineaPig || !this.gameArea) return;
         
-        console.log(`🍽️ Starting raisin eating for ${direction}:`, raisinsToEat);
+        console.log(`🍽️ Starting predictive raisin eating for ${direction}:`, raisinsToEat);
         
         const animationDuration = CONFIG.GUINEA_PIG_ANIMATION_DURATION;
-        const checkInterval = 15; // Faster checking - every 15ms instead of 20ms
-        const totalChecks = animationDuration / checkInterval;
         const gameAreaRect = this.gameArea.getBoundingClientRect();
+        const gameAreaWidth = gameAreaRect.width;
+        const gameAreaHeight = gameAreaRect.height;
+        const gpWidth = guineaPig.offsetWidth;
         
-        let currentCheck = 0;
-        let raisinsEaten = 0;
-        const eatenRaisins = new Set(); // Track which raisins have been eaten
+        // Calculate total travel distance and speed
+        const totalDistance = gameAreaWidth + (2 * gpWidth); // From off-screen to off-screen
+        const pixelsPerMs = totalDistance / animationDuration; // pixels per millisecond
         
-        const checkEating = setInterval(() => {
-            currentCheck++;
-            
-            // Get current guinea pig position
-            const guineaPigRect = guineaPig.getBoundingClientRect();
-            
-            // Determine which edge of the guinea pig to use for detection
-            let triggerX;
-            if (direction === 'left-to-right') {
-                triggerX = guineaPigRect.right; // Right edge for left-to-right movement
-            } else {
-                triggerX = guineaPigRect.left; // Left edge for right-to-left movement
-            }
-            
-            // Check each raisin that should be eaten
-            const raisinElements = this.positionRenderer.getRaisinElements();
-            raisinsToEat.forEach(raisinIndex => {
-                // Skip if already eaten
-                if (eatenRaisins.has(raisinIndex)) return;
+        console.log(`🍽️ ${direction} - Total distance: ${Math.round(totalDistance)}px, Speed: ${pixelsPerMs.toFixed(2)}px/ms`);
+        
+        // Get starting time reference
+        const animationStartTime = performance.now();
+        
+        // Calculate when each raisin should be eaten based on position
+        const raisinElements = this.positionRenderer.getRaisinElements();
+        const eatingSchedule = [];
+        
+        raisinsToEat.forEach(raisinIndex => {
+            const raisinElement = raisinElements[raisinIndex];
+            if (raisinElement) {
+                const raisinRect = raisinElement.getBoundingClientRect();
+                const gameAreaTop = gameAreaRect.top;
+                const gameAreaLeft = gameAreaRect.left;
                 
-                const raisinElement = raisinElements[raisinIndex];
-                if (raisinElement && !raisinElement.classList.contains('eaten')) {
-                    const raisinRect = raisinElement.getBoundingClientRect();
-                    
-                    // Determine if this raisin is in the correct half for this guinea pig
-                    const raisinCenterY = raisinRect.top + raisinRect.height / 2;
-                    const gameAreaTop = gameAreaRect.top;
-                    const gameAreaHeight = gameAreaRect.height;
-                    const raisinGameAreaY = (raisinCenterY - gameAreaTop) / gameAreaHeight;
-                    
-                    let shouldEat = false;
-                    
-                    if (direction === 'left-to-right') {
-                        // First guinea pig eats raisins in top half (0% to 50%)
-                        if (raisinGameAreaY <= 0.5) {
-                            // Check if guinea pig's right edge has passed raisin's center
-                            const raisinCenterX = raisinRect.left + raisinRect.width / 2;
-                            if (triggerX >= raisinCenterX) {
-                                shouldEat = true;
-                            }
-                        }
+                // Convert to game area coordinates
+                const raisinGameX = raisinRect.left - gameAreaLeft;
+                const raisinGameY = raisinRect.top - gameAreaTop;
+                const raisinCenterX = raisinGameX + (raisinRect.width / 2);
+                const raisinCenterY = raisinGameY + (raisinRect.height / 2);
+                const raisinGameAreaY = raisinCenterY / gameAreaHeight; // 0.0 = top, 1.0 = bottom
+                
+                console.log(`🍇 Raisin ${raisinIndex} at game coordinates (${Math.round(raisinCenterX)}, ${Math.round(raisinCenterY)}) = (${Math.round((raisinCenterX/gameAreaWidth)*100)}%, ${Math.round(raisinGameAreaY*100)}%)`);
+                
+                // Check if this raisin is in the correct path for this guinea pig
+                let shouldEat = false;
+                let crossingTime = 0;
+                
+                if (direction === 'left-to-right') {
+                    // GP2 eats raisins in TOP HALF (0% to 50% from top)
+                    if (raisinGameAreaY <= 0.5) {
+                        // Calculate when GP2's center will reach this raisin's center
+                        // GP2 starts at x = -gpWidth, needs to travel to raisinCenterX
+                        const distanceToRaisin = gpWidth + raisinCenterX;
+                        crossingTime = distanceToRaisin / pixelsPerMs;
+                        shouldEat = true;
+                        console.log(`🍽️ ${direction} - Raisin ${raisinIndex} in TOP half (${Math.round(raisinGameAreaY*100)}% from top) - WILL EAT`);
                     } else {
-                        // Second guinea pig eats raisins in bottom half (50% to 100%)
-                        if (raisinGameAreaY > 0.5) {
-                            // Check if guinea pig's left edge has passed raisin's center
-                            const raisinCenterX = raisinRect.left + raisinRect.width / 2;
-                            if (triggerX <= raisinCenterX) {
-                                shouldEat = true;
-                            }
-                        }
+                        console.log(`🍽️ ${direction} - Raisin ${raisinIndex} in BOTTOM half (${Math.round(raisinGameAreaY*100)}% from top) - SKIP`);
                     }
-                    
-                    if (shouldEat) {
-                        console.log(`🍽️ Eating raisin ${raisinIndex} (${direction})`);
-                        this.positionRenderer.eatRaisin(raisinIndex);
-                        eatenRaisins.add(raisinIndex);
-                        raisinsEaten++;
+                } else {
+                    // GP1 eats raisins in BOTTOM HALF (50% to 100% from top)
+                    if (raisinGameAreaY > 0.5) {
+                        // Calculate when GP1's center will reach this raisin's center
+                        // GP1 starts at x = gameAreaWidth + gpWidth, needs to travel to raisinCenterX
+                        const distanceToRaisin = (gameAreaWidth + gpWidth) - raisinCenterX;
+                        crossingTime = distanceToRaisin / pixelsPerMs;
+                        shouldEat = true;
+                        console.log(`🍽️ ${direction} - Raisin ${raisinIndex} in BOTTOM half (${Math.round(raisinGameAreaY*100)}% from top) - WILL EAT`);
+                    } else {
+                        console.log(`🍽️ ${direction} - Raisin ${raisinIndex} in TOP half (${Math.round(raisinGameAreaY*100)}% from top) - SKIP`);
                     }
                 }
-            });
-            
-            // Stop checking when animation is complete
-            if (currentCheck >= totalChecks) {
-                console.log(`🍽️ Eating complete for ${direction}. Raisins eaten: ${raisinsEaten}/${raisinsToEat.length}`);
                 
-                // Backup cleanup: ensure all assigned raisins are eaten
-                setTimeout(() => {
-                    raisinsToEat.forEach(raisinIndex => {
-                        if (!eatenRaisins.has(raisinIndex)) {
-                            console.log(`🔧 Backup cleanup: eating missed raisin ${raisinIndex}`);
-                            this.positionRenderer.eatRaisin(raisinIndex);
-                        }
+                if (shouldEat) {
+                    eatingSchedule.push({
+                        raisinIndex,
+                        crossingTime: Math.round(crossingTime),
+                        raisinCenterX: Math.round(raisinCenterX),
+                        raisinCenterY: Math.round(raisinCenterY)
                     });
-                }, 200);
-                
-                clearInterval(checkEating);
+                    
+                    console.log(`🍽️ ${direction} - Raisin ${raisinIndex} at (${Math.round(raisinCenterX)}, ${Math.round(raisinCenterY)}) will be eaten at ${Math.round(crossingTime)}ms`);
+                }
             }
-        }, checkInterval);
+        });
+        
+        // Sort by crossing time
+        eatingSchedule.sort((a, b) => a.crossingTime - b.crossingTime);
+        
+        // Schedule raisin eating based on calculated times
+        eatingSchedule.forEach(schedule => {
+            setTimeout(() => {
+                console.log(`🍽️ ${direction} - Eating raisin ${schedule.raisinIndex} at ${Math.round(performance.now() - animationStartTime)}ms (predicted: ${schedule.crossingTime}ms)`);
+                this.positionRenderer.eatRaisin(schedule.raisinIndex);
+            }, schedule.crossingTime);
+        });
+        
+        // Backup cleanup after animation completes
+        setTimeout(() => {
+            raisinsToEat.forEach(raisinIndex => {
+                const raisinElement = raisinElements[raisinIndex];
+                if (raisinElement && !raisinElement.classList.contains('eaten')) {
+                    console.log(`🔧 Backup cleanup: eating missed raisin ${raisinIndex} (${direction})`);
+                    this.positionRenderer.eatRaisin(raisinIndex);
+                }
+            });
+        }, animationDuration + 200);
+        
+        console.log(`🍽️ ${direction} - Scheduled ${eatingSchedule.length} raisins for eating`);
     }
     
     startGuineaPigSounds() {
