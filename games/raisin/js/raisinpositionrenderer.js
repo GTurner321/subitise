@@ -3,7 +3,7 @@
  * Handles raisin positioning, collision detection, and rendering.
  * Works with RaisinAnimationRenderer which handles guinea pig movements and animations.
  * This file focuses on: raisin placement algorithms, overlap detection, visual rendering,
- * and responsive positioning based on game area dimensions.
+ * responsive positioning based on game area dimensions, and missing raisin markers.
  */
 class RaisinPositionRenderer {
     constructor() {
@@ -11,6 +11,7 @@ class RaisinPositionRenderer {
         this.gameArea = document.querySelector('.game-area');
         this.raisins = [];
         this.raisinElements = [];
+        this.missingMarkers = [];
         
         // Current question tracking for tutorial/normal mode
         this.currentQuestionNumber = 0;
@@ -51,6 +52,14 @@ class RaisinPositionRenderer {
                 if (element && this.raisins[index]) {
                     element.style.width = `${raisinSize}px`;
                     element.style.height = `${raisinSize}px`;
+                }
+            });
+            
+            // Also update missing markers
+            this.missingMarkers.forEach((marker, index) => {
+                if (marker && this.raisins[index]) {
+                    marker.style.width = `${raisinSize}px`;
+                    marker.style.height = `${raisinSize}px`;
                 }
             });
         }
@@ -198,8 +207,9 @@ class RaisinPositionRenderer {
     }
     
     async renderRaisinsStaggered(questionNumber) {
-        // Clear existing raisins
+        // Clear existing raisins and markers
         this.clearRaisins();
+        this.clearMissingMarkers();
         
         // Generate new positions
         this.raisins = this.generateRaisinPositions(questionNumber);
@@ -271,6 +281,104 @@ class RaisinPositionRenderer {
         }
     }
     
+    showMissingRaisinMarkers(raisinsEaten) {
+        console.log('🔴 Showing missing raisin markers for:', raisinsEaten);
+        
+        // Clear existing markers first
+        this.clearMissingMarkers();
+        
+        raisinsEaten.forEach(raisinIndex => {
+            const raisin = this.raisins[raisinIndex];
+            if (raisin) {
+                const marker = document.createElement('div');
+                marker.className = 'missing-raisin-marker';
+                marker.style.cssText = `
+                    position: absolute;
+                    left: ${raisin.x}px;
+                    top: ${raisin.y}px;
+                    width: ${raisin.size}px;
+                    height: ${raisin.size}px;
+                    z-index: 4;
+                    pointer-events: none;
+                    border-radius: 50%;
+                    background-color: ${CONFIG.MISSING_MARKER_CIRCLE_COLOR};
+                    border: 2px solid ${CONFIG.MISSING_MARKER_CROSS_COLOR};
+                    opacity: ${CONFIG.MISSING_MARKER_OPACITY};
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: markerAppear 0.5s ease-in forwards;
+                `;
+                
+                // Create the cross inside the circle
+                const cross = document.createElement('div');
+                cross.style.cssText = `
+                    width: 60%;
+                    height: 60%;
+                    position: relative;
+                `;
+                
+                cross.innerHTML = `
+                    <div style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        width: 80%;
+                        height: 3px;
+                        background-color: ${CONFIG.MISSING_MARKER_CROSS_COLOR};
+                        transform: translate(-50%, -50%) rotate(45deg);
+                    "></div>
+                    <div style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        width: 80%;
+                        height: 3px;
+                        background-color: ${CONFIG.MISSING_MARKER_CROSS_COLOR};
+                        transform: translate(-50%, -50%) rotate(-45deg);
+                    "></div>
+                `;
+                
+                marker.appendChild(cross);
+                this.gameArea.appendChild(marker);
+                this.missingMarkers.push(marker);
+            }
+        });
+        
+        // Add CSS animation if not already present
+        this.addMarkerAnimationCSS();
+    }
+    
+    addMarkerAnimationCSS() {
+        if (!document.querySelector('#missing-marker-styles')) {
+            const style = document.createElement('style');
+            style.id = 'missing-marker-styles';
+            style.textContent = `
+                @keyframes markerAppear {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.5);
+                    }
+                    to {
+                        opacity: ${CONFIG.MISSING_MARKER_OPACITY};
+                        transform: scale(1);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    clearMissingMarkers() {
+        this.missingMarkers.forEach(marker => {
+            if (marker.parentNode) {
+                marker.parentNode.removeChild(marker);
+            }
+        });
+        this.missingMarkers = [];
+        console.log('🔴 Cleared all missing raisin markers');
+    }
+    
     clearRaisins() {
         this.raisinElements.forEach(element => {
             if (element.parentNode) {
@@ -302,6 +410,7 @@ class RaisinPositionRenderer {
     reset() {
         console.log('🍇 Resetting raisin position renderer');
         this.clearRaisins();
+        this.clearMissingMarkers();
         this.currentQuestionNumber = 0;
     }
     
@@ -312,6 +421,13 @@ class RaisinPositionRenderer {
         }
         
         window.removeEventListener('resize', this.updateExistingRaisinPositions);
+        
+        // Remove marker styles
+        const markerStyles = document.querySelector('#missing-marker-styles');
+        if (markerStyles) {
+            markerStyles.remove();
+        }
+        
         this.reset();
     }
 }
