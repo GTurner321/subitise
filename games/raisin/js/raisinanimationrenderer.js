@@ -181,28 +181,32 @@ class RaisinAnimationRenderer {
         console.log('🐹 Raisins to eat:', raisinsToEat);
         
         return new Promise((resolve) => {
-            if (!this.guineaPig2 || !this.gameArea) {
-                console.error('🐹 ❌ Guinea pig 2 or game area not found!');
+            if (!this.guineaPig2) {
+                console.error('🐹 ❌ Guinea pig 2 element not found!');
                 resolve();
                 return;
             }
             
-            const gameAreaRect = this.gameArea.getBoundingClientRect();
+            // Use viewport width instead of game area width for full screen traversal
+            const viewportWidth = window.innerWidth;
             const gpWidth = this.guineaPig2.offsetWidth;
-            const startX = -gpWidth;
-            const endX = gameAreaRect.width + gpWidth;
             
-            console.log('🐹 GP2 movement setup:', {
-                gameAreaWidth: gameAreaRect.width,
+            // Start 25% off-screen left, end 25% off-screen right (traverse full viewport)
+            const startX = -(gpWidth * 1.25); // 25% more than guinea pig width off-screen
+            const endX = viewportWidth + (gpWidth * 0.25); // 25% off-screen on right
+            
+            console.log('🐹 GP2 movement setup (viewport traversal):', {
+                viewportWidth,
                 gpWidth,
                 startX,
                 endX,
                 animationDuration: CONFIG.GUINEA_PIG_ANIMATION_DURATION
             });
             
-            // Show guinea pig 2 and set initial position
+            // Show guinea pig 2 and set initial position (absolute to viewport)
             this.guineaPig2.classList.remove('hidden');
             this.guineaPig2.classList.add('moving');
+            this.guineaPig2.style.position = 'fixed'; // Fixed to viewport, not game area
             this.guineaPig2.style.left = `${startX}px`;
             
             // Start moving after brief delay
@@ -218,6 +222,7 @@ class RaisinAnimationRenderer {
                 this.guineaPig2.classList.add('hidden');
                 this.guineaPig2.classList.remove('moving');
                 this.guineaPig2.style.left = '-25%'; // Reset position
+                this.guineaPig2.style.position = 'absolute'; // Back to absolute positioning
                 
                 console.log('🐹 === GUINEA PIG 2 MOVEMENT COMPLETE ===');
                 resolve();
@@ -230,28 +235,32 @@ class RaisinAnimationRenderer {
         console.log('🐹 Raisins to eat:', raisinsToEat);
         
         return new Promise((resolve) => {
-            if (!this.guineaPig1 || !this.gameArea) {
-                console.error('🐹 ❌ Guinea pig 1 or game area not found!');
+            if (!this.guineaPig1) {
+                console.error('🐹 ❌ Guinea pig 1 element not found!');
                 resolve();
                 return;
             }
             
-            const gameAreaRect = this.gameArea.getBoundingClientRect();
+            // Use viewport width instead of game area width for full screen traversal
+            const viewportWidth = window.innerWidth;
             const gpWidth = this.guineaPig1.offsetWidth;
-            const startRight = -gpWidth;
-            const endRight = gameAreaRect.width + gpWidth;
             
-            console.log('🐹 GP1 movement setup:', {
-                gameAreaWidth: gameAreaRect.width,
+            // Start 25% off-screen right, end 25% off-screen left (traverse full viewport)
+            const startRight = -(gpWidth * 1.25); // 25% more than guinea pig width off-screen
+            const endRight = viewportWidth + (gpWidth * 0.25); // 25% off-screen on left
+            
+            console.log('🐹 GP1 movement setup (viewport traversal):', {
+                viewportWidth,
                 gpWidth,
                 startRight,
                 endRight,
                 animationDuration: CONFIG.GUINEA_PIG_ANIMATION_DURATION
             });
             
-            // Show guinea pig 1 and position it on the right side
+            // Show guinea pig 1 and position it on the right side (absolute to viewport)
             this.guineaPig1.classList.remove('hidden');
             this.guineaPig1.classList.add('moving');
+            this.guineaPig1.style.position = 'fixed'; // Fixed to viewport, not game area
             this.guineaPig1.style.left = 'auto';
             this.guineaPig1.style.right = `${startRight}px`;
             
@@ -269,6 +278,7 @@ class RaisinAnimationRenderer {
                 this.guineaPig1.classList.remove('moving');
                 this.guineaPig1.style.right = '-25%'; // Reset position
                 this.guineaPig1.style.left = 'auto';
+                this.guineaPig1.style.position = 'absolute'; // Back to absolute positioning
                 
                 console.log('🐹 === GUINEA PIG 1 MOVEMENT COMPLETE ===');
                 resolve();
@@ -287,11 +297,12 @@ class RaisinAnimationRenderer {
         const gameAreaHeight = gameAreaRect.height;
         const gpWidth = guineaPig.offsetWidth;
         
-        // Calculate total travel distance and speed
-        const totalDistance = gameAreaWidth + (2 * gpWidth); // From off-screen to off-screen
+        // Calculate total travel distance and speed based on VIEWPORT traversal
+        const viewportWidth = window.innerWidth;
+        const totalDistance = viewportWidth + (gpWidth * 1.5); // Full viewport + 25% each side
         const pixelsPerMs = totalDistance / animationDuration; // pixels per millisecond
         
-        console.log(`🍽️ ${direction} - Total distance: ${Math.round(totalDistance)}px, Speed: ${pixelsPerMs.toFixed(2)}px/ms`);
+        console.log(`🍽️ ${direction} - Viewport traversal - Total distance: ${Math.round(totalDistance)}px, Speed: ${pixelsPerMs.toFixed(2)}px/ms`);
         
         // Get starting time reference
         const animationStartTime = performance.now();
@@ -307,14 +318,17 @@ class RaisinAnimationRenderer {
                 const gameAreaTop = gameAreaRect.top;
                 const gameAreaLeft = gameAreaRect.left;
                 
-                // Convert to game area coordinates
-                const raisinGameX = raisinRect.left - gameAreaLeft;
-                const raisinGameY = raisinRect.top - gameAreaTop;
-                const raisinCenterX = raisinGameX + (raisinRect.width / 2);
-                const raisinCenterY = raisinGameY + (raisinRect.height / 2);
-                const raisinGameAreaY = raisinCenterY / gameAreaHeight; // 0.0 = top, 1.0 = bottom
+                // Convert to viewport coordinates (since guinea pigs now use viewport)
+                const raisinViewportX = raisinRect.left;
+                const raisinViewportY = raisinRect.top;
+                const raisinCenterX = raisinViewportX + (raisinRect.width / 2);
+                const raisinCenterY = raisinViewportY + (raisinRect.height / 2);
                 
-                console.log(`🍇 Raisin ${raisinIndex} at game coordinates (${Math.round(raisinCenterX)}, ${Math.round(raisinCenterY)}) = (${Math.round((raisinCenterX/gameAreaWidth)*100)}%, ${Math.round(raisinGameAreaY*100)}%)`);
+                // Convert to game area coordinates for top/bottom half logic
+                const raisinGameY = raisinViewportY - gameAreaTop;
+                const raisinGameAreaY = raisinGameY / gameAreaHeight; // 0.0 = top, 1.0 = bottom
+                
+                console.log(`🍇 Raisin ${raisinIndex} at viewport coordinates (${Math.round(raisinCenterX)}, ${Math.round(raisinCenterY)}) = game area ${Math.round(raisinGameAreaY*100)}% from top`);
                 
                 // Check if this raisin is in the correct path for this guinea pig
                 let shouldEat = false;
@@ -324,8 +338,8 @@ class RaisinAnimationRenderer {
                     // GP2 eats raisins in TOP HALF (0% to 50% from top)
                     if (raisinGameAreaY <= 0.5) {
                         // Calculate when GP2's center will reach this raisin's center
-                        // GP2 starts at x = -gpWidth, needs to travel to raisinCenterX
-                        const distanceToRaisin = gpWidth + raisinCenterX;
+                        // GP2 starts at viewport x = -(gpWidth * 1.25), needs to travel to raisinCenterX
+                        const distanceToRaisin = (gpWidth * 1.25) + raisinCenterX;
                         crossingTime = distanceToRaisin / pixelsPerMs;
                         shouldEat = true;
                         console.log(`🍽️ ${direction} - Raisin ${raisinIndex} in TOP half (${Math.round(raisinGameAreaY*100)}% from top) - WILL EAT`);
@@ -336,8 +350,8 @@ class RaisinAnimationRenderer {
                     // GP1 eats raisins in BOTTOM HALF (50% to 100% from top)
                     if (raisinGameAreaY > 0.5) {
                         // Calculate when GP1's center will reach this raisin's center
-                        // GP1 starts at x = gameAreaWidth + gpWidth, needs to travel to raisinCenterX
-                        const distanceToRaisin = (gameAreaWidth + gpWidth) - raisinCenterX;
+                        // GP1 starts at viewport x = viewportWidth + (gpWidth * 1.25), needs to travel to raisinCenterX
+                        const distanceToRaisin = (viewportWidth + (gpWidth * 1.25)) - raisinCenterX;
                         crossingTime = distanceToRaisin / pixelsPerMs;
                         shouldEat = true;
                         console.log(`🍽️ ${direction} - Raisin ${raisinIndex} in BOTTOM half (${Math.round(raisinGameAreaY*100)}% from top) - WILL EAT`);
@@ -354,7 +368,7 @@ class RaisinAnimationRenderer {
                         raisinCenterY: Math.round(raisinCenterY)
                     });
                     
-                    console.log(`🍽️ ${direction} - Raisin ${raisinIndex} at (${Math.round(raisinCenterX)}, ${Math.round(raisinCenterY)}) will be eaten at ${Math.round(crossingTime)}ms`);
+                    console.log(`🍽️ ${direction} - Raisin ${raisinIndex} at viewport (${Math.round(raisinCenterX)}, ${Math.round(raisinCenterY)}) will be eaten at ${Math.round(crossingTime)}ms`);
                 }
             }
         });
