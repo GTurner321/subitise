@@ -12,7 +12,7 @@ const CONFIG = {
         LEVEL_1: {
             TOTAL_RAISINS: 5,
             CONSECUTIVE_CORRECT_NEEDED: 3, // 3 questions in a row must be answered right first time
-            POSSIBLE_MISSING: [1, 2, 3, 4], // Set of missing raisins
+            POSSIBLE_MISSING: [1, 2, 3, 4, 5], // Set of missing raisins (now includes 5)
             name: 'Level 1'
         },
         LEVEL_2: {
@@ -43,6 +43,11 @@ const CONFIG = {
     // Raisin settings
     RAISIN_SIZE: 0.08,
     RAISIN_MIN_DISTANCE: 0.12,
+    
+    // Missing raisin markers (red circles with crosses)
+    MISSING_MARKER_OPACITY: 0.7,
+    MISSING_MARKER_CROSS_COLOR: '#dc143c',
+    MISSING_MARKER_CIRCLE_COLOR: 'rgba(255, 0, 0, 0.3)',
     
     // Game area exclusions - area to avoid placing raisins (for Guinea Pig 3)
     GUINEA_PIG_3_EXCLUSION: {
@@ -89,7 +94,16 @@ const CONFIG = {
             'Think about how many the guinea pig ate.'
         ],
         
-        COMPLETION_MESSAGE: 'Well done! You have correctly counted how many raisins the guinea pig ate in all of the questions. Play again or return to the home page.'
+        COMPLETION_MESSAGE: 'Well done! You have correctly counted how many raisins the guinea pig ate in all of the questions. Play again or return to the home page.',
+        
+        // Choice modal messages after completing 5-raisin questions
+        CHOICE_MODAL: {
+            TITLE: 'Great job!',
+            MESSAGE: 'You have completed the 5 raisin questions! Would you like to continue with 5 raisins or try the harder 10 raisin questions?',
+            AUDIO_MESSAGE: 'Great job! You have completed the 5 raisin questions. Would you like to continue with 5 raisins or try the harder 10 raisin questions?',
+            CONTINUE_5_BUTTON: 'Continue with 5 raisins',
+            TRY_10_BUTTON: 'Try 10 raisins'
+        }
     },
     
     // Button colors for the game
@@ -107,6 +121,11 @@ const CONFIG = {
         return currentLevel === 1 ? 
             this.LEVEL_SYSTEM.LEVEL_1.TOTAL_RAISINS : 
             this.LEVEL_SYSTEM.LEVEL_2.TOTAL_RAISINS;
+    },
+    
+    getButtonCount: function(currentLevel) {
+        // Return appropriate button count based on level
+        return currentLevel === 1 ? 5 : 10;
     },
     
     getAudioMessages: function(currentLevel) {
