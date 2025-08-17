@@ -21,9 +21,11 @@ class RaisinGameController {
         this.buttonsDisabled = false;
         this.questionsCompleted = 0;
         
-        // Tutorial and normal mode tracking
-        this.currentLevel = 1;
-        this.usedCombinations = new Set(); // Track used combinations to avoid repeats
+        // Simplified level system tracking
+        this.currentLevel = 1; // Start at level 1
+        this.consecutiveCorrect = 0; // Track consecutive first-attempt correct answers
+        this.recentAnswers = []; // Track last 2 answers for avoiding repeats
+        this.questionCount = 0; // Total questions asked (for first question detection)
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
@@ -97,13 +99,13 @@ class RaisinGameController {
     }
     
     createButtons() {
-        // Create buttons 1-5 for tutorial mode, 1-10 for normal mode
-        const buttonCount = CONFIG.isTutorialMode(this.currentQuestion) ? 5 : 10;
+        // Create buttons based on current level
+        const buttonCount = CONFIG.isLevel1(this.currentLevel) ? 5 : 10;
         
         const colors = CONFIG.COLORS.slice(0, buttonCount);
         const numbers = Array.from({length: buttonCount}, (_, i) => i + 1);
         
-        console.log(`Creating raisin game buttons: ${buttonCount} buttons for question ${this.currentQuestion + 1}`);
+        console.log(`Creating raisin game buttons: ${buttonCount} buttons for level ${this.currentLevel}`);
         
         if (window.ButtonBar) {
             window.ButtonBar.destroy();
@@ -209,7 +211,7 @@ class RaisinGameController {
         // Mark that hint has been given for this question
         this.hintGiven = true;
         
-        const hintMessage = CONFIG.getHintMessage(this.currentQuestion);
+        const hintMessage = CONFIG.getHintMessage(this.currentLevel);
         this.speakText(hintMessage);
     }
     
@@ -222,22 +224,13 @@ class RaisinGameController {
         this.hintGiven = false;
         this.buttonsDisabled = false;
         
-        // Generate question based on current mode and difficulty level
+        // Generate question based on simplified level system
         this.currentAnswer = this.generateAnswerForCurrentMode();
         
-        console.log(`Question ${this.currentQuestion + 1}: ${CONFIG.isTutorialMode(this.currentQuestion) ? 'Tutorial' : 'Normal'} Mode, Level ${this.currentLevel}, Answer: ${this.currentAnswer}`);
-        
-        // Create appropriate buttons for this question
-        this.createButtons();
-        
-        // Wait for buttons to be created
-        await this.sleep(200);
-        
-        // Reset button states
-        this.resetButtonStates();
+        console.log(`Question ${this.currentQuestion + 1}: Level ${this.currentLevel}, Answer: ${this.currentAnswer}, Consecutive Correct: ${this.consecutiveCorrect}`);
         
         // Render raisins with staggered appearance
-        await this.positionRenderer.renderRaisinsStaggered(this.currentQuestion);
+        await this.positionRenderer.renderRaisinsStaggered(this.currentLevel);
         
         // Select exactly currentAnswer raisins to eat
         const raisinsToEat = this.selectRaisinsToEat();
@@ -253,51 +246,38 @@ class RaisinGameController {
     }
     
     generateAnswerForCurrentMode() {
-        const difficultyLevels = CONFIG.getDifficultyLevels(this.currentQuestion);
-        let level;
+        let possibleAnswers;
         
-        if (CONFIG.isTutorialMode(this.currentQuestion)) {
-            // Tutorial mode: Level 1 for first question, Level 2 for questions 2-3
-            level = this.currentQuestion === 0 ? difficultyLevels.LEVEL_1 : difficultyLevels.LEVEL_2;
+        if (CONFIG.isLevel1(this.currentLevel)) {
+            possibleAnswers = CONFIG.LEVEL_SYSTEM.LEVEL_1.POSSIBLE_MISSING;
         } else {
-            // Normal mode: Use current level
-            level = difficultyLevels[`LEVEL_${this.currentLevel}`];
+            possibleAnswers = CONFIG.LEVEL_SYSTEM.LEVEL_2.POSSIBLE_MISSING;
         }
         
-        const possibleAnswers = level.possibleRaisinsToEat;
-        let selectedAnswer;
-        
-        // Avoid repeating combinations if possible
+        // Remove last 2 answers from possible choices to avoid repeats in rolling group of 3
         const availableAnswers = possibleAnswers.filter(answer => 
-            !this.usedCombinations.has(`${this.currentQuestion}_${answer}`)
+            !this.recentAnswers.includes(answer)
         );
         
-        if (availableAnswers.length > 0) {
-            selectedAnswer = availableAnswers[Math.floor(Math.random() * availableAnswers.length)];
-        } else {
-            // All combinations used, reset and pick any
-            if (CONFIG.isTutorialMode(this.currentQuestion)) {
-                // Only clear tutorial combinations
-                for (let i = 0; i < CONFIG.TUTORIAL_MODE.QUESTIONS; i++) {
-                    possibleAnswers.forEach(answer => {
-                        this.usedCombinations.delete(`${i}_${answer}`);
-                    });
-                }
-            } else {
-                // Clear all combinations for normal mode
-                this.usedCombinations.clear();
-            }
-            selectedAnswer = possibleAnswers[Math.floor(Math.random() * possibleAnswers.length)];
+        // If no answers available (shouldn't happen with sets of 4+ items), use all
+        const finalAnswers = availableAnswers.length > 0 ? availableAnswers : possibleAnswers;
+        
+        // Select random answer from available set
+        const selectedAnswer = finalAnswers[Math.floor(Math.random() * finalAnswers.length)];
+        
+        // Update recent answers (keep only last 2)
+        this.recentAnswers.push(selectedAnswer);
+        if (this.recentAnswers.length > 2) {
+            this.recentAnswers.shift(); // Remove oldest
         }
         
-        // Track this combination
-        this.usedCombinations.add(`${this.currentQuestion}_${selectedAnswer}`);
+        console.log(`🎯 Level ${this.currentLevel} - Selected: ${selectedAnswer}, Recent: [${this.recentAnswers.join(', ')}], Available was: [${finalAnswers.join(', ')}]`);
         
         return selectedAnswer;
     }
     
     selectRaisinsToEat() {
-        const totalRaisins = CONFIG.getTotalRaisins(this.currentQuestion);
+        const totalRaisins = CONFIG.getTotalRaisins(this.currentLevel);
         const raisinsToEat = [];
         
         // Randomly select exactly currentAnswer raisins to eat
@@ -314,11 +294,11 @@ class RaisinGameController {
     giveStartingInstruction() {
         if (!this.isTabVisible) return;
         
-        const audioMessages = CONFIG.getAudioMessages(this.currentQuestion);
+        const audioMessages = CONFIG.getAudioMessages(this.currentLevel);
         
         setTimeout(() => {
-            if (this.currentQuestion === 0) {
-                // First question - full instruction
+            if (this.questionCount === 0) {
+                // Very first question - full instruction
                 this.speakText(audioMessages.FIRST_QUESTION);
             } else {
                 // Subsequent questions - shorter instruction
@@ -337,11 +317,11 @@ class RaisinGameController {
         await this.sleep(CONFIG.GUINEA_PIG_3_INITIAL_DISPLAY);
         
         // For first question only, give extended instruction
-        if (this.currentQuestion === 0) {
+        if (this.questionCount === 0) {
             await this.sleep(CONFIG.INITIAL_INSTRUCTION_DELAY);
             
             if (this.isTabVisible) {
-                const audioMessages = CONFIG.getAudioMessages(this.currentQuestion);
+                const audioMessages = CONFIG.getAudioMessages(this.currentLevel);
                 this.speakText(audioMessages.FIRST_INSTRUCTION);
             }
             
@@ -373,7 +353,7 @@ class RaisinGameController {
         // Give question instruction
         setTimeout(() => {
             if (this.isTabVisible) {
-                const audioMessages = CONFIG.getAudioMessages(this.currentQuestion);
+                const audioMessages = CONFIG.getAudioMessages(this.currentLevel);
                 this.speakText(audioMessages.QUESTION);
             }
         }, 500);
@@ -426,15 +406,29 @@ class RaisinGameController {
             }, 400);
         }
         
-        // Update difficulty level based on first attempt performance
+        // Update level progression based on simplified system
         if (wasFirstAttempt) {
-            this.updateDifficultyOnSuccess();
+            this.consecutiveCorrect++;
+            console.log(`✅ Consecutive correct: ${this.consecutiveCorrect}`);
+            
+            // Check if ready to advance to level 2
+            if (this.currentLevel === 1 && this.consecutiveCorrect >= CONFIG.LEVEL_SYSTEM.LEVEL_1.CONSECUTIVE_CORRECT_NEEDED) {
+                this.currentLevel = 2;
+                this.consecutiveCorrect = 0; // Reset counter for level 2
+                console.log(`🎉 Advanced to Level 2!`);
+            }
         } else {
-            this.updateDifficultyOnFailure();
+            // Wrong on first attempt - reset consecutive counter
+            if (this.currentLevel === 1) {
+                this.consecutiveCorrect = 0;
+                console.log(`❌ Reset consecutive correct count to 0`);
+            }
+            // Level 2 has no return to level 1
         }
         
         this.currentQuestion++;
         this.questionsCompleted++;
+        this.questionCount++; // Track total questions for first question detection
         
         // Stop timers
         this.clearInactivityTimer();
@@ -509,7 +503,7 @@ class RaisinGameController {
         // Give specific wrong answer hint after button animation
         if (this.isTabVisible) {
             setTimeout(() => {
-                const audioMessages = CONFIG.getAudioMessages(this.currentQuestion);
+                const audioMessages = CONFIG.getAudioMessages(this.currentLevel);
                 this.speakText(audioMessages.WRONG_ANSWER_HINT);
             }, 800);
         }
@@ -564,7 +558,9 @@ class RaisinGameController {
         this.buttonsDisabled = false;
         this.questionsCompleted = 0;
         this.currentLevel = 1; // Reset to Level 1
-        this.usedCombinations.clear(); // Clear used combinations
+        this.consecutiveCorrect = 0; // Reset consecutive counter
+        this.recentAnswers = []; // Clear recent answers
+        this.questionCount = 0; // Reset question count
         
         this.clearInactivityTimer();
         this.animationRenderer.stopGuineaPigSounds();
