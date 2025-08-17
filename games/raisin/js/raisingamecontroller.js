@@ -20,12 +20,14 @@ class RaisinGameController {
         this.gameComplete = false;
         this.buttonsDisabled = false;
         this.questionsCompleted = 0;
+        this.raisinsEatenThisQuestion = []; // Track which raisins were eaten for markers
         
         // Simplified level system tracking
         this.currentLevel = 1; // Start at level 1
         this.consecutiveCorrect = 0; // Track consecutive first-attempt correct answers
         this.recentAnswers = []; // Track last 2 answers for avoiding repeats
         this.questionCount = 0; // Total questions asked (for first question detection)
+        this.completedLevel1 = false; // Track if level 1 is completed
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
@@ -36,6 +38,7 @@ class RaisinGameController {
         // DOM elements
         this.modal = document.getElementById('gameModal');
         this.playAgainBtn = document.getElementById('playAgainBtn');
+        this.choiceModal = null; // Will be created dynamically
         
         // System readiness tracking
         this.systemsReady = false;
@@ -43,7 +46,183 @@ class RaisinGameController {
         
         this.initializeEventListeners();
         this.setupVisibilityHandling();
+        this.createChoiceModal();
         this.waitForSystemsAndInitialize();
+    }
+    
+    createChoiceModal() {
+        // Create choice modal HTML
+        this.choiceModal = document.createElement('div');
+        this.choiceModal.className = 'modal hidden';
+        this.choiceModal.id = 'choiceModal';
+        this.choiceModal.innerHTML = `
+            <div class="modal-content choice-modal-content">
+                <h2>${CONFIG.AUDIO.CHOICE_MODAL.TITLE}</h2>
+                <p>${CONFIG.AUDIO.CHOICE_MODAL.MESSAGE}</p>
+                <div class="choice-buttons">
+                    <button class="choice-btn continue-5-btn" id="continue5Btn">
+                        <i class="fas fa-redo-alt"></i>
+                        ${CONFIG.AUDIO.CHOICE_MODAL.CONTINUE_5_BUTTON}
+                    </button>
+                    <button class="choice-btn try-10-btn" id="try10Btn">
+                        <i class="fas fa-arrow-up"></i>
+                        ${CONFIG.AUDIO.CHOICE_MODAL.TRY_10_BUTTON}
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Add modal styles
+        this.addChoiceModalStyles();
+        
+        // Add to DOM
+        document.body.appendChild(this.choiceModal);
+        
+        // Add event listeners
+        const continue5Btn = this.choiceModal.querySelector('#continue5Btn');
+        const try10Btn = this.choiceModal.querySelector('#try10Btn');
+        
+        continue5Btn.addEventListener('click', () => {
+            this.chooseLevel1Continue();
+        });
+        
+        try10Btn.addEventListener('click', () => {
+            this.chooseLevel2();
+        });
+    }
+    
+    addChoiceModalStyles() {
+        if (!document.querySelector('#choice-modal-styles')) {
+            const style = document.createElement('style');
+            style.id = 'choice-modal-styles';
+            style.textContent = `
+                .choice-modal-content {
+                    text-align: center;
+                    max-width: 500px;
+                    padding: 40px;
+                }
+                
+                .choice-modal-content h2 {
+                    color: white;
+                    font-size: 2.5rem;
+                    margin-bottom: 20px;
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                }
+                
+                .choice-modal-content p {
+                    color: white;
+                    font-size: 1.3rem;
+                    margin-bottom: 30px;
+                    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+                    line-height: 1.4;
+                }
+                
+                .choice-buttons {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 15px;
+                    align-items: center;
+                }
+                
+                .choice-btn {
+                    border: none;
+                    padding: 15px 30px;
+                    font-size: 1.2rem;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                    transition: all 0.3s ease;
+                    touch-action: manipulation;
+                    pointer-events: auto;
+                    outline: none;
+                    min-width: 250px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                    color: white;
+                }
+                
+                .continue-5-btn {
+                    background: #4caf50;
+                }
+                
+                .try-10-btn {
+                    background: #2196F3;
+                }
+                
+                .choice-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+                }
+                
+                .continue-5-btn:hover {
+                    background: #45a049;
+                }
+                
+                .try-10-btn:hover {
+                    background: #1976D2;
+                }
+                
+                .choice-btn:focus {
+                    outline: none;
+                }
+                
+                @media (max-width: 768px) {
+                    .choice-modal-content {
+                        padding: 30px 20px;
+                    }
+                    
+                    .choice-modal-content h2 {
+                        font-size: 2rem;
+                    }
+                    
+                    .choice-modal-content p {
+                        font-size: 1.1rem;
+                    }
+                    
+                    .choice-btn {
+                        font-size: 1.1rem;
+                        padding: 12px 24px;
+                        min-width: 220px;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    chooseLevel1Continue() {
+        console.log('🐹 Player chose to continue with 5 raisins');
+        this.choiceModal.classList.add('hidden');
+        
+        // Continue with level 1 but advance question count
+        this.currentLevel = 1;
+        this.consecutiveCorrect = 0;
+        this.recentAnswers = [];
+        this.completedLevel1 = false;
+        
+        // Continue the game
+        this.startNewQuestion();
+    }
+    
+    chooseLevel2() {
+        console.log('🐹 Player chose to try 10 raisins');
+        this.choiceModal.classList.add('hidden');
+        
+        // Advance to level 2
+        this.currentLevel = 2;
+        this.consecutiveCorrect = 0;
+        this.recentAnswers = [];
+        this.completedLevel1 = true;
+        
+        // Recreate buttons for level 2
+        this.createButtons();
+        
+        setTimeout(() => {
+            this.startNewQuestion();
+        }, 200);
     }
     
     waitForSystemsAndInitialize() {
@@ -99,8 +278,8 @@ class RaisinGameController {
     }
     
     createButtons() {
-        // Create buttons based on current level
-        const buttonCount = CONFIG.isLevel1(this.currentLevel) ? 5 : 10;
+        // Create buttons based on current level - FIX: Use CONFIG.getButtonCount()
+        const buttonCount = CONFIG.getButtonCount(this.currentLevel);
         
         const colors = CONFIG.COLORS.slice(0, buttonCount);
         const numbers = Array.from({length: buttonCount}, (_, i) => i + 1);
@@ -151,8 +330,7 @@ class RaisinGameController {
                 const selectedNumber = parseInt(e.key);
                 
                 // Check if this number is available on current buttons
-                const isTutorial = CONFIG.isTutorialMode(this.currentQuestion);
-                const maxButton = isTutorial ? 5 : 10;
+                const maxButton = CONFIG.getButtonCount(this.currentLevel);
                 
                 if (selectedNumber <= maxButton) {
                     console.log('⌨️ Keyboard input:', selectedNumber);
@@ -220,9 +398,16 @@ class RaisinGameController {
             return;
         }
         
+        // Check if we completed level 1 and should show choice modal
+        if (this.currentLevel === 1 && this.consecutiveCorrect >= CONFIG.LEVEL_SYSTEM.LEVEL_1.CONSECUTIVE_CORRECT_NEEDED && !this.completedLevel1) {
+            this.showChoiceModal();
+            return;
+        }
+        
         // Reset hint tracking for new question
         this.hintGiven = false;
         this.buttonsDisabled = false;
+        this.raisinsEatenThisQuestion = []; // Reset eaten raisins tracking
         
         // Generate question based on simplified level system
         this.currentAnswer = this.generateAnswerForCurrentMode();
@@ -234,6 +419,7 @@ class RaisinGameController {
         
         // Select exactly currentAnswer raisins to eat
         const raisinsToEat = this.selectRaisinsToEat();
+        this.raisinsEatenThisQuestion = [...raisinsToEat]; // Store for marker display
         
         // Give starting instruction (different for first question vs subsequent)
         this.giveStartingInstruction();
@@ -243,6 +429,22 @@ class RaisinGameController {
         
         // Start inactivity timer after guinea pigs finish
         this.startInactivityTimer();
+    }
+    
+    showChoiceModal() {
+        console.log('🐹 Showing choice modal after completing level 1');
+        this.completedLevel1 = true;
+        this.clearInactivityTimer();
+        
+        // Show the choice modal
+        this.choiceModal.classList.remove('hidden');
+        
+        // Give audio instruction
+        if (this.isTabVisible) {
+            setTimeout(() => {
+                this.speakText(CONFIG.AUDIO.CHOICE_MODAL.AUDIO_MESSAGE);
+            }, 500);
+        }
     }
     
     generateAnswerForCurrentMode() {
@@ -411,11 +613,9 @@ class RaisinGameController {
             this.consecutiveCorrect++;
             console.log(`✅ Consecutive correct: ${this.consecutiveCorrect}`);
             
-            // Check if ready to advance to level 2
+            // Check if ready to advance to level 2 (but don't auto-advance, wait for choice)
             if (this.currentLevel === 1 && this.consecutiveCorrect >= CONFIG.LEVEL_SYSTEM.LEVEL_1.CONSECUTIVE_CORRECT_NEEDED) {
-                this.currentLevel = 2;
-                this.consecutiveCorrect = 0; // Reset counter for level 2
-                console.log(`🎉 Advanced to Level 2!`);
+                console.log(`🎉 Ready to advance to Level 2! Will show choice after this question.`);
             }
         } else {
             // Wrong on first attempt - reset consecutive counter
@@ -447,30 +647,6 @@ class RaisinGameController {
         }, CONFIG.NEXT_QUESTION_DELAY);
     }
     
-    updateDifficultyOnSuccess() {
-        // Only update difficulty in normal mode (not tutorial)
-        if (!CONFIG.isTutorialMode(this.currentQuestion - 1)) { // -1 because we already incremented
-            if (this.currentLevel === 1) {
-                this.currentLevel = 2; // Level 1 correct on first attempt → Level 2
-            } else if (this.currentLevel === 3) {
-                this.currentLevel = 2; // Level 3 correct on first attempt → Level 2
-            }
-            // Level 2 stays at Level 2 when correct
-        }
-    }
-    
-    updateDifficultyOnFailure() {
-        // Only update difficulty in normal mode (not tutorial)
-        if (!CONFIG.isTutorialMode(this.currentQuestion - 1)) { // -1 because we already incremented
-            if (this.currentLevel === 2) {
-                this.currentLevel = 3; // Level 2 not correct on first attempt → Level 3
-            } else if (this.currentLevel === 3) {
-                this.currentLevel = 1; // Level 3 not correct on first attempt → Level 1
-            }
-            // Level 1 stays at Level 1 when not correct on first attempt
-        }
-    }
-    
     hasAttemptedAnswer() {
         return window.ButtonBar && window.ButtonBar.buttons && 
                Array.from(window.ButtonBar.buttons).some(btn => 
@@ -498,6 +674,13 @@ class RaisinGameController {
         // Use ButtonBar for incorrect feedback
         if (window.ButtonBar) {
             window.ButtonBar.showIncorrectFeedback(selectedNumber, buttonElement);
+        }
+        
+        // Show missing raisin markers if this is the first wrong attempt
+        if (!this.hasAttemptedAnswer()) {
+            setTimeout(() => {
+                this.positionRenderer.showMissingRaisinMarkers(this.raisinsEatenThisQuestion);
+            }, 1000);
         }
         
         // Give specific wrong answer hint after button animation
@@ -561,6 +744,8 @@ class RaisinGameController {
         this.consecutiveCorrect = 0; // Reset consecutive counter
         this.recentAnswers = []; // Clear recent answers
         this.questionCount = 0; // Reset question count
+        this.completedLevel1 = false; // Reset level 1 completion
+        this.raisinsEatenThisQuestion = []; // Reset eaten raisins tracking
         
         this.clearInactivityTimer();
         this.animationRenderer.stopGuineaPigSounds();
@@ -570,11 +755,15 @@ class RaisinGameController {
         this.positionRenderer.reset();
         this.animationRenderer.reset();
         this.modal.classList.add('hidden');
+        this.choiceModal.classList.add('hidden');
         
-        // Reset button states
+        // Reset button states and recreate for level 1
         this.resetButtonStates();
+        this.createButtons();
         
-        this.startNewQuestion();
+        setTimeout(() => {
+            this.startNewQuestion();
+        }, 200);
     }
     
     speakText(text, options = {}) {
@@ -598,6 +787,16 @@ class RaisinGameController {
         this.bear.reset();
         this.positionRenderer.destroy();
         this.animationRenderer.destroy();
+        
+        // Remove choice modal and styles
+        if (this.choiceModal && this.choiceModal.parentNode) {
+            this.choiceModal.parentNode.removeChild(this.choiceModal);
+        }
+        
+        const choiceModalStyles = document.querySelector('#choice-modal-styles');
+        if (choiceModalStyles) {
+            choiceModalStyles.remove();
+        }
         
         if (window.ButtonBar) {
             window.ButtonBar.destroy();
