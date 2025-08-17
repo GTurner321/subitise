@@ -7,34 +7,18 @@ const CONFIG = {
     RAINBOW_PIECES: 10,
     TOTAL_QUESTIONS: 10,
     
-    // Tutorial mode settings (first 3 questions)
-    TUTORIAL_MODE: {
-        QUESTIONS: 3,
-        TOTAL_RAISINS: 5,
+    // Simplified level system
+    LEVEL_SYSTEM: {
         LEVEL_1: {
-            possibleRaisinsToEat: [1, 2], // Either 1 or 2 missing
-            name: 'Tutorial Level 1'
-        },
-        LEVEL_2: {
-            possibleRaisinsToEat: [1, 2, 3, 4], // Any number 1-4 missing
-            name: 'Tutorial Level 2'
-        }
-    },
-    
-    // Normal game settings (questions 4-10)
-    NORMAL_MODE: {
-        TOTAL_RAISINS: 10,
-        LEVEL_1: {
-            possibleRaisinsToEat: [1, 2], // Easier numbers
+            TOTAL_RAISINS: 5,
+            CONSECUTIVE_CORRECT_NEEDED: 3, // 3 questions in a row must be answered right first time
+            POSSIBLE_MISSING: [1, 2, 3, 4], // Set of missing raisins
             name: 'Level 1'
         },
         LEVEL_2: {
-            possibleRaisinsToEat: [1, 2, 3, 4, 5, 6, 7, 8, 9], // Full range
+            TOTAL_RAISINS: 10,
+            POSSIBLE_MISSING: [1, 2, 3, 4, 5, 6, 7, 8, 9], // Set of missing raisins
             name: 'Level 2'
-        },
-        LEVEL_3: {
-            possibleRaisinsToEat: [1, 2, 5, 9], // Specific challenging numbers
-            name: 'Level 3'
         }
     },
     
@@ -73,7 +57,7 @@ const CONFIG = {
         GUINEA_PIG_EATING_SOUND: '../../assets/raisin/guineapigeating.mp3',
         GUINEA_PIG_SOUND_VOLUME: 0.7,
         
-        TUTORIAL_MESSAGES: {
+        LEVEL_1_MESSAGES: {
             FIRST_QUESTION: 'Watch the hungry guinea pig',
             FIRST_INSTRUCTION: 'There are 5 raisins. The hungry guinea pig is going to eat some of them.',
             QUESTION: 'How many raisins did the guinea pig eat?',
@@ -81,7 +65,7 @@ const CONFIG = {
             WRONG_ANSWER_HINT: 'We started with 5 raisins. Count how many there are left now, then count how many are missing - you can use your fingers to help you.'
         },
         
-        NORMAL_MESSAGES: {
+        LEVEL_2_MESSAGES: {
             FIRST_QUESTION: 'Watch the hungry guinea pig',
             FIRST_INSTRUCTION: 'There are 10 raisins. The hungry guinea pig is going to eat some of them.',
             QUESTION: 'How many raisins did the guinea pig eat?',
@@ -114,33 +98,27 @@ const CONFIG = {
         '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'
     ],
     
-    // Helper functions
-    isTutorialMode: function(questionNumber) {
-        return questionNumber < this.TUTORIAL_MODE.QUESTIONS;
+    // Helper functions for simplified level system
+    isLevel1: function(currentLevel) {
+        return currentLevel === 1;
     },
     
-    getTotalRaisins: function(questionNumber) {
-        return this.isTutorialMode(questionNumber) ? 
-            this.TUTORIAL_MODE.TOTAL_RAISINS : 
-            this.NORMAL_MODE.TOTAL_RAISINS;
+    getTotalRaisins: function(currentLevel) {
+        return currentLevel === 1 ? 
+            this.LEVEL_SYSTEM.LEVEL_1.TOTAL_RAISINS : 
+            this.LEVEL_SYSTEM.LEVEL_2.TOTAL_RAISINS;
     },
     
-    getDifficultyLevels: function(questionNumber) {
-        return this.isTutorialMode(questionNumber) ? 
-            this.TUTORIAL_MODE : 
-            this.NORMAL_MODE;
+    getAudioMessages: function(currentLevel) {
+        return currentLevel === 1 ? 
+            this.AUDIO.LEVEL_1_MESSAGES : 
+            this.AUDIO.LEVEL_2_MESSAGES;
     },
     
-    getAudioMessages: function(questionNumber) {
-        return this.isTutorialMode(questionNumber) ? 
-            this.AUDIO.TUTORIAL_MESSAGES : 
-            this.AUDIO.NORMAL_MESSAGES;
-    },
-    
-    getHintMessage: function(questionNumber) {
+    getHintMessage: function(currentLevel) {
         const hints = this.AUDIO.HINTS;
-        return this.isTutorialMode(questionNumber) ? 
-            hints[0] : 
-            hints[1];
+        return currentLevel === 1 ? 
+            hints[0] : // "Try counting how many more will make 5"
+            hints[1];  // "Try counting how many more will make 10"
     }
 };
