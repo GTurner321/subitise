@@ -69,6 +69,18 @@
     }
 }
 
+/* Missing raisin marker styles */
+.missing-raisin-marker {
+    position: absolute;
+    z-index: 4; /* Above raisins, below guinea pigs */
+    pointer-events: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
 /* Guinea pig shared styles - Enhanced for better visibility */
 .guinea-pig {
     position: absolute;
@@ -166,36 +178,5 @@
     100% {
         opacity: 0;
         transform: scale(1) translateY(-40px);
-    }
-}
-
-/* Responsive adjustments for smaller screens */
-@media (max-width: 768px) {
-    .guinea-pig-3 {
-        top: 3%;
-        left: 3%;
-    }
-    
-    .guinea-pig-2 {
-        top: 36%;
-    }
-    
-    .guinea-pig-1 {
-        top: 62%;
-    }
-}
-
-@media (max-width: 480px) {
-    .guinea-pig-3 {
-        top: 2%;
-        left: 2%;
-    }
-    
-    .guinea-pig-2 {
-        top: 35%;
-    }
-    
-    .guinea-pig-1 {
-        top: 63%;
     }
 }
