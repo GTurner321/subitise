@@ -548,8 +548,9 @@ class RaisinGameController {
         // Start guinea pig sounds
         this.animationRenderer.startGuineaPigSounds();
         
-        // NEW: Add 1 second delay before first traversal
-        await this.sleep(1000);
+        // NEW: Add delay before first traversal - longer for 10 raisin questions
+        const firstTraversalDelay = this.currentLevel === 1 ? 1000 : 1700; // 1s for 5 raisins, 1.7s for 10 raisins
+        await this.sleep(firstTraversalDelay);
         
         // NEW: Use block-based timing system
         const gp2StartTime = performance.now();
@@ -593,21 +594,21 @@ class RaisinGameController {
     }
     
     scheduleBlockBasedEating(raisinsToEat, guineaPigType, startTime) {
-        // Block timing definitions (in milliseconds from guinea pig start) - reduced by 30%
+        // Block timing definitions (in milliseconds from guinea pig start) - reduced by 15%
         const blockTimings = {
             // GP2 timings (top row, left-to-right)
-            0: 431,   // Block (0,0) - was 616ms
-            1: 566,   // Block (20,0) - was 808ms
-            2: 700,   // Block (40,0) - was 1000ms
-            3: 834,   // Block (60,0) - was 1192ms
-            4: 969,   // Block (80,0) - was 1384ms
+            0: 524,   // Block (0,0) - was 616ms, reduced by 15%
+            1: 687,   // Block (20,0) - was 808ms, reduced by 15%
+            2: 850,   // Block (40,0) - was 1000ms, reduced by 15%
+            3: 1013,  // Block (60,0) - was 1192ms, reduced by 15%
+            4: 1176,  // Block (80,0) - was 1384ms, reduced by 15%
             
             // GP1 timings (bottom row, right-to-left)
-            5: 431,   // Block (80,50) - was 616ms
-            6: 566,   // Block (60,50) - was 808ms
-            7: 700,   // Block (40,50) - was 1000ms
-            8: 834,   // Block (20,50) - was 1192ms
-            9: 969    // Block (0,50) - was 1384ms
+            5: 524,   // Block (80,50) - was 616ms, reduced by 15%
+            6: 687,   // Block (60,50) - was 808ms, reduced by 15%
+            7: 850,   // Block (40,50) - was 1000ms, reduced by 15%
+            8: 1013,  // Block (20,50) - was 1192ms, reduced by 15%
+            9: 1176   // Block (0,50) - was 1384ms, reduced by 15%
         };
         
         const gameAreaRect = this.positionRenderer.gameArea.getBoundingClientRect();
