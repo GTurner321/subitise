@@ -277,7 +277,7 @@ class RaisinPositionRenderer {
                     if (raisinElement.parentNode) {
                         raisinElement.parentNode.removeChild(raisinElement);
                     }
-                }, 800);
+                }, 1200);
             });
         }
     }
