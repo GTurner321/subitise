@@ -67,7 +67,7 @@ const CONFIG = {
             FIRST_INSTRUCTION: 'There are 5 raisins. The hungry guinea pig is going to eat some of them.',
             QUESTION: 'How many raisins did the guinea pig eat?',
             SUBSEQUENT_QUESTION: 'There are 5 raisins. Watch the guinea pig.',
-            WRONG_ANSWER_HINT: 'We started with 5 raisins. Count how many there are left now, then count how many are missing - you can use your fingers to help you.'
+            WRONG_ANSWER_HINT: 'Count the missing raisins.'
         },
         
         LEVEL_2_MESSAGES: {
@@ -75,7 +75,7 @@ const CONFIG = {
             FIRST_INSTRUCTION: 'There are 10 raisins. The hungry guinea pig is going to eat some of them.',
             QUESTION: 'How many raisins did the guinea pig eat?',
             SUBSEQUENT_QUESTION: 'There are 10 raisins. Watch the guinea pig.',
-            WRONG_ANSWER_HINT: 'We started with 10 raisins. Count how many there are left now, then count how many are missing - you can use your fingers to help you.'
+            WRONG_ANSWER_HINT: 'Count the missing raisins.'
         },
         
         ENCOURAGEMENTS: [
@@ -99,7 +99,7 @@ const CONFIG = {
         // Choice modal messages after completing 5-raisin questions
         CHOICE_MODAL: {
             TITLE: 'Great job!',
-            MESSAGE: 'You have completed the 5 raisin questions! Would you like to continue with 5 raisins or try the harder 10 raisin questions?',
+            MESSAGE: '', // Removed text message - only audio
             AUDIO_MESSAGE: 'Great job! You have completed the 5 raisin questions. Would you like to continue with 5 raisins or try the harder 10 raisin questions?',
             CONTINUE_5_BUTTON: 'Continue with 5 raisins',
             TRY_10_BUTTON: 'Try 10 raisins'
@@ -135,9 +135,23 @@ const CONFIG = {
     },
     
     getHintMessage: function(currentLevel) {
-        const hints = this.AUDIO.HINTS;
-        return currentLevel === 1 ? 
-            hints[0] : // "Try counting how many more will make 5"
-            hints[1];  // "Try counting how many more will make 10"
+        // For inactivity hints, use level-appropriate messages
+        if (currentLevel === 1) {
+            // Level 1 (5 raisins) - rotate through these hints
+            const level1Hints = [
+                'Try counting how many more will make 5.',
+                'Count how many raisins are left.',
+                'Think about how many the guinea pig ate.'
+            ];
+            return level1Hints[Math.floor(Math.random() * level1Hints.length)];
+        } else {
+            // Level 2 (10 raisins) - rotate through these hints  
+            const level2Hints = [
+                'Try counting how many more will make 10.',
+                'Count how many raisins are left.',
+                'Think about how many the guinea pig ate.'
+            ];
+            return level2Hints[Math.floor(Math.random() * level2Hints.length)];
+        }
     }
 };
