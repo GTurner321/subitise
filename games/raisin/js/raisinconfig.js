@@ -34,8 +34,12 @@ const CONFIG = {
     NEXT_QUESTION_DELAY: 2000,
     GUINEA_PIG_3_INITIAL_DISPLAY: 4000,
     INITIAL_INSTRUCTION_DELAY: 1000,
+    
+    // Raisin stagger timing - different for 5 vs 10 raisins
     RAISIN_STAGGER_START: 1000,
-    RAISIN_STAGGER_WINDOW: 3000,
+    RAISIN_5_STAGGER_WINDOW: 1500, // 1.5 seconds for 5 raisins (reduced from 3)
+    RAISIN_10_STAGGER_WINDOW: 3000, // 3 seconds for 10 raisins (original)
+    
     RAISIN_FADE_DURATION: 500,
     GUINEA_PIG_ANIMATION_DURATION: 2000,
     GUINEA_PIG_PAUSE_DURATION: 500,
@@ -153,5 +157,12 @@ const CONFIG = {
             ];
             return level2Hints[Math.floor(Math.random() * level2Hints.length)];
         }
+    },
+    
+    // Helper function to get stagger window based on level
+    getRaisinStaggerWindow: function(currentLevel) {
+        return currentLevel === 1 ? 
+            this.RAISIN_5_STAGGER_WINDOW : 
+            this.RAISIN_10_STAGGER_WINDOW;
     }
 };
