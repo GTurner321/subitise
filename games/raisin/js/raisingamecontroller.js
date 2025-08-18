@@ -21,6 +21,7 @@ class RaisinGameController {
         this.buttonsDisabled = false;
         this.questionsCompleted = 0;
         this.raisinsEatenThisQuestion = []; // Track which raisins were eaten for markers
+        this.hasShownMarkersThisQuestion = false; // Track if markers have been shown for current question
         
         // Simplified level system tracking
         this.currentLevel = 1; // Start at level 1
@@ -399,16 +400,11 @@ class RaisinGameController {
             return;
         }
         
-        // Check if we completed 3 consecutive correct in level 1 and should show choice modal
-        if (this.currentLevel === 1 && this.consecutiveCorrect >= 3 && !this.completedLevel1) {
-            this.showChoiceModal();
-            return;
-        }
-        
         // Reset hint tracking for new question
         this.hintGiven = false;
         this.buttonsDisabled = false;
         this.raisinsEatenThisQuestion = []; // Reset eaten raisins tracking
+        this.hasShownMarkersThisQuestion = false; // Reset marker tracking for new question
         
         // Clear any existing missing markers from previous question
         this.positionRenderer.clearMissingMarkers();
@@ -418,15 +414,18 @@ class RaisinGameController {
         
         console.log(`Question ${this.totalQuestionsAsked + 1}: Level ${this.currentLevel}, Answer: ${this.currentAnswer}, Consecutive Correct: ${this.consecutiveCorrect}`);
         
-        // Render raisins with staggered appearance
-        await this.positionRenderer.renderRaisinsStaggered(this.currentLevel);
+        // Start rendering raisins immediately (no delay)
+        const renderPromise = this.positionRenderer.renderRaisinsStaggered(this.currentLevel);
+        
+        // Give starting instruction immediately while raisins are rendering
+        this.giveStartingInstruction();
+        
+        // Wait for raisins to finish rendering
+        await renderPromise;
         
         // Select exactly currentAnswer raisins to eat
         const raisinsToEat = this.selectRaisinsToEat();
         this.raisinsEatenThisQuestion = [...raisinsToEat]; // Store for marker display
-        
-        // Give starting instruction (different for first question vs subsequent)
-        this.giveStartingInstruction();
         
         // Start the guinea pig sequence
         await this.runGuineaPigSequence(raisinsToEat);
@@ -502,15 +501,13 @@ class RaisinGameController {
         
         const audioMessages = CONFIG.getAudioMessages(this.currentLevel);
         
-        setTimeout(() => {
-            if (this.questionCount === 0) {
-                // Very first question - full instruction
-                this.speakText(audioMessages.FIRST_QUESTION);
-            } else {
-                // Subsequent questions - shorter instruction
+        // Only give starting instruction for subsequent questions (not first question)
+        if (this.questionCount > 0) {
+            setTimeout(() => {
                 this.speakText(audioMessages.SUBSEQUENT_QUESTION);
-            }
-        }, 500);
+            }, 300); // Reduced delay for faster response
+        }
+        // First question has no starting instruction now
     }
     
     async runGuineaPigSequence(raisinsToEat) {
@@ -524,15 +521,16 @@ class RaisinGameController {
         
         // For first question only, give extended instruction
         if (this.questionCount === 0) {
-            await this.sleep(CONFIG.INITIAL_INSTRUCTION_DELAY);
+            // Reduced delay for faster start
+            await this.sleep(500);
             
             if (this.isTabVisible) {
                 const audioMessages = CONFIG.getAudioMessages(this.currentLevel);
                 this.speakText(audioMessages.FIRST_INSTRUCTION);
             }
             
-            // Wait for instruction to finish (approximately 5 seconds)
-            await this.sleep(5000);
+            // Reduced wait time for instruction to finish
+            await this.sleep(3000);
         }
         
         // Fade out guinea pig 3 completely before moving guinea pigs appear
@@ -618,6 +616,11 @@ class RaisinGameController {
             if (this.currentLevel === 1) {
                 this.consecutiveCorrect++;
                 console.log(`✅ Level 1 - Consecutive correct: ${this.consecutiveCorrect}`);
+                
+                // Check if we should show choice modal after this question completes
+                if (this.consecutiveCorrect >= 3 && !this.completedLevel1) {
+                    console.log(`🎉 Ready to show choice modal after 3 consecutive correct!`);
+                }
             }
         } else {
             // Wrong on first attempt - reset consecutive counter only for level 1
@@ -645,7 +648,12 @@ class RaisinGameController {
 
         // Start next question after delay
         setTimeout(() => {
-            this.startNewQuestion();
+            // Check if we should show choice modal before starting next question
+            if (this.currentLevel === 1 && this.consecutiveCorrect >= 3 && !this.completedLevel1) {
+                this.showChoiceModal();
+            } else {
+                this.startNewQuestion();
+            }
         }, CONFIG.NEXT_QUESTION_DELAY);
     }
     
@@ -657,9 +665,6 @@ class RaisinGameController {
     }
     
     handleIncorrectAnswer(buttonElement, selectedNumber) {
-        // Check if this is the first wrong attempt for this question
-        const isFirstWrongAttempt = !this.hasAttemptedAnswer();
-        
         // Clear inactivity timer and give immediate hint
         this.clearInactivityTimer();
         
@@ -681,9 +686,11 @@ class RaisinGameController {
             window.ButtonBar.showIncorrectFeedback(selectedNumber, buttonElement);
         }
         
-        // Show missing raisin markers if this is the first wrong attempt
-        if (isFirstWrongAttempt && this.raisinsEatenThisQuestion.length > 0) {
-            console.log('🔴 First wrong attempt - showing missing raisin markers for:', this.raisinsEatenThisQuestion);
+        // Show missing raisin markers if not already shown for this question
+        if (!this.hasShownMarkersThisQuestion && this.raisinsEatenThisQuestion.length > 0) {
+            console.log('🔴 First wrong attempt for this question - showing missing raisin markers for:', this.raisinsEatenThisQuestion);
+            this.hasShownMarkersThisQuestion = true; // Mark that we've shown markers for this question
+            
             // Show markers immediately after button feedback starts
             setTimeout(() => {
                 this.positionRenderer.showMissingRaisinMarkers(this.raisinsEatenThisQuestion);
@@ -754,6 +761,7 @@ class RaisinGameController {
         this.completedLevel1 = false; // Reset level 1 completion
         this.raisinsEatenThisQuestion = []; // Reset eaten raisins tracking
         this.totalQuestionsAsked = 0; // Reset total question counter
+        this.hasShownMarkersThisQuestion = false; // Reset marker tracking
         
         this.clearInactivityTimer();
         this.animationRenderer.stopGuineaPigSounds();
