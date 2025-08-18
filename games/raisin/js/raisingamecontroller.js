@@ -521,16 +521,19 @@ class RaisinGameController {
         
         // For first question only, give extended instruction
         if (this.questionCount === 0) {
-            // Reduced delay for faster start
-            await this.sleep(500);
+            // Different delays based on level (faster for 5 raisins)
+            const instructionDelay = this.currentLevel === 1 ? 0 : 500; // No delay for level 1, 500ms for level 2
+            
+            await this.sleep(instructionDelay);
             
             if (this.isTabVisible) {
                 const audioMessages = CONFIG.getAudioMessages(this.currentLevel);
                 this.speakText(audioMessages.FIRST_INSTRUCTION);
             }
             
-            // Reduced wait time for instruction to finish
-            await this.sleep(3000);
+            // Reduced wait time - level-specific
+            const waitTime = this.currentLevel === 1 ? 1500 : 3000; // 1.5s for level 1, 3s for level 2
+            await this.sleep(waitTime);
         }
         
         // Fade out guinea pig 3 completely before moving guinea pigs appear
@@ -570,19 +573,20 @@ class RaisinGameController {
     }
     
     handleNumberClick(selectedNumber, buttonElement) {
+        // Check if this is the first attempt BEFORE any processing
+        const wasFirstAttempt = !this.hasAttemptedAnswer();
+        console.log(`🎯 Question answer: ${selectedNumber}, Correct: ${this.currentAnswer}, First attempt: ${wasFirstAttempt}`);
+        
         const isCorrect = selectedNumber === this.currentAnswer;
         
         if (isCorrect) {
-            this.handleCorrectAnswer(buttonElement);
+            this.handleCorrectAnswer(buttonElement, wasFirstAttempt);
         } else {
             this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
     
-    handleCorrectAnswer(buttonElement) {
-        // Check if this was the first attempt
-        const wasFirstAttempt = !this.hasAttemptedAnswer();
-        
+    handleCorrectAnswer(buttonElement, wasFirstAttempt) {
         // For keyboard input, find the button element
         if (!buttonElement && window.ButtonBar) {
             buttonElement = window.ButtonBar.findButtonByNumber(this.currentAnswer);
@@ -615,7 +619,7 @@ class RaisinGameController {
             // Only track consecutive correct for level 1 (5-raisin mode)
             if (this.currentLevel === 1) {
                 this.consecutiveCorrect++;
-                console.log(`✅ Level 1 - Consecutive correct: ${this.consecutiveCorrect}`);
+                console.log(`✅ Level 1 - First attempt correct! Consecutive correct: ${this.consecutiveCorrect}`);
                 
                 // Check if we should show choice modal after this question completes
                 if (this.consecutiveCorrect >= 3 && !this.completedLevel1) {
@@ -626,7 +630,7 @@ class RaisinGameController {
             // Wrong on first attempt - reset consecutive counter only for level 1
             if (this.currentLevel === 1) {
                 this.consecutiveCorrect = 0;
-                console.log(`❌ Level 1 - Reset consecutive correct count to 0`);
+                console.log(`❌ Level 1 - Not first attempt, reset consecutive correct count to 0`);
             }
         }
         
@@ -658,10 +662,12 @@ class RaisinGameController {
     }
     
     hasAttemptedAnswer() {
-        return window.ButtonBar && window.ButtonBar.buttons && 
+        const hasAttempted = window.ButtonBar && window.ButtonBar.buttons && 
                Array.from(window.ButtonBar.buttons).some(btn => 
                    btn.dataset.attempted === 'true'
                );
+        console.log(`🔍 hasAttemptedAnswer check: ${hasAttempted}`);
+        return hasAttempted;
     }
     
     handleIncorrectAnswer(buttonElement, selectedNumber) {
