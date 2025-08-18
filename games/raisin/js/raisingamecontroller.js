@@ -24,10 +24,11 @@ class RaisinGameController {
         
         // Simplified level system tracking
         this.currentLevel = 1; // Start at level 1
-        this.consecutiveCorrect = 0; // Track consecutive first-attempt correct answers
+        this.consecutiveCorrect = 0; // Track consecutive first-attempt correct answers in level 1
         this.recentAnswers = []; // Track last 2 answers for avoiding repeats
         this.questionCount = 0; // Total questions asked (for first question detection)
         this.completedLevel1 = false; // Track if level 1 is completed
+        this.totalQuestionsAsked = 0; // Track total questions across all modes for 10-question limit
         
         // Inactivity timer for audio hints
         this.inactivityTimer = null;
@@ -58,7 +59,6 @@ class RaisinGameController {
         this.choiceModal.innerHTML = `
             <div class="modal-content choice-modal-content">
                 <h2>${CONFIG.AUDIO.CHOICE_MODAL.TITLE}</h2>
-                <p>${CONFIG.AUDIO.CHOICE_MODAL.MESSAGE}</p>
                 <div class="choice-buttons">
                     <button class="choice-btn continue-5-btn" id="continue5Btn">
                         <i class="fas fa-redo-alt"></i>
@@ -105,7 +105,7 @@ class RaisinGameController {
                 .choice-modal-content h2 {
                     color: white;
                     font-size: 2.5rem;
-                    margin-bottom: 20px;
+                    margin-bottom: 30px;
                     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
                 }
                 
@@ -197,11 +197,10 @@ class RaisinGameController {
         console.log('🐹 Player chose to continue with 5 raisins');
         this.choiceModal.classList.add('hidden');
         
-        // Continue with level 1 but advance question count
-        this.currentLevel = 1;
+        // Reset consecutive counter to start a new set of 3 questions
         this.consecutiveCorrect = 0;
         this.recentAnswers = [];
-        this.completedLevel1 = false;
+        this.completedLevel1 = false; // Allow modal to appear again after next 3 correct
         
         // Continue the game
         this.startNewQuestion();
@@ -211,11 +210,11 @@ class RaisinGameController {
         console.log('🐹 Player chose to try 10 raisins');
         this.choiceModal.classList.add('hidden');
         
-        // Advance to level 2
+        // Advance to level 2 permanently (no more choice modals)
         this.currentLevel = 2;
         this.consecutiveCorrect = 0;
         this.recentAnswers = [];
-        this.completedLevel1 = true;
+        this.completedLevel1 = true; // Permanently completed, no more modals
         
         // Recreate buttons for level 2
         this.createButtons();
@@ -394,12 +393,14 @@ class RaisinGameController {
     }
     
     async startNewQuestion() {
-        if (this.gameComplete || this.currentQuestion >= CONFIG.TOTAL_QUESTIONS) {
+        // Check if we've reached the 10-question limit
+        if (this.totalQuestionsAsked >= CONFIG.TOTAL_QUESTIONS) {
+            this.completeGame();
             return;
         }
         
-        // Check if we completed level 1 and should show choice modal
-        if (this.currentLevel === 1 && this.consecutiveCorrect >= CONFIG.LEVEL_SYSTEM.LEVEL_1.CONSECUTIVE_CORRECT_NEEDED && !this.completedLevel1) {
+        // Check if we completed 3 consecutive correct in level 1 and should show choice modal
+        if (this.currentLevel === 1 && this.consecutiveCorrect >= 3 && !this.completedLevel1) {
             this.showChoiceModal();
             return;
         }
@@ -409,10 +410,13 @@ class RaisinGameController {
         this.buttonsDisabled = false;
         this.raisinsEatenThisQuestion = []; // Reset eaten raisins tracking
         
+        // Clear any existing missing markers from previous question
+        this.positionRenderer.clearMissingMarkers();
+        
         // Generate question based on simplified level system
         this.currentAnswer = this.generateAnswerForCurrentMode();
         
-        console.log(`Question ${this.currentQuestion + 1}: Level ${this.currentLevel}, Answer: ${this.currentAnswer}, Consecutive Correct: ${this.consecutiveCorrect}`);
+        console.log(`Question ${this.totalQuestionsAsked + 1}: Level ${this.currentLevel}, Answer: ${this.currentAnswer}, Consecutive Correct: ${this.consecutiveCorrect}`);
         
         // Render raisins with staggered appearance
         await this.positionRenderer.renderRaisinsStaggered(this.currentLevel);
@@ -610,31 +614,29 @@ class RaisinGameController {
         
         // Update level progression based on simplified system
         if (wasFirstAttempt) {
-            this.consecutiveCorrect++;
-            console.log(`✅ Consecutive correct: ${this.consecutiveCorrect}`);
-            
-            // Check if ready to advance to level 2 (but don't auto-advance, wait for choice)
-            if (this.currentLevel === 1 && this.consecutiveCorrect >= CONFIG.LEVEL_SYSTEM.LEVEL_1.CONSECUTIVE_CORRECT_NEEDED) {
-                console.log(`🎉 Ready to advance to Level 2! Will show choice after this question.`);
+            // Only track consecutive correct for level 1 (5-raisin mode)
+            if (this.currentLevel === 1) {
+                this.consecutiveCorrect++;
+                console.log(`✅ Level 1 - Consecutive correct: ${this.consecutiveCorrect}`);
             }
         } else {
-            // Wrong on first attempt - reset consecutive counter
+            // Wrong on first attempt - reset consecutive counter only for level 1
             if (this.currentLevel === 1) {
                 this.consecutiveCorrect = 0;
-                console.log(`❌ Reset consecutive correct count to 0`);
+                console.log(`❌ Level 1 - Reset consecutive correct count to 0`);
             }
-            // Level 2 has no return to level 1
         }
         
         this.currentQuestion++;
         this.questionsCompleted++;
         this.questionCount++; // Track total questions for first question detection
+        this.totalQuestionsAsked++; // Track total questions for 10-question limit
         
         // Stop timers
         this.clearInactivityTimer();
         
-        // Check if game is complete
-        if (this.currentQuestion >= CONFIG.TOTAL_QUESTIONS) {
+        // Check if game is complete (10 questions total)
+        if (this.totalQuestionsAsked >= CONFIG.TOTAL_QUESTIONS) {
             setTimeout(() => {
                 this.completeGame();
             }, CONFIG.NEXT_QUESTION_DELAY + 1000);
@@ -655,6 +657,9 @@ class RaisinGameController {
     }
     
     handleIncorrectAnswer(buttonElement, selectedNumber) {
+        // Check if this is the first wrong attempt for this question
+        const isFirstWrongAttempt = !this.hasAttemptedAnswer();
+        
         // Clear inactivity timer and give immediate hint
         this.clearInactivityTimer();
         
@@ -677,10 +682,12 @@ class RaisinGameController {
         }
         
         // Show missing raisin markers if this is the first wrong attempt
-        if (!this.hasAttemptedAnswer()) {
+        if (isFirstWrongAttempt && this.raisinsEatenThisQuestion.length > 0) {
+            console.log('🔴 First wrong attempt - showing missing raisin markers for:', this.raisinsEatenThisQuestion);
+            // Show markers immediately after button feedback starts
             setTimeout(() => {
                 this.positionRenderer.showMissingRaisinMarkers(this.raisinsEatenThisQuestion);
-            }, 1000);
+            }, 300);
         }
         
         // Give specific wrong answer hint after button animation
@@ -746,6 +753,7 @@ class RaisinGameController {
         this.questionCount = 0; // Reset question count
         this.completedLevel1 = false; // Reset level 1 completion
         this.raisinsEatenThisQuestion = []; // Reset eaten raisins tracking
+        this.totalQuestionsAsked = 0; // Reset total question counter
         
         this.clearInactivityTimer();
         this.animationRenderer.stopGuineaPigSounds();
