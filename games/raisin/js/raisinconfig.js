@@ -38,7 +38,7 @@ const CONFIG = {
     // Raisin stagger timing - different for 5 vs 10 raisins
     RAISIN_STAGGER_START: 1000,
     RAISIN_5_STAGGER_WINDOW: 1500, // 1.5 seconds for 5 raisins (reduced from 3)
-    RAISIN_10_STAGGER_WINDOW: 3000, // 3 seconds for 10 raisins (original)
+    RAISIN_10_STAGGER_WINDOW: 2200, // 2.2 seconds for 10 raisins (reduced from 3000)
     
     RAISIN_FADE_DURATION: 500,
     GUINEA_PIG_ANIMATION_DURATION: 2000,
