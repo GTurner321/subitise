@@ -548,6 +548,9 @@ class RaisinGameController {
         // Start guinea pig sounds
         this.animationRenderer.startGuineaPigSounds();
         
+        // NEW: Add 1 second delay before first traversal
+        await this.sleep(1000);
+        
         // NEW: Use block-based timing system
         const gp2StartTime = performance.now();
         
@@ -590,21 +593,21 @@ class RaisinGameController {
     }
     
     scheduleBlockBasedEating(raisinsToEat, guineaPigType, startTime) {
-        // Block timing definitions (in milliseconds from guinea pig start)
+        // Block timing definitions (in milliseconds from guinea pig start) - reduced by 30%
         const blockTimings = {
             // GP2 timings (top row, left-to-right)
-            0: 616,   // Block (0,0)
-            1: 808,   // Block (20,0)  
-            2: 1000,  // Block (40,0)
-            3: 1192,  // Block (60,0)
-            4: 1384,  // Block (80,0)
+            0: 431,   // Block (0,0) - was 616ms
+            1: 566,   // Block (20,0) - was 808ms
+            2: 700,   // Block (40,0) - was 1000ms
+            3: 834,   // Block (60,0) - was 1192ms
+            4: 969,   // Block (80,0) - was 1384ms
             
             // GP1 timings (bottom row, right-to-left)
-            5: 616,   // Block (80,50) - FIRST block hit by GP1
-            6: 808,   // Block (60,50)
-            7: 1000,  // Block (40,50)
-            8: 1192,  // Block (20,50)
-            9: 1384   // Block (0,50) - LAST block hit by GP1
+            5: 431,   // Block (80,50) - was 616ms
+            6: 566,   // Block (60,50) - was 808ms
+            7: 700,   // Block (40,50) - was 1000ms
+            8: 834,   // Block (20,50) - was 1192ms
+            9: 969    // Block (0,50) - was 1384ms
         };
         
         const gameAreaRect = this.positionRenderer.gameArea.getBoundingClientRect();
