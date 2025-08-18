@@ -548,14 +548,29 @@ class RaisinGameController {
         // Start guinea pig sounds
         this.animationRenderer.startGuineaPigSounds();
         
+        // NEW: Use block-based timing system
+        const gp2StartTime = performance.now();
+        
         // Guinea pig 2 moves left to right (only after GP3 is completely gone)
-        await this.animationRenderer.moveGuineaPig2(raisinsToEat);
+        const gp2Promise = this.animationRenderer.moveGuineaPig2(raisinsToEat);
+        
+        // Schedule raisin eating based on block system for GP2 (top half raisins)
+        this.scheduleBlockBasedEating(raisinsToEat, 'gp2', gp2StartTime);
+        
+        await gp2Promise;
         
         // Short pause
         await this.sleep(CONFIG.GUINEA_PIG_PAUSE_DURATION);
         
+        const gp1StartTime = performance.now();
+        
         // Guinea pig 1 moves right to left (only after GP2 is completely gone)
-        await this.animationRenderer.moveGuineaPig1(raisinsToEat);
+        const gp1Promise = this.animationRenderer.moveGuineaPig1(raisinsToEat);
+        
+        // Schedule raisin eating based on block system for GP1 (bottom half raisins)
+        this.scheduleBlockBasedEating(raisinsToEat, 'gp1', gp1StartTime);
+        
+        await gp1Promise;
         
         // Stop guinea pig sounds
         this.animationRenderer.stopGuineaPigSounds();
@@ -572,6 +587,89 @@ class RaisinGameController {
         }, 1000);
         
         this.buttonsDisabled = false;
+    }
+    
+    scheduleBlockBasedEating(raisinsToEat, guineaPigType, startTime) {
+        // Block timing definitions (in milliseconds from guinea pig start)
+        const blockTimings = {
+            // GP2 timings (top row, left-to-right)
+            0: 616,   // Block (0,0)
+            1: 808,   // Block (20,0)  
+            2: 1000,  // Block (40,0)
+            3: 1192,  // Block (60,0)
+            4: 1384,  // Block (80,0)
+            
+            // GP1 timings (bottom row, right-to-left)
+            5: 616,   // Block (80,50) - FIRST block hit by GP1
+            6: 808,   // Block (60,50)
+            7: 1000,  // Block (40,50)
+            8: 1192,  // Block (20,50)
+            9: 1384   // Block (0,50) - LAST block hit by GP1
+        };
+        
+        const gameAreaRect = this.positionRenderer.gameArea.getBoundingClientRect();
+        const raisinElements = this.positionRenderer.getRaisinElements();
+        
+        raisinsToEat.forEach(raisinIndex => {
+            const raisinElement = raisinElements[raisinIndex];
+            if (!raisinElement) return;
+            
+            const raisinRect = raisinElement.getBoundingClientRect();
+            const gameAreaTop = gameAreaRect.top;
+            const gameAreaLeft = gameAreaRect.left;
+            
+            // Convert to game area coordinates (percentages)
+            const raisinGameX = ((raisinRect.left + raisinRect.width/2) - gameAreaLeft) / gameAreaRect.width * 100;
+            const raisinGameY = ((raisinRect.top + raisinRect.height/2) - gameAreaTop) / gameAreaRect.height * 100;
+            
+            // Determine which block this raisin is in
+            const blockNumber = this.getRaisinBlock(raisinGameX, raisinGameY);
+            
+            if (blockNumber === -1) return; // Raisin not in any eating path
+            
+            // Check if this guinea pig should eat this raisin
+            const shouldEat = (guineaPigType === 'gp2' && blockNumber <= 4) || 
+                            (guineaPigType === 'gp1' && blockNumber >= 5);
+            
+            if (shouldEat) {
+                const eatingTime = blockTimings[blockNumber];
+                
+                console.log(`🍽️ ${guineaPigType} - Raisin ${raisinIndex} in block ${blockNumber} at (${Math.round(raisinGameX)}%, ${Math.round(raisinGameY)}%) will be eaten at ${eatingTime}ms`);
+                
+                setTimeout(() => {
+                    this.positionRenderer.eatRaisin(raisinIndex);
+                }, eatingTime);
+            }
+        });
+    }
+    
+    getRaisinBlock(raisinX, raisinY) {
+        // Define 10 blocks: 5 top row (0-4), 5 bottom row (5-9)
+        // Block boundaries: Block (n,m) includes n≤x<n+20 and m≤y<m+50
+        
+        // Determine which column (0-4)
+        let column = -1;
+        if (raisinX >= 0 && raisinX < 20) column = 0;
+        else if (raisinX >= 20 && raisinX < 40) column = 1;
+        else if (raisinX >= 40 && raisinX < 60) column = 2;
+        else if (raisinX >= 60 && raisinX < 80) column = 3;
+        else if (raisinX >= 80 && raisinX < 100) column = 4;
+        
+        if (column === -1) return -1; // Not in any column
+        
+        // Determine which row (top=0, bottom=1)
+        let row = -1;
+        if (raisinY >= 0 && raisinY < 50) row = 0; // Top half
+        else if (raisinY >= 50 && raisinY < 100) row = 1; // Bottom half
+        
+        if (row === -1) return -1; // Not in eating path
+        
+        // Calculate block number
+        if (row === 0) {
+            return column; // Blocks 0-4 (top row)
+        } else {
+            return 5 + (4 - column); // Blocks 5-9 (bottom row, reversed)
+        }
     }
     
     sleep(ms) {
