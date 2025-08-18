@@ -4,6 +4,7 @@
  * Works with RaisinPositionRenderer which handles raisin placement and rendering.
  * This file focuses on: guinea pig sizing, movement animations, eating logic,
  * audio playback for guinea pig sounds, and coordinating the eating sequence.
+ * Updated to use block-based timing system managed by game controller.
  */
 class RaisinAnimationRenderer {
     constructor(positionRenderer) {
@@ -178,7 +179,7 @@ class RaisinAnimationRenderer {
     
     async moveGuineaPig2(raisinsToEat) {
         console.log('🐹 === STARTING GUINEA PIG 2 MOVEMENT ===');
-        console.log('🐹 Raisins to eat:', raisinsToEat);
+        console.log('🐹 Using block-based timing (no individual raisin timing)');
         
         return new Promise((resolve) => {
             if (!this.guineaPig2) {
@@ -187,7 +188,7 @@ class RaisinAnimationRenderer {
                 return;
             }
             
-            // Use viewport width instead of game area width for full screen traversal
+            // Use viewport width for full screen traversal
             const viewportWidth = window.innerWidth;
             const gpWidth = this.guineaPig2.offsetWidth;
             
@@ -214,9 +215,6 @@ class RaisinAnimationRenderer {
                 this.guineaPig2.style.left = `${endX}px`;
             }, 100);
             
-            // Eat raisins as guinea pig passes over them
-            this.eatRaisinsOnPath(this.guineaPig2, raisinsToEat, 'left-to-right');
-            
             // Hide guinea pig after animation
             setTimeout(() => {
                 this.guineaPig2.classList.add('hidden');
@@ -232,7 +230,7 @@ class RaisinAnimationRenderer {
     
     async moveGuineaPig1(raisinsToEat) {
         console.log('🐹 === STARTING GUINEA PIG 1 MOVEMENT ===');
-        console.log('🐹 Raisins to eat:', raisinsToEat);
+        console.log('🐹 Using block-based timing (no individual raisin timing)');
         
         return new Promise((resolve) => {
             if (!this.guineaPig1) {
@@ -241,7 +239,7 @@ class RaisinAnimationRenderer {
                 return;
             }
             
-            // Use viewport width instead of game area width for full screen traversal
+            // Use viewport width for full screen traversal
             const viewportWidth = window.innerWidth;
             const gpWidth = this.guineaPig1.offsetWidth;
             
@@ -269,9 +267,6 @@ class RaisinAnimationRenderer {
                 this.guineaPig1.style.right = `${endRight}px`;
             }, 100);
             
-            // Eat raisins as guinea pig passes over them
-            this.eatRaisinsOnPath(this.guineaPig1, raisinsToEat, 'right-to-left');
-            
             // Hide guinea pig after animation
             setTimeout(() => {
                 this.guineaPig1.classList.add('hidden');
@@ -284,118 +279,6 @@ class RaisinAnimationRenderer {
                 resolve();
             }, CONFIG.GUINEA_PIG_ANIMATION_DURATION);
         });
-    }
-    
-    eatRaisinsOnPath(guineaPig, raisinsToEat, direction) {
-        if (!guineaPig || !this.gameArea) return;
-        
-        console.log(`🍽️ Starting predictive raisin eating for ${direction}:`, raisinsToEat);
-        
-        const animationDuration = CONFIG.GUINEA_PIG_ANIMATION_DURATION;
-        const gameAreaRect = this.gameArea.getBoundingClientRect();
-        const gameAreaWidth = gameAreaRect.width;
-        const gameAreaHeight = gameAreaRect.height;
-        const gpWidth = guineaPig.offsetWidth;
-        
-        // Calculate total travel distance and speed based on VIEWPORT traversal
-        const viewportWidth = window.innerWidth;
-        const totalDistance = viewportWidth + (gpWidth * 1.5); // Full viewport + 25% each side
-        const pixelsPerMs = totalDistance / animationDuration; // pixels per millisecond
-        
-        console.log(`🍽️ ${direction} - Viewport traversal - Total distance: ${Math.round(totalDistance)}px, Speed: ${pixelsPerMs.toFixed(2)}px/ms`);
-        
-        // Get starting time reference
-        const animationStartTime = performance.now();
-        
-        // Calculate when each raisin should be eaten based on position
-        const raisinElements = this.positionRenderer.getRaisinElements();
-        const eatingSchedule = [];
-        
-        raisinsToEat.forEach(raisinIndex => {
-            const raisinElement = raisinElements[raisinIndex];
-            if (raisinElement) {
-                const raisinRect = raisinElement.getBoundingClientRect();
-                const gameAreaTop = gameAreaRect.top;
-                const gameAreaLeft = gameAreaRect.left;
-                
-                // Convert to viewport coordinates (since guinea pigs now use viewport)
-                const raisinViewportX = raisinRect.left;
-                const raisinViewportY = raisinRect.top;
-                const raisinCenterX = raisinViewportX + (raisinRect.width / 2);
-                const raisinCenterY = raisinViewportY + (raisinRect.height / 2);
-                
-                // Convert to game area coordinates for top/bottom half logic
-                const raisinGameY = raisinViewportY - gameAreaTop;
-                const raisinGameAreaY = raisinGameY / gameAreaHeight; // 0.0 = top, 1.0 = bottom
-                
-                console.log(`🍇 Raisin ${raisinIndex} at viewport coordinates (${Math.round(raisinCenterX)}, ${Math.round(raisinCenterY)}) = game area ${Math.round(raisinGameAreaY*100)}% from top`);
-                
-                // Check if this raisin is in the correct path for this guinea pig
-                let shouldEat = false;
-                let crossingTime = 0;
-                
-                if (direction === 'left-to-right') {
-                    // GP2 eats raisins in TOP HALF (0% to 50% from top)
-                    if (raisinGameAreaY <= 0.5) {
-                        // Calculate when GP2's center will reach this raisin's center
-                        // GP2 starts at viewport x = -(gpWidth * 1.25), needs to travel to raisinCenterX
-                        const distanceToRaisin = (gpWidth * 1.25) + raisinCenterX;
-                        crossingTime = distanceToRaisin / pixelsPerMs;
-                        shouldEat = true;
-                        console.log(`🍽️ ${direction} - Raisin ${raisinIndex} in TOP half (${Math.round(raisinGameAreaY*100)}% from top) - WILL EAT`);
-                    } else {
-                        console.log(`🍽️ ${direction} - Raisin ${raisinIndex} in BOTTOM half (${Math.round(raisinGameAreaY*100)}% from top) - SKIP`);
-                    }
-                } else {
-                    // GP1 eats raisins in BOTTOM HALF (50% to 100% from top)
-                    if (raisinGameAreaY > 0.5) {
-                        // Calculate when GP1's center will reach this raisin's center
-                        // GP1 starts at viewport x = viewportWidth + (gpWidth * 1.25), needs to travel to raisinCenterX
-                        const distanceToRaisin = (viewportWidth + (gpWidth * 1.25)) - raisinCenterX;
-                        crossingTime = distanceToRaisin / pixelsPerMs;
-                        shouldEat = true;
-                        console.log(`🍽️ ${direction} - Raisin ${raisinIndex} in BOTTOM half (${Math.round(raisinGameAreaY*100)}% from top) - WILL EAT`);
-                    } else {
-                        console.log(`🍽️ ${direction} - Raisin ${raisinIndex} in TOP half (${Math.round(raisinGameAreaY*100)}% from top) - SKIP`);
-                    }
-                }
-                
-                if (shouldEat) {
-                    eatingSchedule.push({
-                        raisinIndex,
-                        crossingTime: Math.round(crossingTime),
-                        raisinCenterX: Math.round(raisinCenterX),
-                        raisinCenterY: Math.round(raisinCenterY)
-                    });
-                    
-                    console.log(`🍽️ ${direction} - Raisin ${raisinIndex} at viewport (${Math.round(raisinCenterX)}, ${Math.round(raisinCenterY)}) will be eaten at ${Math.round(crossingTime)}ms`);
-                }
-            }
-        });
-        
-        // Sort by crossing time
-        eatingSchedule.sort((a, b) => a.crossingTime - b.crossingTime);
-        
-        // Schedule raisin eating based on calculated times
-        eatingSchedule.forEach(schedule => {
-            setTimeout(() => {
-                console.log(`🍽️ ${direction} - Eating raisin ${schedule.raisinIndex} at ${Math.round(performance.now() - animationStartTime)}ms (predicted: ${schedule.crossingTime}ms)`);
-                this.positionRenderer.eatRaisin(schedule.raisinIndex);
-            }, schedule.crossingTime);
-        });
-        
-        // Backup cleanup after animation completes
-        setTimeout(() => {
-            raisinsToEat.forEach(raisinIndex => {
-                const raisinElement = raisinElements[raisinIndex];
-                if (raisinElement && !raisinElement.classList.contains('eaten')) {
-                    console.log(`🔧 Backup cleanup: eating missed raisin ${raisinIndex} (${direction})`);
-                    this.positionRenderer.eatRaisin(raisinIndex);
-                }
-            });
-        }, animationDuration + 200);
-        
-        console.log(`🍽️ ${direction} - Scheduled ${eatingSchedule.length} raisins for eating`);
     }
     
     startGuineaPigSounds() {
