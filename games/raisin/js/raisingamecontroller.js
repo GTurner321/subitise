@@ -23,6 +23,9 @@ class RaisinGameController {
         this.raisinsEatenThisQuestion = []; // Track which raisins were eaten for markers
         this.hasShownMarkersThisQuestion = false; // Track if markers have been shown for current question
         
+        // FIXED: Track first attempt per question
+        this.isFirstAttemptForQuestion = true; // Track if this is first attempt for current question
+        
         // Simplified level system tracking
         this.currentLevel = 1; // Start at level 1
         this.consecutiveCorrect = 0; // Track consecutive first-attempt correct answers in level 1
@@ -400,6 +403,9 @@ class RaisinGameController {
             return;
         }
         
+        // FIXED: Reset first attempt tracking for new question
+        this.isFirstAttemptForQuestion = true;
+        
         // Reset hint tracking for new question
         this.hintGiven = false;
         this.buttonsDisabled = false;
@@ -573,9 +579,12 @@ class RaisinGameController {
     }
     
     handleNumberClick(selectedNumber, buttonElement) {
-        // Check if this is the first attempt BEFORE any processing
-        const wasFirstAttempt = !this.hasAttemptedAnswer();
+        // FIXED: Use our own tracking instead of ButtonBar's attempted state
+        const wasFirstAttempt = this.isFirstAttemptForQuestion;
         console.log(`🎯 Question answer: ${selectedNumber}, Correct: ${this.currentAnswer}, First attempt: ${wasFirstAttempt}`);
+        
+        // Mark that an attempt has been made for this question
+        this.isFirstAttemptForQuestion = false;
         
         const isCorrect = selectedNumber === this.currentAnswer;
         
@@ -614,7 +623,7 @@ class RaisinGameController {
             }, 400);
         }
         
-        // Update level progression based on simplified system
+        // FIXED: Update level progression based on simplified system
         if (wasFirstAttempt) {
             // Only track consecutive correct for level 1 (5-raisin mode)
             if (this.currentLevel === 1) {
@@ -659,15 +668,6 @@ class RaisinGameController {
                 this.startNewQuestion();
             }
         }, CONFIG.NEXT_QUESTION_DELAY);
-    }
-    
-    hasAttemptedAnswer() {
-        const hasAttempted = window.ButtonBar && window.ButtonBar.buttons && 
-               Array.from(window.ButtonBar.buttons).some(btn => 
-                   btn.dataset.attempted === 'true'
-               );
-        console.log(`🔍 hasAttemptedAnswer check: ${hasAttempted}`);
-        return hasAttempted;
     }
     
     handleIncorrectAnswer(buttonElement, selectedNumber) {
@@ -768,6 +768,9 @@ class RaisinGameController {
         this.raisinsEatenThisQuestion = []; // Reset eaten raisins tracking
         this.totalQuestionsAsked = 0; // Reset total question counter
         this.hasShownMarkersThisQuestion = false; // Reset marker tracking
+        
+        // FIXED: Reset first attempt tracking
+        this.isFirstAttemptForQuestion = true;
         
         this.clearInactivityTimer();
         this.animationRenderer.stopGuineaPigSounds();
