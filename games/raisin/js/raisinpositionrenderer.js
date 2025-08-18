@@ -245,8 +245,9 @@ class RaisinPositionRenderer {
             `;
             raisinElement.dataset.index = index;
             
-            // Calculate staggered appearance timing
-            const staggerDelay = CONFIG.RAISIN_STAGGER_START + (Math.random() * CONFIG.RAISIN_STAGGER_WINDOW);
+            // Calculate staggered appearance timing using level-specific window
+            const staggerWindow = CONFIG.getRaisinStaggerWindow(questionNumber);
+            const staggerDelay = CONFIG.RAISIN_STAGGER_START + (Math.random() * staggerWindow);
             
             // Add to DOM
             this.gameArea.appendChild(raisinElement);
@@ -287,7 +288,7 @@ class RaisinPositionRenderer {
         // Clear existing markers first
         this.clearMissingMarkers();
         
-        raisinsEaten.forEach(raisinIndex => {
+        raisinsEaten.forEach((raisinIndex, markerIndex) => {
             const raisin = this.raisins[raisinIndex];
             if (raisin) {
                 const marker = document.createElement('div');
@@ -303,11 +304,11 @@ class RaisinPositionRenderer {
                     border-radius: 50%;
                     background-color: ${CONFIG.MISSING_MARKER_CIRCLE_COLOR};
                     border: 2px solid ${CONFIG.MISSING_MARKER_CROSS_COLOR};
-                    opacity: ${CONFIG.MISSING_MARKER_OPACITY};
+                    opacity: 0;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    animation: markerAppear 0.5s ease-in forwards;
+                    transform: scale(0.5);
                 `;
                 
                 // Create the cross inside the circle
@@ -342,6 +343,15 @@ class RaisinPositionRenderer {
                 marker.appendChild(cross);
                 this.gameArea.appendChild(marker);
                 this.missingMarkers.push(marker);
+                
+                // Stagger the appearance over 1 second window
+                const staggerDelay = Math.random() * 1000; // Random delay 0-1000ms
+                
+                setTimeout(() => {
+                    marker.style.transition = 'opacity 0.5s ease-in, transform 0.5s ease-in';
+                    marker.style.opacity = CONFIG.MISSING_MARKER_OPACITY;
+                    marker.style.transform = 'scale(1)';
+                }, staggerDelay);
             }
         });
         
