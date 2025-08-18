@@ -513,11 +513,11 @@ class RaisinGameController {
     async runGuineaPigSequence(raisinsToEat) {
         this.buttonsDisabled = true;
         
-        // Show guinea pig 3 and raisins for 4 seconds
+        // Show guinea pig 3 and raisins - reduced initial display time
         this.animationRenderer.showGuineaPig3();
         
-        // Wait for initial display period
-        await this.sleep(CONFIG.GUINEA_PIG_3_INITIAL_DISPLAY);
+        // Reduced wait for initial display period (was 4 seconds, now 2 seconds)
+        await this.sleep(2000);
         
         // For first question only, give extended instruction
         if (this.questionCount === 0) {
@@ -531,8 +531,8 @@ class RaisinGameController {
                 this.speakText(audioMessages.FIRST_INSTRUCTION);
             }
             
-            // Reduced wait time - level-specific
-            const waitTime = this.currentLevel === 1 ? 1500 : 3000; // 1.5s for level 1, 3s for level 2
+            // Reduced wait time - level-specific (was 1.5s/3s, now 1s/2s)
+            const waitTime = this.currentLevel === 1 ? 1000 : 2000;
             await this.sleep(waitTime);
         }
         
@@ -557,13 +557,13 @@ class RaisinGameController {
         // Fade in guinea pig 3 again (only after GP1 is completely gone)
         await this.animationRenderer.fadeInGuineaPig3();
         
-        // Give question instruction
+        // Give question instruction with 1 second delay after movement completes
         setTimeout(() => {
             if (this.isTabVisible) {
                 const audioMessages = CONFIG.getAudioMessages(this.currentLevel);
                 this.speakText(audioMessages.QUESTION);
             }
-        }, 500);
+        }, 1000);
         
         this.buttonsDisabled = false;
     }
