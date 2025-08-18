@@ -63,7 +63,7 @@ const CONFIG = {
         GUINEA_PIG_SOUND_VOLUME: 0.7,
         
         LEVEL_1_MESSAGES: {
-            FIRST_QUESTION: 'Watch the hungry guinea pig',
+            FIRST_QUESTION: '', // Removed "Watch the hungry guinea pig"
             FIRST_INSTRUCTION: 'There are 5 raisins. The hungry guinea pig is going to eat some of them.',
             QUESTION: 'How many raisins did the guinea pig eat?',
             SUBSEQUENT_QUESTION: 'There are 5 raisins. Watch the guinea pig.',
@@ -71,7 +71,7 @@ const CONFIG = {
         },
         
         LEVEL_2_MESSAGES: {
-            FIRST_QUESTION: 'Watch the hungry guinea pig',
+            FIRST_QUESTION: '', // Removed "Watch the hungry guinea pig"
             FIRST_INSTRUCTION: 'There are 10 raisins. The hungry guinea pig is going to eat some of them.',
             QUESTION: 'How many raisins did the guinea pig eat?',
             SUBSEQUENT_QUESTION: 'There are 10 raisins. Watch the guinea pig.',
