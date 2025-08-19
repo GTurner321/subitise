@@ -3,12 +3,7 @@
  * Only contains game-specific styling not covered by universal system
  */
 
-/* Clean white background for drawing game */
-html, body {
-    background: white !important;
-    min-height: 100vh !important;
-}
-
+/* Clean white background for drawing game area only - let body keep main.css gradient */
 .game-area {
     background: white !important;
 }
