@@ -32,7 +32,7 @@ const DRAW_CONFIG = {
         heightPercent: 30 // + 30% of game area height
         },
         height: 80, // 80% of game area height
-        }
+        },
         
         // Number rendering within drawing area - FIXED ASPECT RATIO
         NUMBER_RENDER: {
