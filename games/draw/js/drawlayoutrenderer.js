@@ -3,10 +3,10 @@
  * 
  * PURPOSE: Handles all game area setup, positioning, and static visual elements
  * - ButtonBar integration for game area margins and layout
- * - Reference number display (left side red number + text)
+ * - Reference number display (left side red number + text) with proper sizing
  * - Drawing area setup with background, shadows, and positioning
  * - Redo button creation and styling
- * - Coordinate system scaling and responsive layout
+ * - Coordinate system scaling with maintained aspect ratio (30vh width, 60vh height)
  * - Resize handling and dimension management
  * 
  * COMPANION FILE: drawingrenderer.js
@@ -44,12 +44,12 @@ class DrawLayoutRenderer {
             height: DRAW_CONFIG.LAYOUT.DRAWING_AREA.height
         };
         
-        // Number render bounds within drawing area
+        // Number render bounds within drawing area - FIXED ASPECT RATIO
         this.numberBounds = {
             x: DRAW_CONFIG.LAYOUT.NUMBER_RENDER.x,
             y: DRAW_CONFIG.LAYOUT.NUMBER_RENDER.y,
-            width: DRAW_CONFIG.LAYOUT.NUMBER_RENDER.width,
-            height: DRAW_CONFIG.LAYOUT.NUMBER_RENDER.height
+            widthVh: DRAW_CONFIG.LAYOUT.NUMBER_RENDER.width, // 30vh
+            heightVh: DRAW_CONFIG.LAYOUT.NUMBER_RENDER.height // 60vh
         };
         
         this.setupButtonBarIntegration();
@@ -312,7 +312,7 @@ class DrawLayoutRenderer {
     }
     
     /**
-     * Display the reference number and text on the left side
+     * Display the reference number and text on the left side with proper sizing
      */
     displayReferenceNumber(number) {
         const referenceNumber = document.getElementById('referenceNumber');
@@ -361,7 +361,7 @@ class DrawLayoutRenderer {
     }
     
     /**
-     * Update reference number and text positions
+     * Update reference number and text positions with improved sizing
      */
     updateReferencePositions() {
         const referenceNumber = document.getElementById('referenceNumber');
@@ -377,11 +377,11 @@ class DrawLayoutRenderer {
         const textX = (width * DRAW_CONFIG.LAYOUT.REFERENCE_TEXT.x) / 100;
         const textY = (height * DRAW_CONFIG.LAYOUT.REFERENCE_TEXT.y) / 100;
         
-        // Calculate font sizes
-        const numberFontSize = (height * DRAW_CONFIG.LAYOUT.REFERENCE_NUMBER.fontSize) / 100;
-        const textFontSize = (height * DRAW_CONFIG.LAYOUT.REFERENCE_TEXT.fontSize) / 100;
+        // Calculate font sizes - IMPROVED SIZING
+        const numberFontSize = (height * 25) / 100; // Increased from 20% to 25%
+        const textFontSize = (height * 8) / 100; // Reduced from 12% to 8%
         
-        // Apply positioning and styling
+        // Apply positioning and styling for number
         referenceNumber.style.cssText = `
             position: absolute;
             left: ${numberX}px;
@@ -396,12 +396,15 @@ class DrawLayoutRenderer {
             z-index: 10;
             pointer-events: none;
             user-select: none;
+            margin-bottom: ${height * 0.02}px;
         `;
         
+        // Apply positioning and styling for text with more space above
+        const adjustedTextY = textY + (height * 0.04); // Add 4% space above text
         referenceText.style.cssText = `
             position: absolute;
             left: ${textX}px;
-            top: ${textY}px;
+            top: ${adjustedTextY}px;
             transform: translate(-50%, -50%);
             font-size: ${textFontSize}px;
             font-family: ${DRAW_CONFIG.STYLING.REFERENCE_FONT};
@@ -414,7 +417,8 @@ class DrawLayoutRenderer {
             user-select: none;
         `;
         
-        console.log(`📍 Reference elements positioned at (${numberX}, ${numberY}) and (${textX}, ${textY})`);
+        console.log(`📍 Reference elements positioned: number at (${numberX}, ${numberY}), text at (${textX}, ${adjustedTextY})`);
+        console.log(`📏 Font sizes: number ${numberFontSize}px, text ${textFontSize}px`);
     }
     
     /**
@@ -509,18 +513,28 @@ class DrawLayoutRenderer {
     }
     
     /**
-     * Get the number render bounds within the drawing area
+     * Get the number render bounds maintaining proper 1:2 aspect ratio (30vh:60vh)
      */
     getNumberRenderBounds() {
         if (!this.gameAreaDimensions) return null;
         
         const { width, height } = this.gameAreaDimensions;
         
+        // FIXED: Calculate width from viewport height to maintain aspect ratio
+        const renderHeight = (height * this.numberBounds.heightVh) / 100; // 60% of game area height
+        const renderWidth = (height * this.numberBounds.widthVh) / 100; // 30% of game area HEIGHT (not width)
+        
+        // Position at 55% from left (maintaining the x position)
+        const renderX = (width * this.numberBounds.x) / 100;
+        const renderY = (height * this.numberBounds.y) / 100;
+        
+        console.log(`📐 Number render bounds: (${renderX}, ${renderY}) ${renderWidth}×${renderHeight} - maintaining 1:2 aspect ratio`);
+        
         return {
-            x: (width * this.numberBounds.x) / 100,
-            y: (height * this.numberBounds.y) / 100,
-            width: (width * this.numberBounds.width) / 100,
-            height: (height * this.numberBounds.height) / 100
+            x: renderX,
+            y: renderY,
+            width: renderWidth,
+            height: renderHeight
         };
     }
     
