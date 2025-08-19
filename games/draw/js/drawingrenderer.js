@@ -1,15 +1,15 @@
 /**
- * Drawing Renderer - Part 2 of 2
+ * Drawing Renderer - Enhanced with Point-Based Completion System
  * 
  * PURPOSE: Handles all user drawing interaction and feedback functionality
  * - SVG outline rendering with white fill and grey outline
- * - Pulsing hint animation after 5 seconds of inactivity
+ * - Point-based completion detection (prevents cheating)
+ * - Canvas flooding prevention with auto-reset
+ * - Improved visual flash timing (8 seconds, 2 flashes in 1 second)
  * - Mouse/touch event handling for user drawing
  * - Drawing line rendering and path management
- * - Coverage detection and completion validation
  * - Undo functionality and drawing feedback
- * - Drawing progress monitoring and hints
- * - UPDATED: White number with grey outline rendering
+ * - Immediate completion feedback (500ms delay)
  * 
  * COMPANION FILE: drawlayoutrenderer.js
  * - Contains all layout setup and positioning logic
@@ -20,7 +20,7 @@
 
 class DrawingRenderer {
     constructor(layoutRenderer) {
-        console.log('✏️ DrawingRenderer initializing - handling drawing interactions');
+        console.log('✏️ DrawingRenderer initializing - enhanced point-based completion system');
         
         // Reference to layout renderer
         this.layoutRenderer = layoutRenderer;
@@ -35,7 +35,16 @@ class DrawingRenderer {
         this.isDrawing = false;
         this.currentPath = [];
         this.allPaths = [];
-        this.coveredPoints = new Set();
+        
+        // NEW: Point-based completion tracking
+        this.completionPoints = [];
+        this.coveredCompletionPoints = new Set();
+        this.totalCanvasArea = 0;
+        this.drawnCanvasArea = 0;
+        this.canvasFloodingWarned = false;
+        this.canvasResetTimer = null;
+        
+        // Legacy area tracking (fallback only)
         this.numberBounds = null;
         this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
         
@@ -53,14 +62,14 @@ class DrawingRenderer {
             preventContext: this.preventContextMenu.bind(this)
         };
         
-        console.log('✏️ DrawingRenderer initialized, waiting for layout');
+        console.log('✏️ DrawingRenderer initialized with point-based completion system');
     }
     
     /**
      * Initialize the drawing system for a specific number
      */
     initializeForNumber(number) {
-        console.log(`✏️ Initializing drawing for number ${number}`);
+        console.log(`✏️ Initializing drawing for number ${number} with enhanced completion system`);
         
         if (!this.layoutRenderer || !this.layoutRenderer.isLayoutReady()) {
             console.log('⏳ Layout not ready, deferring drawing initialization');
@@ -78,14 +87,93 @@ class DrawingRenderer {
         // Render number outline with white fill and grey outline
         this.renderNumberWithWhiteFillGreyOutline(number);
         
+        // NEW: Initialize completion points system
+        this.initializeCompletionPoints(number);
+        
+        // Calculate total canvas area for flooding detection
+        this.calculateCanvasArea();
+        
         // Setup drawing events
         this.setupDrawingEvents();
         
-        // Start hint timer
+        // Start hint and flash timers
         this.startHintTimer();
+        this.startVisualFlashTimer();
         
-        console.log(`✅ Drawing system ready for number ${number}`);
+        console.log(`✅ Drawing system ready for number ${number} with ${this.completionPoints.length} completion points`);
         return true;
+    }
+    
+    /**
+     * NEW: Initialize completion points for current number
+     */
+    initializeCompletionPoints(number) {
+        console.log(`🎯 Initializing completion points for number ${number}`);
+        
+        // Get completion points from config
+        const configPoints = DRAW_CONFIG.getCompletionPoints(number);
+        
+        if (!configPoints) {
+            console.warn(`⚠️ No completion points defined for number ${number}, using fallback area detection`);
+            this.completionPoints = [];
+            return;
+        }
+        
+        // Scale completion points to match render area
+        const drawingBounds = this.layoutRenderer.getDrawingAreaBounds();
+        const numberBounds = this.layoutRenderer.getNumberRenderBounds();
+        
+        if (!drawingBounds || !numberBounds) {
+            console.error('❌ Could not get drawing bounds for completion points');
+            this.completionPoints = [];
+            return;
+        }
+        
+        // Convert completion points to screen coordinates
+        const relativeNumberBounds = {
+            x: numberBounds.x - drawingBounds.x,
+            y: numberBounds.y - drawingBounds.y,
+            width: numberBounds.width,
+            height: numberBounds.height
+        };
+        
+        this.completionPoints = this.scaleCompletionPointsForSVG(configPoints, relativeNumberBounds);
+        this.coveredCompletionPoints.clear();
+        
+        console.log(`✅ Initialized ${this.completionPoints.length} completion points for number ${number}`);
+        
+        // Debug: Log point positions if debug mode enabled
+        if (DRAW_CONFIG.DEBUG_MODE) {
+            console.log('🔍 Completion points:', this.completionPoints);
+        }
+    }
+    
+    /**
+     * NEW: Scale completion points from config coordinates to SVG coordinates
+     */
+    scaleCompletionPointsForSVG(points, bounds) {
+        const scaleX = bounds.width / DRAW_CONFIG.COORDINATE_SYSTEM.ORIGINAL_WIDTH;
+        const scaleY = bounds.height / DRAW_CONFIG.COORDINATE_SYSTEM.ORIGINAL_HEIGHT;
+        
+        return points.map((point, index) => ({
+            id: `point_${index}`,
+            x: bounds.x + (point.x * scaleX),
+            y: bounds.y + ((DRAW_CONFIG.COORDINATE_SYSTEM.ORIGINAL_HEIGHT - point.y) * scaleY), // Flip Y
+            originalX: point.x,
+            originalY: point.y
+        }));
+    }
+    
+    /**
+     * NEW: Calculate total canvas area for flooding detection
+     */
+    calculateCanvasArea() {
+        const drawingBounds = this.layoutRenderer.getDrawingAreaBounds();
+        if (drawingBounds) {
+            this.totalCanvasArea = drawingBounds.width * drawingBounds.height;
+            this.drawnCanvasArea = 0;
+            console.log(`📏 Canvas area calculated: ${this.totalCanvasArea.toFixed(0)}px²`);
+        }
     }
     
     /**
@@ -95,8 +183,17 @@ class DrawingRenderer {
         this.isDrawing = false;
         this.currentPath = [];
         this.allPaths = [];
-        this.coveredPoints.clear();
+        
+        // NEW: Reset completion tracking
+        this.completionPoints = [];
+        this.coveredCompletionPoints.clear();
+        this.drawnCanvasArea = 0;
+        this.canvasFloodingWarned = false;
+        this.clearCanvasResetTimer();
+        
+        // Legacy tracking (fallback)
         this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+        
         this.clearHintTimer();
         this.clearVisualFlashTimer();
         this.lastActivityTime = Date.now();
@@ -147,7 +244,7 @@ class DrawingRenderer {
     }
     
     /**
-     * Render the number with white fill and grey outline - UPDATED METHOD
+     * Render the number with white fill and grey outline
      */
     renderNumberWithWhiteFillGreyOutline(number) {
         if (!this.outlineGroup) return;
@@ -164,7 +261,7 @@ class DrawingRenderer {
             return;
         }
         
-        // Calculate outline thickness (8% of game area height - increased from 6%)
+        // Calculate outline thickness
         const outlineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.OUTLINE_THICKNESS) / 100;
         
         // Get drawing area bounds for coordinate conversion
@@ -191,51 +288,45 @@ class DrawingRenderer {
         const greyPaths = [];
         const whitePaths = [];
         
-        // FIRST PASS: Create all grey outline paths
+        // Create all grey outline paths and white fill paths
         numberConfig.strokes.forEach((stroke, strokeIndex) => {
             if (stroke.coordinates) {
                 const scaledCoords = this.scaleCoordinatesForSVG(stroke.coordinates, relativeNumberBounds);
                 const pathData = this.createPathData(scaledCoords);
                 
-                // LAYER 1: Grey outline (thicker stroke)
+                // Grey outline (thicker stroke)
                 const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 outlinePath.setAttribute('d', pathData);
-                outlinePath.setAttribute('stroke', DRAW_CONFIG.STYLING.OUTLINE_COLOR); // Grey
+                outlinePath.setAttribute('stroke', DRAW_CONFIG.STYLING.OUTLINE_COLOR);
                 outlinePath.setAttribute('stroke-width', outlineThickness);
                 outlinePath.setAttribute('stroke-linecap', 'round');
                 outlinePath.setAttribute('stroke-linejoin', 'round');
-                outlinePath.setAttribute('fill', 'none'); // No fill for outline
+                outlinePath.setAttribute('fill', 'none');
                 outlinePath.setAttribute('class', `outline-stroke-${strokeIndex}-border`);
                 
                 greyPaths.push(outlinePath);
                 
-                // LAYER 2: White fill (thinner stroke using config ratio) - prepare but don't add yet
+                // White fill (thinner stroke)
                 const fillPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 fillPath.setAttribute('d', pathData);
-                fillPath.setAttribute('stroke', DRAW_CONFIG.STYLING.WHITE_FILL_COLOR); // White stroke from config
-                fillPath.setAttribute('stroke-width', outlineThickness * DRAW_CONFIG.STYLING.WHITE_FILL_RATIO); // Ratio from config
+                fillPath.setAttribute('stroke', DRAW_CONFIG.STYLING.WHITE_FILL_COLOR);
+                fillPath.setAttribute('stroke-width', outlineThickness * DRAW_CONFIG.STYLING.WHITE_FILL_RATIO);
                 fillPath.setAttribute('stroke-linecap', 'round');
                 fillPath.setAttribute('stroke-linejoin', 'round');
-                fillPath.setAttribute('fill', 'none'); // Still no fill, just white stroke
+                fillPath.setAttribute('fill', 'none');
                 fillPath.setAttribute('class', `outline-stroke-${strokeIndex}-fill`);
                 
                 whitePaths.push(fillPath);
                 
-                console.log(`📝 Prepared layered stroke ${strokeIndex}: grey outline (${outlineThickness}px) + white fill (${outlineThickness * DRAW_CONFIG.STYLING.WHITE_FILL_RATIO}px)`);
+                console.log(`📝 Prepared layered stroke ${strokeIndex}: grey outline (${outlineThickness}px) + white fill (${(outlineThickness * DRAW_CONFIG.STYLING.WHITE_FILL_RATIO).toFixed(1)}px)`);
             }
         });
         
-        // SECOND PASS: Add all grey paths first
-        greyPaths.forEach(path => {
-            this.outlineGroup.appendChild(path);
-        });
+        // Add all grey paths first, then all white paths on top
+        greyPaths.forEach(path => this.outlineGroup.appendChild(path));
+        whitePaths.forEach(path => this.outlineGroup.appendChild(path));
         
-        // THIRD PASS: Add all white paths on top
-        whitePaths.forEach(path => {
-            this.outlineGroup.appendChild(path);
-        });
-        
-        // Store number bounds for coverage detection
+        // Store number bounds for legacy fallback
         this.numberBounds = this.layoutRenderer.calculateNumberBounds(number);
         
         console.log(`✅ Number ${number} rendered with white fill and grey outline using ${numberConfig.strokes.length} strokes`);
@@ -333,7 +424,7 @@ class DrawingRenderer {
      * Start drawing
      */
     startDrawing(event) {
-        if (this.isComplete) return;
+        if (this.isComplete || this.canvasFloodingWarned) return;
         
         event.preventDefault();
         this.isDrawing = true;
@@ -354,7 +445,7 @@ class DrawingRenderer {
      * Continue drawing
      */
     continueDrawing(event) {
-        if (!this.isDrawing || this.isComplete) return;
+        if (!this.isDrawing || this.isComplete || this.canvasFloodingWarned) return;
         
         event.preventDefault();
         
@@ -362,7 +453,13 @@ class DrawingRenderer {
         if (point) {
             this.currentPath.push(point);
             this.updateCurrentDrawingPath();
-            this.checkCoverage(point);
+            
+            // NEW: Check completion points coverage
+            this.checkCompletionPointsCoverage(point);
+            
+            // NEW: Check canvas flooding
+            this.checkCanvasFlooding(point);
+            
             this.updateDrawnBounds(point);
             this.registerActivity();
         }
@@ -449,96 +546,171 @@ class DrawingRenderer {
     }
     
     /**
-     * Check coverage of drawn point against number outline
+     * NEW: Check coverage of completion points
      */
-    checkCoverage(point) {
-        if (!this.numberBounds) return;
+    checkCompletionPointsCoverage(drawnPoint) {
+        if (!this.completionPoints || this.completionPoints.length === 0) return;
         
-        // Get all outline coordinates for coverage checking
-        const numberConfig = DRAW_CONFIG.STROKE_DEFINITIONS[this.currentNumber];
-        if (!numberConfig) return;
+        const tolerance = DRAW_CONFIG.STYLING.POINT_TOLERANCE;
         
-        // Relaxed tolerance for easier completion
-        const tolerance = 30; // Increased from 25 to 30 for more forgiving detection
-        const drawingBounds = this.layoutRenderer.getDrawingAreaBounds();
-        const numberRenderBounds = this.layoutRenderer.getNumberRenderBounds();
-        
-        if (!drawingBounds || !numberRenderBounds) return;
-        
-        // Convert point to global coordinates for comparison
-        const globalPoint = {
-            x: drawingBounds.x + point.x,
-            y: drawingBounds.y + point.y
-        };
-        
-        // Check against all stroke coordinates
-        numberConfig.strokes.forEach((stroke, strokeIndex) => {
-            if (stroke.coordinates) {
-                const scaledCoords = this.layoutRenderer.scaleCoordinatesForRendering(stroke.coordinates);
-                
-                scaledCoords.forEach((coord, coordIndex) => {
-                    const distance = Math.sqrt(
-                        Math.pow(globalPoint.x - coord.x, 2) + 
-                        Math.pow(globalPoint.y - coord.y, 2)
-                    );
-                    
-                    if (distance <= tolerance) {
-                        const pointKey = `${strokeIndex}-${coordIndex}`;
-                        this.coveredPoints.add(pointKey);
-                    }
-                });
+        this.completionPoints.forEach(completionPoint => {
+            const distance = Math.sqrt(
+                Math.pow(drawnPoint.x - completionPoint.x, 2) + 
+                Math.pow(drawnPoint.y - completionPoint.y, 2)
+            );
+            
+            if (distance <= tolerance) {
+                this.coveredCompletionPoints.add(completionPoint.id);
             }
         });
     }
     
     /**
-     * Update drawn bounds for coverage calculation
+     * NEW: Check if canvas is being flooded with drawing
      */
-    updateDrawnBounds(point) {
-        const drawingBounds = this.layoutRenderer.getDrawingAreaBounds();
-        if (!drawingBounds) return;
+    checkCanvasFlooding(point) {
+        if (this.canvasFloodingWarned || !this.totalCanvasArea) return;
         
-        // Convert to global coordinates
-        const globalX = drawingBounds.x + point.x;
-        const globalY = drawingBounds.y + point.y;
+        // Estimate drawn area by calculating area contribution of this point
+        const lineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.DRAWING_LINE_THICKNESS) / 100;
+        const pointArea = Math.PI * Math.pow(lineThickness / 2, 2); // Circle area for line cap
         
-        this.drawnBounds.minX = Math.min(this.drawnBounds.minX, globalX);
-        this.drawnBounds.maxX = Math.max(this.drawnBounds.maxX, globalX);
-        this.drawnBounds.minY = Math.min(this.drawnBounds.minY, globalY);
-        this.drawnBounds.maxY = Math.max(this.drawnBounds.maxY, globalY);
+        this.drawnCanvasArea += pointArea;
+        
+        // Check if coverage exceeds maximum allowed
+        const coveragePercentage = (this.drawnCanvasArea / this.totalCanvasArea) * 100;
+        
+        if (coveragePercentage > DRAW_CONFIG.STYLING.MAX_CANVAS_COVERAGE) {
+            console.warn(`🚨 Canvas flooding detected: ${coveragePercentage.toFixed(1)}% coverage`);
+            this.triggerCanvasFloodingWarning();
+        }
     }
     
     /**
-     * Check if the number drawing is complete
+     * NEW: Trigger canvas flooding warning and auto-reset
+     */
+    triggerCanvasFloodingWarning() {
+        if (this.canvasFloodingWarned) return;
+        
+        this.canvasFloodingWarned = true;
+        console.log('⚠️ Canvas flooding warning triggered');
+        
+        // Stop drawing immediately
+        this.isDrawing = false;
+        this.removeDrawingEvents();
+        
+        // Play warning audio
+        if (window.AudioSystem) {
+            window.AudioSystem.speakText(DRAW_CONFIG.AUDIO.WARNINGS.TOO_MUCH_AREA);
+        }
+        
+        // Start 5-second countdown to reset
+        this.canvasResetTimer = setTimeout(() => {
+            console.log('🔄 Auto-resetting canvas due to flooding');
+            this.resetCanvas();
+        }, DRAW_CONFIG.STYLING.CANVAS_RESET_WARNING_TIME);
+    }
+    
+    /**
+     * NEW: Reset canvas due to flooding (same as undo all)
+     */
+    resetCanvas() {
+        console.log('🧹 Resetting canvas (flooding prevention)');
+        
+        // Clear all drawing
+        this.allPaths = [];
+        this.currentPath = [];
+        this.drawnCanvasArea = 0;
+        this.canvasFloodingWarned = false;
+        this.clearCanvasResetTimer();
+        
+        // Clear drawn paths from SVG
+        if (this.drawingGroup) {
+            this.drawingGroup.innerHTML = '';
+        }
+        
+        // Reset completion tracking
+        this.coveredCompletionPoints.clear();
+        this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+        
+        // Re-enable drawing
+        this.setupDrawingEvents();
+        this.startHintTimer();
+        this.startVisualFlashTimer();
+        
+        console.log('✅ Canvas reset complete');
+    }
+    
+    /**
+     * NEW: Clear canvas reset timer
+     */
+    clearCanvasResetTimer() {
+        if (this.canvasResetTimer) {
+            clearTimeout(this.canvasResetTimer);
+            this.canvasResetTimer = null;
+        }
+    }
+    
+    /**
+     * NEW: Enhanced completion checking with point-based system
      */
     checkCompletion() {
-        if (this.isComplete || !this.numberBounds) return;
+        if (this.isComplete || this.canvasFloodingWarned) return;
         
-        // Calculate coverage percentages
-        const widthCoverage = this.calculateWidthCoverage();
-        const heightCoverage = this.calculateHeightCoverage();
+        // Use point-based completion if available
+        if (this.completionPoints.length > 0) {
+            this.checkPointBasedCompletion();
+        } else {
+            // Fallback to area-based completion
+            this.checkAreaBasedCompletion();
+        }
+    }
+    
+    /**
+     * NEW: Point-based completion checking
+     */
+    checkPointBasedCompletion() {
+        const totalPoints = this.completionPoints.length;
+        const coveredPoints = this.coveredCompletionPoints.size;
+        const coverage = totalPoints > 0 ? (coveredPoints / totalPoints) * 100 : 0;
         
-        console.log(`📊 Coverage: ${widthCoverage.toFixed(1)}% width, ${heightCoverage.toFixed(1)}% height`);
+        console.log(`🎯 Point coverage: ${coveredPoints}/${totalPoints} (${coverage.toFixed(1)}%)`);
         
-        // Relaxed completion criteria: 90% coverage required (down from 100%)
-        if (widthCoverage >= 90 && heightCoverage >= 90) {
-            console.log(`✅ Completion criteria met: ${widthCoverage.toFixed(1)}% width, ${heightCoverage.toFixed(1)}% height`);
+        // Require 100% of completion points to be covered
+        if (coverage >= DRAW_CONFIG.STYLING.POINT_COVERAGE_REQUIRED) {
+            console.log(`✅ Point-based completion achieved: ${coverage.toFixed(1)}%`);
             this.completeNumber();
         }
     }
     
     /**
-     * Calculate width coverage percentage with relaxed criteria
+     * NEW: Fallback area-based completion (legacy method)
+     */
+    checkAreaBasedCompletion() {
+        if (!this.numberBounds) return;
+        
+        const widthCoverage = this.calculateWidthCoverage();
+        const heightCoverage = this.calculateHeightCoverage();
+        
+        console.log(`📊 Fallback area coverage: ${widthCoverage.toFixed(1)}% width, ${heightCoverage.toFixed(1)}% height`);
+        
+        // Relaxed completion criteria for fallback: 90% coverage required
+        if (widthCoverage >= 90 && heightCoverage >= 90) {
+            console.log(`✅ Area-based completion achieved: ${widthCoverage.toFixed(1)}% width, ${heightCoverage.toFixed(1)}% height`);
+            this.completeNumber();
+        }
+    }
+    
+    /**
+     * Calculate width coverage percentage (legacy fallback)
      */
     calculateWidthCoverage() {
         if (!this.numberBounds || this.drawnBounds.minX === Infinity) return 0;
         
         const numberWidth = this.numberBounds.maxX - this.numberBounds.minX;
-        
         if (numberWidth === 0) return 100;
         
-        // Check if drawn area spans the required width with relaxed margins
-        const marginTolerance = numberWidth * 0.05; // 5% margin tolerance
+        const marginTolerance = numberWidth * 0.05;
         const adjustedNumberMinX = this.numberBounds.minX + marginTolerance;
         const adjustedNumberMaxX = this.numberBounds.maxX - marginTolerance;
         
@@ -551,17 +723,15 @@ class DrawingRenderer {
     }
     
     /**
-     * Calculate height coverage percentage with relaxed criteria
+     * Calculate height coverage percentage (legacy fallback)
      */
     calculateHeightCoverage() {
         if (!this.numberBounds || this.drawnBounds.minY === Infinity) return 0;
         
         const numberHeight = this.numberBounds.maxY - this.numberBounds.minY;
-        
         if (numberHeight === 0) return 100;
         
-        // Check if drawn area spans the required height with relaxed margins
-        const marginTolerance = numberHeight * 0.05; // 5% margin tolerance
+        const marginTolerance = numberHeight * 0.05;
         const adjustedNumberMinY = this.numberBounds.minY + marginTolerance;
         const adjustedNumberMaxY = this.numberBounds.maxY - marginTolerance;
         
@@ -574,7 +744,23 @@ class DrawingRenderer {
     }
     
     /**
-     * Complete the number drawing
+     * Update drawn bounds for legacy area coverage
+     */
+    updateDrawnBounds(point) {
+        const drawingBounds = this.layoutRenderer.getDrawingAreaBounds();
+        if (!drawingBounds) return;
+        
+        const globalX = drawingBounds.x + point.x;
+        const globalY = drawingBounds.y + point.y;
+        
+        this.drawnBounds.minX = Math.min(this.drawnBounds.minX, globalX);
+        this.drawnBounds.maxX = Math.max(this.drawnBounds.maxX, globalX);
+        this.drawnBounds.minY = Math.min(this.drawnBounds.minY, globalY);
+        this.drawnBounds.maxY = Math.max(this.drawnBounds.maxY, globalY);
+    }
+    
+    /**
+     * Complete the number drawing with immediate feedback
      */
     completeNumber() {
         console.log(`🎉 Number ${this.currentNumber} completed!`);
@@ -582,14 +768,23 @@ class DrawingRenderer {
         this.isComplete = true;
         this.clearHintTimer();
         this.clearVisualFlashTimer();
+        this.clearCanvasResetTimer();
         this.removeDrawingEvents();
         
-        // Trigger completion callback
-        if (window.drawGameController && typeof window.drawGameController.onNumberComplete === 'function') {
-            setTimeout(() => {
-                window.drawGameController.onNumberComplete(this.currentNumber);
-            }, DRAW_CONFIG.TIMING.COMPLETION_DELAY);
-        }
+        // NEW: Immediate completion feedback (500ms delay)
+        setTimeout(() => {
+            // Play completion sound effect
+            if (window.AudioSystem) {
+                window.AudioSystem.playCompletionSound();
+            }
+            
+            // Trigger completion callback after admire time
+            if (window.drawGameController && typeof window.drawGameController.onNumberComplete === 'function') {
+                setTimeout(() => {
+                    window.drawGameController.onNumberComplete(this.currentNumber);
+                }, DRAW_CONFIG.TIMING.COMPLETION_ADMIRE_TIME);
+            }
+        }, DRAW_CONFIG.TIMING.COMPLETION_IMMEDIATE_DELAY);
     }
     
     /**
@@ -613,58 +808,82 @@ class DrawingRenderer {
         }
         
         // Recalculate coverage
-        this.recalculateCoverage();
+        this.recalculateAllCoverage();
         
         // Reset completion state if was complete
         if (this.isComplete) {
             this.isComplete = false;
             this.setupDrawingEvents();
             this.startHintTimer();
+            this.startVisualFlashTimer();
+        }
+        
+        // Reset flooding warning if active
+        if (this.canvasFloodingWarned) {
+            this.canvasFloodingWarned = false;
+            this.clearCanvasResetTimer();
+            this.setupDrawingEvents();
         }
         
         this.registerActivity();
     }
     
     /**
-     * Recalculate coverage from all remaining paths
+     * NEW: Recalculate all coverage from remaining paths
      */
-    recalculateCoverage() {
-        this.coveredPoints.clear();
-        this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+    recalculateAllCoverage() {
+        console.log('🔄 Recalculating all coverage');
         
-        // Recalculate coverage for all remaining paths
+        // Reset all tracking
+        this.coveredCompletionPoints.clear();
+        this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+        this.drawnCanvasArea = 0;
+        
+        // Recalculate from all remaining paths
         this.allPaths.forEach(path => {
             path.forEach(point => {
-                this.checkCoverage(point);
+                // Check completion points
+                this.checkCompletionPointsCoverage(point);
+                
+                // Update area tracking
                 this.updateDrawnBounds(point);
+                
+                // Update canvas area (simplified calculation)
+                const lineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.DRAWING_LINE_THICKNESS) / 100;
+                const pointArea = Math.PI * Math.pow(lineThickness / 2, 2);
+                this.drawnCanvasArea += pointArea;
             });
         });
         
-        console.log('🔄 Coverage recalculated');
+        console.log(`📊 Recalculated: ${this.coveredCompletionPoints.size}/${this.completionPoints.length} points, ${(this.drawnCanvasArea / this.totalCanvasArea * 100).toFixed(1)}% canvas`);
     }
     
     /**
-     * Register user activity and reset hint timer
+     * Register user activity and reset timers
      */
     registerActivity() {
         this.lastActivityTime = Date.now();
         this.clearHintTimer();
         this.clearVisualFlashTimer();
-        this.startHintTimer(); // Restart hint timer for audio hints
-        this.startVisualFlashTimer(); // Restart visual flash timer
+        
+        // Only restart timers if not complete and not flooding warned
+        if (!this.isComplete && !this.canvasFloodingWarned) {
+            this.startHintTimer();
+            this.startVisualFlashTimer();
+        }
     }
     
     /**
      * Start hint timer (20 seconds for audio hints)
      */
     startHintTimer() {
-        if (this.isComplete) return;
+        if (this.isComplete || this.canvasFloodingWarned) return;
         
         this.clearHintTimer();
         
         this.hintTimer = setTimeout(() => {
             this.showAudioHint();
-        }, 20000); // 20 seconds for audio hints
+        }, DRAW_CONFIG.TIMING.HINT_DELAY);
     }
     
     /**
@@ -681,20 +900,19 @@ class DrawingRenderer {
      * Show audio hint based on drawing progress
      */
     showAudioHint() {
-        if (this.isComplete) return;
+        if (this.isComplete || this.canvasFloodingWarned) return;
         
         console.log('💡 Showing audio hint');
         
-        // Play audio hint based on whether anything has been drawn
         if (window.AudioSystem && window.AudioSystem.speakText) {
             let hintMessage;
             
             if (this.allPaths.length === 0) {
                 // Nothing drawn yet
-                hintMessage = 'Draw inside the number on the right';
+                hintMessage = DRAW_CONFIG.AUDIO.HINTS.DRAW_INSIDE;
             } else {
                 // Something has been drawn
-                hintMessage = 'Keep drawing to complete the number on the right';
+                hintMessage = DRAW_CONFIG.AUDIO.HINTS.KEEP_DRAWING_COMPLETE;
             }
             
             window.AudioSystem.speakText(hintMessage);
@@ -705,16 +923,16 @@ class DrawingRenderer {
     }
     
     /**
-     * Start visual flash timer (8 seconds for visual flashing)
+     * NEW: Start visual flash timer (8 seconds, improved timing)
      */
     startVisualFlashTimer() {
-        if (this.isComplete) return;
+        if (this.isComplete || this.canvasFloodingWarned) return;
         
         this.clearVisualFlashTimer();
         
         this.visualFlashTimer = setTimeout(() => {
             this.showVisualFlash();
-        }, 8000); // 8 seconds for visual flash
+        }, DRAW_CONFIG.TIMING.VISUAL_FLASH_DELAY);
     }
     
     /**
@@ -728,12 +946,12 @@ class DrawingRenderer {
     }
     
     /**
-     * Show visual flash (2 flashes: off-on, off-on in 1 second total) - ONLY grey outlines
+     * NEW: Enhanced visual flash (2 flashes: off-on, off-on in 1 second total)
      */
     showVisualFlash() {
-        if (this.isComplete || !this.outlineGroup) return;
+        if (this.isComplete || this.canvasFloodingWarned || !this.outlineGroup) return;
         
-        console.log('✨ Showing visual flash - 2 flashes in 1 second');
+        console.log('✨ Starting visual flash sequence - 2 flashes in 1 second');
         
         // Target ONLY the grey outline paths (not the white fill paths)
         const greyOutlinePaths = this.outlineGroup.querySelectorAll('path[class*="-border"]');
@@ -746,7 +964,7 @@ class DrawingRenderer {
             return;
         }
         
-        // Flash sequence: 2 flashes in 1 second total
+        // Flash sequence: 2 complete flashes in 1 second total
         // Flash 1: off (0ms) -> on (250ms) = 250ms duration
         // Flash 2: off (500ms) -> on (750ms) = 250ms duration  
         // Final: ensure visible (1000ms)
@@ -761,7 +979,7 @@ class DrawingRenderer {
         
         flashSequence.forEach(({ time, visible }) => {
             setTimeout(() => {
-                if (this.isComplete) return; // Stop if completed during flash
+                if (this.isComplete || this.canvasFloodingWarned) return; // Stop if state changed
                 
                 greyOutlinePaths.forEach(path => {
                     path.style.opacity = visible ? '1' : '0';
@@ -773,11 +991,11 @@ class DrawingRenderer {
         
         // Restart flash timer for next cycle after sequence completes
         setTimeout(() => {
-            if (!this.isComplete) {
+            if (!this.isComplete && !this.canvasFloodingWarned) {
                 console.log('🔄 Restarting visual flash timer');
                 this.startVisualFlashTimer();
             }
-        }, 1200); // Small buffer after flash sequence
+        }, DRAW_CONFIG.TIMING.VISUAL_FLASH_DURATION + 200); // Small buffer after flash sequence
     }
     
     /**
@@ -803,11 +1021,29 @@ class DrawingRenderer {
      * Get current drawing progress for debugging
      */
     getProgress() {
+        const pointCoverage = this.completionPoints.length > 0 
+            ? (this.coveredCompletionPoints.size / this.completionPoints.length) * 100 
+            : 0;
+        
+        const canvasCoverage = this.totalCanvasArea > 0 
+            ? (this.drawnCanvasArea / this.totalCanvasArea) * 100 
+            : 0;
+        
         return {
             currentNumber: this.currentNumber,
             isComplete: this.isComplete,
             pathCount: this.allPaths.length,
-            coveredPoints: this.coveredPoints.size,
+            
+            // NEW: Point-based progress
+            completionPoints: this.completionPoints.length,
+            coveredPoints: this.coveredCompletionPoints.size,
+            pointCoverage: pointCoverage,
+            
+            // NEW: Canvas flooding tracking
+            canvasCoverage: canvasCoverage,
+            canvasFloodingWarned: this.canvasFloodingWarned,
+            
+            // Legacy area coverage (fallback)
             widthCoverage: this.calculateWidthCoverage(),
             heightCoverage: this.calculateHeightCoverage()
         };
@@ -821,7 +1057,9 @@ class DrawingRenderer {
         
         this.clear();
         this.removeDrawingEvents();
+        this.clearHintTimer();
         this.clearVisualFlashTimer();
+        this.clearCanvasResetTimer();
         
         if (this.svg && this.svg.parentNode) {
             this.svg.parentNode.removeChild(this.svg);
@@ -837,4 +1075,4 @@ class DrawingRenderer {
 }
 
 // Export for global access
-console.log('✏️ DrawingRenderer class defined, ready for instantiation');
+console.log('✏️ DrawingRenderer class defined with enhanced point-based completion system');
