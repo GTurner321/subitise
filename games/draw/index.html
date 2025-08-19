@@ -39,11 +39,21 @@
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
     
-    <!-- Game-specific files -->
+    <!-- Game-specific files - Load config first -->
     <script src="js/drawconfig.js"></script>
     <script src="js/drawlayoutrenderer.js"></script>
     <script src="js/drawingrenderer.js"></script>
     <script src="js/drawgamecontroller.js"></script>
+    
+    <!-- Ensure config is loaded before game starts -->
+    <script>
+        // Wait for all scripts to load before initializing
+        if (typeof DRAW_CONFIG === 'undefined') {
+            console.error('❌ DRAW_CONFIG not loaded!');
+        } else {
+            console.log('✅ DRAW_CONFIG loaded successfully');
+        }
+    </script>
     
     <!-- Fix for component availability -->
     <script>
