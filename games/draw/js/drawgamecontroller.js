@@ -20,6 +20,12 @@ class DrawGameController {
         this.gameComplete = false;
         this.isProcessingCompletion = false;
         
+        // Check if config is available
+        if (typeof DRAW_CONFIG === 'undefined') {
+            console.error('❌ DRAW_CONFIG is not defined! Check script loading order.');
+            return;
+        }
+        
         // Numbers sequence from config
         this.numbersSequence = [...DRAW_CONFIG.NUMBERS_SEQUENCE];
         
