@@ -7,6 +7,7 @@
  * - Handles game state, completion detection, and user feedback
  * - Coordinates audio announcements and visual celebrations
  * - Manages game restart and cleanup functionality
+ * - Fixed component loading timing issues
  */
 
 class DrawGameController {
@@ -61,6 +62,9 @@ class DrawGameController {
             // Setup visibility handling
             this.setupVisibilityHandling();
             
+            // Wait for shared components to be available
+            await this.waitForSharedComponents();
+            
             // Initialize shared components
             this.initializeSharedComponents();
             
@@ -90,6 +94,31 @@ class DrawGameController {
             } else {
                 resolve();
             }
+        });
+    }
+    
+    /**
+     * Wait for shared components to be available
+     */
+    waitForSharedComponents() {
+        return new Promise((resolve) => {
+            const checkComponents = () => {
+                const rainbowAvailable = window.Rainbow && typeof window.Rainbow === 'function';
+                const bearAvailable = window.Bear && typeof window.Bear === 'function';
+                
+                if (rainbowAvailable && bearAvailable) {
+                    console.log('✅ Shared components (Rainbow, Bear) are available');
+                    resolve();
+                } else {
+                    console.log('⏳ Waiting for shared components...', {
+                        rainbow: rainbowAvailable,
+                        bear: bearAvailable
+                    });
+                    setTimeout(checkComponents, 100);
+                }
+            };
+            
+            checkComponents();
         });
     }
     
@@ -141,25 +170,25 @@ class DrawGameController {
     }
     
     /**
-     * Initialize shared components (Rainbow, Bear)
+     * Initialize shared components (Rainbow, Bear) - now guaranteed to be available
      */
     initializeSharedComponents() {
         console.log('🌈 Initializing shared components');
         
         // Initialize Rainbow
-        if (window.Rainbow) {
+        try {
             this.rainbow = new window.Rainbow();
-            console.log('✅ Rainbow initialized');
-        } else {
-            console.warn('⚠️ Rainbow component not available');
+            console.log('✅ Rainbow initialized successfully');
+        } catch (error) {
+            console.error('❌ Rainbow initialization failed:', error);
         }
         
         // Initialize Bear
-        if (window.Bear) {
+        try {
             this.bear = new window.Bear();
-            console.log('✅ Bear initialized');
-        } else {
-            console.warn('⚠️ Bear component not available');
+            console.log('✅ Bear initialized successfully');
+        } catch (error) {
+            console.error('❌ Bear initialization failed:', error);
         }
     }
     
@@ -339,7 +368,8 @@ class DrawGameController {
         
         // Add rainbow piece
         if (this.rainbow) {
-            this.rainbow.addPiece();
+            const pieces = this.rainbow.addPiece();
+            console.log(`🌈 Rainbow piece added: ${pieces}/${DRAW_CONFIG.RAINBOW_PIECES}`);
         }
         
         // Play completion audio
