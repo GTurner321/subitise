@@ -2,7 +2,8 @@
  * Drawing Renderer - Part 2 of 2
  * 
  * PURPOSE: Handles all user drawing interaction and feedback functionality
- * - SVG outline rendering within the drawing area
+ * - SVG outline rendering with grey border and white fill
+ * - Pulsing hint animation after 5 seconds of inactivity
  * - Mouse/touch event handling for user drawing
  * - Drawing line rendering and path management
  * - Coverage detection and completion validation
@@ -41,6 +42,7 @@ class DrawingRenderer {
         this.isComplete = false;
         this.hintTimer = null;
         this.lastActivityTime = Date.now();
+        this.pulseAnimation = null;
         
         // Event handlers (bound for cleanup)
         this.boundHandlers = {
@@ -72,8 +74,8 @@ class DrawingRenderer {
         // Create SVG canvas
         this.createSVGCanvas();
         
-        // Render number outline
-        this.renderNumberOutline(number);
+        // Render number outline with new method
+        this.renderNumberOutlineWithFill(number);
         
         // Setup drawing events
         this.setupDrawingEvents();
@@ -95,6 +97,7 @@ class DrawingRenderer {
         this.coveredPoints.clear();
         this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
         this.clearHintTimer();
+        this.stopPulseAnimation();
         this.lastActivityTime = Date.now();
     }
     
@@ -143,12 +146,12 @@ class DrawingRenderer {
     }
     
     /**
-     * Render the number outline that user needs to trace
+     * Render the number outline with grey border and white fill
      */
-    renderNumberOutline(number) {
+    renderNumberOutlineWithFill(number) {
         if (!this.outlineGroup) return;
         
-        console.log(`🔤 Rendering outline for number ${number}`);
+        console.log(`🔤 Rendering filled outline for number ${number}`);
         
         // Clear existing outlines
         this.outlineGroup.innerHTML = '';
@@ -160,7 +163,7 @@ class DrawingRenderer {
             return;
         }
         
-        // Calculate outline thickness
+        // Calculate outline thickness (6% of game area height)
         const outlineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.OUTLINE_THICKNESS) / 100;
         
         // Get drawing area bounds for coordinate conversion
@@ -183,32 +186,35 @@ class DrawingRenderer {
         // Set SVG viewBox to match drawing area
         this.svg.setAttribute('viewBox', `0 0 ${drawingBounds.width} ${drawingBounds.height}`);
         
-        // Render each stroke
+        // Render each stroke with new fill method
         numberConfig.strokes.forEach((stroke, strokeIndex) => {
             if (stroke.coordinates) {
                 const scaledCoords = this.scaleCoordinatesForSVG(stroke.coordinates, relativeNumberBounds);
                 const pathData = this.createPathData(scaledCoords);
                 
-                // Create outline path
+                // Create outline path with grey border and white fill
                 const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 outlinePath.setAttribute('d', pathData);
-                outlinePath.setAttribute('stroke', DRAW_CONFIG.STYLING.OUTLINE_COLOR);
+                outlinePath.setAttribute('stroke', DRAW_CONFIG.STYLING.OUTLINE_COLOR); // Grey border
                 outlinePath.setAttribute('stroke-width', outlineThickness);
                 outlinePath.setAttribute('stroke-linecap', 'round');
                 outlinePath.setAttribute('stroke-linejoin', 'round');
-                outlinePath.setAttribute('fill', 'none');
+                outlinePath.setAttribute('fill', 'white'); // White fill
                 outlinePath.setAttribute('class', `outline-stroke-${strokeIndex}`);
+                
+                // Add subtle drop shadow for depth
+                outlinePath.style.filter = 'drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.1))';
                 
                 this.outlineGroup.appendChild(outlinePath);
                 
-                console.log(`📝 Rendered outline stroke ${strokeIndex} with ${scaledCoords.length} points`);
+                console.log(`📝 Rendered filled outline stroke ${strokeIndex} with ${scaledCoords.length} points`);
             }
         });
         
         // Store number bounds for coverage detection
         this.numberBounds = this.layoutRenderer.calculateNumberBounds(number);
         
-        console.log(`✅ Number ${number} outline rendered with ${numberConfig.strokes.length} strokes`);
+        console.log(`✅ Number ${number} filled outline rendered with ${numberConfig.strokes.length} strokes`);
     }
     
     /**
@@ -543,6 +549,7 @@ class DrawingRenderer {
         
         this.isComplete = true;
         this.clearHintTimer();
+        this.stopPulseAnimation();
         this.removeDrawingEvents();
         
         // Trigger completion callback
@@ -610,11 +617,12 @@ class DrawingRenderer {
     registerActivity() {
         this.lastActivityTime = Date.now();
         this.clearHintTimer();
+        this.stopPulseAnimation();
         this.startHintTimer();
     }
     
     /**
-     * Start hint timer
+     * Start hint timer (5 seconds instead of 10)
      */
     startHintTimer() {
         if (this.isComplete) return;
@@ -622,8 +630,8 @@ class DrawingRenderer {
         this.clearHintTimer();
         
         this.hintTimer = setTimeout(() => {
-            this.showHint();
-        }, DRAW_CONFIG.TIMING.HINT_DELAY);
+            this.showPulsingHint();
+        }, 5000); // Changed from 10 seconds to 5 seconds
     }
     
     /**
@@ -637,12 +645,12 @@ class DrawingRenderer {
     }
     
     /**
-     * Show drawing hint
+     * Show pulsing hint with audio
      */
-    showHint() {
+    showPulsingHint() {
         if (this.isComplete) return;
         
-        console.log('💡 Showing drawing hint');
+        console.log('💡 Showing pulsing hint');
         
         // Play audio hint
         if (window.AudioSystem && window.AudioSystem.speakText) {
@@ -657,29 +665,100 @@ class DrawingRenderer {
             window.AudioSystem.speakText(randomHint);
         }
         
-        // Visual hint - briefly highlight outline
-        this.highlightOutline();
+        // Start visual pulsing animation
+        this.startPulseAnimation();
     }
     
     /**
-     * Highlight the outline briefly as a visual hint
+     * Start the pulsing animation (pulse twice)
      */
-    highlightOutline() {
-        const outlinePaths = this.outlineGroup.querySelectorAll('path');
+    startPulseAnimation() {
+        if (!this.outlineGroup) return;
         
-        outlinePaths.forEach(path => {
-            const originalColor = path.getAttribute('stroke');
+        this.stopPulseAnimation(); // Stop any existing animation
+        
+        const outlinePaths = this.outlineGroup.querySelectorAll('path');
+        let pulseCount = 0;
+        const maxPulses = 2;
+        
+        const doPulse = () => {
+            if (pulseCount >= maxPulses || this.isComplete) {
+                this.stopPulseAnimation();
+                return;
+            }
             
-            // Highlight in bright color
-            path.setAttribute('stroke', '#FF6B6B');
-            path.style.filter = 'drop-shadow(0 0 4px #FF6B6B)';
+            // Pulse animation: change opacity and add glow
+            outlinePaths.forEach(path => {
+                // Add CSS animation class
+                path.style.animation = 'pulseHint 1s ease-in-out';
+                path.style.filter = 'drop-shadow(0 0 8px #FF6B6B)';
+            });
             
-            // Restore after 1 second
+            // Reset after pulse
             setTimeout(() => {
-                path.setAttribute('stroke', originalColor);
-                path.style.filter = '';
+                outlinePaths.forEach(path => {
+                    path.style.animation = '';
+                    path.style.filter = 'drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.1))';
+                });
+                
+                pulseCount++;
+                
+                // Schedule next pulse after short delay
+                if (pulseCount < maxPulses) {
+                    this.pulseAnimation = setTimeout(doPulse, 500);
+                }
             }, 1000);
-        });
+        };
+        
+        // Add CSS animation keyframes if not already added
+        this.addPulseAnimationCSS();
+        
+        // Start pulsing
+        doPulse();
+    }
+    
+    /**
+     * Stop the pulsing animation
+     */
+    stopPulseAnimation() {
+        if (this.pulseAnimation) {
+            clearTimeout(this.pulseAnimation);
+            this.pulseAnimation = null;
+        }
+        
+        // Reset all outline paths to normal state
+        if (this.outlineGroup) {
+            const outlinePaths = this.outlineGroup.querySelectorAll('path');
+            outlinePaths.forEach(path => {
+                path.style.animation = '';
+                path.style.filter = 'drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.1))';
+            });
+        }
+    }
+    
+    /**
+     * Add CSS animation for pulsing hint
+     */
+    addPulseAnimationCSS() {
+        // Check if animation already exists
+        if (document.querySelector('#pulse-hint-animation')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'pulse-hint-animation';
+        style.textContent = `
+            @keyframes pulseHint {
+                0%, 100% {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+                50% {
+                    opacity: 0.7;
+                    transform: scale(1.05);
+                }
+            }
+        `;
+        
+        document.head.appendChild(style);
     }
     
     /**
@@ -723,9 +802,16 @@ class DrawingRenderer {
         
         this.clear();
         this.removeDrawingEvents();
+        this.stopPulseAnimation();
         
         if (this.svg && this.svg.parentNode) {
             this.svg.parentNode.removeChild(this.svg);
+        }
+        
+        // Remove animation CSS
+        const animationStyle = document.querySelector('#pulse-hint-animation');
+        if (animationStyle) {
+            animationStyle.remove();
         }
         
         this.layoutRenderer = null;
