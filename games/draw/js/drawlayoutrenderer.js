@@ -67,7 +67,7 @@ class DrawLayoutRenderer {
             if (window.ButtonBar && typeof window.ButtonBar.createGameAreaOnly === 'function') {
                 console.log('✅ ButtonBar available, creating game area with margins');
                 
-                // Create game area with margins but no buttons
+                // Let ButtonBar decide margins based on screen width (0 margins on mobile)
                 window.ButtonBar.createGameAreaOnly({ useMargins: true });
                 
                 // Register for dimension updates
