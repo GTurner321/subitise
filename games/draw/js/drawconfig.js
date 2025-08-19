@@ -83,42 +83,39 @@ const DRAW_CONFIG = {
         OUTLINE_METHOD: 'stroke', // 'stroke' or 'layered' - use SVG stroke for cleaner outline
     },
     
-    // Audio messages organized by context
-    AUDIO: {
-        GAME_START: {
-            WELCOME: 'Welcome to the number drawing game',
-            INSTRUCTIONS: 'Draw the number you see on the left'
-        },
-        
-        QUESTION_START: {
-            DRAW_NUMBER: (number) => `Draw the number ${number}`,
-            TRY_AGAIN: (number) => `Try drawing the number ${number} again`
-        },
-        
-        COMPLETION: {
-            WELL_DONE: 'Well done!',
-            EXCELLENT: 'Excellent!',
-            GREAT_JOB: 'Great job!',
-            PERFECT: 'Perfect!',
-            NUMBER_COMPLETE: (number) => `You drew the number ${number} perfectly!`
-        },
-        
-        HINTS: {
-            KEEP_DRAWING: 'Keep drawing to complete the number',
-            FOLLOW_OUTLINE: 'Follow the grey outline to draw the number',
-            TRY_DIFFERENT_PATH: 'Try drawing a different part of the number'
-        },
-        
-        GAME_END: {
-            ALL_COMPLETE: 'Fantastic! You drew all the numbers perfectly!',
-            CELEBRATION: 'Well done on completing all the numbers!'
-        },
-        
-        SYSTEM: {
-            AUDIO_ENABLED: 'Audio enabled',
-            AUDIO_DISABLED: 'Audio disabled'
-        }
+// Audio messages organized by context
+AUDIO: {
+    GAME_START: {
+        WELCOME: 'Welcome to the number drawing game',
+        INSTRUCTIONS: (number) => `Draw the number ${number} inside the grey outline`
     },
+    
+    QUESTION_START: {
+        DRAW_NUMBER: (number) => `Draw the number ${number}`
+    },
+    
+    COMPLETION: {
+        WELL_DONE: 'Well done!',
+        EXCELLENT: 'Excellent!',
+        GREAT_JOB: 'Great job!',
+        PERFECT: 'Perfect!'
+    },
+    
+    HINTS: {
+        KEEP_DRAWING: 'Keep drawing to complete the number',
+        FOLLOW_OUTLINE: 'Follow the grey outline to draw the number',
+        TRY_DIFFERENT_PATH: 'Try drawing a different part of the number'
+    },
+    
+    GAME_END: {
+        ALL_COMPLETE: 'Well done! You drew all the numbers! Try again or go back to the home page.'
+    },
+    
+    SYSTEM: {
+        AUDIO_ENABLED: 'Audio enabled',
+        AUDIO_DISABLED: 'Audio disabled'
+    }
+},
     
     // Number word mappings
     NUMBER_WORDS: {
