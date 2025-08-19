@@ -187,7 +187,11 @@ class DrawingRenderer {
         // Set SVG viewBox to match drawing area
         this.svg.setAttribute('viewBox', `0 0 ${drawingBounds.width} ${drawingBounds.height}`);
         
-        // Render each stroke with layered approach: grey outline + white fill
+        // Render each stroke with layered approach: ALL grey outlines first, then ALL white fills
+        const greyPaths = [];
+        const whitePaths = [];
+        
+        // FIRST PASS: Create all grey outline paths
         numberConfig.strokes.forEach((stroke, strokeIndex) => {
             if (stroke.coordinates) {
                 const scaledCoords = this.scaleCoordinatesForSVG(stroke.coordinates, relativeNumberBounds);
@@ -203,7 +207,9 @@ class DrawingRenderer {
                 outlinePath.setAttribute('fill', 'none'); // No fill for outline
                 outlinePath.setAttribute('class', `outline-stroke-${strokeIndex}-border`);
                 
-                // LAYER 2: White fill (thinner stroke using config ratio)
+                greyPaths.push(outlinePath);
+                
+                // LAYER 2: White fill (thinner stroke using config ratio) - prepare but don't add yet
                 const fillPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 fillPath.setAttribute('d', pathData);
                 fillPath.setAttribute('stroke', DRAW_CONFIG.STYLING.WHITE_FILL_COLOR); // White stroke from config
@@ -213,12 +219,20 @@ class DrawingRenderer {
                 fillPath.setAttribute('fill', 'none'); // Still no fill, just white stroke
                 fillPath.setAttribute('class', `outline-stroke-${strokeIndex}-fill`);
                 
-                // Add both layers (outline first, then fill on top)
-                this.outlineGroup.appendChild(outlinePath);
-                this.outlineGroup.appendChild(fillPath);
+                whitePaths.push(fillPath);
                 
-                console.log(`📝 Rendered layered stroke ${strokeIndex}: grey outline (${outlineThickness}px) + white fill (${outlineThickness * DRAW_CONFIG.STYLING.WHITE_FILL_RATIO}px)`);
+                console.log(`📝 Prepared layered stroke ${strokeIndex}: grey outline (${outlineThickness}px) + white fill (${outlineThickness * DRAW_CONFIG.STYLING.WHITE_FILL_RATIO}px)`);
             }
+        });
+        
+        // SECOND PASS: Add all grey paths first
+        greyPaths.forEach(path => {
+            this.outlineGroup.appendChild(path);
+        });
+        
+        // THIRD PASS: Add all white paths on top
+        whitePaths.forEach(path => {
+            this.outlineGroup.appendChild(path);
         });
         
         // Store number bounds for coverage detection
@@ -714,51 +728,56 @@ class DrawingRenderer {
     }
     
     /**
-     * Show visual flash (disappear and reappear twice in 1 second) - UPDATED for layered paths
+     * Show visual flash (2 flashes: off-on, off-on in 1 second total) - ONLY grey outlines
      */
     showVisualFlash() {
         if (this.isComplete || !this.outlineGroup) return;
         
-        console.log('✨ Showing visual flash');
+        console.log('✨ Showing visual flash - 2 flashes in 1 second');
         
-        const outlinePaths = this.outlineGroup.querySelectorAll('path');
-        let flashCount = 0;
-        const maxFlashes = 2;
+        // Target ONLY the grey outline paths (not the white fill paths)
+        const greyOutlinePaths = this.outlineGroup.querySelectorAll('path[class*="-border"]');
         
-        const doFlash = () => {
-            if (flashCount >= maxFlashes || this.isComplete) {
-                // Ensure outlines are visible at the end
-                outlinePaths.forEach(path => {
-                    path.style.opacity = '1';
-                });
-                this.startVisualFlashTimer(); // Restart timer for next flash cycle
-                return;
-            }
-            
-            // Flash: disappear for 250ms, then reappear for 250ms
-            outlinePaths.forEach(path => {
-                path.style.opacity = '0';
-            });
-            
+        console.log(`Found ${greyOutlinePaths.length} grey outline paths to flash`);
+        
+        if (greyOutlinePaths.length === 0) {
+            console.warn('⚠️ No grey outline paths found for flashing');
+            this.startVisualFlashTimer();
+            return;
+        }
+        
+        // Flash sequence: 2 flashes in 1 second total
+        // Flash 1: off (0ms) -> on (250ms) = 250ms duration
+        // Flash 2: off (500ms) -> on (750ms) = 250ms duration  
+        // Final: ensure visible (1000ms)
+        
+        const flashSequence = [
+            { time: 0, visible: false },     // Flash 1: OFF
+            { time: 250, visible: true },    // Flash 1: ON
+            { time: 500, visible: false },   // Flash 2: OFF
+            { time: 750, visible: true },    // Flash 2: ON
+            { time: 1000, visible: true }    // Ensure visible at end
+        ];
+        
+        flashSequence.forEach(({ time, visible }) => {
             setTimeout(() => {
-                outlinePaths.forEach(path => {
-                    path.style.opacity = '1';
+                if (this.isComplete) return; // Stop if completed during flash
+                
+                greyOutlinePaths.forEach(path => {
+                    path.style.opacity = visible ? '1' : '0';
                 });
                 
-                flashCount++;
-                
-                // Schedule next flash after brief pause
-                if (flashCount < maxFlashes) {
-                    setTimeout(doFlash, 250);
-                } else {
-                    // Restart flash timer for next cycle
-                    this.startVisualFlashTimer();
-                }
-            }, 250);
-        };
+                console.log(`Flash step: ${visible ? 'ON' : 'OFF'} at ${time}ms - applied to ${greyOutlinePaths.length} grey paths`);
+            }, time);
+        });
         
-        // Start flashing
-        doFlash();
+        // Restart flash timer for next cycle after sequence completes
+        setTimeout(() => {
+            if (!this.isComplete) {
+                console.log('🔄 Restarting visual flash timer');
+                this.startVisualFlashTimer();
+            }
+        }, 1200); // Small buffer after flash sequence
     }
     
     /**
