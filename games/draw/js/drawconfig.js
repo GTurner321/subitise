@@ -1,7 +1,7 @@
 /**
  * Draw Numbers Game Configuration
  * Responsive percentage-based layout with universal system integration
- * Updated with proper outline thickness and aspect ratio handling
+ * Updated with point-based completion system and improved timing
  */
 const DRAW_CONFIG = {
     // Game progression
@@ -20,18 +20,18 @@ const DRAW_CONFIG = {
         REFERENCE_TEXT: {
             x: 25, // Same x as number
             y: 55, // Below the number
-            fontSize: 12, // 12% of game area height
+            fontSize: 8, // 8% of game area height (reduced from 12%)
         },
         
         // Drawing area
         DRAWING_AREA: {
-        x: 45, // 45% from left edge of game area
-        y: 10, // 10% from top of game area
-        width: { // Dynamic width calculation
-        basePercent: 20, // 20% of game area width
-        heightPercent: 30 // + 30% of game area height
-        },
-        height: 80, // 80% of game area height
+            x: 45, // 45% from left edge of game area
+            y: 10, // 10% from top of game area
+            width: { // Dynamic width calculation
+                basePercent: 20, // 20% of game area width
+                heightPercent: 30 // + 30% of game area height
+            },
+            height: 80, // 80% of game area height
         },
         
         // Number rendering within drawing area - FIXED ASPECT RATIO
@@ -63,59 +63,69 @@ const DRAW_CONFIG = {
         DRAWING_AREA_SHADOW: '0 0 2vh rgba(0, 0, 0, 0.1)', // Subtle shadow
         
         // Number outline to be drawn - UPDATED THICKNESS
-    OUTLINE_THICKNESS: 7, // 7% of game area height (increased from 6%)
-    OUTLINE_COLOR: '#CCCCCC',
-    
-    // NEW: White fill stroke configuration
-    WHITE_FILL_RATIO: 0.8, // 80% of outline thickness for white inner stroke
-    WHITE_FILL_COLOR: 'white', // Color for the white fill stroke
-    
-    // User drawing line
-    DRAWING_LINE_THICKNESS: 4, // 4% of game area height
-    DRAWING_LINE_COLOR: '#4CAF50', // Green
+        OUTLINE_THICKNESS: 7, // 7% of game area height (increased from 6%)
+        OUTLINE_COLOR: '#CCCCCC',
         
-        // Completion criteria
-        COVERAGE_WIDTH_REQUIRED: 100, // 100% width coverage required
-        COVERAGE_HEIGHT_REQUIRED: 100, // 100% height coverage required
-        DRAWING_TOLERANCE: 25, // Tolerance for line proximity detection
+        // White fill stroke configuration
+        WHITE_FILL_RATIO: 0.8, // 80% of outline thickness for white inner stroke
+        WHITE_FILL_COLOR: 'white', // Color for the white fill stroke
         
-        // NEW: Outline styling method
+        // User drawing line
+        DRAWING_LINE_THICKNESS: 4, // 4% of game area height
+        DRAWING_LINE_COLOR: '#4CAF50', // Green
+        
+        // NEW: Point-based completion criteria
+        POINT_COVERAGE_REQUIRED: 100, // 100% of completion points must be covered
+        POINT_TOLERANCE: 25, // Pixel tolerance for point proximity detection
+        
+        // NEW: Canvas flooding prevention
+        MAX_CANVAS_COVERAGE: 30, // Maximum 30% of canvas can be filled before reset
+        CANVAS_RESET_WARNING_TIME: 5000, // 5 seconds warning before reset
+        
+        // Outline styling method
         OUTLINE_METHOD: 'stroke', // 'stroke' or 'layered' - use SVG stroke for cleaner outline
     },
     
-// Audio messages organized by context
-AUDIO: {
-    GAME_START: {
-        WELCOME: 'Welcome to the number drawing game',
-        INSTRUCTIONS: (number) => `Draw the number ${number} inside the grey outline`
+    // Audio messages organized by context
+    AUDIO: {
+        GAME_START: {
+            WELCOME: 'Welcome to the number drawing game',
+            INSTRUCTIONS: (number) => `Draw the number ${number} inside the grey outline`
+        },
+        
+        QUESTION_START: {
+            DRAW_NUMBER: (number) => `Draw the number ${number}`
+        },
+        
+        COMPLETION: {
+            WELL_DONE: 'Well done!',
+            EXCELLENT: 'Excellent!',
+            GREAT_JOB: 'Great job!',
+            PERFECT: 'Perfect!'
+        },
+        
+        HINTS: {
+            KEEP_DRAWING: 'Keep drawing to complete the number',
+            FOLLOW_OUTLINE: 'Follow the grey outline to draw the number',
+            TRY_DIFFERENT_PATH: 'Try drawing a different part of the number',
+            DRAW_INSIDE: 'Draw inside the number on the right',
+            KEEP_DRAWING_COMPLETE: 'Keep drawing to complete the number on the right'
+        },
+        
+        // NEW: Canvas flooding warning
+        WARNINGS: {
+            TOO_MUCH_AREA: 'You have covered too much area there, the board will reset in 5 seconds'
+        },
+        
+        GAME_END: {
+            ALL_COMPLETE: 'Well done! You drew all the numbers! Try again or go back to the home page.'
+        },
+        
+        SYSTEM: {
+            AUDIO_ENABLED: 'Audio enabled',
+            AUDIO_DISABLED: 'Audio disabled'
+        }
     },
-    
-    QUESTION_START: {
-        DRAW_NUMBER: (number) => `Draw the number ${number}`
-    },
-    
-    COMPLETION: {
-        WELL_DONE: 'Well done!',
-        EXCELLENT: 'Excellent!',
-        GREAT_JOB: 'Great job!',
-        PERFECT: 'Perfect!'
-    },
-    
-    HINTS: {
-        KEEP_DRAWING: 'Keep drawing to complete the number',
-        FOLLOW_OUTLINE: 'Follow the grey outline to draw the number',
-        TRY_DIFFERENT_PATH: 'Try drawing a different part of the number'
-    },
-    
-    GAME_END: {
-        ALL_COMPLETE: 'Well done! You drew all the numbers! Try again or go back to the home page.'
-    },
-    
-    SYSTEM: {
-        AUDIO_ENABLED: 'Audio enabled',
-        AUDIO_DISABLED: 'Audio disabled'
-    }
-},
     
     // Number word mappings
     NUMBER_WORDS: {
@@ -123,21 +133,24 @@ AUDIO: {
         5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine'
     },
     
-    // Timing configuration
+    // Timing configuration - UPDATED for better user experience
     TIMING: {
-        COMPLETION_DELAY: 2000, // 2 seconds before moving to next
-        HINT_DELAY: 10000, // 10 seconds before showing hint
+        COMPLETION_IMMEDIATE_DELAY: 500, // 0.5 seconds for success feedback
+        COMPLETION_ADMIRE_TIME: 1500, // 1.5 seconds to admire work
+        TOTAL_COMPLETION_DELAY: 2000, // Total time before next number (500 + 1500)
+        HINT_DELAY: 20000, // 20 seconds before audio hints
+        VISUAL_FLASH_DELAY: 8000, // 8 seconds before visual flash
+        VISUAL_FLASH_DURATION: 1000, // 1 second total flash duration (2 flashes)
         CELEBRATION_DURATION: 3000, // 3 seconds of celebration
         FADE_TRANSITION: 500 // 0.5 second transitions
     },
     
-    // Coordinate system scaling - UPDATED for proper aspect ratio
+    // Coordinate system scaling
     COORDINATE_SYSTEM: {
         // Original coordinates are in 0-100 x 0-200 system
         ORIGINAL_WIDTH: 100,
         ORIGINAL_HEIGHT: 200,
         // Will be scaled to fit NUMBER_RENDER area maintaining aspect ratio
-        // Width will be calculated as height/2 to maintain 1:2 ratio
     },
     
     // Rainbow colors (for shared Rainbow component)
@@ -145,6 +158,102 @@ AUDIO: {
         '#ff0000', '#ff8000', '#ffff00', '#80ff00', '#00ff00',
         '#00ff80', '#00ffff', '#0080ff', '#0000ff', '#8000ff'
     ],
+    
+    // NEW: Required completion points for each number (strategic points only)
+    // These points are invisible to user but must all be covered for completion
+    COMPLETION_POINTS: {
+        0: [
+            // Oval - evenly spaced around perimeter (20 points)
+            { x: 100, y: 100 }, { x: 98, y: 128 }, { x: 92, y: 154 }, { x: 80, y: 180 },
+            { x: 60, y: 198 }, { x: 50, y: 200 }, { x: 40, y: 198 }, { x: 20, y: 180 },
+            { x: 8, y: 154 }, { x: 2, y: 128 }, { x: 0, y: 100 }, { x: 2, y: 72 },
+            { x: 8, y: 46 }, { x: 20, y: 20 }, { x: 40, y: 2 }, { x: 50, y: 0 },
+            { x: 60, y: 2 }, { x: 80, y: 20 }, { x: 92, y: 46 }, { x: 98, y: 72 }
+        ],
+        
+        1: [
+            // Vertical line - evenly spaced (12 points)
+            { x: 50, y: 200 }, { x: 50, y: 180 }, { x: 50, y: 160 }, { x: 50, y: 140 },
+            { x: 50, y: 120 }, { x: 50, y: 100 }, { x: 50, y: 80 }, { x: 50, y: 60 },
+            { x: 50, y: 40 }, { x: 50, y: 20 }, { x: 50, y: 10 }, { x: 50, y: 0 }
+        ],
+        
+        2: [
+            // Complex curve + line (20 points)
+            { x: 0, y: 150 }, { x: 4, y: 170 }, { x: 15, y: 186 }, { x: 35, y: 198 },
+            { x: 50, y: 200 }, { x: 65, y: 198 }, { x: 85, y: 186 }, { x: 96, y: 170 },
+            { x: 100, y: 150 }, { x: 94, y: 126 }, { x: 81, y: 108 }, { x: 63, y: 84 },
+            { x: 45, y: 60 }, { x: 27, y: 36 }, { x: 9, y: 12 }, { x: 0, y: 0 },
+            { x: 20, y: 0 }, { x: 40, y: 0 }, { x: 60, y: 0 }, { x: 80, y: 0 }, { x: 100, y: 0 }
+        ],
+        
+        3: [
+            // Two curves with middle connection (20 points)
+            { x: 0, y: 190 }, { x: 8, y: 194 }, { x: 30, y: 200 }, { x: 55, y: 198 },
+            { x: 80, y: 187 }, { x: 96, y: 168 }, { x: 100, y: 150 }, { x: 98, y: 137 },
+            { x: 85, y: 118 }, { x: 60, y: 103 }, { x: 35, y: 100 }, { x: 60, y: 97 },
+            { x: 85, y: 82 }, { x: 98, y: 63 }, { x: 100, y: 50 }, { x: 96, y: 32 },
+            { x: 80, y: 13 }, { x: 55, y: 2 }, { x: 30, y: 0 }, { x: 8, y: 6 }, { x: 0, y: 10 }
+        ],
+        
+        4: [
+            // Two strokes - angle line + vertical line (20 points total)
+            // Stroke 1: Angle line (first/last + evenly spaced)
+            { x: 30, y: 200 }, { x: 24, y: 176 }, { x: 18, y: 152 }, { x: 12, y: 128 },
+            { x: 6, y: 104 }, { x: 0, y: 80 }, { x: 20, y: 80 }, { x: 40, y: 80 },
+            { x: 60, y: 80 }, { x: 80, y: 80 }, { x: 100, y: 80 },
+            // Stroke 2: Vertical line (first/last + evenly spaced)
+            { x: 60, y: 140 }, { x: 60, y: 120 }, { x: 60, y: 100 }, { x: 60, y: 80 },
+            { x: 60, y: 60 }, { x: 60, y: 40 }, { x: 60, y: 20 }, { x: 60, y: 10 }, { x: 60, y: 0 }
+        ],
+        
+        5: [
+            // Two strokes - horizontal + vertical/curve (20 points total)
+            // Stroke 1: Top horizontal (first/last + evenly spaced)
+            { x: 0, y: 200 }, { x: 20, y: 200 }, { x: 40, y: 200 }, { x: 60, y: 200 },
+            { x: 80, y: 200 }, { x: 100, y: 200 },
+            // Stroke 2: Vertical and curve (first/last + key points)
+            { x: 0, y: 200 }, { x: 0, y: 170 }, { x: 0, y: 140 }, { x: 0, y: 125 },
+            { x: 15, y: 125 }, { x: 35, y: 124 }, { x: 55, y: 120 }, { x: 75, y: 109 },
+            { x: 90, y: 94 }, { x: 100, y: 63 }, { x: 94, y: 36 }, { x: 80, y: 17 },
+            { x: 60, y: 4 }, { x: 40, y: 0 }, { x: 20, y: 3 }, { x: 8, y: 7 }, { x: 0, y: 13 }
+        ],
+        
+        6: [
+            // Single complex stroke (20 points)
+            { x: 65, y: 200 }, { x: 45, y: 191 }, { x: 25, y: 167 }, { x: 10, y: 132 },
+            { x: 4, y: 107 }, { x: 1, y: 84 }, { x: 0, y: 60 }, { x: 4, y: 36 },
+            { x: 15, y: 17 }, { x: 35, y: 3 }, { x: 50, y: 0 }, { x: 70, y: 5 },
+            { x: 85, y: 17 }, { x: 96, y: 36 }, { x: 100, y: 60 }, { x: 96, y: 84 },
+            { x: 85, y: 103 }, { x: 65, y: 117 }, { x: 45, y: 120 }, { x: 25, y: 112 }, { x: 10, y: 96 }
+        ],
+        
+        7: [
+            // Single stroke - horizontal + diagonal (15 points)
+            { x: 0, y: 200 }, { x: 20, y: 200 }, { x: 40, y: 200 }, { x: 60, y: 200 },
+            { x: 80, y: 200 }, { x: 100, y: 200 }, { x: 90, y: 167 }, { x: 80, y: 133 },
+            { x: 70, y: 100 }, { x: 60, y: 67 }, { x: 50, y: 33 }, { x: 45, y: 17 }, { x: 40, y: 0 }
+        ],
+        
+        8: [
+            // Figure-8 shape (22 points for thorough coverage)
+            { x: 95, y: 152.5 }, { x: 90, y: 174.5 }, { x: 75, y: 192 }, { x: 50, y: 200 },
+            { x: 25, y: 192 }, { x: 10, y: 174.5 }, { x: 5, y: 152.5 }, { x: 10, y: 130.5 },
+            { x: 25, y: 113 }, { x: 50, y: 105 }, { x: 75, y: 113 }, { x: 90, y: 130.5 },
+            { x: 96, y: 73 }, { x: 100, y: 52.5 }, { x: 94, y: 27.5 }, { x: 80, y: 10.5 },
+            { x: 60, y: 1 }, { x: 50, y: 0 }, { x: 40, y: 1 }, { x: 20, y: 10.5 },
+            { x: 6, y: 27.5 }, { x: 0, y: 52.5 }
+        ],
+        
+        9: [
+            // Top loop + descending line (20 points)
+            { x: 95, y: 150 }, { x: 85, y: 181 }, { x: 65, y: 196 }, { x: 45, y: 200 },
+            { x: 25, y: 194 }, { x: 10, y: 181 }, { x: 2, y: 164 }, { x: 0, y: 150 },
+            { x: 4, y: 130 }, { x: 15, y: 114 }, { x: 35, y: 102 }, { x: 50, y: 100 },
+            { x: 65, y: 104 }, { x: 80, y: 114 }, { x: 90, y: 128 }, { x: 94, y: 140 },
+            { x: 96, y: 158 }, { x: 98, y: 174 }, { x: 99, y: 182 }, { x: 80, y: 0 }
+        ]
+    },
     
     // Stroke definitions for each number (same coordinate system as before)
     STROKE_DEFINITIONS: {
@@ -409,7 +518,7 @@ AUDIO: {
         return this.NUMBER_WORDS[number] || number.toString();
     },
     
-    // Calculate number bounds for coverage checking
+    // Calculate number bounds for legacy area coverage checking (fallback)
     calculateNumberBounds(number) {
         const numberConfig = this.STROKE_DEFINITIONS[number];
         if (!numberConfig || !numberConfig.strokes) return null;
@@ -430,7 +539,17 @@ AUDIO: {
         return { minX, maxX, minY, maxY };
     },
     
-    // NEW: Calculate proper aspect ratio bounds for number rendering
+    // NEW: Get completion points for a specific number
+    getCompletionPoints(number) {
+        return this.COMPLETION_POINTS[number] || null;
+    },
+    
+    // NEW: Check if point-based completion is available for a number
+    hasCompletionPoints(number) {
+        return this.COMPLETION_POINTS[number] && this.COMPLETION_POINTS[number].length > 0;
+    },
+    
+    // Calculate proper aspect ratio bounds for number rendering
     calculateAspectRatioBounds(gameAreaDimensions) {
         if (!gameAreaDimensions) return null;
         
