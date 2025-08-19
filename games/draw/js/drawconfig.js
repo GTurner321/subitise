@@ -1,6 +1,7 @@
 /**
  * Draw Numbers Game Configuration
  * Responsive percentage-based layout with universal system integration
+ * Updated with proper outline thickness and aspect ratio handling
  */
 const DRAW_CONFIG = {
     // Game progression
@@ -30,12 +31,13 @@ const DRAW_CONFIG = {
             height: 80, // 80% of game area height
         },
         
-        // Number rendering within drawing area
+        // Number rendering within drawing area - FIXED ASPECT RATIO
         NUMBER_RENDER: {
             x: 55, // Start at 55% from left (5% padding from drawing area)
             y: 20, // Start at 20% from top (10% padding from drawing area)
-            width: 30, // 30% of game area width (40% - 10% padding)
-            height: 60, // 60% of game area height (80% - 20% padding)
+            // UPDATED: Maintain 1:2 width:height ratio using game area height
+            width: 30, // 30% of game area HEIGHT (not width) to maintain ratio
+            height: 60, // 60% of game area height (maintains 1:2 ratio)
         },
         
         // Redo button
@@ -57,18 +59,21 @@ const DRAW_CONFIG = {
         DRAWING_AREA_BACKGROUND: 'rgba(255, 255, 255, 0.7)', // 70% opaque white
         DRAWING_AREA_SHADOW: '0 0 2vh rgba(0, 0, 0, 0.1)', // Subtle shadow
         
-        // Number outline to be drawn
-        OUTLINE_THICKNESS: 4, // 4% of game area height
+        // Number outline to be drawn - UPDATED THICKNESS
+        OUTLINE_THICKNESS: 6, // 6% of game area height (increased from 4%)
         OUTLINE_COLOR: '#CCCCCC',
         
-        // User drawing line
-        DRAWING_LINE_THICKNESS: 3, // 3% of game area height  
+        // User drawing line - UPDATED THICKNESS
+        DRAWING_LINE_THICKNESS: 4, // 4% of game area height (increased from 3%)
         DRAWING_LINE_COLOR: '#4CAF50', // Green
         
         // Completion criteria
         COVERAGE_WIDTH_REQUIRED: 100, // 100% width coverage required
         COVERAGE_HEIGHT_REQUIRED: 100, // 100% height coverage required
         DRAWING_TOLERANCE: 25, // Tolerance for line proximity detection
+        
+        // NEW: Outline styling method
+        OUTLINE_METHOD: 'stroke', // 'stroke' or 'layered' - use SVG stroke for cleaner outline
     },
     
     // Audio messages organized by context
@@ -122,12 +127,13 @@ const DRAW_CONFIG = {
         FADE_TRANSITION: 500 // 0.5 second transitions
     },
     
-    // Coordinate system scaling
+    // Coordinate system scaling - UPDATED for proper aspect ratio
     COORDINATE_SYSTEM: {
         // Original coordinates are in 0-100 x 0-200 system
         ORIGINAL_WIDTH: 100,
         ORIGINAL_HEIGHT: 200,
-        // Will be scaled to fit NUMBER_RENDER area
+        // Will be scaled to fit NUMBER_RENDER area maintaining aspect ratio
+        // Width will be calculated as height/2 to maintain 1:2 ratio
     },
     
     // Rainbow colors (for shared Rainbow component)
@@ -418,6 +424,28 @@ const DRAW_CONFIG = {
         });
         
         return { minX, maxX, minY, maxY };
+    },
+    
+    // NEW: Calculate proper aspect ratio bounds for number rendering
+    calculateAspectRatioBounds(gameAreaDimensions) {
+        if (!gameAreaDimensions) return null;
+        
+        const { width, height } = gameAreaDimensions;
+        
+        // Calculate render area dimensions maintaining 1:2 aspect ratio
+        const renderHeight = (height * this.LAYOUT.NUMBER_RENDER.height) / 100;
+        const renderWidth = renderHeight / 2; // Maintain 1:2 ratio (width:height)
+        
+        // Calculate position (still using percentages for x, but calculating width from height)
+        const renderX = (width * this.LAYOUT.NUMBER_RENDER.x) / 100;
+        const renderY = (height * this.LAYOUT.NUMBER_RENDER.y) / 100;
+        
+        return {
+            x: renderX,
+            y: renderY,
+            width: renderWidth,
+            height: renderHeight
+        };
     }
 };
 
