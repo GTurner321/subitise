@@ -7,45 +7,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="styles/drawmain.css">
-    <style>
-        /* Clean white background */
-        html, body {
-            background: white !important;
-            min-height: 100vh !important;
-        }
-        
-        .game-area {
-            background: transparent !important;
-        }
-    </style>
 </head>
 <body>
-    <!-- Back to games navigation -->
-    <a href="../../index.html" class="back-button">
-        <i class="fas fa-arrow-left"></i>
-        Back to Games
-    </a>
-    
-    <!-- Main game area -->
+    <!-- Main game area - ButtonBar will create margins and layout -->
     <div class="game-area">
-        <!-- Rainbow background -->
+        <!-- Rainbow container - will be positioned by Rainbow component -->
         <div class="rainbow-container" id="rainbowContainer"></div>
         
-        <!-- Draw area container -->
-        <div class="draw-area">
-            <!-- Reference number (left side) - enhanced 20% taller container -->
-            <div class="reference-container" id="referenceContainer">
-                <div class="reference-number" id="referenceNumber"></div>
-            </div>
-            
-            <!-- Drawing canvas (right side) - enhanced for better drawing experience -->
-            <div class="drawing-container" id="drawingContainer">
-                <div class="drawing-canvas" id="drawingCanvas"></div>
-            </div>
-        </div>
+        <!-- Game content will be created dynamically by renderers -->
     </div>
     
-    <!-- Game completion modal with transparent background -->
+    <!-- Empty container for ButtonBar system (zero height) -->
+    <div class="number-buttons"></div>
+    
+    <!-- Game completion modal -->
     <div class="modal hidden" id="gameModal">
         <div class="modal-content">
             <h2>🌈 Well done! 🌈</h2>
@@ -57,12 +32,17 @@
         </div>
     </div>
     
-    <!-- JavaScript files - optimized loading order -->
+    <!-- JavaScript files - Load in proper order -->
+    <!-- Universal systems first -->
+    <script src="../../js/shared/buttonbar.js"></script>
     <script src="../../js/shared/audio.js"></script>
-    <script src="js/drawconfig.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
-    <script src="js/drawnumberrenderer.js"></script>
+    
+    <!-- Game-specific files -->
+    <script src="js/drawconfig.js"></script>
+    <script src="js/drawlayoutrenderer.js"></script>
+    <script src="js/drawingrenderer.js"></script>
     <script src="js/drawgamecontroller.js"></script>
 </body>
 </html>
