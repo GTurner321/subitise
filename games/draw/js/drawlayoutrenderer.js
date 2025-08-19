@@ -56,18 +56,18 @@ class DrawLayoutRenderer {
     }
     
     /**
-     * Initialize ButtonBar with zero height to create game area margins
+     * Initialize ButtonBar in game-area-only mode with margins
      */
     setupButtonBarIntegration() {
         console.log('🔗 Setting up ButtonBar integration for game area layout');
         
         // Wait for ButtonBar to be available
         const checkButtonBar = () => {
-            if (window.ButtonBar && typeof window.ButtonBar.create === 'function') {
-                console.log('✅ ButtonBar available, creating zero-height button bar');
+            if (window.ButtonBar && typeof window.ButtonBar.createGameAreaOnly === 'function') {
+                console.log('✅ ButtonBar available, creating game area with margins');
                 
-                // Create button bar with zero height to establish game area
-                window.ButtonBar.create(0, 0, 0, [], [], null);
+                // Create game area with margins but no buttons
+                window.ButtonBar.createGameAreaOnly({ useMargins: true });
                 
                 // Register for dimension updates
                 window.ButtonBar.addObserver((dimensionData) => {
