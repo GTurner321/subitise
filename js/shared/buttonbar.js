@@ -1,6 +1,7 @@
 /**
  * Universal Button Bar System
  * Handles responsive button layout across all games and coordinates with game areas
+ * Enhanced with game-area-only mode for games that don't need buttons
  * Styles managed through CSS classes for better separation of concerns
  */
 class ButtonBar {
@@ -28,6 +29,7 @@ class ButtonBar {
         // Game area coordination
         this.gameAreaElement = null;
         this.observers = []; // For notifying observers of dimension changes
+        this.isGameAreaOnlyMode = false; // Track which mode we're in
         
         // Bind resize handler
         this.handleResize = this.handleResize.bind(this);
@@ -76,6 +78,123 @@ class ButtonBar {
     }
     
     /**
+     * Create game area with margins but no buttons
+     * @param {Object} options - Configuration options
+     * @param {boolean} options.useMargins - Whether to apply responsive margins (default: true)
+     * @param {number} options.marginOverride - Override margin percentage (optional)
+     */
+    createGameAreaOnly(options = {}) {
+        const { useMargins = true, marginOverride = null } = options;
+        
+        console.log('Creating game area only with options:', options);
+        
+        // Set mode flag
+        this.isGameAreaOnlyMode = true;
+        
+        // Find or create container (but don't use it for buttons)
+        this.container = document.querySelector('.number-buttons');
+        if (!this.container) {
+            console.error('Button bar container (.number-buttons) not found');
+            return;
+        }
+        
+        // Find game area for coordination
+        this.gameAreaElement = document.querySelector('.game-area');
+        
+        // Clear any existing content
+        this.container.innerHTML = '';
+        this.buttons = [];
+        
+        // Set config for margin calculations
+        this.config = { n: 0, x: 0, y: 0, colors: [], numbers: [] };
+        
+        // Calculate dimensions (mainly for margins)
+        this.calculateDimensionsForGameArea(useMargins, marginOverride);
+        
+        // Hide the container completely
+        this.hideButtonContainer();
+        
+        // Apply margins to game area (if requested)
+        if (useMargins) {
+            this.updateGameAreaMargins();
+        }
+        
+        // Notify observers for Rainbow compatibility
+        this.notifyObservers();
+        
+        // IMPORTANT: Reinitialize rainbow after game area has proper dimensions
+        setTimeout(() => {
+            this.reinitializeRainbow();
+        }, 300); // Wait for game area dimensions to settle
+        
+        console.log('Game area setup complete with margins:', useMargins);
+    }
+    
+    /**
+     * Calculate dimensions specifically for game area setup
+     */
+    calculateDimensionsForGameArea(useMargins, marginOverride) {
+        const screenWidth = window.innerWidth;
+        this.dimensions.screenWidth = screenWidth;
+        
+        if (useMargins) {
+            // Use override or calculate margins as normal
+            if (marginOverride !== null) {
+                this.dimensions.outsideMargin = marginOverride;
+            } else {
+                // Standard margin calculation
+                if (screenWidth <= 768) {
+                    this.dimensions.outsideMargin = 0;
+                } else if (screenWidth <= 1024) {
+                    const progress = (screenWidth - 768) / (1024 - 768);
+                    this.dimensions.outsideMargin = progress * 14; // 0% to 14% of viewport width
+                } else {
+                    this.dimensions.outsideMargin = 14;
+                }
+            }
+        } else {
+            this.dimensions.outsideMargin = 0;
+        }
+        
+        // Calculate button panel width (for observer notifications)
+        this.dimensions.buttonPanelWidth = 100 - (2 * this.dimensions.outsideMargin);
+        
+        // Set other dimensions to 0 since no buttons
+        this.dimensions.buttonWidth = 0;
+        this.dimensions.buttonHeight = 0;
+        this.dimensions.actualGap = 0;
+        this.dimensions.buttonSpacing = 0;
+        this.dimensions.insideMargin = 0;
+        this.dimensions.totalHeight = '0px'; // No button bar height
+        
+        console.log('Game area dimensions calculated:', {
+            outsideMargin: this.dimensions.outsideMargin,
+            buttonPanelWidth: this.dimensions.buttonPanelWidth,
+            useMargins
+        });
+    }
+    
+    /**
+     * Hide the button container completely
+     */
+    hideButtonContainer() {
+        if (this.container) {
+            this.container.style.cssText = `
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100vw;
+                height: 0;
+                background: transparent;
+                display: none;
+                z-index: 100;
+                opacity: 0;
+                pointer-events: none;
+            `;
+        }
+    }
+    
+    /**
      * Create button bar
      * @param {number} n - Number of buttons
      * @param {number} x - Button width as % of button panel width
@@ -85,6 +204,9 @@ class ButtonBar {
      * @param {Function} clickHandler - Function to handle button clicks
      */
     create(n, x, y, colors = [], numbers = [], clickHandler = null) {
+        // Set mode flag
+        this.isGameAreaOnlyMode = false;
+        
         this.config = { n, x, y, colors, numbers };
         this.clickHandler = clickHandler;
         
@@ -306,35 +428,55 @@ class ButtonBar {
     }
     
     handleResize() {
-        if (this.container && this.config.n > 0) {
-            // Recalculate and reposition
-            this.calculateDimensions();
-            this.styleContainer();
-            
-            // Update button positions and sizes
-            this.buttons.forEach((button, index) => {
-                const fontSize = this.dimensions.buttonWidth / 2;
-                const leftPosition = this.dimensions.outsideMargin * (window.innerWidth / 100) + 
-                    this.dimensions.insideMargin + 
-                    (index * this.dimensions.buttonSpacing);
+        if (this.container) {
+            // Check if we're in game-area-only mode (no buttons)
+            if (this.isGameAreaOnlyMode || this.config.n === 0) {
+                // Recalculate for game area only mode
+                const useMargins = this.dimensions.outsideMargin > 0 || this.dimensions.buttonPanelWidth < 100;
+                this.calculateDimensionsForGameArea(useMargins);
                 
-                button.style.width = `${this.dimensions.buttonWidth}px`;
-                button.style.height = `${this.dimensions.buttonHeight}px`;
-                button.style.fontSize = `${fontSize}px`;
-                button.style.left = `${leftPosition}px`;
-            });
-            
-            // Update game area spacing and margins
-            this.updateGameAreaSpacing();
-            this.updateGameAreaMargins();
-            
-            // Notify observers of dimension changes
-            this.notifyObservers();
-            
-            // Reinitialize rainbow on resize as well
-            setTimeout(() => {
-                this.reinitializeRainbow();
-            }, 100);
+                // Update game area margins if applicable
+                if (useMargins) {
+                    this.updateGameAreaMargins();
+                }
+                
+                // Notify observers
+                this.notifyObservers();
+                
+                // Reinitialize rainbow on resize
+                setTimeout(() => {
+                    this.reinitializeRainbow();
+                }, 100);
+            } else if (this.config.n > 0) {
+                // Normal button mode resize handling
+                this.calculateDimensions();
+                this.styleContainer();
+                
+                // Update button positions and sizes
+                this.buttons.forEach((button, index) => {
+                    const fontSize = this.dimensions.buttonWidth / 2;
+                    const leftPosition = this.dimensions.outsideMargin * (window.innerWidth / 100) + 
+                        this.dimensions.insideMargin + 
+                        (index * this.dimensions.buttonSpacing);
+                    
+                    button.style.width = `${this.dimensions.buttonWidth}px`;
+                    button.style.height = `${this.dimensions.buttonHeight}px`;
+                    button.style.fontSize = `${fontSize}px`;
+                    button.style.left = `${leftPosition}px`;
+                });
+                
+                // Update game area spacing and margins
+                this.updateGameAreaSpacing();
+                this.updateGameAreaMargins();
+                
+                // Notify observers of dimension changes
+                this.notifyObservers();
+                
+                // Reinitialize rainbow on resize as well
+                setTimeout(() => {
+                    this.reinitializeRainbow();
+                }, 100);
+            }
         }
     }
     
@@ -588,6 +730,9 @@ class ButtonBar {
             this.container.innerHTML = '';
         }
         this.buttons = [];
+        
+        // Reset mode flag
+        this.isGameAreaOnlyMode = false;
     }
 }
 
