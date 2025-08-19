@@ -14,12 +14,12 @@ const DRAW_CONFIG = {
         // Left side reference number
         REFERENCE_NUMBER: {
             x: 25, // Centered at 25% from left
-            y: 40, // Centered at 40% from top
-            fontSize: 20, // 20% of game area height
+            y: 45, // Centered at 45% from top
+            fontSize: 25, // 25% of game area height
         },
         REFERENCE_TEXT: {
             x: 25, // Same x as number
-            y: 50, // Below the number
+            y: 55, // Below the number
             fontSize: 12, // 12% of game area height
         },
         
