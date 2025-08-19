@@ -2,13 +2,14 @@
  * Drawing Renderer - Part 2 of 2
  * 
  * PURPOSE: Handles all user drawing interaction and feedback functionality
- * - SVG outline rendering with grey border and white fill
+ * - SVG outline rendering with white fill and grey outline
  * - Pulsing hint animation after 5 seconds of inactivity
  * - Mouse/touch event handling for user drawing
  * - Drawing line rendering and path management
  * - Coverage detection and completion validation
  * - Undo functionality and drawing feedback
  * - Drawing progress monitoring and hints
+ * - UPDATED: White number with grey outline rendering
  * 
  * COMPANION FILE: drawlayoutrenderer.js
  * - Contains all layout setup and positioning logic
@@ -74,8 +75,8 @@ class DrawingRenderer {
         // Create SVG canvas
         this.createSVGCanvas();
         
-        // Render number outline with new method
-        this.renderNumberOutlineWithFill(number);
+        // Render number outline with white fill and grey outline
+        this.renderNumberWithWhiteFillGreyOutline(number);
         
         // Setup drawing events
         this.setupDrawingEvents();
@@ -146,12 +147,12 @@ class DrawingRenderer {
     }
     
     /**
-     * Render the number outline with grey border and white fill
+     * Render the number with white fill and grey outline - UPDATED METHOD
      */
-    renderNumberOutlineWithFill(number) {
+    renderNumberWithWhiteFillGreyOutline(number) {
         if (!this.outlineGroup) return;
         
-        console.log(`🔤 Rendering clean outline for number ${number}`);
+        console.log(`🔤 Rendering white number with grey outline for number ${number}`);
         
         // Clear existing outlines
         this.outlineGroup.innerHTML = '';
@@ -163,7 +164,7 @@ class DrawingRenderer {
             return;
         }
         
-        // Calculate outline thickness (6% of game area height)
+        // Calculate outline thickness (8% of game area height - increased from 6%)
         const outlineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.OUTLINE_THICKNESS) / 100;
         
         // Get drawing area bounds for coordinate conversion
@@ -186,34 +187,44 @@ class DrawingRenderer {
         // Set SVG viewBox to match drawing area
         this.svg.setAttribute('viewBox', `0 0 ${drawingBounds.width} ${drawingBounds.height}`);
         
-        // Render each stroke with clean grey outline and white fill
+        // Render each stroke with layered approach: grey outline + white fill
         numberConfig.strokes.forEach((stroke, strokeIndex) => {
             if (stroke.coordinates) {
                 const scaledCoords = this.scaleCoordinatesForSVG(stroke.coordinates, relativeNumberBounds);
                 const pathData = this.createPathData(scaledCoords);
                 
-                // Create clean outline path
+                // LAYER 1: Grey outline (thicker stroke)
                 const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 outlinePath.setAttribute('d', pathData);
-                outlinePath.setAttribute('stroke', DRAW_CONFIG.STYLING.OUTLINE_COLOR); // Grey border
+                outlinePath.setAttribute('stroke', DRAW_CONFIG.STYLING.OUTLINE_COLOR); // Grey
                 outlinePath.setAttribute('stroke-width', outlineThickness);
                 outlinePath.setAttribute('stroke-linecap', 'round');
                 outlinePath.setAttribute('stroke-linejoin', 'round');
-                outlinePath.setAttribute('fill', 'white'); // White fill
-                outlinePath.setAttribute('class', `outline-stroke-${strokeIndex}`);
+                outlinePath.setAttribute('fill', 'none'); // No fill for outline
+                outlinePath.setAttribute('class', `outline-stroke-${strokeIndex}-border`);
                 
-                // No filters or shadows - clean appearance
+                // LAYER 2: White fill (thinner stroke using config ratio)
+                const fillPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                fillPath.setAttribute('d', pathData);
+                fillPath.setAttribute('stroke', DRAW_CONFIG.STYLING.WHITE_FILL_COLOR); // White stroke from config
+                fillPath.setAttribute('stroke-width', outlineThickness * DRAW_CONFIG.STYLING.WHITE_FILL_RATIO); // Ratio from config
+                fillPath.setAttribute('stroke-linecap', 'round');
+                fillPath.setAttribute('stroke-linejoin', 'round');
+                fillPath.setAttribute('fill', 'none'); // Still no fill, just white stroke
+                fillPath.setAttribute('class', `outline-stroke-${strokeIndex}-fill`);
                 
+                // Add both layers (outline first, then fill on top)
                 this.outlineGroup.appendChild(outlinePath);
+                this.outlineGroup.appendChild(fillPath);
                 
-                console.log(`📝 Rendered clean outline stroke ${strokeIndex} with ${scaledCoords.length} points`);
+                console.log(`📝 Rendered layered stroke ${strokeIndex}: grey outline (${outlineThickness}px) + white fill (${outlineThickness * DRAW_CONFIG.STYLING.WHITE_FILL_RATIO}px)`);
             }
         });
         
         // Store number bounds for coverage detection
         this.numberBounds = this.layoutRenderer.calculateNumberBounds(number);
         
-        console.log(`✅ Number ${number} clean outline rendered with ${numberConfig.strokes.length} strokes`);
+        console.log(`✅ Number ${number} rendered with white fill and grey outline using ${numberConfig.strokes.length} strokes`);
     }
     
     /**
@@ -703,7 +714,7 @@ class DrawingRenderer {
     }
     
     /**
-     * Show visual flash (disappear and reappear twice in 1 second)
+     * Show visual flash (disappear and reappear twice in 1 second) - UPDATED for layered paths
      */
     showVisualFlash() {
         if (this.isComplete || !this.outlineGroup) return;
