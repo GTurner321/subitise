@@ -1,18 +1,20 @@
 /**
- * Draw Game Controller - Main Game Orchestrator
+ * Draw Game Controller - Enhanced with Fixed Rainbow Integration
  * 
  * PURPOSE: Coordinates all game systems and manages game flow
- * - Integrates layout renderer, drawing renderer, audio, rainbow, and bear systems
+ * - Fixed rainbow visibility issues with proper timing and initialization
+ * - Simplified component loading with better error handling
+ * - Enhanced completion detection with immediate feedback
+ * - Proper game area coordination with ButtonBar system
  * - Manages game progression through all 10 numbers (0-9)
  * - Handles game state, completion detection, and user feedback
  * - Coordinates audio announcements and visual celebrations
  * - Manages game restart and cleanup functionality
- * - Fixed component loading timing issues
  */
 
 class DrawGameController {
     constructor() {
-        console.log('🎮 DrawGameController initializing - orchestrating game systems');
+        console.log('🎮 DrawGameController initializing with enhanced rainbow integration');
         
         // Game state
         this.currentNumberIndex = 0;
@@ -43,6 +45,11 @@ class DrawGameController {
         this.isTabVisible = true;
         this.audioEnabled = true;
         
+        // NEW: Initialization flags
+        this.componentsReady = false;
+        this.gameAreaReady = false;
+        this.rainbowReady = false;
+        
         // Bind methods for event handlers
         this.onNumberComplete = this.onNumberComplete.bind(this);
         this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
@@ -53,40 +60,51 @@ class DrawGameController {
     }
     
     /**
-     * Initialize all game systems
+     * Initialize all game systems with improved sequencing
      */
     async initializeGame() {
-        console.log('🚀 Starting game initialization sequence');
+        console.log('🚀 Starting enhanced game initialization sequence');
         
         try {
-            // Wait for DOM to be ready
+            // Step 1: Wait for DOM
             await this.waitForDOM();
+            console.log('✅ DOM ready');
             
-            // Initialize audio system
+            // Step 2: Initialize audio system
             this.initializeAudioSystem();
+            console.log('✅ Audio system ready');
             
-            // Setup visibility handling
+            // Step 3: Setup visibility handling
             this.setupVisibilityHandling();
+            console.log('✅ Visibility handling ready');
             
-            // Wait for shared components to be available with better detection
-            await this.waitForSharedComponents();
-            
-            // Initialize shared components
-            this.initializeSharedComponents();
-            
-            // Setup modal and UI
+            // Step 4: Setup modal and UI (early)
             this.setupGameUI();
+            console.log('✅ Game UI ready');
             
-            // Initialize renderers
+            // Step 5: Wait for ButtonBar to create game area
+            await this.waitForGameAreaReady();
+            console.log('✅ Game area ready');
+            
+            // Step 6: Initialize shared components AFTER game area is ready
+            await this.initializeSharedComponents();
+            console.log('✅ Shared components ready');
+            
+            // Step 7: Initialize renderers
             await this.initializeRenderers();
+            console.log('✅ Renderers ready');
             
-            // Start first number
-            this.startGame();
-            
-            console.log('✅ Game initialization complete');
+            // Step 8: Final verification and start
+            if (this.verifyAllSystemsReady()) {
+                this.startGame();
+                console.log('✅ Game initialization complete and game started');
+            } else {
+                throw new Error('System verification failed');
+            }
             
         } catch (error) {
             console.error('❌ Game initialization failed:', error);
+            this.handleInitializationFailure(error);
         }
     }
     
@@ -104,60 +122,110 @@ class DrawGameController {
     }
     
     /**
-     * Wait for shared components to be available - IMPROVED
+     * NEW: Wait for game area to be properly set up by ButtonBar
      */
-    waitForSharedComponents() {
+    waitForGameAreaReady() {
         return new Promise((resolve) => {
             let attempts = 0;
-            const maxAttempts = 100; // 10 seconds max wait
+            const maxAttempts = 50; // 5 seconds max wait
             
-            const checkComponents = () => {
+            const checkGameArea = () => {
                 attempts++;
                 
-                // Check multiple possible locations for components
-                const rainbowAvailable = !!(
-                    window.Rainbow || 
-                    (typeof Rainbow !== 'undefined' && Rainbow) ||
-                    document.querySelector('script[src*="rainbow.js"]')
-                );
+                const gameArea = document.querySelector('.game-area');
+                const rainbowContainer = document.getElementById('rainbowContainer');
                 
-                const bearAvailable = !!(
-                    window.Bear || 
-                    (typeof Bear !== 'undefined' && Bear) ||
-                    document.querySelector('script[src*="Bear.js"]')
-                );
-                
-                console.log(`🔍 Component check attempt ${attempts}:`, {
-                    rainbow: rainbowAvailable,
-                    bear: bearAvailable,
-                    windowRainbow: typeof window.Rainbow,
-                    windowBear: typeof window.Bear,
-                    globalRainbow: typeof Rainbow,
-                    globalBear: typeof Bear
-                });
-                
-                if (rainbowAvailable && bearAvailable) {
-                    // Ensure components are on window object
-                    if (typeof Rainbow !== 'undefined' && !window.Rainbow) {
-                        window.Rainbow = Rainbow;
+                if (gameArea && rainbowContainer) {
+                    // Check if game area has proper dimensions
+                    const rect = gameArea.getBoundingClientRect();
+                    if (rect.width > 100 && rect.height > 100) {
+                        console.log(`🎯 Game area ready: ${rect.width.toFixed(0)}×${rect.height.toFixed(0)}px`);
+                        this.gameAreaReady = true;
+                        resolve();
+                        return;
                     }
-                    if (typeof Bear !== 'undefined' && !window.Bear) {
-                        window.Bear = Bear;
-                    }
-                    
-                    console.log('✅ Shared components (Rainbow, Bear) are now available');
-                    resolve();
-                } else if (attempts >= maxAttempts) {
-                    console.error('❌ Timeout waiting for shared components after 10 seconds');
-                    // Try to continue anyway
+                }
+                
+                if (attempts >= maxAttempts) {
+                    console.warn('⚠️ Game area setup timeout, proceeding anyway');
                     resolve();
                 } else {
-                    setTimeout(checkComponents, 100);
+                    setTimeout(checkGameArea, 100);
                 }
             };
             
-            checkComponents();
+            checkGameArea();
         });
+    }
+    
+    /**
+     * Initialize shared components with better timing
+     */
+    async initializeSharedComponents() {
+        console.log('🌈 Initializing shared components after game area setup');
+        
+        // Initialize Rainbow with proper error handling
+        try {
+            // Check multiple possible locations for Rainbow
+            let RainbowClass = null;
+            
+            if (window.Rainbow && typeof window.Rainbow === 'function') {
+                RainbowClass = window.Rainbow;
+                console.log('📍 Found Rainbow at window.Rainbow');
+            } else if (typeof Rainbow !== 'undefined' && typeof Rainbow === 'function') {
+                RainbowClass = Rainbow;
+                window.Rainbow = Rainbow; // Ensure it's on window
+                console.log('📍 Found Rainbow in global scope, added to window');
+            }
+            
+            if (RainbowClass) {
+                this.rainbow = new RainbowClass();
+                this.rainbowReady = true;
+                console.log('✅ Rainbow initialized successfully');
+                
+                // Verify rainbow container is properly positioned
+                setTimeout(() => {
+                    if (this.rainbow && typeof this.rainbow.initializeArcs === 'function') {
+                        console.log('🔄 Re-initializing rainbow arcs after component setup');
+                        this.rainbow.initializeArcs();
+                    }
+                }, 500);
+            } else {
+                console.warn('⚠️ Rainbow class not found, creating dummy implementation');
+                this.rainbow = this.createDummyRainbow();
+            }
+        } catch (error) {
+            console.error('❌ Rainbow initialization failed:', error);
+            this.rainbow = this.createDummyRainbow();
+        }
+        
+        // Initialize Bear with proper error handling
+        try {
+            let BearClass = null;
+            
+            if (window.Bear && typeof window.Bear === 'function') {
+                BearClass = window.Bear;
+                console.log('📍 Found Bear at window.Bear');
+            } else if (typeof Bear !== 'undefined' && typeof Bear === 'function') {
+                BearClass = Bear;
+                window.Bear = Bear; // Ensure it's on window
+                console.log('📍 Found Bear in global scope, added to window');
+            }
+            
+            if (BearClass) {
+                this.bear = new BearClass();
+                console.log('✅ Bear initialized successfully');
+            } else {
+                console.warn('⚠️ Bear class not found, creating dummy implementation');
+                this.bear = this.createDummyBear();
+            }
+        } catch (error) {
+            console.error('❌ Bear initialization failed:', error);
+            this.bear = this.createDummyBear();
+        }
+        
+        this.componentsReady = true;
+        console.log('✅ All shared components initialized');
     }
     
     /**
@@ -208,49 +276,6 @@ class DrawGameController {
     }
     
     /**
-     * Initialize shared components (Rainbow, Bear) - Simplified since rainbow isn't needed immediately
-     */
-    initializeSharedComponents() {
-        console.log('🌈 Initializing shared components');
-        
-        // Initialize Rainbow - simple approach since it's not used until first completion
-        try {
-            if (window.Rainbow && typeof window.Rainbow === 'function') {
-                this.rainbow = new window.Rainbow();
-                console.log('✅ Rainbow initialized from window.Rainbow');
-            } else if (typeof Rainbow !== 'undefined' && typeof Rainbow === 'function') {
-                this.rainbow = new Rainbow();
-                window.Rainbow = Rainbow;
-                console.log('✅ Rainbow initialized from global Rainbow');
-            } else {
-                console.warn('⚠️ Rainbow class not found, creating dummy implementation');
-                this.rainbow = this.createDummyRainbow();
-            }
-        } catch (error) {
-            console.error('❌ Rainbow initialization failed:', error);
-            this.rainbow = this.createDummyRainbow();
-        }
-        
-        // Initialize Bear - simple approach
-        try {
-            if (window.Bear && typeof window.Bear === 'function') {
-                this.bear = new window.Bear();
-                console.log('✅ Bear initialized from window.Bear');
-            } else if (typeof Bear !== 'undefined' && typeof Bear === 'function') {
-                this.bear = new Bear();
-                window.Bear = Bear;
-                console.log('✅ Bear initialized from global Bear');
-            } else {
-                console.warn('⚠️ Bear class not found, creating dummy implementation');
-                this.bear = this.createDummyBear();
-            }
-        } catch (error) {
-            console.error('❌ Bear initialization failed:', error);
-            this.bear = this.createDummyBear();
-        }
-    }
-    
-    /**
      * Create dummy rainbow implementation for fallback
      */
     createDummyRainbow() {
@@ -261,7 +286,8 @@ class DrawGameController {
             },
             isComplete: () => false,
             reset: () => console.log('🌈 Dummy rainbow: reset'),
-            getPieces: () => 0
+            getPieces: () => 0,
+            initializeArcs: () => console.log('🌈 Dummy rainbow: arcs initialized')
         };
     }
     
@@ -345,6 +371,54 @@ class DrawGameController {
     }
     
     /**
+     * NEW: Verify all systems are ready before starting
+     */
+    verifyAllSystemsReady() {
+        const checks = {
+            config: typeof DRAW_CONFIG !== 'undefined',
+            gameArea: this.gameAreaReady,
+            components: this.componentsReady,
+            layoutRenderer: this.layoutRenderer && this.layoutRenderer.isLayoutReady(),
+            drawingRenderer: !!this.drawingRenderer,
+            rainbow: !!this.rainbow,
+            bear: !!this.bear,
+            modal: !!this.modal
+        };
+        
+        console.log('🔍 System verification:', checks);
+        
+        const allReady = Object.values(checks).every(check => check === true);
+        
+        if (!allReady) {
+            const failures = Object.entries(checks)
+                .filter(([key, value]) => !value)
+                .map(([key]) => key);
+            console.error('❌ System verification failed:', failures);
+        }
+        
+        return allReady;
+    }
+    
+    /**
+     * Handle initialization failure with graceful degradation
+     */
+    handleInitializationFailure(error) {
+        console.error('🚨 Initialization failed, attempting recovery:', error);
+        
+        // Try to start with minimal systems
+        try {
+            if (this.layoutRenderer && this.drawingRenderer) {
+                console.log('🔧 Starting with minimal systems');
+                this.startGame();
+            } else {
+                console.error('💥 Critical systems missing, cannot start game');
+            }
+        } catch (recoveryError) {
+            console.error('💥 Recovery failed:', recoveryError);
+        }
+    }
+    
+    /**
      * Start the game with first number
      */
     startGame() {
@@ -358,10 +432,12 @@ class DrawGameController {
         // Reset shared components
         if (this.rainbow) {
             this.rainbow.reset();
+            console.log('🌈 Rainbow reset');
         }
         
         if (this.bear) {
             this.bear.reset();
+            console.log('🐻 Bear reset');
         }
         
         // Hide modal
@@ -439,7 +515,7 @@ class DrawGameController {
     }
     
     /**
-     * Handle number completion (called by DrawingRenderer)
+     * NEW: Enhanced number completion with immediate rainbow integration
      */
     onNumberComplete(number) {
         if (this.isProcessingCompletion) {
@@ -448,48 +524,60 @@ class DrawGameController {
         }
         
         this.isProcessingCompletion = true;
-        console.log(`🎉 Number ${number} completed!`);
+        console.log(`🎉 Number ${number} completed! Adding rainbow piece immediately.`);
         
-        // Add rainbow piece
-        if (this.rainbow) {
-            const pieces = this.rainbow.addPiece();
-            console.log(`🌈 Rainbow piece added: ${pieces}/${DRAW_CONFIG.RAINBOW_PIECES}`);
+        // NEW: Immediate rainbow piece addition with verification
+        if (this.rainbow && typeof this.rainbow.addPiece === 'function') {
+            try {
+                const pieces = this.rainbow.addPiece();
+                console.log(`🌈 Rainbow piece added successfully: ${pieces}/${DRAW_CONFIG.RAINBOW_PIECES}`);
+                
+                // Verify the piece was actually added
+                const currentPieces = this.rainbow.getPieces ? this.rainbow.getPieces() : pieces;
+                console.log(`🌈 Rainbow verification: ${currentPieces} pieces now visible`);
+                
+                // Force rainbow re-initialization if needed
+                if (currentPieces !== pieces && typeof this.rainbow.initializeArcs === 'function') {
+                    console.log('🔄 Re-initializing rainbow arcs due to mismatch');
+                    setTimeout(() => this.rainbow.initializeArcs(), 100);
+                }
+            } catch (error) {
+                console.error('❌ Rainbow addPiece failed:', error);
+            }
+        } else {
+            console.warn('⚠️ Rainbow not available or addPiece method missing');
         }
         
         // Play completion audio
         this.playCompletionAudio(number);
-        
-        // Play completion sound effect
-        if (window.AudioSystem) {
-            window.AudioSystem.playCompletionSound();
-        }
         
         // Update counters
         this.numbersCompleted++;
         this.currentNumberIndex++;
         
         // Check if game is complete
-        if (this.rainbow && this.rainbow.isComplete()) {
+        if (this.rainbow && typeof this.rainbow.isComplete === 'function' && this.rainbow.isComplete()) {
+            console.log('🏆 Rainbow reports completion, finishing game');
             // Delay game completion to allow rainbow celebration
             setTimeout(() => {
                 this.completeGame();
             }, 3000);
         } else {
-            // Move to next number after delay
+            // Move to next number after total completion delay
             setTimeout(() => {
                 this.isProcessingCompletion = false;
                 this.startNextNumber();
-            }, DRAW_CONFIG.TIMING.COMPLETION_DELAY);
+            }, DRAW_CONFIG.TIMING.TOTAL_COMPLETION_DELAY);
         }
     }
     
     /**
-     * Play completion audio for a number (simplified - no number-specific message)
+     * Play completion audio for a number
      */
     playCompletionAudio(number) {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
-        // Play random encouragement only (no number-specific completion message)
+        // Play random encouragement
         const encouragement = DRAW_CONFIG.getRandomEncouragement();
         this.speakText(encouragement);
     }
@@ -511,8 +599,13 @@ class DrawGameController {
         }
         
         // Start bear celebration
-        if (this.bear) {
-            this.bear.startCelebration();
+        if (this.bear && typeof this.bear.startCelebration === 'function') {
+            try {
+                this.bear.startCelebration();
+                console.log('🐻 Bear celebration started');
+            } catch (error) {
+                console.error('❌ Bear celebration failed:', error);
+            }
         }
         
         // Play completion audio
@@ -520,13 +613,12 @@ class DrawGameController {
     }
     
     /**
-     * Play game completion audio (simplified message)
+     * Play game completion audio
      */
     playGameCompletionAudio() {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
         setTimeout(() => {
-            // Single completion message that includes modal instructions
             this.speakText(DRAW_CONFIG.AUDIO.GAME_END.ALL_COMPLETE);
         }, 1000);
     }
@@ -538,7 +630,7 @@ class DrawGameController {
         console.log('🔄 Play again requested');
         
         // Stop bear celebration
-        if (this.bear) {
+        if (this.bear && typeof this.bear.stopCelebration === 'function') {
             this.bear.stopCelebration();
         }
         
@@ -586,8 +678,13 @@ class DrawGameController {
             numbersCompleted: this.numbersCompleted,
             totalNumbers: this.numbersSequence.length,
             gameComplete: this.gameComplete,
-            rainbowPieces: this.rainbow ? this.rainbow.getPieces() : 0,
-            drawingProgress: this.drawingRenderer ? this.drawingRenderer.getProgress() : null
+            rainbowPieces: this.rainbow ? (this.rainbow.getPieces ? this.rainbow.getPieces() : 0) : 0,
+            drawingProgress: this.drawingRenderer ? this.drawingRenderer.getProgress() : null,
+            systemsReady: {
+                gameArea: this.gameAreaReady,
+                components: this.componentsReady,
+                rainbow: this.rainbowReady
+            }
         };
     }
     
@@ -614,11 +711,11 @@ class DrawGameController {
         }
         
         // Stop celebrations
-        if (this.bear) {
+        if (this.bear && typeof this.bear.reset === 'function') {
             this.bear.reset();
         }
         
-        if (this.rainbow) {
+        if (this.rainbow && typeof this.rainbow.reset === 'function') {
             this.rainbow.reset();
         }
         
@@ -716,4 +813,4 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-console.log('🎮 DrawGameController class defined and ready');
+console.log('🎮 DrawGameController class defined with enhanced rainbow integration');
