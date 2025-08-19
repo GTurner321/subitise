@@ -130,7 +130,7 @@ initializeGame() {
         // Give instruction for category selection - different for first vs subsequent questions
         if (this.questionsCompleted === 0) {
             // First question - longer explanation
-            const longInstruction = 'Choose a category: Fun, Cuddly, or Stars. Fun goes up to 100%, cuddly goes up to 10, and the star rating is out of 5 stars';
+            const longInstruction = 'Choose a category: Fun, Cuddles, or Stars. Fun goes up to 100%, cuddles goes up to 10, and the star rating is out of 5 stars';
             window.AudioSystem.speakText(longInstruction);
             
             // Calculate speech duration and wait before showing computer card back
