@@ -1,515 +1,614 @@
+/**
+ * Draw Game Controller - Main Game Orchestrator
+ * 
+ * PURPOSE: Coordinates all game systems and manages game flow
+ * - Integrates layout renderer, drawing renderer, audio, rainbow, and bear systems
+ * - Manages game progression through all 10 numbers (0-9)
+ * - Handles game state, completion detection, and user feedback
+ * - Coordinates audio announcements and visual celebrations
+ * - Manages game restart and cleanup functionality
+ */
+
 class DrawGameController {
     constructor() {
-        this.renderer = null;
+        console.log('🎮 DrawGameController initializing - orchestrating game systems');
         
-        // Initialize shared components with proper configuration
-        this.rainbow = new Rainbow();
-        this.bear = new Bear();
-        
-        // Override bear image path for this game
-        if (this.bear && DRAW_CONFIG.BEAR_IMAGE_PATH) {
-            this.bear.bearImage = DRAW_CONFIG.BEAR_IMAGE_PATH;
-        }
-        
+        // Game state
         this.currentNumberIndex = 0;
-        this.currentNumber = 0;
         this.numbersCompleted = 0;
         this.gameComplete = false;
         this.isProcessingCompletion = false;
         
+        // Numbers sequence from config
         this.numbersSequence = [...DRAW_CONFIG.NUMBERS_SEQUENCE];
         
-        this.audioContext = null;
-        this.audioEnabled = DRAW_CONFIG.AUDIO_ENABLED;
+        // Component instances
+        this.layoutRenderer = null;
+        this.drawingRenderer = null;
+        this.rainbow = null;
+        this.bear = null;
         
-        this.modal = document.getElementById('gameModal');
-        this.playAgainBtn = document.getElementById('playAgainBtn');
-        this.nextBtn = document.getElementById('nextBtn');
-        this.numberWordDisplay = document.getElementById('numberWord');
+        // DOM elements
+        this.modal = null;
+        this.playAgainBtn = null;
         
-        // Mute button references
-        this.muteButton = null;
-        this.muteContainer = null;
+        // Audio state
+        this.isTabVisible = true;
+        this.audioEnabled = true;
         
-        this.handleResize = this.handleResize.bind(this);
+        // Bind methods for event handlers
+        this.onNumberComplete = this.onNumberComplete.bind(this);
         this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
+        this.handlePlayAgain = this.handlePlayAgain.bind(this);
         
+        // Initialize game
         this.initializeGame();
     }
-
+    
+    /**
+     * Initialize all game systems
+     */
     async initializeGame() {
-        window.addEventListener('resize', this.handleResize);
-        await this.initializeAudio();
-        this.initializeRainbow();
-        this.createMuteButton();
+        console.log('🚀 Starting game initialization sequence');
         
-        this.renderer = new DrawNumberRenderer();
-        if (!this.renderer.initialize('referenceNumber', 'drawingCanvas')) return;
-        
-        await this.waitForDependencies();
-        this.setupEventListeners();
-        this.startNewNumber();
+        try {
+            // Wait for DOM to be ready
+            await this.waitForDOM();
+            
+            // Initialize audio system
+            this.initializeAudioSystem();
+            
+            // Setup visibility handling
+            this.setupVisibilityHandling();
+            
+            // Initialize shared components
+            this.initializeSharedComponents();
+            
+            // Setup modal and UI
+            this.setupGameUI();
+            
+            // Initialize renderers
+            await this.initializeRenderers();
+            
+            // Start first number
+            this.startGame();
+            
+            console.log('✅ Game initialization complete');
+            
+        } catch (error) {
+            console.error('❌ Game initialization failed:', error);
+        }
     }
-
-    initializeRainbow() {
-        const gameWidth = window.innerWidth;
-        const rainbowWidth = gameWidth * 0.75;
-        
-        this.rainbow.initializeArcs = function() {
-            this.container.innerHTML = '';
-            for (let i = 0; i < this.maxPieces; i++) {
-                const arc = document.createElement('div');
-                arc.className = 'rainbow-arc';
-                arc.id = `arc-${i}`;
-                const baseRadius = rainbowWidth / 2;
-                const radius = baseRadius - (i * this.arcWidth);
-                arc.style.width = radius * 2 + 'px';
-                arc.style.height = radius + 'px';
-                arc.style.borderTopWidth = this.arcWidth + 'px';
-                arc.style.borderTopColor = this.colors[i];
-                arc.style.borderRadius = radius + 'px ' + radius + 'px 0 0';
-                arc.style.position = 'absolute';
-                arc.style.bottom = '0';
-                arc.style.left = '50%';
-                arc.style.transform = 'translateX(-50%)';
-                arc.style.opacity = '0';
-                arc.style.transition = 'opacity 0.5s ease-in-out';
-                arc.style.pointerEvents = 'none';
-                this.container.appendChild(arc);
-            }
-        };
-        this.rainbow.initializeArcs();
-    }
-
-    async waitForDependencies() {
+    
+    /**
+     * Wait for DOM to be ready
+     */
+    waitForDOM() {
         return new Promise((resolve) => {
-            const check = () => {
-                if (typeof DRAW_CONFIG !== 'undefined' && this.renderer) {
-                    resolve();
-                } else {
-                    requestAnimationFrame(check);
-                }
-            };
-            setTimeout(check, 100);
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', resolve);
+            } else {
+                resolve();
+            }
         });
     }
-
-    async initializeAudio() {
-        if (!this.audioEnabled) return;
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
+    
+    /**
+     * Initialize audio system
+     */
+    initializeAudioSystem() {
+        console.log('🔊 Initializing audio system');
+        
+        // Audio system should already be initialized globally
+        if (window.AudioSystem) {
+            this.audioEnabled = window.AudioSystem.audioEnabled;
+            console.log('✅ Audio system ready');
+        } else {
+            console.warn('⚠️ Audio system not available');
             this.audioEnabled = false;
         }
     }
-
-    createMuteButton() {
-        // Create mute button container
-        const muteContainer = document.createElement('div');
-        muteContainer.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        `;
-        
-        // Create button
-        this.muteButton = document.createElement('button');
-        this.muteButton.style.cssText = `
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        `;
-        
-        // Set initial icon
-        this.updateMuteButtonIcon();
-        
-        // Add event listeners
-        this.muteButton.addEventListener('click', () => this.toggleAudio());
-        this.muteButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.toggleAudio();
-        });
-        
-        // Hover effects
-        muteContainer.addEventListener('mouseenter', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-            muteContainer.style.transform = 'scale(1.1)';
-        });
-        
-        muteContainer.addEventListener('mouseleave', () => {
-            muteContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            muteContainer.style.transform = 'scale(1)';
-        });
-        
-        muteContainer.appendChild(this.muteButton);
-        document.body.appendChild(muteContainer);
-        
-        this.muteContainer = muteContainer;
-    }
-
-    updateMuteButtonIcon() {
-        if (this.muteButton) {
-            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
-            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
-        }
-    }
-
-    toggleAudio() {
-        this.audioEnabled = !this.audioEnabled;
-        this.updateMuteButtonIcon();
-        
-        // Stop any current speech
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        // Provide feedback
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText('Audio enabled');
-            }, 100);
-        }
-    }
-
-    setupEventListeners() {
-        if (this.playAgainBtn) {
-            this.playAgainBtn.addEventListener('click', () => this.startNewGame());
-        }
-        
-        if (this.nextBtn) {
-            this.nextBtn.addEventListener('click', () => this.moveToNextNumber());
-        }
-        
-        // Set up renderer completion callback
-        if (this.renderer) {
-            window.drawGame = this;
-        }
-        
+    
+    /**
+     * Setup tab visibility handling
+     */
+    setupVisibilityHandling() {
         document.addEventListener('visibilitychange', this.handleVisibilityChange);
         
-        if (DRAW_CONFIG.DEBUG_MODE) {
-            document.addEventListener('keydown', (e) => {
-                if (e.key === ' ') { e.preventDefault(); this.handleNumberCompletion(); }
-                if (e.key === 'r') { e.preventDefault(); this.restartCurrentNumber(); }
-                if (e.key >= '0' && e.key <= '9') { e.preventDefault(); this.skipToNumber(parseInt(e.key)); }
-                if (e.key === 'c') { e.preventDefault(); this.clearDrawing(); }
-            });
+        window.addEventListener('focus', () => {
+            this.isTabVisible = true;
+        });
+        
+        window.addEventListener('blur', () => {
+            this.isTabVisible = false;
+        });
+    }
+    
+    /**
+     * Handle visibility changes
+     */
+    handleVisibilityChange() {
+        this.isTabVisible = !document.hidden;
+        
+        if (!this.isTabVisible) {
+            // Stop any ongoing audio when tab is hidden
+            if (window.AudioSystem) {
+                window.AudioSystem.stopAllAudio();
+            }
+        }
+        
+        console.log(`👁️ Tab visibility: ${this.isTabVisible ? 'visible' : 'hidden'}`);
+    }
+    
+    /**
+     * Initialize shared components (Rainbow, Bear)
+     */
+    initializeSharedComponents() {
+        console.log('🌈 Initializing shared components');
+        
+        // Initialize Rainbow
+        if (window.Rainbow) {
+            this.rainbow = new window.Rainbow();
+            console.log('✅ Rainbow initialized');
+        } else {
+            console.warn('⚠️ Rainbow component not available');
+        }
+        
+        // Initialize Bear
+        if (window.Bear) {
+            this.bear = new window.Bear();
+            console.log('✅ Bear initialized');
+        } else {
+            console.warn('⚠️ Bear component not available');
         }
     }
-
-    handleResize() {
-        if (this.renderer) {
-            this.renderer.updateSVGDimensions();
+    
+    /**
+     * Setup game UI elements
+     */
+    setupGameUI() {
+        console.log('🎨 Setting up game UI');
+        
+        // Find modal elements
+        this.modal = document.getElementById('gameModal');
+        this.playAgainBtn = document.getElementById('playAgainBtn');
+        
+        if (!this.modal || !this.playAgainBtn) {
+            console.error('❌ Required UI elements not found');
+            return;
         }
-        this.initializeRainbow();
-        if (this.renderer && this.currentNumber !== null) {
-            this.renderer.renderNumber(this.currentNumber);
-        }
+        
+        // Setup play again button
+        this.playAgainBtn.addEventListener('click', this.handlePlayAgain);
+        this.playAgainBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.handlePlayAgain();
+        });
+        
+        // Initially hide modal
+        this.modal.classList.add('hidden');
+        
+        console.log('✅ Game UI setup complete');
     }
-
-    startNewGame() {
+    
+    /**
+     * Initialize the renderer systems
+     */
+    async initializeRenderers() {
+        console.log('🎨 Initializing renderer systems');
+        
+        // Initialize layout renderer first
+        this.layoutRenderer = new DrawLayoutRenderer();
+        
+        // Wait for layout to be ready
+        await this.waitForLayoutReady();
+        
+        // Initialize drawing renderer
+        this.drawingRenderer = new DrawingRenderer(this.layoutRenderer);
+        
+        // Make drawing renderer globally available for undo button
+        window.drawingRenderer = this.drawingRenderer;
+        
+        // Make game controller globally available for completion callbacks
+        window.drawGameController = this;
+        
+        console.log('✅ Renderer systems initialized');
+    }
+    
+    /**
+     * Wait for layout renderer to be ready
+     */
+    waitForLayoutReady() {
+        return new Promise((resolve) => {
+            const checkReady = () => {
+                if (this.layoutRenderer && this.layoutRenderer.isLayoutReady()) {
+                    resolve();
+                } else {
+                    setTimeout(checkReady, 50);
+                }
+            };
+            checkReady();
+        });
+    }
+    
+    /**
+     * Start the game with first number
+     */
+    startGame() {
+        console.log('🎯 Starting new game');
+        
         this.currentNumberIndex = 0;
         this.numbersCompleted = 0;
         this.gameComplete = false;
         this.isProcessingCompletion = false;
         
-        this.rainbow.reset();
-        this.bear.reset();
-        this.renderer.reset();
+        // Reset shared components
+        if (this.rainbow) {
+            this.rainbow.reset();
+        }
         
-        if (this.modal) this.modal.classList.add('hidden');
-        if (this.nextBtn) this.nextBtn.classList.add('hidden');
-        this.updateNumberWordDisplay('');
-        this.startNewNumber();
+        if (this.bear) {
+            this.bear.reset();
+        }
+        
+        // Hide modal
+        if (this.modal) {
+            this.modal.classList.add('hidden');
+        }
+        
+        // Start first number
+        this.startNextNumber();
+        
+        // Play welcome message
+        this.playWelcomeMessage();
     }
-
-    startNewNumber() {
+    
+    /**
+     * Play welcome message
+     */
+    playWelcomeMessage() {
+        if (!this.audioEnabled || !this.isTabVisible) return;
+        
+        setTimeout(() => {
+            this.speakText(DRAW_CONFIG.AUDIO.GAME_START.WELCOME);
+            
+            setTimeout(() => {
+                this.speakText(DRAW_CONFIG.AUDIO.GAME_START.INSTRUCTIONS);
+            }, 2000);
+        }, 1000);
+    }
+    
+    /**
+     * Start the next number in sequence
+     */
+    startNextNumber() {
         if (this.currentNumberIndex >= this.numbersSequence.length) {
             this.completeGame();
             return;
         }
         
-        this.currentNumber = this.numbersSequence[this.currentNumberIndex];
+        const currentNumber = this.numbersSequence[this.currentNumberIndex];
+        console.log(`🔢 Starting number ${currentNumber} (${this.currentNumberIndex + 1}/${this.numbersSequence.length})`);
         
-        if (!this.renderer.renderNumber(this.currentNumber)) return;
-        
-        if (this.nextBtn) this.nextBtn.classList.add('hidden');
-        
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText(`Draw the number ${this.currentNumber}`);
-            }, 500);
-        }
-    }
-
-    restartCurrentNumber() {
-        this.renderer.clearDrawing();
-        this.updateNumberWordDisplay(DRAW_CONFIG.NUMBER_WORDS[this.currentNumber]);
-        
-        if (this.nextBtn) this.nextBtn.classList.add('hidden');
-        
-        if (this.audioEnabled) {
-            this.speakText(`Try drawing the number ${this.currentNumber} again`);
-        }
-    }
-
-    clearDrawing() {
-        if (this.renderer) {
-            this.renderer.clearDrawing();
-        }
-        if (this.nextBtn) this.nextBtn.classList.add('hidden');
-    }
-
-    handleNumberCompletion() {
-        if (this.isProcessingCompletion) return;
-        this.isProcessingCompletion = true;
-        
-        this.rainbow.addPiece();
-        
-        if (this.audioEnabled) {
-            this.speakTextWithCallback('Great job! Well done!', () => {
-                // Auto-advance to next number 2 seconds after audio completes
-                setTimeout(() => {
-                    this.moveToNextNumber();
-                }, 2000);
-            });
-        } else {
-            // If audio is disabled, just wait 2 seconds
-            setTimeout(() => {
-                this.moveToNextNumber();
-            }, 2000);
+        // Display number in layout
+        if (this.layoutRenderer) {
+            this.layoutRenderer.displayNumber(currentNumber);
         }
         
-        this.playCompletionSound();
+        // Initialize drawing for this number
+        if (this.drawingRenderer) {
+            this.drawingRenderer.initializeForNumber(currentNumber);
+        }
+        
+        // Play instruction
+        this.playNumberInstruction(currentNumber);
     }
-
-    speakTextWithCallback(text, callback) {
-        if (!this.audioEnabled) {
-            if (callback) callback();
+    
+    /**
+     * Play instruction for current number
+     */
+    playNumberInstruction(number) {
+        if (!this.audioEnabled || !this.isTabVisible) return;
+        
+        setTimeout(() => {
+            let message;
+            
+            if (this.numbersCompleted === 0) {
+                // First number
+                message = DRAW_CONFIG.AUDIO.QUESTION_START.DRAW_NUMBER(number);
+            } else {
+                // Subsequent numbers
+                message = DRAW_CONFIG.AUDIO.QUESTION_START.DRAW_NUMBER(number);
+            }
+            
+            this.speakText(message);
+        }, 500);
+    }
+    
+    /**
+     * Handle number completion (called by DrawingRenderer)
+     */
+    onNumberComplete(number) {
+        if (this.isProcessingCompletion) {
+            console.log('⏳ Already processing completion, ignoring duplicate');
             return;
         }
         
-        try {
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.3;
-                utterance.volume = 0.8;
-                
-                const voices = speechSynthesis.getVoices();
-                let selectedVoice = voices.find(voice => 
-                    voice.name.toLowerCase().includes('male') ||
-                    voice.name.toLowerCase().includes('boy') ||
-                    voice.name.toLowerCase().includes('man') ||
-                    (!voice.name.toLowerCase().includes('female') && 
-                     !voice.name.toLowerCase().includes('woman') &&
-                     !voice.name.toLowerCase().includes('girl'))
-                );
-                
-                if (selectedVoice) utterance.voice = selectedVoice;
-                utterance.pitch = 1.3;
-                
-                if (callback) {
-                    utterance.onend = callback;
-                    utterance.onerror = callback;
-                }
-                
-                speechSynthesis.speak(utterance);
-            } else {
-                if (callback) callback();
-            }
-        } catch (error) {
-            if (callback) callback();
+        this.isProcessingCompletion = true;
+        console.log(`🎉 Number ${number} completed!`);
+        
+        // Add rainbow piece
+        if (this.rainbow) {
+            this.rainbow.addPiece();
         }
-    }
-
-    moveToNextNumber() {
+        
+        // Play completion audio
+        this.playCompletionAudio(number);
+        
+        // Play completion sound effect
+        if (window.AudioSystem) {
+            window.AudioSystem.playCompletionSound();
+        }
+        
+        // Update counters
         this.numbersCompleted++;
         this.currentNumberIndex++;
+        
+        // Check if game is complete
+        if (this.rainbow && this.rainbow.isComplete()) {
+            // Delay game completion to allow rainbow celebration
+            setTimeout(() => {
+                this.completeGame();
+            }, 3000);
+        } else {
+            // Move to next number after delay
+            setTimeout(() => {
+                this.isProcessingCompletion = false;
+                this.startNextNumber();
+            }, DRAW_CONFIG.TIMING.COMPLETION_DELAY);
+        }
+    }
+    
+    /**
+     * Play completion audio for a number
+     */
+    playCompletionAudio(number) {
+        if (!this.audioEnabled || !this.isTabVisible) return;
+        
+        // Play random encouragement
+        const encouragement = DRAW_CONFIG.getRandomEncouragement();
+        this.speakText(encouragement);
+        
+        // Follow with specific number completion message
+        setTimeout(() => {
+            const message = DRAW_CONFIG.AUDIO.COMPLETION.NUMBER_COMPLETE(number);
+            this.speakText(message);
+        }, 1500);
+    }
+    
+    /**
+     * Complete the entire game
+     */
+    completeGame() {
+        if (this.gameComplete) return;
+        
+        console.log('🏆 Game completed! All numbers drawn!');
+        
+        this.gameComplete = true;
         this.isProcessingCompletion = false;
         
-        if (this.rainbow.isComplete()) {
-            setTimeout(() => this.completeGame(), 1000);
+        // Show completion modal
+        if (this.modal) {
+            this.modal.classList.remove('hidden');
+        }
+        
+        // Start bear celebration
+        if (this.bear) {
+            this.bear.startCelebration();
+        }
+        
+        // Play completion audio
+        this.playGameCompletionAudio();
+    }
+    
+    /**
+     * Play game completion audio
+     */
+    playGameCompletionAudio() {
+        if (!this.audioEnabled || !this.isTabVisible) return;
+        
+        setTimeout(() => {
+            this.speakText(DRAW_CONFIG.AUDIO.GAME_END.ALL_COMPLETE);
+            
+            setTimeout(() => {
+                this.speakText(DRAW_CONFIG.AUDIO.GAME_END.CELEBRATION);
+            }, 3000);
+        }, 1000);
+    }
+    
+    /**
+     * Handle play again button
+     */
+    handlePlayAgain() {
+        console.log('🔄 Play again requested');
+        
+        // Stop bear celebration
+        if (this.bear) {
+            this.bear.stopCelebration();
+        }
+        
+        // Clear renderers
+        if (this.drawingRenderer) {
+            this.drawingRenderer.clear();
+        }
+        
+        if (this.layoutRenderer) {
+            this.layoutRenderer.clear();
+        }
+        
+        // Start new game
+        this.startGame();
+    }
+    
+    /**
+     * Speak text using audio system
+     */
+    speakText(text, options = {}) {
+        if (!this.audioEnabled || !this.isTabVisible || !window.AudioSystem) {
+            console.log(`🔇 Speech blocked: ${text.substring(0, 30)}...`);
             return;
         }
         
-        this.startNewNumber();
-    }
-
-    updateNumberWordDisplay(text) {
-        if (this.numberWordDisplay) {
-            this.numberWordDisplay.textContent = text;
-            if (text) {
-                this.numberWordDisplay.classList.add('visible');
-            } else {
-                this.numberWordDisplay.classList.remove('visible');
-            }
-        }
-    }
-
-    completeGame() {
-        if (this.gameComplete) return;
-        this.gameComplete = true;
+        const defaultOptions = {
+            rate: 0.9,
+            pitch: 1.3,
+            volume: 0.8
+        };
         
-        if (this.modal) this.modal.classList.remove('hidden');
-        this.bear.startCelebration();
+        const finalOptions = { ...defaultOptions, ...options };
         
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText('Fantastic! You drew all the numbers perfectly!');
-            }, 1000);
-        }
+        console.log(`🗣️ Speaking: ${text}`);
+        window.AudioSystem.speakText(text, finalOptions);
     }
-
-    speakText(text) {
-        if (!this.audioEnabled) return;
-        
-        try {
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.3;
-                utterance.volume = 0.8;
-                
-                const voices = speechSynthesis.getVoices();
-                let selectedVoice = voices.find(voice => 
-                    voice.name.toLowerCase().includes('male') ||
-                    voice.name.toLowerCase().includes('boy') ||
-                    voice.name.toLowerCase().includes('man') ||
-                    (!voice.name.toLowerCase().includes('female') && 
-                     !voice.name.toLowerCase().includes('woman') &&
-                     !voice.name.toLowerCase().includes('girl'))
-                );
-                
-                if (selectedVoice) utterance.voice = selectedVoice;
-                utterance.pitch = 1.3;
-                
-                speechSynthesis.speak(utterance);
-            }
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
-    playCompletionSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
-            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
-            
-            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.5);
-        } catch (error) {
-            // Silent failure
-        }
-    }
-
-    handleVisibilityChange() {
-        if (document.hidden) {
-            if ('speechSynthesis' in window) speechSynthesis.pause();
-        } else {
-            if ('speechSynthesis' in window) speechSynthesis.resume();
-        }
-    }
-
-    getCurrentNumber() {
-        return this.currentNumber;
-    }
-
-    getCurrentProgress() {
+    
+    /**
+     * Get current game progress
+     */
+    getGameProgress() {
         return {
-            currentNumber: this.currentNumber,
-            currentIndex: this.currentNumberIndex,
+            currentNumberIndex: this.currentNumberIndex,
+            currentNumber: this.numbersSequence[this.currentNumberIndex],
+            numbersCompleted: this.numbersCompleted,
             totalNumbers: this.numbersSequence.length,
-            completed: this.numbersCompleted,
-            progress: this.numbersCompleted / DRAW_CONFIG.NUMBERS_TO_COMPLETE
+            gameComplete: this.gameComplete,
+            rainbowPieces: this.rainbow ? this.rainbow.getPieces() : 0,
+            drawingProgress: this.drawingRenderer ? this.drawingRenderer.getProgress() : null
         };
     }
-
-    isGameComplete() {
-        return this.gameComplete;
-    }
-
-    skipToNumber(number) {
-        if (!DRAW_CONFIG.DEBUG_MODE) return;
-        const index = this.numbersSequence.indexOf(number);
-        if (index !== -1) {
-            this.currentNumberIndex = index;
-            this.startNewNumber();
-        }
-    }
-
-    destroy() {
-        window.removeEventListener('resize', this.handleResize);
+    
+    /**
+     * Handle page unload cleanup
+     */
+    cleanup() {
+        console.log('🧹 Cleaning up game controller');
+        
+        // Remove event listeners
         document.removeEventListener('visibilitychange', this.handleVisibilityChange);
         
-        if (this.renderer) {
-            this.renderer.destroy();
-            this.renderer.reset();
+        if (this.playAgainBtn) {
+            this.playAgainBtn.removeEventListener('click', this.handlePlayAgain);
         }
         
-        this.rainbow.reset();
-        this.bear.reset();
-        
-        if ('speechSynthesis' in window) speechSynthesis.cancel();
-        if (this.audioContext) this.audioContext.close();
-        
-        // Clean up mute button
-        if (this.muteContainer && this.muteContainer.parentNode) {
-            this.muteContainer.parentNode.removeChild(this.muteContainer);
+        // Destroy renderers
+        if (this.drawingRenderer) {
+            this.drawingRenderer.destroy();
         }
+        
+        if (this.layoutRenderer) {
+            this.layoutRenderer.destroy();
+        }
+        
+        // Stop celebrations
+        if (this.bear) {
+            this.bear.reset();
+        }
+        
+        if (this.rainbow) {
+            this.rainbow.reset();
+        }
+        
+        // Stop any audio
+        if (window.AudioSystem) {
+            window.AudioSystem.stopAllAudio();
+        }
+        
+        // Clear global references
+        window.drawingRenderer = null;
+        window.drawGameController = null;
+        
+        console.log('✅ Game controller cleanup complete');
+    }
+    
+    /**
+     * Debug method to skip to specific number
+     */
+    skipToNumber(number) {
+        if (!DRAW_CONFIG.DEBUG_MODE) {
+            console.log('🚫 Debug mode not enabled');
+            return;
+        }
+        
+        const index = this.numbersSequence.indexOf(number);
+        if (index === -1) {
+            console.log(`🚫 Number ${number} not found in sequence`);
+            return;
+        }
+        
+        console.log(`⏭️ Skipping to number ${number}`);
+        
+        this.currentNumberIndex = index;
+        this.numbersCompleted = index;
+        
+        // Update rainbow to match progress
+        if (this.rainbow) {
+            this.rainbow.reset();
+            for (let i = 0; i < index; i++) {
+                this.rainbow.addPiece();
+            }
+        }
+        
+        this.startNextNumber();
+    }
+    
+    /**
+     * Debug method to complete current number
+     */
+    forceComplete() {
+        if (!DRAW_CONFIG.DEBUG_MODE) {
+            console.log('🚫 Debug mode not enabled');
+            return;
+        }
+        
+        const currentNumber = this.numbersSequence[this.currentNumberIndex];
+        console.log(`⚡ Force completing number ${currentNumber}`);
+        
+        this.onNumberComplete(currentNumber);
     }
 }
 
-// Game initialization and cleanup
+// Initialize game when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Handle page visibility changes (tab switching, minimizing, etc.)
-    document.addEventListener('visibilitychange', () => {
-        if (window.drawGame) {
-            window.drawGame.handleVisibilityChange();
-        }
-    });
+    console.log('🎮 DOM loaded, initializing Draw Game Controller');
     
-    // Initialize the draw game
+    // Create global game instance
     window.drawGame = new DrawGameController();
-});
-
-// Clean up resources when page is about to unload
-window.addEventListener('beforeunload', () => {
-    if (window.drawGame) {
-        window.drawGame.destroy();
+    
+    // Setup debug keyboard shortcuts if debug mode enabled
+    if (DRAW_CONFIG.DEBUG_MODE) {
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ') {
+                e.preventDefault();
+                window.drawGame.forceComplete();
+            }
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                window.drawGame.skipToNumber(parseInt(e.key));
+            }
+            if (e.key === 'r') {
+                e.preventDefault();
+                window.drawGame.handlePlayAgain();
+            }
+        });
+        
+        console.log('🐛 Debug mode enabled - Spacebar: force complete, 0-9: skip to number, R: restart');
     }
 });
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (window.drawGame) {
+        window.drawGame.cleanup();
+    }
+});
+
+console.log('🎮 DrawGameController class defined and ready');
