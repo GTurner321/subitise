@@ -62,7 +62,7 @@ class DrawGameController {
             // Setup visibility handling
             this.setupVisibilityHandling();
             
-            // Wait for shared components to be available
+            // Wait for shared components to be available with better detection
             await this.waitForSharedComponents();
             
             // Initialize shared components
@@ -98,22 +98,54 @@ class DrawGameController {
     }
     
     /**
-     * Wait for shared components to be available
+     * Wait for shared components to be available - IMPROVED
      */
     waitForSharedComponents() {
         return new Promise((resolve) => {
+            let attempts = 0;
+            const maxAttempts = 100; // 10 seconds max wait
+            
             const checkComponents = () => {
-                const rainbowAvailable = window.Rainbow && typeof window.Rainbow === 'function';
-                const bearAvailable = window.Bear && typeof window.Bear === 'function';
+                attempts++;
+                
+                // Check multiple possible locations for components
+                const rainbowAvailable = !!(
+                    window.Rainbow || 
+                    (typeof Rainbow !== 'undefined' && Rainbow) ||
+                    document.querySelector('script[src*="rainbow.js"]')
+                );
+                
+                const bearAvailable = !!(
+                    window.Bear || 
+                    (typeof Bear !== 'undefined' && Bear) ||
+                    document.querySelector('script[src*="Bear.js"]')
+                );
+                
+                console.log(`🔍 Component check attempt ${attempts}:`, {
+                    rainbow: rainbowAvailable,
+                    bear: bearAvailable,
+                    windowRainbow: typeof window.Rainbow,
+                    windowBear: typeof window.Bear,
+                    globalRainbow: typeof Rainbow,
+                    globalBear: typeof Bear
+                });
                 
                 if (rainbowAvailable && bearAvailable) {
-                    console.log('✅ Shared components (Rainbow, Bear) are available');
+                    // Ensure components are on window object
+                    if (typeof Rainbow !== 'undefined' && !window.Rainbow) {
+                        window.Rainbow = Rainbow;
+                    }
+                    if (typeof Bear !== 'undefined' && !window.Bear) {
+                        window.Bear = Bear;
+                    }
+                    
+                    console.log('✅ Shared components (Rainbow, Bear) are now available');
+                    resolve();
+                } else if (attempts >= maxAttempts) {
+                    console.error('❌ Timeout waiting for shared components after 10 seconds');
+                    // Try to continue anyway
                     resolve();
                 } else {
-                    console.log('⏳ Waiting for shared components...', {
-                        rainbow: rainbowAvailable,
-                        bear: bearAvailable
-                    });
                     setTimeout(checkComponents, 100);
                 }
             };
@@ -170,26 +202,72 @@ class DrawGameController {
     }
     
     /**
-     * Initialize shared components (Rainbow, Bear) - now guaranteed to be available
+     * Initialize shared components (Rainbow, Bear) - IMPROVED ERROR HANDLING
      */
     initializeSharedComponents() {
         console.log('🌈 Initializing shared components');
         
-        // Initialize Rainbow
+        // Initialize Rainbow - try multiple ways
         try {
-            this.rainbow = new window.Rainbow();
-            console.log('✅ Rainbow initialized successfully');
+            if (window.Rainbow && typeof window.Rainbow === 'function') {
+                this.rainbow = new window.Rainbow();
+                console.log('✅ Rainbow initialized from window.Rainbow');
+            } else if (typeof Rainbow !== 'undefined' && typeof Rainbow === 'function') {
+                this.rainbow = new Rainbow();
+                window.Rainbow = Rainbow; // Ensure it's on window for future use
+                console.log('✅ Rainbow initialized from global Rainbow');
+            } else {
+                console.warn('⚠️ Rainbow class not found, creating dummy implementation');
+                this.rainbow = this.createDummyRainbow();
+            }
         } catch (error) {
             console.error('❌ Rainbow initialization failed:', error);
+            this.rainbow = this.createDummyRainbow();
         }
         
-        // Initialize Bear
+        // Initialize Bear - try multiple ways
         try {
-            this.bear = new window.Bear();
-            console.log('✅ Bear initialized successfully');
+            if (window.Bear && typeof window.Bear === 'function') {
+                this.bear = new window.Bear();
+                console.log('✅ Bear initialized from window.Bear');
+            } else if (typeof Bear !== 'undefined' && typeof Bear === 'function') {
+                this.bear = new Bear();
+                window.Bear = Bear; // Ensure it's on window for future use
+                console.log('✅ Bear initialized from global Bear');
+            } else {
+                console.warn('⚠️ Bear class not found, creating dummy implementation');
+                this.bear = this.createDummyBear();
+            }
         } catch (error) {
             console.error('❌ Bear initialization failed:', error);
+            this.bear = this.createDummyBear();
         }
+    }
+    
+    /**
+     * Create dummy rainbow implementation for fallback
+     */
+    createDummyRainbow() {
+        return {
+            addPiece: () => {
+                console.log('🌈 Dummy rainbow: piece added');
+                return 1;
+            },
+            isComplete: () => false,
+            reset: () => console.log('🌈 Dummy rainbow: reset'),
+            getPieces: () => 0
+        };
+    }
+    
+    /**
+     * Create dummy bear implementation for fallback
+     */
+    createDummyBear() {
+        return {
+            startCelebration: () => console.log('🐻 Dummy bear: celebration started'),
+            stopCelebration: () => console.log('🐻 Dummy bear: celebration stopped'),
+            reset: () => console.log('🐻 Dummy bear: reset')
+        };
     }
     
     /**
