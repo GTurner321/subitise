@@ -208,19 +208,19 @@ class DrawGameController {
     }
     
     /**
-     * Initialize shared components (Rainbow, Bear) - IMPROVED ERROR HANDLING
+     * Initialize shared components (Rainbow, Bear) - Simplified since rainbow isn't needed immediately
      */
     initializeSharedComponents() {
         console.log('🌈 Initializing shared components');
         
-        // Initialize Rainbow - try multiple ways
+        // Initialize Rainbow - simple approach since it's not used until first completion
         try {
             if (window.Rainbow && typeof window.Rainbow === 'function') {
                 this.rainbow = new window.Rainbow();
                 console.log('✅ Rainbow initialized from window.Rainbow');
             } else if (typeof Rainbow !== 'undefined' && typeof Rainbow === 'function') {
                 this.rainbow = new Rainbow();
-                window.Rainbow = Rainbow; // Ensure it's on window for future use
+                window.Rainbow = Rainbow;
                 console.log('✅ Rainbow initialized from global Rainbow');
             } else {
                 console.warn('⚠️ Rainbow class not found, creating dummy implementation');
@@ -231,14 +231,14 @@ class DrawGameController {
             this.rainbow = this.createDummyRainbow();
         }
         
-        // Initialize Bear - try multiple ways
+        // Initialize Bear - simple approach
         try {
             if (window.Bear && typeof window.Bear === 'function') {
                 this.bear = new window.Bear();
                 console.log('✅ Bear initialized from window.Bear');
             } else if (typeof Bear !== 'undefined' && typeof Bear === 'function') {
                 this.bear = new Bear();
-                window.Bear = Bear; // Ensure it's on window for future use
+                window.Bear = Bear;
                 console.log('✅ Bear initialized from global Bear');
             } else {
                 console.warn('⚠️ Bear class not found, creating dummy implementation');
@@ -377,16 +377,19 @@ class DrawGameController {
     }
     
     /**
-     * Play welcome message
+     * Play welcome message for first number
      */
     playWelcomeMessage() {
         if (!this.audioEnabled || !this.isTabVisible) return;
+        
+        const firstNumber = this.numbersSequence[0];
         
         setTimeout(() => {
             this.speakText(DRAW_CONFIG.AUDIO.GAME_START.WELCOME);
             
             setTimeout(() => {
-                this.speakText(DRAW_CONFIG.AUDIO.GAME_START.INSTRUCTIONS);
+                // Instructions now include the first number
+                this.speakText(DRAW_CONFIG.AUDIO.GAME_START.INSTRUCTIONS(firstNumber));
             }, 2000);
         }, 1000);
     }
@@ -418,22 +421,19 @@ class DrawGameController {
     }
     
     /**
-     * Play instruction for current number
+     * Play instruction for current number (2nd question onwards only)
      */
     playNumberInstruction(number) {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
+        // Only play for 2nd question onwards (first question uses GAME_START messages)
+        if (this.numbersCompleted === 0) {
+            console.log(`🔇 Skipping instruction for first number ${number} - using GAME_START instead`);
+            return;
+        }
+        
         setTimeout(() => {
-            let message;
-            
-            if (this.numbersCompleted === 0) {
-                // First number
-                message = DRAW_CONFIG.AUDIO.QUESTION_START.DRAW_NUMBER(number);
-            } else {
-                // Subsequent numbers
-                message = DRAW_CONFIG.AUDIO.QUESTION_START.DRAW_NUMBER(number);
-            }
-            
+            const message = DRAW_CONFIG.AUDIO.QUESTION_START.DRAW_NUMBER(number);
             this.speakText(message);
         }, 500);
     }
@@ -484,20 +484,14 @@ class DrawGameController {
     }
     
     /**
-     * Play completion audio for a number
+     * Play completion audio for a number (simplified - no number-specific message)
      */
     playCompletionAudio(number) {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
-        // Play random encouragement
+        // Play random encouragement only (no number-specific completion message)
         const encouragement = DRAW_CONFIG.getRandomEncouragement();
         this.speakText(encouragement);
-        
-        // Follow with specific number completion message
-        setTimeout(() => {
-            const message = DRAW_CONFIG.AUDIO.COMPLETION.NUMBER_COMPLETE(number);
-            this.speakText(message);
-        }, 1500);
     }
     
     /**
@@ -526,17 +520,14 @@ class DrawGameController {
     }
     
     /**
-     * Play game completion audio
+     * Play game completion audio (simplified message)
      */
     playGameCompletionAudio() {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
         setTimeout(() => {
+            // Single completion message that includes modal instructions
             this.speakText(DRAW_CONFIG.AUDIO.GAME_END.ALL_COMPLETE);
-            
-            setTimeout(() => {
-                this.speakText(DRAW_CONFIG.AUDIO.GAME_END.CELEBRATION);
-            }, 3000);
         }, 1000);
     }
     
