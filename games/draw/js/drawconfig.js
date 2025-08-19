@@ -25,11 +25,14 @@ const DRAW_CONFIG = {
         
         // Drawing area
         DRAWING_AREA: {
-            x: 50, // Start at 50% from left
-            y: 10, // Start at 10% from top
-            width: 40, // 40% of game area width
-            height: 80, // 80% of game area height
+        x: 45, // 45% from left edge of game area
+        y: 10, // 10% from top of game area
+        width: { // Dynamic width calculation
+        basePercent: 20, // 20% of game area width
+        heightPercent: 30 // + 30% of game area height
         },
+        height: 80, // 80% of game area height
+        }
         
         // Number rendering within drawing area - FIXED ASPECT RATIO
         NUMBER_RENDER: {
