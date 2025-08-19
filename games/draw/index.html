@@ -44,5 +44,24 @@
     <script src="js/drawlayoutrenderer.js"></script>
     <script src="js/drawingrenderer.js"></script>
     <script src="js/drawgamecontroller.js"></script>
+    
+    <!-- Fix for component availability -->
+    <script>
+        // Ensure components are globally available immediately after scripts load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Make sure Rainbow and Bear are available on window
+            if (typeof Rainbow !== 'undefined') {
+                window.Rainbow = Rainbow;
+            }
+            if (typeof Bear !== 'undefined') {
+                window.Bear = Bear;
+            }
+            
+            console.log('🔧 Component availability check:', {
+                Rainbow: typeof window.Rainbow,
+                Bear: typeof window.Bear
+            });
+        });
+    </script>
 </body>
 </html>
