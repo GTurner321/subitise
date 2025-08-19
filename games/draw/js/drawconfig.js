@@ -1,57 +1,146 @@
+/**
+ * Draw Numbers Game Configuration
+ * Responsive percentage-based layout with universal system integration
+ */
 const DRAW_CONFIG = {
+    // Game progression
     NUMBERS_TO_COMPLETE: 10,
     RAINBOW_PIECES: 10,
+    NUMBERS_SEQUENCE: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
     
-    // Drawing area dimensions - enhanced for better layout
-    get REFERENCE_WIDTH() {
-        return Math.min(window.innerWidth * 0.3, 350);
+    // Layout percentages (all relative to game area dimensions)
+    LAYOUT: {
+        // Left side reference number
+        REFERENCE_NUMBER: {
+            x: 25, // Centered at 25% from left
+            y: 40, // Centered at 40% from top
+            fontSize: 20, // 20% of game area height
+        },
+        REFERENCE_TEXT: {
+            x: 25, // Same x as number
+            y: 50, // Below the number
+            fontSize: 12, // 12% of game area height
+        },
+        
+        // Drawing area
+        DRAWING_AREA: {
+            x: 50, // Start at 50% from left
+            y: 10, // Start at 10% from top
+            width: 40, // 40% of game area width
+            height: 80, // 80% of game area height
+        },
+        
+        // Number rendering within drawing area
+        NUMBER_RENDER: {
+            x: 55, // Start at 55% from left (5% padding from drawing area)
+            y: 20, // Start at 20% from top (10% padding from drawing area)
+            width: 30, // 30% of game area width (40% - 10% padding)
+            height: 60, // 60% of game area height (80% - 20% padding)
+        },
+        
+        // Redo button
+        REDO_BUTTON: {
+            x: 95, // Centered at 95% from left
+            y: 25, // Centered at 25% from top
+            size: 6, // 6% of game area width for button size
+        }
     },
-    get REFERENCE_HEIGHT() {
-        // Made 20% taller as requested
-        return Math.min(window.innerHeight * 0.72, 540);
+    
+    // Visual styling (all percentage-based)
+    STYLING: {
+        // Reference number on left
+        REFERENCE_COLOR: '#FF0000', // Red
+        REFERENCE_FONT: 'Arial, sans-serif',
+        REFERENCE_FONT_WEIGHT: 'bold',
+        
+        // Drawing area background
+        DRAWING_AREA_BACKGROUND: 'rgba(255, 255, 255, 0.7)', // 70% opaque white
+        DRAWING_AREA_SHADOW: '0 0 2vh rgba(0, 0, 0, 0.1)', // Subtle shadow
+        
+        // Number outline to be drawn
+        OUTLINE_THICKNESS: 4, // 4% of game area height
+        OUTLINE_COLOR: '#CCCCCC',
+        
+        // User drawing line
+        DRAWING_LINE_THICKNESS: 3, // 3% of game area height  
+        DRAWING_LINE_COLOR: '#4CAF50', // Green
+        
+        // Completion criteria
+        COVERAGE_WIDTH_REQUIRED: 100, // 100% width coverage required
+        COVERAGE_HEIGHT_REQUIRED: 100, // 100% height coverage required
+        DRAWING_TOLERANCE: 25, // Tolerance for line proximity detection
     },
-    get DRAWING_WIDTH() {
-        return Math.min(window.innerWidth * 0.6, 650);
+    
+    // Audio messages organized by context
+    AUDIO: {
+        GAME_START: {
+            WELCOME: 'Welcome to the number drawing game',
+            INSTRUCTIONS: 'Draw the number you see on the left'
+        },
+        
+        QUESTION_START: {
+            DRAW_NUMBER: (number) => `Draw the number ${number}`,
+            TRY_AGAIN: (number) => `Try drawing the number ${number} again`
+        },
+        
+        COMPLETION: {
+            WELL_DONE: 'Well done!',
+            EXCELLENT: 'Excellent!',
+            GREAT_JOB: 'Great job!',
+            PERFECT: 'Perfect!',
+            NUMBER_COMPLETE: (number) => `You drew the number ${number} perfectly!`
+        },
+        
+        HINTS: {
+            KEEP_DRAWING: 'Keep drawing to complete the number',
+            FOLLOW_OUTLINE: 'Follow the grey outline to draw the number',
+            TRY_DIFFERENT_PATH: 'Try drawing a different part of the number'
+        },
+        
+        GAME_END: {
+            ALL_COMPLETE: 'Fantastic! You drew all the numbers perfectly!',
+            CELEBRATION: 'Well done on completing all the numbers!'
+        },
+        
+        SYSTEM: {
+            AUDIO_ENABLED: 'Audio enabled',
+            AUDIO_DISABLED: 'Audio disabled'
+        }
     },
-    get DRAWING_HEIGHT() {
-        return Math.min(window.innerHeight * 0.75, 700);
-    },
     
-    // Reference number styling - enhanced for better visibility
-    REFERENCE_OUTLINE_WIDTH: 45, // Made 50% thicker (30 * 1.5)
-    REFERENCE_WHITE_WIDTH: 30,   // Made 50% thicker (20 * 1.5) - this is actually the red line
-    REFERENCE_OUTLINE_COLOR: '#2C2C2C',
-    REFERENCE_WHITE_COLOR: '#FF0000', // Changed to red for the inner line
-    
-    // Drawing canvas styling - maintained proportions
-    DRAWING_OUTLINE_WIDTH: 54,
-    DRAWING_WHITE_WIDTH: 48,
-    DRAWING_OUTLINE_COLOR: '#CCCCCC',
-    DRAWING_STROKE_COLOR: '#4CAF50',
-    DRAWING_STROKE_WIDTH: 8,
-    
-    // Enhanced drawing detection with coverage requirements
-    DRAWING_TOLERANCE: 25,
-    MIN_COVERAGE_PERCENTAGE: 60,
-    MIN_VERTICAL_COVERAGE: 75,   // New: minimum vertical coverage requirement
-    MIN_HORIZONTAL_COVERAGE: 75, // New: minimum horizontal coverage requirement
-    
-    COMPLETION_DELAY: 2000,
-    AUDIO_ENABLED: true,
-    
-    BEAR_IMAGE_PATH: '../../assets/bear.png',
-    
+    // Number word mappings
     NUMBER_WORDS: {
         0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four',
         5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine'
     },
     
-    // Stroke definitions remain the same - coordinate system intact
+    // Timing configuration
+    TIMING: {
+        COMPLETION_DELAY: 2000, // 2 seconds before moving to next
+        HINT_DELAY: 10000, // 10 seconds before showing hint
+        CELEBRATION_DURATION: 3000, // 3 seconds of celebration
+        FADE_TRANSITION: 500 // 0.5 second transitions
+    },
+    
+    // Coordinate system scaling
+    COORDINATE_SYSTEM: {
+        // Original coordinates are in 0-100 x 0-200 system
+        ORIGINAL_WIDTH: 100,
+        ORIGINAL_HEIGHT: 200,
+        // Will be scaled to fit NUMBER_RENDER area
+    },
+    
+    // Rainbow colors (for shared Rainbow component)
+    RAINBOW_COLORS: [
+        '#ff0000', '#ff8000', '#ffff00', '#80ff00', '#00ff00',
+        '#00ff80', '#00ffff', '#0080ff', '#0000ff', '#8000ff'
+    ],
+    
+    // Stroke definitions for each number (same coordinate system as before)
     STROKE_DEFINITIONS: {
         0: {
             strokes: [{
                 id: 'oval_coords',
-                startPoint: { x: 240, y: 200 },
                 coordinates: [
                     { x: 100, y: 100 }, { x: 99, y: 120 }, { x: 98, y: 128 }, { x: 96, y: 139 }, 
                     { x: 94, y: 147 }, { x: 92, y: 154 }, { x: 90, y: 160 }, { x: 85, y: 171 }, 
@@ -68,15 +157,12 @@ const DRAW_CONFIG = {
                     { x: 80, y: 20 }, { x: 85, y: 29 }, { x: 90, y: 40 }, { x: 92, y: 46 }, 
                     { x: 94, y: 53 }, { x: 96, y: 61 }, { x: 98, y: 72 }, { x: 99, y: 80 }, 
                     { x: 100, y: 100 }
-                ],
-                description: 'Draw 0 using precise coordinates starting from right center',
-                type: 'coordinates'
+                ]
             }]
         },
         1: {
             strokes: [{
                 id: 'line',
-                startPoint: { x: 200, y: 100 },
                 coordinates: [
                     { x: 50, y: 200 }, { x: 50, y: 190 }, { x: 50, y: 180 }, { x: 50, y: 170 },
                     { x: 50, y: 160 }, { x: 50, y: 150 }, { x: 50, y: 140 }, { x: 50, y: 130 },
@@ -84,15 +170,12 @@ const DRAW_CONFIG = {
                     { x: 50, y: 80 }, { x: 50, y: 70 }, { x: 50, y: 60 }, { x: 50, y: 50 },
                     { x: 50, y: 40 }, { x: 50, y: 30 }, { x: 50, y: 20 }, { x: 50, y: 10 },
                     { x: 50, y: 0 }
-                ],
-                description: 'Draw down',
-                type: 'coordinates'
+                ]
             }]
         },
         2: {
             strokes: [{
                 id: 'complete_two_coords',
-                startPoint: { x: 140, y: 250 },
                 coordinates: [
                     { x: 0, y: 150 }, { x: 1, y: 160 }, { x: 2, y: 164 }, { x: 4, y: 170 }, 
                     { x: 6, y: 174 }, { x: 8, y: 177 }, { x: 10, y: 180 }, { x: 15, y: 186 }, 
@@ -108,15 +191,12 @@ const DRAW_CONFIG = {
                     { x: 0, y: 0 }, { x: 10, y: 0 }, { x: 20, y: 0 }, { x: 30, y: 0 }, 
                     { x: 40, y: 0 }, { x: 50, y: 0 }, { x: 60, y: 0 }, { x: 70, y: 0 }, 
                     { x: 80, y: 0 }, { x: 90, y: 0 }, { x: 100, y: 0 }
-                ],
-                description: 'Draw 2 using precise coordinates with full path',
-                type: 'coordinates'
+                ]
             }]
         },
         3: {
             strokes: [{
                 id: 'three_coords',
-                startPoint: { x: 140, y: 110 },
                 coordinates: [
                     { x: 0, y: 190 }, { x: 1, y: 191 }, { x: 2, y: 191 }, { x: 4, y: 192 }, 
                     { x: 6, y: 193 }, { x: 8, y: 194 }, { x: 10, y: 195 }, { x: 15, y: 197 }, 
@@ -141,16 +221,13 @@ const DRAW_CONFIG = {
                     { x: 30, y: 0 }, { x: 25, y: 1 }, { x: 20, y: 2 }, { x: 15, y: 3 }, 
                     { x: 10, y: 5 }, { x: 8, y: 6 }, { x: 6, y: 7 }, { x: 4, y: 8 }, 
                     { x: 2, y: 9 }, { x: 1, y: 9 }, { x: 0, y: 10 }
-                ],
-                description: 'Draw 3 using precise coordinates with directional preference',
-                type: 'coordinates'
+                ]
             }]
         },
         4: {
             strokes: [
                 {
                     id: 'angle_line',
-                    startPoint: { x: 170, y: 300 },
                     coordinates: [
                         { x: 30, y: 200 }, { x: 27, y: 188 }, { x: 24, y: 176 }, { x: 21, y: 164 }, 
                         { x: 18, y: 152 }, { x: 15, y: 140 }, { x: 12, y: 128 }, { x: 9, y: 116 }, 
@@ -158,21 +235,16 @@ const DRAW_CONFIG = {
                         { x: 20, y: 80 }, { x: 30, y: 80 }, { x: 40, y: 80 }, { x: 50, y: 80 }, 
                         { x: 60, y: 80 }, { x: 70, y: 80 }, { x: 80, y: 80 }, { x: 90, y: 80 }, 
                         { x: 100, y: 80 }
-                    ],
-                    description: 'Draw the angled line and horizontal line with full coordinates',
-                    type: 'coordinates'
+                    ]
                 },
                 {
                     id: 'vertical_line',
-                    startPoint: { x: 260, y: 240 },
                     coordinates: [
                         { x: 60, y: 140 }, { x: 60, y: 130 }, { x: 60, y: 120 }, { x: 60, y: 110 }, 
                         { x: 60, y: 100 }, { x: 60, y: 90 }, { x: 60, y: 80 }, { x: 60, y: 70 }, 
                         { x: 60, y: 60 }, { x: 60, y: 50 }, { x: 60, y: 40 }, { x: 60, y: 30 }, 
                         { x: 60, y: 20 }, { x: 60, y: 10 }, { x: 60, y: 0 }
-                    ],
-                    description: 'Draw the vertical line with full coordinates',
-                    type: 'coordinates'
+                    ]
                 }
             ]
         },
@@ -180,18 +252,14 @@ const DRAW_CONFIG = {
             strokes: [
                 {
                     id: 'top_horizontal',
-                    startPoint: { x: 140, y: 100 },
                     coordinates: [
                         { x: 0, y: 200 }, { x: 10, y: 200 }, { x: 20, y: 200 }, { x: 30, y: 200 }, 
                         { x: 40, y: 200 }, { x: 50, y: 200 }, { x: 60, y: 200 }, { x: 70, y: 200 }, 
                         { x: 80, y: 200 }, { x: 90, y: 200 }, { x: 100, y: 200 }
-                    ],
-                    description: 'Draw the top horizontal line with more points',
-                    type: 'coordinates'
+                    ]
                 },
                 {
                     id: 'vertical_and_curve',
-                    startPoint: { x: 140, y: 100 },
                     coordinates: [
                         { x: 0, y: 200 }, { x: 0, y: 190 }, { x: 0, y: 180 }, { x: 0, y: 170 }, 
                         { x: 0, y: 160 }, { x: 0, y: 150 }, { x: 0, y: 140 }, { x: 0, y: 130 }, 
@@ -209,16 +277,13 @@ const DRAW_CONFIG = {
                         { x: 25, y: 1 }, { x: 20, y: 3 }, { x: 15, y: 4 }, { x: 10, y: 6 }, 
                         { x: 8, y: 7 }, { x: 6, y: 9 }, { x: 4, y: 10 }, { x: 2, y: 11 }, 
                         { x: 1, y: 12 }, { x: 0, y: 13 }
-                    ],
-                    description: 'Draw the vertical line and curved bottom section with more points',
-                    type: 'coordinates'
+                    ]
                 }
             ]
         },
         6: {
             strokes: [{
                 id: 'six_coords',
-                startPoint: { x: 218, y: 100 },
                 coordinates: [
                     { x: 65, y: 200 }, { x: 60, y: 199 }, { x: 55, y: 197 }, { x: 50, y: 194 }, 
                     { x: 45, y: 191 }, { x: 40, y: 186 }, { x: 35, y: 181 }, { x: 30, y: 175 }, 
@@ -239,15 +304,12 @@ const DRAW_CONFIG = {
                     { x: 25, y: 112 }, { x: 20, y: 108 }, { x: 15, y: 103 }, { x: 10, y: 96 }, 
                     { x: 8, y: 93 }, { x: 6, y: 88 }, { x: 4, y: 84 }, { x: 2, y: 77 }, 
                     { x: 1, y: 72 }, { x: 0, y: 60 }
-                ],
-                description: 'Draw 6 using precise coordinates',
-                type: 'coordinates'
+                ]
             }]
         },
         7: {
             strokes: [{
                 id: 'seven_coords',
-                startPoint: { x: 140, y: 300 },
                 coordinates: [
                     { x: 0, y: 200 }, { x: 10, y: 200 }, { x: 20, y: 200 }, { x: 30, y: 200 }, 
                     { x: 40, y: 200 }, { x: 50, y: 200 }, { x: 60, y: 200 }, { x: 70, y: 200 }, 
@@ -255,15 +317,12 @@ const DRAW_CONFIG = {
                     { x: 90, y: 167 }, { x: 85, y: 150 }, { x: 80, y: 133 }, { x: 75, y: 117 }, 
                     { x: 70, y: 100 }, { x: 65, y: 83 }, { x: 60, y: 67 }, { x: 55, y: 50 }, 
                     { x: 50, y: 33 }, { x: 45, y: 17 }, { x: 40, y: 0 }
-                ],
-                description: 'Draw 7 with full coordinates including corner transition',
-                type: 'coordinates'
+                ]
             }]
         },
         8: {
             strokes: [{
                 id: 'eight_coords',
-                startPoint: { x: 254, y: 147.5 },
                 coordinates: [
                     { x: 95, y: 152.5 }, { x: 94, y: 162.5 }, { x: 92, y: 169.5 }, { x: 90, y: 174.5 }, 
                     { x: 85, y: 182.5 }, { x: 80, y: 188 }, { x: 75, y: 192 }, { x: 70, y: 195 }, 
@@ -291,55 +350,80 @@ const DRAW_CONFIG = {
                     { x: 65, y: 107.5 }, { x: 70, y: 110 }, { x: 75, y: 113 }, { x: 80, y: 117 }, 
                     { x: 85, y: 122.5 }, { x: 90, y: 130.5 }, { x: 92, y: 135.5 }, { x: 94, y: 142.5 }, 
                     { x: 95, y: 152.5 }
-                ],
-                description: 'Draw 8 using precise coordinates',
-                type: 'coordinates'
+                ]
             }]
         },
         9: {
             strokes: [{
                 id: 'nine_coords',
-                startPoint: { x: 235, y: 250 },
                 coordinates: [
-                    {x: 95, y: 150}, {x: 94, y: 160}, {x: 92, y: 167}, {x: 90, y: 172}, 
-                    {x: 85, y: 181}, {x: 80, y: 186}, {x: 75, y: 191}, {x: 70, y: 194}, 
-                    {x: 65, y: 196}, {x: 60, y: 198}, {x: 55, y: 199}, {x: 50, y: 200}, 
-                    {x: 45, y: 200}, {x: 40, y: 199}, {x: 35, y: 198}, {x: 30, y: 196}, 
-                    {x: 25, y: 194}, {x: 20, y: 191}, {x: 15, y: 186}, {x: 10, y: 181}, 
-                    {x: 8, y: 178}, {x: 6, y: 174}, {x: 4, y: 170}, {x: 2, y: 164}, 
-                    {x: 1, y: 160}, {x: 0, y: 150}, {x: 1, y: 140}, {x: 2, y: 136}, 
-                    {x: 4, y: 130}, {x: 6, y: 126}, {x: 8, y: 122}, {x: 10, y: 119}, 
-                    {x: 15, y: 114}, {x: 20, y: 109}, {x: 25, y: 106}, {x: 30, y: 104}, 
-                    {x: 35, y: 102}, {x: 40, y: 101}, {x: 45, y: 100}, {x: 50, y: 100}, 
-                    {x: 55, y: 101}, {x: 60, y: 102}, {x: 65, y: 104}, {x: 70, y: 106}, 
-                    {x: 75, y: 109}, {x: 80, y: 114}, {x: 85, y: 119}, {x: 90, y: 128}, 
-                    {x: 92, y: 133}, {x: 94, y: 140}, {x: 94.9, y: 150}, {x: 95.9, y: 158}, 
-                    {x: 96.9, y: 166}, {x: 97.9, y: 174}, {x: 98.9, y: 182}, {x: 100, y: 190}, 
-                    {x: 99, y: 182}, {x: 98, y: 174}, {x: 97, y: 166}, {x: 96, y: 158}, 
-                    {x: 95, y: 150}, {x: 94, y: 140}, {x: 93, y: 130}, {x: 92, y: 120}, 
-                    {x: 91, y: 110}, {x: 90, y: 100}, {x: 89, y: 90}, {x: 88, y: 80}, 
-                    {x: 87, y: 70}, {x: 86, y: 60}, {x: 85, y: 50}, {x: 84, y: 40}, 
-                    {x: 83, y: 30}, {x: 82, y: 20}, {x: 81, y: 10}, {x: 80, y: 0}
-                ],
-                description: 'Draw 9 with exact coordinates',
-                type: 'coordinates'
+                    { x: 95, y: 150 }, { x: 94, y: 160 }, { x: 92, y: 167 }, { x: 90, y: 172 }, 
+                    { x: 85, y: 181 }, { x: 80, y: 186 }, { x: 75, y: 191 }, { x: 70, y: 194 }, 
+                    { x: 65, y: 196 }, { x: 60, y: 198 }, { x: 55, y: 199 }, { x: 50, y: 200 }, 
+                    { x: 45, y: 200 }, { x: 40, y: 199 }, { x: 35, y: 198 }, { x: 30, y: 196 }, 
+                    { x: 25, y: 194 }, { x: 20, y: 191 }, { x: 15, y: 186 }, { x: 10, y: 181 }, 
+                    { x: 8, y: 178 }, { x: 6, y: 174 }, { x: 4, y: 170 }, { x: 2, y: 164 }, 
+                    { x: 1, y: 160 }, { x: 0, y: 150 }, { x: 1, y: 140 }, { x: 2, y: 136 }, 
+                    { x: 4, y: 130 }, { x: 6, y: 126 }, { x: 8, y: 122 }, { x: 10, y: 119 }, 
+                    { x: 15, y: 114 }, { x: 20, y: 109 }, { x: 25, y: 106 }, { x: 30, y: 104 }, 
+                    { x: 35, y: 102 }, { x: 40, y: 101 }, { x: 45, y: 100 }, { x: 50, y: 100 }, 
+                    { x: 55, y: 101 }, { x: 60, y: 102 }, { x: 65, y: 104 }, { x: 70, y: 106 }, 
+                    { x: 75, y: 109 }, { x: 80, y: 114 }, { x: 85, y: 119 }, { x: 90, y: 128 }, 
+                    { x: 92, y: 133 }, { x: 94, y: 140 }, { x: 94.9, y: 150 }, { x: 95.9, y: 158 }, 
+                    { x: 96.9, y: 166 }, { x: 97.9, y: 174 }, { x: 98.9, y: 182 }, { x: 100, y: 190 }, 
+                    { x: 99, y: 182 }, { x: 98, y: 174 }, { x: 97, y: 166 }, { x: 96, y: 158 }, 
+                    { x: 95, y: 150 }, { x: 94, y: 140 }, { x: 93, y: 130 }, { x: 92, y: 120 }, 
+                    { x: 91, y: 110 }, { x: 90, y: 100 }, { x: 89, y: 90 }, { x: 88, y: 80 }, 
+                    { x: 87, y: 70 }, { x: 86, y: 60 }, { x: 85, y: 50 }, { x: 84, y: 40 }, 
+                    { x: 83, y: 30 }, { x: 82, y: 20 }, { x: 81, y: 10 }, { x: 80, y: 0 }
+                ]
             }]
         }
     },
     
-    RAINBOW_COLORS: [
-        '#ff0000', '#ff8000', '#ffff00', '#80ff00', '#00ff00',
-        '#00ff80', '#00ffff', '#0080ff', '#0000ff', '#8000ff'
-    ],
+    // Debug and development settings
+    DEBUG_MODE: false,
     
-    NUMBERS_SEQUENCE: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-    DEBUG_MODE: false
+    // Helper functions
+    getRandomEncouragement() {
+        const encouragements = [
+            this.AUDIO.COMPLETION.WELL_DONE,
+            this.AUDIO.COMPLETION.EXCELLENT,
+            this.AUDIO.COMPLETION.GREAT_JOB,
+            this.AUDIO.COMPLETION.PERFECT
+        ];
+        return encouragements[Math.floor(Math.random() * encouragements.length)];
+    },
+    
+    getNumberWord(number) {
+        return this.NUMBER_WORDS[number] || number.toString();
+    },
+    
+    // Calculate number bounds for coverage checking
+    calculateNumberBounds(number) {
+        const numberConfig = this.STROKE_DEFINITIONS[number];
+        if (!numberConfig || !numberConfig.strokes) return null;
+        
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        
+        numberConfig.strokes.forEach(stroke => {
+            if (stroke.coordinates) {
+                stroke.coordinates.forEach(coord => {
+                    minX = Math.min(minX, coord.x);
+                    maxX = Math.max(maxX, coord.x);
+                    minY = Math.min(minY, coord.y);
+                    maxY = Math.max(maxY, coord.y);
+                });
+            }
+        });
+        
+        return { minX, maxX, minY, maxY };
+    }
 };
 
 // Create alias for compatibility with shared components (Rainbow, Bear)
 const CONFIG = {
     ...DRAW_CONFIG,
-    BEAR_IMAGE_PATH: DRAW_CONFIG.BEAR_IMAGE_PATH,
     RAINBOW_PIECES: DRAW_CONFIG.RAINBOW_PIECES,
     RAINBOW_COLORS: DRAW_CONFIG.RAINBOW_COLORS
 };
