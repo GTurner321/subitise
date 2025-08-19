@@ -8,6 +8,7 @@
  * - Redo button creation and styling
  * - Coordinate system scaling with maintained aspect ratio (30vh width, 60vh height)
  * - Resize handling and dimension management
+ * - UPDATED: Dynamic width calculation for drawing area
  * 
  * COMPANION FILE: drawingrenderer.js
  * - Contains all user drawing interaction functionality
@@ -36,11 +37,11 @@ class DrawLayoutRenderer {
         this.resizeObserver = null;
         this.buttonBarReady = false;
         
-        // Drawing area bounds (percentages of game area)
+        // Drawing area bounds (percentages of game area) - UPDATED for dynamic width
         this.drawingBounds = {
             x: DRAW_CONFIG.LAYOUT.DRAWING_AREA.x,
             y: DRAW_CONFIG.LAYOUT.DRAWING_AREA.y,
-            width: DRAW_CONFIG.LAYOUT.DRAWING_AREA.width,
+            width: DRAW_CONFIG.LAYOUT.DRAWING_AREA.width, // Now can be object or number
             height: DRAW_CONFIG.LAYOUT.DRAWING_AREA.height
         };
         
@@ -422,7 +423,7 @@ class DrawLayoutRenderer {
     }
     
     /**
-     * Update drawing area position and styling
+     * Update drawing area position and styling - UPDATED for dynamic width
      */
     updateDrawingAreaPosition() {
         if (!this.drawingArea || !this.gameAreaDimensions) return;
@@ -432,7 +433,22 @@ class DrawLayoutRenderer {
         // Calculate drawing area dimensions and position
         const areaX = (width * this.drawingBounds.x) / 100;
         const areaY = (height * this.drawingBounds.y) / 100;
-        const areaWidth = (width * this.drawingBounds.width) / 100;
+        
+        // UPDATED: Calculate dynamic width based on new config format
+        let areaWidth;
+        if (typeof this.drawingBounds.width === 'object') {
+            // New dynamic calculation: basePercent of width + heightPercent of height
+            const baseWidth = (width * this.drawingBounds.width.basePercent) / 100;
+            const heightComponent = (height * this.drawingBounds.width.heightPercent) / 100;
+            areaWidth = baseWidth + heightComponent;
+            
+            console.log(`📐 Dynamic width calculation: ${this.drawingBounds.width.basePercent}% of width (${baseWidth.toFixed(1)}px) + ${this.drawingBounds.width.heightPercent}% of height (${heightComponent.toFixed(1)}px) = ${areaWidth.toFixed(1)}px`);
+        } else {
+            // Legacy: simple percentage of width
+            areaWidth = (width * this.drawingBounds.width) / 100;
+            console.log(`📐 Legacy width calculation: ${this.drawingBounds.width}% of width = ${areaWidth.toFixed(1)}px`);
+        }
+        
         const areaHeight = (height * this.drawingBounds.height) / 100;
         
         // Apply styling with subtle shadow and semi-transparent background
@@ -451,7 +467,7 @@ class DrawLayoutRenderer {
             user-select: none;
         `;
         
-        console.log(`🎨 Drawing area positioned at (${areaX}, ${areaY}) with size ${areaWidth}×${areaHeight}`);
+        console.log(`🎨 Drawing area positioned at (${areaX}, ${areaY}) with dynamic size ${areaWidth.toFixed(1)}×${areaHeight}px`);
     }
     
     /**
@@ -497,17 +513,27 @@ class DrawLayoutRenderer {
     }
     
     /**
-     * Get the drawing area bounds in pixels for the drawing renderer
+     * Get the drawing area bounds in pixels for the drawing renderer - UPDATED for dynamic width
      */
     getDrawingAreaBounds() {
         if (!this.gameAreaDimensions) return null;
         
         const { width, height } = this.gameAreaDimensions;
         
+        // Calculate dynamic width
+        let areaWidth;
+        if (typeof this.drawingBounds.width === 'object') {
+            const baseWidth = (width * this.drawingBounds.width.basePercent) / 100;
+            const heightComponent = (height * this.drawingBounds.width.heightPercent) / 100;
+            areaWidth = baseWidth + heightComponent;
+        } else {
+            areaWidth = (width * this.drawingBounds.width) / 100;
+        }
+        
         return {
             x: (width * this.drawingBounds.x) / 100,
             y: (height * this.drawingBounds.y) / 100,
-            width: (width * this.drawingBounds.width) / 100,
+            width: areaWidth,
             height: (height * this.drawingBounds.height) / 100
         };
     }
