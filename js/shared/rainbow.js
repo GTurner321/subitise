@@ -361,3 +361,7 @@ class Rainbow {
         console.log('🌈 Rainbow destroyed and cleaned up');
     }
 }
+
+// MISSING: Global export for universal access
+window.Rainbow = Rainbow;
+console.log('🌈 Rainbow class exported to window.Rainbow');
