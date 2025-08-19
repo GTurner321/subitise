@@ -41,8 +41,8 @@ class DrawingRenderer {
         // Interaction state
         this.isComplete = false;
         this.hintTimer = null;
+        this.visualFlashTimer = null;
         this.lastActivityTime = Date.now();
-        this.pulseAnimation = null;
         
         // Event handlers (bound for cleanup)
         this.boundHandlers = {
@@ -97,7 +97,7 @@ class DrawingRenderer {
         this.coveredPoints.clear();
         this.drawnBounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
         this.clearHintTimer();
-        this.stopPulseAnimation();
+        this.clearVisualFlashTimer();
         this.lastActivityTime = Date.now();
     }
     
@@ -151,7 +151,7 @@ class DrawingRenderer {
     renderNumberOutlineWithFill(number) {
         if (!this.outlineGroup) return;
         
-        console.log(`🔤 Rendering filled outline for number ${number}`);
+        console.log(`🔤 Rendering clean outline for number ${number}`);
         
         // Clear existing outlines
         this.outlineGroup.innerHTML = '';
@@ -186,13 +186,13 @@ class DrawingRenderer {
         // Set SVG viewBox to match drawing area
         this.svg.setAttribute('viewBox', `0 0 ${drawingBounds.width} ${drawingBounds.height}`);
         
-        // Render each stroke with new fill method
+        // Render each stroke with clean grey outline and white fill
         numberConfig.strokes.forEach((stroke, strokeIndex) => {
             if (stroke.coordinates) {
                 const scaledCoords = this.scaleCoordinatesForSVG(stroke.coordinates, relativeNumberBounds);
                 const pathData = this.createPathData(scaledCoords);
                 
-                // Create outline path with grey border and white fill
+                // Create clean outline path
                 const outlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 outlinePath.setAttribute('d', pathData);
                 outlinePath.setAttribute('stroke', DRAW_CONFIG.STYLING.OUTLINE_COLOR); // Grey border
@@ -202,19 +202,18 @@ class DrawingRenderer {
                 outlinePath.setAttribute('fill', 'white'); // White fill
                 outlinePath.setAttribute('class', `outline-stroke-${strokeIndex}`);
                 
-                // Add subtle drop shadow for depth
-                outlinePath.style.filter = 'drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.1))';
+                // No filters or shadows - clean appearance
                 
                 this.outlineGroup.appendChild(outlinePath);
                 
-                console.log(`📝 Rendered filled outline stroke ${strokeIndex} with ${scaledCoords.length} points`);
+                console.log(`📝 Rendered clean outline stroke ${strokeIndex} with ${scaledCoords.length} points`);
             }
         });
         
         // Store number bounds for coverage detection
         this.numberBounds = this.layoutRenderer.calculateNumberBounds(number);
         
-        console.log(`✅ Number ${number} filled outline rendered with ${numberConfig.strokes.length} strokes`);
+        console.log(`✅ Number ${number} clean outline rendered with ${numberConfig.strokes.length} strokes`);
     }
     
     /**
@@ -434,7 +433,8 @@ class DrawingRenderer {
         const numberConfig = DRAW_CONFIG.STROKE_DEFINITIONS[this.currentNumber];
         if (!numberConfig) return;
         
-        const tolerance = DRAW_CONFIG.STYLING.DRAWING_TOLERANCE;
+        // Relaxed tolerance for easier completion
+        const tolerance = 30; // Increased from 25 to 30 for more forgiving detection
         const drawingBounds = this.layoutRenderer.getDrawingAreaBounds();
         const numberRenderBounds = this.layoutRenderer.getNumberRenderBounds();
         
@@ -493,52 +493,59 @@ class DrawingRenderer {
         const widthCoverage = this.calculateWidthCoverage();
         const heightCoverage = this.calculateHeightCoverage();
         
-        console.log(`📊 Coverage: ${widthCoverage}% width, ${heightCoverage}% height`);
+        console.log(`📊 Coverage: ${widthCoverage.toFixed(1)}% width, ${heightCoverage.toFixed(1)}% height`);
         
-        // Check if both width and height requirements are met
-        if (widthCoverage >= DRAW_CONFIG.STYLING.COVERAGE_WIDTH_REQUIRED && 
-            heightCoverage >= DRAW_CONFIG.STYLING.COVERAGE_HEIGHT_REQUIRED) {
-            
+        // Relaxed completion criteria: 90% coverage required (down from 100%)
+        if (widthCoverage >= 90 && heightCoverage >= 90) {
+            console.log(`✅ Completion criteria met: ${widthCoverage.toFixed(1)}% width, ${heightCoverage.toFixed(1)}% height`);
             this.completeNumber();
         }
     }
     
     /**
-     * Calculate width coverage percentage
+     * Calculate width coverage percentage with relaxed criteria
      */
     calculateWidthCoverage() {
         if (!this.numberBounds || this.drawnBounds.minX === Infinity) return 0;
         
         const numberWidth = this.numberBounds.maxX - this.numberBounds.minX;
-        const drawnWidth = this.drawnBounds.maxX - this.drawnBounds.minX;
         
         if (numberWidth === 0) return 100;
         
-        // Check if drawn area spans the required width
-        const overlapLeft = Math.max(this.drawnBounds.minX, this.numberBounds.minX);
-        const overlapRight = Math.min(this.drawnBounds.maxX, this.numberBounds.maxX);
-        const overlapWidth = Math.max(0, overlapRight - overlapLeft);
+        // Check if drawn area spans the required width with relaxed margins
+        const marginTolerance = numberWidth * 0.05; // 5% margin tolerance
+        const adjustedNumberMinX = this.numberBounds.minX + marginTolerance;
+        const adjustedNumberMaxX = this.numberBounds.maxX - marginTolerance;
         
-        return (overlapWidth / numberWidth) * 100;
+        const overlapLeft = Math.max(this.drawnBounds.minX, adjustedNumberMinX);
+        const overlapRight = Math.min(this.drawnBounds.maxX, adjustedNumberMaxX);
+        const overlapWidth = Math.max(0, overlapRight - overlapLeft);
+        const targetWidth = adjustedNumberMaxX - adjustedNumberMinX;
+        
+        return Math.min(100, (overlapWidth / targetWidth) * 100);
     }
     
     /**
-     * Calculate height coverage percentage
+     * Calculate height coverage percentage with relaxed criteria
      */
     calculateHeightCoverage() {
         if (!this.numberBounds || this.drawnBounds.minY === Infinity) return 0;
         
         const numberHeight = this.numberBounds.maxY - this.numberBounds.minY;
-        const drawnHeight = this.drawnBounds.maxY - this.drawnBounds.minY;
         
         if (numberHeight === 0) return 100;
         
-        // Check if drawn area spans the required height
-        const overlapTop = Math.max(this.drawnBounds.minY, this.numberBounds.minY);
-        const overlapBottom = Math.min(this.drawnBounds.maxY, this.numberBounds.maxY);
-        const overlapHeight = Math.max(0, overlapBottom - overlapTop);
+        // Check if drawn area spans the required height with relaxed margins
+        const marginTolerance = numberHeight * 0.05; // 5% margin tolerance
+        const adjustedNumberMinY = this.numberBounds.minY + marginTolerance;
+        const adjustedNumberMaxY = this.numberBounds.maxY - marginTolerance;
         
-        return (overlapHeight / numberHeight) * 100;
+        const overlapTop = Math.max(this.drawnBounds.minY, adjustedNumberMinY);
+        const overlapBottom = Math.min(this.drawnBounds.maxY, adjustedNumberMaxY);
+        const overlapHeight = Math.max(0, overlapBottom - overlapTop);
+        const targetHeight = adjustedNumberMaxY - adjustedNumberMinY;
+        
+        return Math.min(100, (overlapHeight / targetHeight) * 100);
     }
     
     /**
@@ -549,7 +556,7 @@ class DrawingRenderer {
         
         this.isComplete = true;
         this.clearHintTimer();
-        this.stopPulseAnimation();
+        this.clearVisualFlashTimer();
         this.removeDrawingEvents();
         
         // Trigger completion callback
@@ -617,12 +624,13 @@ class DrawingRenderer {
     registerActivity() {
         this.lastActivityTime = Date.now();
         this.clearHintTimer();
-        this.stopPulseAnimation();
-        this.startHintTimer();
+        this.clearVisualFlashTimer();
+        this.startHintTimer(); // Restart hint timer for audio hints
+        this.startVisualFlashTimer(); // Restart visual flash timer
     }
     
     /**
-     * Start hint timer (5 seconds instead of 10)
+     * Start hint timer (20 seconds for audio hints)
      */
     startHintTimer() {
         if (this.isComplete) return;
@@ -630,8 +638,8 @@ class DrawingRenderer {
         this.clearHintTimer();
         
         this.hintTimer = setTimeout(() => {
-            this.showPulsingHint();
-        }, 5000); // Changed from 10 seconds to 5 seconds
+            this.showAudioHint();
+        }, 20000); // 20 seconds for audio hints
     }
     
     /**
@@ -645,120 +653,101 @@ class DrawingRenderer {
     }
     
     /**
-     * Show pulsing hint with audio
+     * Show audio hint based on drawing progress
      */
-    showPulsingHint() {
+    showAudioHint() {
         if (this.isComplete) return;
         
-        console.log('💡 Showing pulsing hint');
+        console.log('💡 Showing audio hint');
         
-        // Play audio hint
+        // Play audio hint based on whether anything has been drawn
         if (window.AudioSystem && window.AudioSystem.speakText) {
-            const hints = DRAW_CONFIG.AUDIO.HINTS;
-            const hintMessages = [
-                hints.KEEP_DRAWING,
-                hints.FOLLOW_OUTLINE,
-                hints.TRY_DIFFERENT_PATH
-            ];
+            let hintMessage;
             
-            const randomHint = hintMessages[Math.floor(Math.random() * hintMessages.length)];
-            window.AudioSystem.speakText(randomHint);
+            if (this.allPaths.length === 0) {
+                // Nothing drawn yet
+                hintMessage = 'Draw inside the number on the right';
+            } else {
+                // Something has been drawn
+                hintMessage = 'Keep drawing to complete the number on the right';
+            }
+            
+            window.AudioSystem.speakText(hintMessage);
         }
         
-        // Start visual pulsing animation
-        this.startPulseAnimation();
+        // Restart the hint timer for next hint
+        this.startHintTimer();
     }
     
     /**
-     * Start the pulsing animation (pulse twice)
+     * Start visual flash timer (8 seconds for visual flashing)
      */
-    startPulseAnimation() {
-        if (!this.outlineGroup) return;
+    startVisualFlashTimer() {
+        if (this.isComplete) return;
         
-        this.stopPulseAnimation(); // Stop any existing animation
+        this.clearVisualFlashTimer();
+        
+        this.visualFlashTimer = setTimeout(() => {
+            this.showVisualFlash();
+        }, 8000); // 8 seconds for visual flash
+    }
+    
+    /**
+     * Clear visual flash timer
+     */
+    clearVisualFlashTimer() {
+        if (this.visualFlashTimer) {
+            clearTimeout(this.visualFlashTimer);
+            this.visualFlashTimer = null;
+        }
+    }
+    
+    /**
+     * Show visual flash (disappear and reappear twice in 1 second)
+     */
+    showVisualFlash() {
+        if (this.isComplete || !this.outlineGroup) return;
+        
+        console.log('✨ Showing visual flash');
         
         const outlinePaths = this.outlineGroup.querySelectorAll('path');
-        let pulseCount = 0;
-        const maxPulses = 2;
+        let flashCount = 0;
+        const maxFlashes = 2;
         
-        const doPulse = () => {
-            if (pulseCount >= maxPulses || this.isComplete) {
-                this.stopPulseAnimation();
+        const doFlash = () => {
+            if (flashCount >= maxFlashes || this.isComplete) {
+                // Ensure outlines are visible at the end
+                outlinePaths.forEach(path => {
+                    path.style.opacity = '1';
+                });
+                this.startVisualFlashTimer(); // Restart timer for next flash cycle
                 return;
             }
             
-            // Pulse animation: change opacity and add glow
+            // Flash: disappear for 250ms, then reappear for 250ms
             outlinePaths.forEach(path => {
-                // Add CSS animation class
-                path.style.animation = 'pulseHint 1s ease-in-out';
-                path.style.filter = 'drop-shadow(0 0 8px #FF6B6B)';
+                path.style.opacity = '0';
             });
             
-            // Reset after pulse
             setTimeout(() => {
                 outlinePaths.forEach(path => {
-                    path.style.animation = '';
-                    path.style.filter = 'drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.1))';
+                    path.style.opacity = '1';
                 });
                 
-                pulseCount++;
+                flashCount++;
                 
-                // Schedule next pulse after short delay
-                if (pulseCount < maxPulses) {
-                    this.pulseAnimation = setTimeout(doPulse, 500);
+                // Schedule next flash after brief pause
+                if (flashCount < maxFlashes) {
+                    setTimeout(doFlash, 250);
+                } else {
+                    // Restart flash timer for next cycle
+                    this.startVisualFlashTimer();
                 }
-            }, 1000);
+            }, 250);
         };
         
-        // Add CSS animation keyframes if not already added
-        this.addPulseAnimationCSS();
-        
-        // Start pulsing
-        doPulse();
-    }
-    
-    /**
-     * Stop the pulsing animation
-     */
-    stopPulseAnimation() {
-        if (this.pulseAnimation) {
-            clearTimeout(this.pulseAnimation);
-            this.pulseAnimation = null;
-        }
-        
-        // Reset all outline paths to normal state
-        if (this.outlineGroup) {
-            const outlinePaths = this.outlineGroup.querySelectorAll('path');
-            outlinePaths.forEach(path => {
-                path.style.animation = '';
-                path.style.filter = 'drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.1))';
-            });
-        }
-    }
-    
-    /**
-     * Add CSS animation for pulsing hint
-     */
-    addPulseAnimationCSS() {
-        // Check if animation already exists
-        if (document.querySelector('#pulse-hint-animation')) return;
-        
-        const style = document.createElement('style');
-        style.id = 'pulse-hint-animation';
-        style.textContent = `
-            @keyframes pulseHint {
-                0%, 100% {
-                    opacity: 1;
-                    transform: scale(1);
-                }
-                50% {
-                    opacity: 0.7;
-                    transform: scale(1.05);
-                }
-            }
-        `;
-        
-        document.head.appendChild(style);
+        // Start flashing
+        doFlash();
     }
     
     /**
@@ -802,16 +791,10 @@ class DrawingRenderer {
         
         this.clear();
         this.removeDrawingEvents();
-        this.stopPulseAnimation();
+        this.clearVisualFlashTimer();
         
         if (this.svg && this.svg.parentNode) {
             this.svg.parentNode.removeChild(this.svg);
-        }
-        
-        // Remove animation CSS
-        const animationStyle = document.querySelector('#pulse-hint-animation');
-        if (animationStyle) {
-            animationStyle.remove();
         }
         
         this.layoutRenderer = null;
