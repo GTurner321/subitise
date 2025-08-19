@@ -63,12 +63,16 @@ const DRAW_CONFIG = {
         DRAWING_AREA_SHADOW: '0 0 2vh rgba(0, 0, 0, 0.1)', // Subtle shadow
         
         // Number outline to be drawn - UPDATED THICKNESS
-        OUTLINE_THICKNESS: 6, // 6% of game area height (increased from 4%)
-        OUTLINE_COLOR: '#CCCCCC',
-        
-        // User drawing line - UPDATED THICKNESS
-        DRAWING_LINE_THICKNESS: 4, // 4% of game area height (increased from 3%)
-        DRAWING_LINE_COLOR: '#4CAF50', // Green
+    OUTLINE_THICKNESS: 7, // 7% of game area height (increased from 6%)
+    OUTLINE_COLOR: '#CCCCCC',
+    
+    // NEW: White fill stroke configuration
+    WHITE_FILL_RATIO: 0.8, // 80% of outline thickness for white inner stroke
+    WHITE_FILL_COLOR: 'white', // Color for the white fill stroke
+    
+    // User drawing line
+    DRAWING_LINE_THICKNESS: 4, // 4% of game area height
+    DRAWING_LINE_COLOR: '#4CAF50', // Green
         
         // Completion criteria
         COVERAGE_WIDTH_REQUIRED: 100, // 100% width coverage required
