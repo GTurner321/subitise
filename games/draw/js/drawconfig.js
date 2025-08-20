@@ -59,8 +59,8 @@ const DRAW_CONFIG = {
         REFERENCE_FONT_WEIGHT: 'bold',
         
         // Drawing area background
-        DRAWING_AREA_BACKGROUND: 'rgba(255, 255, 255, 0.7)', // 70% opaque white
-        DRAWING_AREA_SHADOW: '0 0 2vh rgba(0, 0, 0, 0.1)', // Subtle shadow
+        DRAWING_AREA_BACKGROUND: 'rgba(255, 255, 224, 0.8)', // Pale yellow
+        DRAWING_AREA_SHADOW: '0 6px 20px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1)', // Enhanced shadow
         
         // Number outline to be drawn - UPDATED THICKNESS
         OUTLINE_THICKNESS: 7, // 7% of game area height (increased from 6%)
