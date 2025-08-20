@@ -226,7 +226,7 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * UPDATED: Calculate canvas area and line length limits based on drawing area height
+     * UPDATED: Calculate canvas area and line length limits - FIXED for earlier detection
      */
     calculateCanvasArea() {
         // Use the drawing area bounds for more generous limits
@@ -235,11 +235,11 @@ class DrawingInteractionHandler {
             this.totalCanvasArea = drawingBounds.width * drawingBounds.height;
             this.drawnCanvasArea = 0;
             
-            // NEW: Calculate maximum allowed line length (5x drawing area height)
-            this.maxAllowedLineLength = drawingBounds.height * 5;
+            // FIXED: Use configurable multiplier (default 3x) for earlier detection
+            this.maxAllowedLineLength = drawingBounds.height * DRAW_CONFIG.LINE_LENGTH_FLOODING.HEIGHT_MULTIPLIER;
             this.cumulativeLineLength = 0;
             
-            console.log(`📏 Canvas limits calculated - Area: ${this.totalCanvasArea.toFixed(0)}px², Max line length: ${this.maxAllowedLineLength.toFixed(0)}px (5x height of ${drawingBounds.height.toFixed(0)}px)`);
+            console.log(`📏 Canvas limits calculated - Area: ${this.totalCanvasArea.toFixed(0)}px², Max line length: ${this.maxAllowedLineLength.toFixed(0)}px (${DRAW_CONFIG.LINE_LENGTH_FLOODING.HEIGHT_MULTIPLIER}x height of ${drawingBounds.height.toFixed(0)}px)`);
         } else {
             console.warn('⚠️ Could not get drawing bounds for canvas area calculation');
             this.totalCanvasArea = 0;
@@ -265,11 +265,6 @@ class DrawingInteractionHandler {
         // NEW: Reset line length tracking
         this.cumulativeLineLength = 0;
         this.floodingLimitExceeded = false;
-        
-        // Notify game controller to stop button flashing
-        if (window.drawGameController && typeof window.drawGameController.stopResetButtonFlashing === 'function') {
-            window.drawGameController.stopResetButtonFlashing();
-        }
         
         this.lastActivityTime = Date.now();
     }
@@ -541,7 +536,7 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * NEW: Trigger line length flooding warning (delegates UI to game controller)
+     * UPDATED: Trigger line length flooding warning (delegates UI to game controller)
      */
     triggerLineLengthFloodingWarning() {
         if (this.floodingLimitExceeded) return;
@@ -662,11 +657,6 @@ class DrawingInteractionHandler {
         this.cumulativeLineLength = 0;
         this.floodingLimitExceeded = false;
         
-        // Notify game controller to stop button flashing
-        if (window.drawGameController && typeof window.drawGameController.stopResetButtonFlashing === 'function') {
-            window.drawGameController.stopResetButtonFlashing();
-        }
-        
         // Clear drawn paths from SVG
         if (this.drawingGroup) {
             this.drawingGroup.innerHTML = '';
@@ -731,12 +721,6 @@ class DrawingInteractionHandler {
         if (this.floodingLimitExceeded && this.cumulativeLineLength <= this.maxAllowedLineLength) {
             console.log('✅ Line length back within limits, re-enabling completion');
             this.floodingLimitExceeded = false;
-            
-            // Notify game controller to stop button flashing
-            if (window.drawGameController && typeof window.drawGameController.stopResetButtonFlashing === 'function') {
-                window.drawGameController.stopResetButtonFlashing();
-            }
-            
             this.clearCanvasResetTimer();
         }
         
@@ -843,6 +827,11 @@ class DrawingInteractionHandler {
             requiredPoints: requiredPoints,
             pointCoverage: pointCoverage,
             completionRequirement: '85%', // Document the relaxed requirement
+            
+            // Line length flooding status
+            cumulativeLineLength: this.cumulativeLineLength,
+            maxAllowedLineLength: this.maxAllowedLineLength,
+            floodingLimitExceeded: this.floodingLimitExceeded,
             
             // Canvas flooding tracking (now uses number render area)
             canvasCoverage: canvasCoverage,
