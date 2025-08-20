@@ -139,7 +139,7 @@ const DRAW_CONFIG = {
         WARNING_DELAY: 10000, // 10 seconds
         FLASH_COLOR: 'rgba(255, 165, 0, 0.9)', // Orange
         NORMAL_COLOR: 'rgba(64, 64, 64, 0.9)' // Default button color
-    }
+    },
 
     // Number word mappings
     NUMBER_WORDS: {
