@@ -59,50 +59,23 @@ class DrawGameController {
         this.initializeGame();
     }
     
-    /**
-     * Initialize all game systems with improved sequencing
-     */
-    async initializeGame() {
-        console.log('🚀 Starting enhanced game initialization sequence');
-        
-        try {
-            // Step 1: Wait for DOM
-            await this.waitForDOM();
-            console.log('✅ DOM ready');
-            
-            // Step 2: Initialize audio system
-            this.initializeAudioSystem();
-            console.log('✅ Audio system ready');
-            
-            // Step 3: Setup visibility handling
-            this.setupVisibilityHandling();
-            console.log('✅ Visibility handling ready');
-            
-            // Step 4: Setup modal and UI (early)
-            this.setupGameUI();
-            console.log('✅ Game UI ready');
-            
-            // Step 5: Wait for ButtonBar to create game area
-            await this.waitForGameAreaReady();
-            console.log('✅ Game area ready');
-            
-            // Step 6: Initialize shared components AFTER game area is ready
-            await this.initializeSharedComponents();
-            console.log('✅ Shared components ready');
-            
-            // Step 7: Initialize renderers
-            await this.initializeRenderers();
-            console.log('✅ Renderers ready');
-            
-            // Step 8: start, verification of all systems being ready is removed as it was causing delays
-            // Start game directly - components will fail naturally if not ready
-            this.startGame();
-            
-        } catch (error) {
-            console.error('❌ Game initialization failed:', error);
-            this.handleInitializationFailure(error);
-        }
-    }
+// In drawgamecontroller.js, replace the entire initializeGame method:
+async initializeGame() {
+    console.log('🚀 Fast initialization sequence');
+    
+    // Simple setup without complex verification
+    this.initializeAudioSystem();
+    this.setupVisibilityHandling();
+    this.setupGameUI();
+    
+    // Initialize components directly
+    await this.initializeSharedComponents();
+    await this.initializeRenderers();
+    
+    // Start immediately
+    this.startGame();
+    console.log('✅ Fast initialization complete');
+}
     
     /**
      * Wait for DOM to be ready
