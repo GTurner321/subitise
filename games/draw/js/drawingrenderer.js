@@ -432,6 +432,26 @@ class DrawingRenderer {
         }, 1200); // Small buffer after flash sequence (unchanged)
     }
     
+/**
+ * Stop hint timers (called during flooding state)
+ */
+stopHintTimers() {
+    console.log('⏸️ Stopping hint timers during flooding state');
+    this.clearHintTimer();
+    this.clearVisualFlashTimer();
+}
+
+/**
+ * Restart hint timers (called after reset)
+ */
+restartHintTimers() {
+    console.log('▶️ Restarting hint timers after reset');
+    if (!this.isComplete) {
+        this.startHintTimer();
+        this.startVisualFlashTimer();
+    }
+}
+
     /**
      * Undo the last drawn stroke (delegates to interaction handler)
      */
