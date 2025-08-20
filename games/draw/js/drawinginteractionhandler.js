@@ -95,7 +95,7 @@ class DrawingInteractionHandler {
             console.log('🔍 DEBUG dots disabled for clean user experience');
         }
         
-        console.log(`✅ Interaction ready for number ${number} with ${this.completionPoints.length} completion points (90% required)`);
+        console.log(`✅ Interaction ready for number ${number} with ${this.completionPoints.length} completion points (85% required)`);
         return true;
     }
     
@@ -135,7 +135,7 @@ class DrawingInteractionHandler {
         this.completionPoints = this.scaleCompletionPointsForSVG(configPoints, relativeNumberBounds);
         this.coveredCompletionPoints.clear();
         
-        console.log(`✅ Initialized ${this.completionPoints.length} completion points for number ${number} - need ${Math.ceil(this.completionPoints.length * 0.9)} points (90%)`);
+        console.log(`✅ Initialized ${this.completionPoints.length} completion points for number ${number} - need ${Math.ceil(this.completionPoints.length * 0.85)} points (85%)`);
         
         // Debug: Log point positions if debug mode enabled
         if (DRAW_CONFIG.DEBUG_MODE) {
@@ -455,7 +455,7 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * Check coverage of completion points with ENHANCED tolerance (1.5x line thickness)
+     * Check coverage of completion points with ENHANCED tolerance (1.7x line thickness)
      */
     checkCompletionPointsCoverage(drawnPoint) {
         if (!this.completionPoints || this.completionPoints.length === 0) return;
@@ -463,10 +463,10 @@ class DrawingInteractionHandler {
         // Calculate line thickness as % of game area height (same as drawing line)
         const lineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.DRAWING_LINE_THICKNESS) / 100;
         
-        // ENHANCED: Use 1.5x line thickness for more lenient detection (25% more on each side)
-        const enhancedTolerance = (lineThickness * 1.5) / 2; // 1.5x line width, divided by 2 for radius
+        // ENHANCED: Use 1.7x line thickness for more lenient detection (35% more on each side)
+        const enhancedTolerance = (lineThickness * 1.7) / 2; // 1.7x line width, divided by 2 for radius
         
-        console.log(`🎯 Using enhanced tolerance: ${enhancedTolerance.toFixed(1)}px (1.5x line thickness of ${lineThickness.toFixed(1)}px)`);
+        console.log(`🎯 Using enhanced tolerance: ${enhancedTolerance.toFixed(1)}px (1.7x line thickness of ${lineThickness.toFixed(1)}px)`);
         
         this.completionPoints.forEach(completionPoint => {
             const distance = Math.sqrt(
@@ -549,7 +549,7 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * FIXED: Point-based completion checking with relaxed 90% requirement (18/20 points)
+     * FIXED: Point-based completion checking with relaxed 85% requirement (17/20 points)
      */
     checkCompletion() {
         if (this.isComplete || this.canvasFloodingWarned) return;
@@ -566,8 +566,8 @@ class DrawingInteractionHandler {
         
         console.log(`🎯 Point coverage: ${coveredPoints}/${totalPoints} (${coverage.toFixed(1)}%)`);
         
-        // FIXED: Require 90% of completion points to be covered (18/20 instead of 20/20)
-        const requiredCoverage = 90; // Changed from 100% to 90%
+        // UPDATED: Require 85% of completion points to be covered (17/20 instead of 18/20)
+        const requiredCoverage = 85; // Changed from 90% to 85%
         
         if (coverage >= requiredCoverage) {
             console.log(`✅ Point-based completion achieved: ${coveredPoints}/${totalPoints} points covered (${coverage.toFixed(1)}% >= ${requiredCoverage}%)!`);
@@ -582,7 +582,7 @@ class DrawingInteractionHandler {
      * Complete the number drawing - notify parent renderer
      */
     completeNumber() {
-        console.log(`🎉 Number ${this.currentNumber} completed via POINT-BASED completion with 90% requirement!`);
+        console.log(`🎉 Number ${this.currentNumber} completed via POINT-BASED completion with 85% requirement!`);
         
         this.isComplete = true;
         this.removeDrawingEvents();
@@ -775,7 +775,7 @@ class DrawingInteractionHandler {
             ? (this.drawnCanvasArea / this.totalCanvasArea) * 100 
             : 0;
         
-        const requiredPoints = Math.ceil(this.completionPoints.length * 0.9); // 90% requirement
+        const requiredPoints = Math.ceil(this.completionPoints.length * 0.85); // 85% requirement
         
         return {
             currentNumber: this.currentNumber,
@@ -787,7 +787,7 @@ class DrawingInteractionHandler {
             coveredPoints: this.coveredCompletionPoints.size,
             requiredPoints: requiredPoints,
             pointCoverage: pointCoverage,
-            completionRequirement: '90%', // Document the relaxed requirement
+            completionRequirement: '85%', // Document the relaxed requirement
             
             // Canvas flooding tracking (now uses number render area)
             canvasCoverage: canvasCoverage,
