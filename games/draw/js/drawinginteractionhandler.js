@@ -226,7 +226,7 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * UPDATED: Calculate canvas area and line length limits - FIXED for earlier detection
+     * UPDATED: Calculate canvas area and line length limits - Uses config multiplier
      */
     calculateCanvasArea() {
         // Use the drawing area bounds for more generous limits
@@ -235,7 +235,7 @@ class DrawingInteractionHandler {
             this.totalCanvasArea = drawingBounds.width * drawingBounds.height;
             this.drawnCanvasArea = 0;
             
-            // FIXED: Use configurable multiplier (default 3x) for earlier detection
+            // Use configurable multiplier from config (default 6x for generous drawing space)
             this.maxAllowedLineLength = drawingBounds.height * DRAW_CONFIG.LINE_LENGTH_FLOODING.HEIGHT_MULTIPLIER;
             this.cumulativeLineLength = 0;
             
