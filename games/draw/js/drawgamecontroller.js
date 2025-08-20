@@ -144,29 +144,74 @@ class DrawGameController {
     }
     
     /**
-     * Initialize shared components with better timing
+     * Initialize shared components with better timing and debugging
      */
     async initializeSharedComponents() {
-        console.log('🌈 Initializing shared components');
+        console.log('🌈 Initializing shared components with detailed debugging');
         
-        // Initialize Rainbow
+        // Initialize Rainbow with comprehensive error handling
         try {
+            let RainbowClass = null;
+            
+            // Check multiple possible locations for Rainbow
             if (window.Rainbow && typeof window.Rainbow === 'function') {
-                this.rainbow = new window.Rainbow();
-                console.log('✅ Rainbow initialized successfully');
+                RainbowClass = window.Rainbow;
+                console.log('📍 Found Rainbow at window.Rainbow');
+            } else if (typeof Rainbow !== 'undefined' && typeof Rainbow === 'function') {
+                RainbowClass = Rainbow;
+                window.Rainbow = Rainbow; // Ensure it's on window
+                console.log('📍 Found Rainbow in global scope, added to window');
+            }
+            
+            if (RainbowClass) {
+                this.rainbow = new RainbowClass();
+                
+                // IMPORTANT: Make rainbow globally available for ButtonBar
+                window.rainbow = this.rainbow;
+                
+                console.log('✅ Rainbow initialized and made globally available');
+                
+                // Verify rainbow container exists
+                const rainbowContainer = document.getElementById('rainbowContainer');
+                if (!rainbowContainer) {
+                    console.error('❌ Rainbow container (#rainbowContainer) not found in DOM');
+                } else {
+                    console.log('✅ Rainbow container found in DOM');
+                }
+                
+                // Force immediate initialization
+                setTimeout(() => {
+                    if (this.rainbow && typeof this.rainbow.initializeArcs === 'function') {
+                        console.log('🔄 Force re-initializing rainbow arcs after component setup');
+                        this.rainbow.initializeArcs();
+                    }
+                }, 500);
             } else {
-                console.warn('⚠️ Rainbow class not found, creating dummy implementation');
+                console.warn('⚠️ Rainbow class not found anywhere, creating dummy implementation');
                 this.rainbow = this.createDummyRainbow();
+                window.rainbow = this.rainbow; // Make dummy available too
             }
         } catch (error) {
             console.error('❌ Rainbow initialization failed:', error);
             this.rainbow = this.createDummyRainbow();
+            window.rainbow = this.rainbow;
         }
         
-        // Initialize Bear
+        // Initialize Bear with proper error handling
         try {
+            let BearClass = null;
+            
             if (window.Bear && typeof window.Bear === 'function') {
-                this.bear = new window.Bear();
+                BearClass = window.Bear;
+                console.log('📍 Found Bear at window.Bear');
+            } else if (typeof Bear !== 'undefined' && typeof Bear === 'function') {
+                BearClass = Bear;
+                window.Bear = Bear; // Ensure it's on window
+                console.log('📍 Found Bear in global scope, added to window');
+            }
+            
+            if (BearClass) {
+                this.bear = new BearClass();
                 console.log('✅ Bear initialized successfully');
             } else {
                 console.warn('⚠️ Bear class not found, creating dummy implementation');
@@ -177,7 +222,7 @@ class DrawGameController {
             this.bear = this.createDummyBear();
         }
         
-        console.log('✅ All shared components initialized');
+        console.log('✅ All shared components initialized with debugging');
     }
     
     /**
@@ -438,7 +483,7 @@ class DrawGameController {
     }
     
     /**
-     * Enhanced number completion with immediate rainbow integration
+     * Enhanced number completion with immediate rainbow integration and debugging
      */
     onNumberComplete(number) {
         if (this.isProcessingCompletion) {
@@ -447,16 +492,50 @@ class DrawGameController {
         }
         
         this.isProcessingCompletion = true;
-        console.log(`🎉 Number ${number} completed! Adding rainbow piece immediately.`);
+        console.log(`🎉 Number ${number} completed! Adding rainbow piece with debugging.`);
         
-        // Immediate rainbow piece addition
+        // ENHANCED: Debug rainbow state before adding piece
+        console.log('🔍 Rainbow debug info:', {
+            rainbowExists: !!this.rainbow,
+            rainbowType: typeof this.rainbow,
+            hasAddPiece: this.rainbow && typeof this.rainbow.addPiece === 'function',
+            currentPieces: this.rainbow && typeof this.rainbow.getPieces === 'function' ? this.rainbow.getPieces() : 'unknown',
+            globalRainbow: !!window.rainbow,
+            rainbowContainer: !!document.getElementById('rainbowContainer')
+        });
+        
+        // Immediate rainbow piece addition with verification
         if (this.rainbow && typeof this.rainbow.addPiece === 'function') {
             try {
+                const piecesBefore = this.rainbow.getPieces ? this.rainbow.getPieces() : 'unknown';
                 const pieces = this.rainbow.addPiece();
-                console.log(`🌈 Rainbow piece added successfully: ${pieces}/${DRAW_CONFIG.RAINBOW_PIECES}`);
+                const piecesAfter = this.rainbow.getPieces ? this.rainbow.getPieces() : 'unknown';
+                
+                console.log(`🌈 Rainbow piece added successfully: ${piecesBefore} -> ${piecesAfter} (returned: ${pieces}/${DRAW_CONFIG.RAINBOW_PIECES})`);
+                
+                // Force rainbow re-initialization if pieces don't match
+                if (piecesAfter !== pieces && typeof this.rainbow.initializeArcs === 'function') {
+                    console.log('🔄 Re-initializing rainbow arcs due to mismatch');
+                    setTimeout(() => this.rainbow.initializeArcs(), 100);
+                }
+                
+                // Additional debug: Check if arcs are actually visible
+                setTimeout(() => {
+                    const rainbowContainer = document.getElementById('rainbowContainer');
+                    if (rainbowContainer) {
+                        const arcs = rainbowContainer.querySelectorAll('path[stroke]:not([stroke="transparent"])');
+                        console.log(`🌈 Visible arcs in DOM: ${arcs.length} (should be ${piecesAfter})`);
+                    }
+                }, 200);
+                
             } catch (error) {
                 console.error('❌ Rainbow addPiece failed:', error);
             }
+        } else {
+            console.warn('⚠️ Rainbow not available or addPiece method missing', {
+                rainbow: !!this.rainbow,
+                addPiece: this.rainbow && typeof this.rainbow.addPiece === 'function'
+            });
         }
         
         // Play completion audio
