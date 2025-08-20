@@ -43,7 +43,6 @@ class DrawingInteractionHandler {
         this.cumulativeLineLength = 0;
         this.maxAllowedLineLength = 0;
         this.floodingLimitExceeded = false;
-        this.resetButtonFlashing = false;
         
         // Activity tracking
         this.lastActivityTime = Date.now();
@@ -266,7 +265,11 @@ class DrawingInteractionHandler {
         // NEW: Reset line length tracking
         this.cumulativeLineLength = 0;
         this.floodingLimitExceeded = false;
-        this.stopResetButtonFlashing();
+        
+        // Notify game controller to stop button flashing
+        if (window.drawGameController && typeof window.drawGameController.stopResetButtonFlashing === 'function') {
+            window.drawGameController.stopResetButtonFlashing();
+        }
         
         this.lastActivityTime = Date.now();
     }
@@ -538,7 +541,7 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * NEW: Trigger line length flooding warning with audio sequence and button flashing
+     * NEW: Trigger line length flooding warning (delegates UI to game controller)
      */
     triggerLineLengthFloodingWarning() {
         if (this.floodingLimitExceeded) return;
@@ -546,83 +549,17 @@ class DrawingInteractionHandler {
         this.floodingLimitExceeded = true;
         console.log('⚠️ Line length flooding warning triggered');
         
-        // Play immediate warning audio
-        if (window.AudioSystem) {
-            window.AudioSystem.speakText('You have drawn too much outside the number, reset and start again');
+        // Notify game controller to handle UI feedback
+        if (window.drawGameController && typeof window.drawGameController.handleFloodingWarning === 'function') {
+            window.drawGameController.handleFloodingWarning();
         }
         
-        // Start reset button flashing
-        this.startResetButtonFlashing();
-        
-        // Play second warning after 10 seconds
+        // Start audio sequence timer
         this.canvasResetTimer = setTimeout(() => {
-            if (window.AudioSystem && this.floodingLimitExceeded) {
-                window.AudioSystem.speakText('Press the reset button');
+            if (window.drawGameController && typeof window.drawGameController.playSecondFloodingWarning === 'function') {
+                window.drawGameController.playSecondFloodingWarning();
             }
-        }, 10000);
-    }
-    
-    /**
-     * NEW: Start reset button flashing animation (orange, 1Hz)
-     */
-    startResetButtonFlashing() {
-        if (this.resetButtonFlashing) return;
-        
-        this.resetButtonFlashing = true;
-        console.log('🔄 Starting reset button flashing');
-        
-        const redoButton = document.getElementById('redoButton');
-        if (!redoButton) {
-            console.warn('⚠️ Redo button not found for flashing');
-            return;
-        }
-        
-        // Store original styles
-        if (!redoButton.dataset.originalBackground) {
-            redoButton.dataset.originalBackground = redoButton.style.background || 'rgba(64, 64, 64, 0.9)';
-        }
-        
-        // Start flashing animation
-        let flashOn = true;
-        this.flashInterval = setInterval(() => {
-            if (!this.resetButtonFlashing) {
-                clearInterval(this.flashInterval);
-                return;
-            }
-            
-            if (flashOn) {
-                // Flash to orange
-                redoButton.style.background = 'rgba(255, 165, 0, 0.9)';
-                redoButton.style.transform = redoButton.style.transform.replace(/scale\([^)]*\)/g, '') + ' scale(1.1)';
-            } else {
-                // Return to normal (but still slightly highlighted)
-                redoButton.style.background = 'rgba(255, 165, 0, 0.7)';
-                redoButton.style.transform = redoButton.style.transform.replace(/scale\([^)]*\)/g, '') + ' scale(1.0)';
-            }
-            flashOn = !flashOn;
-        }, 1000); // 1Hz flashing
-    }
-    
-    /**
-     * NEW: Stop reset button flashing and restore normal appearance
-     */
-    stopResetButtonFlashing() {
-        if (!this.resetButtonFlashing) return;
-        
-        this.resetButtonFlashing = false;
-        console.log('🔄 Stopping reset button flashing');
-        
-        if (this.flashInterval) {
-            clearInterval(this.flashInterval);
-            this.flashInterval = null;
-        }
-        
-        const redoButton = document.getElementById('redoButton');
-        if (redoButton) {
-            // Restore original appearance
-            redoButton.style.background = redoButton.dataset.originalBackground || 'rgba(64, 64, 64, 0.9)';
-            redoButton.style.transform = redoButton.style.transform.replace(/scale\([^)]*\)/g, '');
-        }
+        }, DRAW_CONFIG.LINE_LENGTH_FLOODING.WARNING_DELAY);
     }
     
     /**
@@ -724,7 +661,11 @@ class DrawingInteractionHandler {
         // NEW: Reset line length tracking
         this.cumulativeLineLength = 0;
         this.floodingLimitExceeded = false;
-        this.stopResetButtonFlashing();
+        
+        // Notify game controller to stop button flashing
+        if (window.drawGameController && typeof window.drawGameController.stopResetButtonFlashing === 'function') {
+            window.drawGameController.stopResetButtonFlashing();
+        }
         
         // Clear drawn paths from SVG
         if (this.drawingGroup) {
@@ -790,7 +731,12 @@ class DrawingInteractionHandler {
         if (this.floodingLimitExceeded && this.cumulativeLineLength <= this.maxAllowedLineLength) {
             console.log('✅ Line length back within limits, re-enabling completion');
             this.floodingLimitExceeded = false;
-            this.stopResetButtonFlashing();
+            
+            // Notify game controller to stop button flashing
+            if (window.drawGameController && typeof window.drawGameController.stopResetButtonFlashing === 'function') {
+                window.drawGameController.stopResetButtonFlashing();
+            }
+            
             this.clearCanvasResetTimer();
         }
         
@@ -928,13 +874,6 @@ class DrawingInteractionHandler {
         
         this.clear();
         this.clearCanvasResetTimer();
-        
-        // NEW: Clean up button flashing
-        this.stopResetButtonFlashing();
-        if (this.flashInterval) {
-            clearInterval(this.flashInterval);
-            this.flashInterval = null;
-        }
         
         this.layoutRenderer = null;
         this.svg = null;
