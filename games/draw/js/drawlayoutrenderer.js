@@ -1,5 +1,5 @@
 /**
- * Draw Layout Renderer - Part 1 of 2
+ * Draw Layout Renderer - Layout and Positioning System
  * 
  * PURPOSE: Handles all game area setup, positioning, and static visual elements
  * - ButtonBar integration for game area margins and layout
@@ -10,11 +10,19 @@
  * - Resize handling and dimension management
  * - UPDATED: Dynamic width calculation for drawing area
  * 
- * COMPANION FILE: drawingrenderer.js
- * - Contains all user drawing interaction functionality
- * - Handles mouse/touch events for drawing
- * - Manages drawing lines, coverage detection, and completion validation
- * - Provides undo functionality and drawing feedback
+ * COMPANION FILES (2-part drawing system):
+ * 
+ * 1. drawingrenderer.js
+ *    - SVG canvas creation and number outline rendering
+ *    - Visual feedback systems (hints, flashing, completion effects)
+ *    - Timer management and coordination with interaction handler
+ *    - Integration point for complete drawing functionality
+ * 
+ * 2. drawinginteractionhandler.js
+ *    - Mouse/touch event handling for user drawing
+ *    - Point-based completion detection (90% requirement)
+ *    - Canvas flooding prevention with number render area calculation
+ *    - Drawing path management, undo functionality, and state tracking
  */
 
 class DrawLayoutRenderer {
