@@ -88,8 +88,11 @@ class DrawingInteractionHandler {
         if (window.DEBUG_SHOW_POINTS) {
             // Delay slightly to ensure SVG is ready
             setTimeout(() => {
+                console.log('🔍 DEBUG_SHOW_POINTS is enabled, attempting to show debug dots');
                 this.showDebugCompletionPoints();
             }, 100);
+        } else {
+            console.log('🔍 DEBUG_SHOW_POINTS is not enabled, skipping debug dots');
         }
         
         console.log(`✅ Interaction ready for number ${number} with ${this.completionPoints.length} completion points (90% required)`);
@@ -144,12 +147,28 @@ class DrawingInteractionHandler {
      * DEBUG: Show completion points as visible dots for testing
      */
     showDebugCompletionPoints() {
-        if (!DRAW_CONFIG.DEBUG_MODE && !window.DEBUG_SHOW_POINTS) return;
+        console.log(`🔍 showDebugCompletionPoints called - DEBUG_MODE: ${DRAW_CONFIG.DEBUG_MODE}, window.DEBUG_SHOW_POINTS: ${window.DEBUG_SHOW_POINTS}`);
         
-        console.log(`🔍 Showing ${this.completionPoints.length} debug completion points`);
+        if (!DRAW_CONFIG.DEBUG_MODE && !window.DEBUG_SHOW_POINTS) {
+            console.log('🚫 Debug dots disabled - neither DEBUG_MODE nor window.DEBUG_SHOW_POINTS is true');
+            return;
+        }
+        
+        if (!this.drawingGroup) {
+            console.error('❌ drawingGroup not available for debug dots');
+            return;
+        }
+        
+        if (!this.completionPoints || this.completionPoints.length === 0) {
+            console.error('❌ No completion points available for debug dots');
+            return;
+        }
+        
+        console.log(`🔍 Creating debug dots for ${this.completionPoints.length} completion points`);
         
         // Remove existing debug dots
         const existingDots = this.drawingGroup.querySelectorAll('.debug-completion-point');
+        console.log(`🗑️ Removing ${existingDots.length} existing debug dots`);
         existingDots.forEach(dot => dot.remove());
         
         // Create debug dots for each completion point
@@ -157,21 +176,32 @@ class DrawingInteractionHandler {
             const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             dot.setAttribute('cx', point.x);
             dot.setAttribute('cy', point.y);
-            dot.setAttribute('r', 5); // Larger radius for better visibility
+            dot.setAttribute('r', 8); // Even larger radius for maximum visibility
             dot.setAttribute('fill', 'red');
             dot.setAttribute('stroke', 'yellow'); // Bright yellow stroke for contrast
-            dot.setAttribute('stroke-width', 2); // Thicker stroke
+            dot.setAttribute('stroke-width', 3); // Thicker stroke
             dot.setAttribute('class', 'debug-completion-point');
             dot.setAttribute('data-point-id', point.id);
+            dot.setAttribute('opacity', '0.9'); // Slightly transparent to see underlying content
             
             // IMPORTANT: Add to drawing group which is on TOP of outline group
             // This ensures dots appear in front of the number outline
             this.drawingGroup.appendChild(dot);
             
-            console.log(`🔴 Debug dot ${index} placed at (${point.x.toFixed(1)}, ${point.y.toFixed(1)})`);
+            console.log(`🔴 Debug dot ${index} (${point.id}) placed at (${point.x.toFixed(1)}, ${point.y.toFixed(1)}) - element created: ${!!dot}`);
         });
         
-        console.log(`✅ Debug completion points displayed as red dots with yellow borders`);
+        // Verify dots were actually added
+        const newDots = this.drawingGroup.querySelectorAll('.debug-completion-point');
+        console.log(`✅ Debug completion points created: ${newDots.length}/${this.completionPoints.length} dots added to drawingGroup`);
+        
+        // Log SVG structure for debugging
+        console.log('📋 SVG structure check:', {
+            svg: !!this.svg,
+            drawingGroup: !!this.drawingGroup,
+            drawingGroupChildren: this.drawingGroup ? this.drawingGroup.children.length : 'N/A',
+            debugDots: newDots.length
+        });
     }
     
     /**
