@@ -125,8 +125,22 @@ const DRAW_CONFIG = {
             AUDIO_ENABLED: 'Audio enabled',
             AUDIO_DISABLED: 'Audio disabled'
         }
+
+        FLOODING: {
+            TOO_MUCH_DRAWING: 'You have drawn too much outside the number, reset and start again',
+            PRESS_RESET_BUTTON: 'Press the reset button'
+        }
     },
-    
+
+    // Line length flooding settings
+    LINE_LENGTH_FLOODING: {
+        HEIGHT_MULTIPLIER: 5, // 5x drawing area height
+        FLASH_INTERVAL: 1000, // 1 second
+        WARNING_DELAY: 10000, // 10 seconds
+        FLASH_COLOR: 'rgba(255, 165, 0, 0.9)', // Orange
+        NORMAL_COLOR: 'rgba(64, 64, 64, 0.9)' // Default button color
+    }
+
     // Number word mappings
     NUMBER_WORDS: {
         0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four',
