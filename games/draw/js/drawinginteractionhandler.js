@@ -92,7 +92,7 @@ class DrawingInteractionHandler {
                 this.showDebugCompletionPoints();
             }, 100);
         } else {
-            console.log('🔍 DEBUG_SHOW_POINTS is not enabled, skipping debug dots');
+            console.log('🔍 DEBUG dots disabled for clean user experience');
         }
         
         console.log(`✅ Interaction ready for number ${number} with ${this.completionPoints.length} completion points (90% required)`);
@@ -455,7 +455,7 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * Check coverage of completion points with line thickness AND visual feedback
+     * Check coverage of completion points with ENHANCED tolerance (1.5x line thickness)
      */
     checkCompletionPointsCoverage(drawnPoint) {
         if (!this.completionPoints || this.completionPoints.length === 0) return;
@@ -463,8 +463,10 @@ class DrawingInteractionHandler {
         // Calculate line thickness as % of game area height (same as drawing line)
         const lineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.DRAWING_LINE_THICKNESS) / 100;
         
-        // Use line radius (half thickness) as tolerance - this ensures the thick line overlaps the point
-        const tolerance = lineThickness / 2;
+        // ENHANCED: Use 1.5x line thickness for more lenient detection (25% more on each side)
+        const enhancedTolerance = (lineThickness * 1.5) / 2; // 1.5x line width, divided by 2 for radius
+        
+        console.log(`🎯 Using enhanced tolerance: ${enhancedTolerance.toFixed(1)}px (1.5x line thickness of ${lineThickness.toFixed(1)}px)`);
         
         this.completionPoints.forEach(completionPoint => {
             const distance = Math.sqrt(
@@ -472,12 +474,12 @@ class DrawingInteractionHandler {
                 Math.pow(drawnPoint.y - completionPoint.y, 2)
             );
             
-            // Point is covered if ANY part of the thick line touches it
-            if (distance <= tolerance) {
+            // Point is covered if ANY part of the enhanced tolerance area touches it
+            if (distance <= enhancedTolerance) {
                 if (!this.coveredCompletionPoints.has(completionPoint.id)) {
-                    console.log(`🎯 Completion point ${completionPoint.id} covered! (${this.coveredCompletionPoints.size + 1}/${this.completionPoints.length})`);
+                    console.log(`🎯 Completion point ${completionPoint.id} covered! (${this.coveredCompletionPoints.size + 1}/${this.completionPoints.length}) - distance: ${distance.toFixed(1)}px <= ${enhancedTolerance.toFixed(1)}px`);
                     
-                    // DEBUG: Change dot color when covered
+                    // DEBUG: Change dot color when covered (only if debug dots are enabled)
                     if (DRAW_CONFIG.DEBUG_MODE || window.DEBUG_SHOW_POINTS) {
                         const debugDot = this.drawingGroup.querySelector(`[data-point-id="${completionPoint.id}"]`);
                         if (debugDot) {
