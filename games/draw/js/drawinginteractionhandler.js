@@ -33,11 +33,17 @@ class DrawingInteractionHandler {
         this.completionPoints = [];
         this.coveredCompletionPoints = new Set();
         
-        // Canvas flooding prevention (FIXED to use number render area)
+        // Canvas flooding prevention (UPDATED to use cumulative line length)
         this.totalCanvasArea = 0;
         this.drawnCanvasArea = 0;
         this.canvasFloodingWarned = false;
         this.canvasResetTimer = null;
+        
+        // NEW: Line length tracking for improved flooding detection
+        this.cumulativeLineLength = 0;
+        this.maxAllowedLineLength = 0;
+        this.floodingLimitExceeded = false;
+        this.resetButtonFlashing = false;
         
         // Activity tracking
         this.lastActivityTime = Date.now();
@@ -221,19 +227,24 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * FIXED: Calculate canvas area based on NUMBER RENDER bounds (not full drawing area)
+     * UPDATED: Calculate canvas area and line length limits based on drawing area height
      */
     calculateCanvasArea() {
-        // Use the number render bounds (where the actual number outline is) instead of full drawing area
-        const numberBounds = this.layoutRenderer.getNumberRenderBounds();
-        if (numberBounds) {
-            this.totalCanvasArea = numberBounds.width * numberBounds.height;
+        // Use the drawing area bounds for more generous limits
+        const drawingBounds = this.layoutRenderer.getDrawingAreaBounds();
+        if (drawingBounds) {
+            this.totalCanvasArea = drawingBounds.width * drawingBounds.height;
             this.drawnCanvasArea = 0;
-            console.log(`📏 Canvas area calculated from number render bounds: ${this.totalCanvasArea.toFixed(0)}px² for flooding detection`);
-            console.log(`📐 Number render area: ${numberBounds.width.toFixed(1)}×${numberBounds.height.toFixed(1)}px`);
+            
+            // NEW: Calculate maximum allowed line length (5x drawing area height)
+            this.maxAllowedLineLength = drawingBounds.height * 5;
+            this.cumulativeLineLength = 0;
+            
+            console.log(`📏 Canvas limits calculated - Area: ${this.totalCanvasArea.toFixed(0)}px², Max line length: ${this.maxAllowedLineLength.toFixed(0)}px (5x height of ${drawingBounds.height.toFixed(0)}px)`);
         } else {
-            console.warn('⚠️ Could not get number render bounds for canvas area calculation');
+            console.warn('⚠️ Could not get drawing bounds for canvas area calculation');
             this.totalCanvasArea = 0;
+            this.maxAllowedLineLength = 0;
         }
     }
     
@@ -251,6 +262,11 @@ class DrawingInteractionHandler {
         this.drawnCanvasArea = 0;
         this.canvasFloodingWarned = false;
         this.clearCanvasResetTimer();
+        
+        // NEW: Reset line length tracking
+        this.cumulativeLineLength = 0;
+        this.floodingLimitExceeded = false;
+        this.stopResetButtonFlashing();
         
         this.lastActivityTime = Date.now();
     }
@@ -348,11 +364,21 @@ class DrawingInteractionHandler {
             this.currentPath.push(point);
             this.updateCurrentDrawingPath();
             
+            // Calculate line segment length if this isn't the first point
+            if (this.currentPath.length > 1) {
+                const prevPoint = this.currentPath[this.currentPath.length - 2];
+                const segmentLength = Math.sqrt(
+                    Math.pow(point.x - prevPoint.x, 2) + 
+                    Math.pow(point.y - prevPoint.y, 2)
+                );
+                this.cumulativeLineLength += segmentLength;
+                
+                // Check line length flooding
+                this.checkLineLengthFlooding();
+            }
+            
             // CRITICAL: Check completion points coverage with line thickness
             this.checkCompletionPointsCoverage(point);
-            
-            // FIXED: Check canvas flooding using number render area
-            this.checkCanvasFlooding(point);
             
             this.registerActivity();
         }
@@ -496,63 +522,120 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * TEMPORARILY DISABLED: Check canvas flooding using number render area coordinates
-     * Canvas flooding prevention is disabled for testing - drawing is unlimited
+     * NEW: Check line length flooding using cumulative distance tracking
      */
-    checkCanvasFlooding(point) {
-        // TEMPORARILY DISABLED - return early to allow unlimited drawing
-        console.log('🚫 Canvas flooding check DISABLED for testing');
-        return;
+    checkLineLengthFlooding() {
+        if (this.floodingLimitExceeded || !this.maxAllowedLineLength) return;
         
-        // Original code commented out but preserved:
-        /*
-        if (this.canvasFloodingWarned || !this.totalCanvasArea) return;
+        const lengthPercentage = (this.cumulativeLineLength / this.maxAllowedLineLength) * 100;
         
-        // Get number render bounds to check if point is actually within the number area
-        const numberBounds = this.layoutRenderer.getNumberRenderBounds();
-        const drawingBounds = this.layoutRenderer.getDrawingAreaBounds();
+        console.log(`📏 Line length: ${this.cumulativeLineLength.toFixed(0)}px / ${this.maxAllowedLineLength.toFixed(0)}px (${lengthPercentage.toFixed(1)}%)`);
         
-        if (!numberBounds || !drawingBounds) return;
-        
-        // Convert to relative coordinates within drawing area
-        const relativeNumberBounds = {
-            x: numberBounds.x - drawingBounds.x,
-            y: numberBounds.y - drawingBounds.y,
-            width: numberBounds.width,
-            height: numberBounds.height
-        };
-        
-        // Only count area if the point is within the number render bounds
-        const pointInNumberArea = (
-            point.x >= relativeNumberBounds.x && 
-            point.x <= relativeNumberBounds.x + relativeNumberBounds.width &&
-            point.y >= relativeNumberBounds.y && 
-            point.y <= relativeNumberBounds.y + relativeNumberBounds.height
-        );
-        
-        if (pointInNumberArea) {
-            // Calculate area contribution only for points within the number area
-            const lineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.DRAWING_LINE_THICKNESS) / 100;
-            const pointArea = Math.PI * Math.pow(lineThickness / 2, 2); // Circle area for line cap
-            
-            this.drawnCanvasArea += pointArea;
-            
-            // Check if coverage exceeds maximum allowed (should now actually be ~30% of the smaller number area)
-            const coveragePercentage = (this.drawnCanvasArea / this.totalCanvasArea) * 100;
-            
-            if (coveragePercentage > DRAW_CONFIG.STYLING.MAX_CANVAS_COVERAGE) {
-                console.warn(`🚨 Canvas flooding detected: ${coveragePercentage.toFixed(1)}% coverage of number render area`);
-                this.triggerCanvasFloodingWarning();
-            }
+        if (this.cumulativeLineLength > this.maxAllowedLineLength) {
+            console.warn(`🚨 Line length flooding detected: ${this.cumulativeLineLength.toFixed(0)}px > ${this.maxAllowedLineLength.toFixed(0)}px`);
+            this.triggerLineLengthFloodingWarning();
         }
-        */
     }
     
     /**
-     * FIXED: Point-based completion checking with relaxed 85% requirement (17/20 points)
+     * NEW: Trigger line length flooding warning with audio sequence and button flashing
+     */
+    triggerLineLengthFloodingWarning() {
+        if (this.floodingLimitExceeded) return;
+        
+        this.floodingLimitExceeded = true;
+        console.log('⚠️ Line length flooding warning triggered');
+        
+        // Play immediate warning audio
+        if (window.AudioSystem) {
+            window.AudioSystem.speakText('You have drawn too much outside the number, reset and start again');
+        }
+        
+        // Start reset button flashing
+        this.startResetButtonFlashing();
+        
+        // Play second warning after 10 seconds
+        this.canvasResetTimer = setTimeout(() => {
+            if (window.AudioSystem && this.floodingLimitExceeded) {
+                window.AudioSystem.speakText('Press the reset button');
+            }
+        }, 10000);
+    }
+    
+    /**
+     * NEW: Start reset button flashing animation (orange, 1Hz)
+     */
+    startResetButtonFlashing() {
+        if (this.resetButtonFlashing) return;
+        
+        this.resetButtonFlashing = true;
+        console.log('🔄 Starting reset button flashing');
+        
+        const redoButton = document.getElementById('redoButton');
+        if (!redoButton) {
+            console.warn('⚠️ Redo button not found for flashing');
+            return;
+        }
+        
+        // Store original styles
+        if (!redoButton.dataset.originalBackground) {
+            redoButton.dataset.originalBackground = redoButton.style.background || 'rgba(64, 64, 64, 0.9)';
+        }
+        
+        // Start flashing animation
+        let flashOn = true;
+        this.flashInterval = setInterval(() => {
+            if (!this.resetButtonFlashing) {
+                clearInterval(this.flashInterval);
+                return;
+            }
+            
+            if (flashOn) {
+                // Flash to orange
+                redoButton.style.background = 'rgba(255, 165, 0, 0.9)';
+                redoButton.style.transform = redoButton.style.transform.replace(/scale\([^)]*\)/g, '') + ' scale(1.1)';
+            } else {
+                // Return to normal (but still slightly highlighted)
+                redoButton.style.background = 'rgba(255, 165, 0, 0.7)';
+                redoButton.style.transform = redoButton.style.transform.replace(/scale\([^)]*\)/g, '') + ' scale(1.0)';
+            }
+            flashOn = !flashOn;
+        }, 1000); // 1Hz flashing
+    }
+    
+    /**
+     * NEW: Stop reset button flashing and restore normal appearance
+     */
+    stopResetButtonFlashing() {
+        if (!this.resetButtonFlashing) return;
+        
+        this.resetButtonFlashing = false;
+        console.log('🔄 Stopping reset button flashing');
+        
+        if (this.flashInterval) {
+            clearInterval(this.flashInterval);
+            this.flashInterval = null;
+        }
+        
+        const redoButton = document.getElementById('redoButton');
+        if (redoButton) {
+            // Restore original appearance
+            redoButton.style.background = redoButton.dataset.originalBackground || 'rgba(64, 64, 64, 0.9)';
+            redoButton.style.transform = redoButton.style.transform.replace(/scale\([^)]*\)/g, '');
+        }
+    }
+    
+    /**
+     * UPDATED: Point-based completion checking with line length flooding check
      */
     checkCompletion() {
-        if (this.isComplete || this.canvasFloodingWarned) return;
+        if (this.isComplete) return;
+        
+        // NEW: Block completion if line length limit exceeded
+        if (this.floodingLimitExceeded) {
+            console.log('🚫 Completion blocked due to excessive drawing - reset required');
+            return;
+        }
         
         // ONLY use point-based completion - NO fallbacks
         if (this.completionPoints.length === 0) {
@@ -566,8 +649,8 @@ class DrawingInteractionHandler {
         
         console.log(`🎯 Point coverage: ${coveredPoints}/${totalPoints} (${coverage.toFixed(1)}%)`);
         
-        // UPDATED: Require 85% of completion points to be covered (17/20 instead of 18/20)
-        const requiredCoverage = 85; // Changed from 90% to 85%
+        // Require 85% of completion points to be covered (17/20 instead of 18/20)
+        const requiredCoverage = 85;
         
         if (coverage >= requiredCoverage) {
             console.log(`✅ Point-based completion achieved: ${coveredPoints}/${totalPoints} points covered (${coverage.toFixed(1)}% >= ${requiredCoverage}%)!`);
@@ -626,7 +709,7 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * Reset canvas due to flooding (same as undo all)
+     * UPDATED: Reset canvas with line length flooding cleanup
      */
     resetCanvas() {
         console.log('🧹 Resetting canvas (flooding prevention)');
@@ -637,6 +720,11 @@ class DrawingInteractionHandler {
         this.drawnCanvasArea = 0;
         this.canvasFloodingWarned = false;
         this.clearCanvasResetTimer();
+        
+        // NEW: Reset line length tracking
+        this.cumulativeLineLength = 0;
+        this.floodingLimitExceeded = false;
+        this.stopResetButtonFlashing();
         
         // Clear drawn paths from SVG
         if (this.drawingGroup) {
@@ -665,7 +753,7 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * Undo the last drawn stroke
+     * UPDATED: Undo with line length recalculation
      */
     undoLastStroke() {
         if (this.allPaths.length === 0) {
@@ -684,7 +772,7 @@ class DrawingInteractionHandler {
             userPaths[userPaths.length - 1].remove();
         }
         
-        // Recalculate coverage
+        // Recalculate coverage and line length
         this.recalculatePointCoverage();
         
         // Reset completion state if was complete
@@ -698,6 +786,14 @@ class DrawingInteractionHandler {
             }
         }
         
+        // NEW: Reset flooding state if line length is now within limits
+        if (this.floodingLimitExceeded && this.cumulativeLineLength <= this.maxAllowedLineLength) {
+            console.log('✅ Line length back within limits, re-enabling completion');
+            this.floodingLimitExceeded = false;
+            this.stopResetButtonFlashing();
+            this.clearCanvasResetTimer();
+        }
+        
         // Reset flooding warning if active
         if (this.canvasFloodingWarned) {
             this.canvasFloodingWarned = false;
@@ -709,29 +805,42 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * Recalculate point coverage from all remaining paths
+     * UPDATED: Recalculate point coverage and line length from all remaining paths
      */
     recalculatePointCoverage() {
-        console.log('🔄 Recalculating point coverage');
+        console.log('🔄 Recalculating point coverage and line length');
         
         // Reset all tracking
         this.coveredCompletionPoints.clear();
         this.drawnCanvasArea = 0;
+        this.cumulativeLineLength = 0;
         
         // Recalculate from all remaining paths
         this.allPaths.forEach(path => {
-            path.forEach(point => {
+            path.forEach((point, index) => {
                 // Check completion points
                 this.checkCompletionPointsCoverage(point);
                 
-                // Update canvas area (simplified calculation)
+                // Calculate line segment length (point-to-point)
+                if (index > 0) {
+                    const prevPoint = path[index - 1];
+                    const segmentLength = Math.sqrt(
+                        Math.pow(point.x - prevPoint.x, 2) + 
+                        Math.pow(point.y - prevPoint.y, 2)
+                    );
+                    this.cumulativeLineLength += segmentLength;
+                }
+                
+                // Update canvas area (for legacy compatibility)
                 const lineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.DRAWING_LINE_THICKNESS) / 100;
                 const pointArea = Math.PI * Math.pow(lineThickness / 2, 2);
                 this.drawnCanvasArea += pointArea;
             });
         });
         
-        console.log(`📊 Recalculated: ${this.coveredCompletionPoints.size}/${this.completionPoints.length} points, ${(this.drawnCanvasArea / this.totalCanvasArea * 100).toFixed(1)}% canvas`);
+        const lengthPercentage = this.maxAllowedLineLength > 0 ? (this.cumulativeLineLength / this.maxAllowedLineLength) * 100 : 0;
+        
+        console.log(`📊 Recalculated: ${this.coveredCompletionPoints.size}/${this.completionPoints.length} points, ${this.cumulativeLineLength.toFixed(0)}px line length (${lengthPercentage.toFixed(1)}% of limit)`);
     }
     
     /**
@@ -819,6 +928,13 @@ class DrawingInteractionHandler {
         
         this.clear();
         this.clearCanvasResetTimer();
+        
+        // NEW: Clean up button flashing
+        this.stopResetButtonFlashing();
+        if (this.flashInterval) {
+            clearInterval(this.flashInterval);
+            this.flashInterval = null;
+        }
         
         this.layoutRenderer = null;
         this.svg = null;
