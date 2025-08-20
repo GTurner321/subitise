@@ -569,6 +569,11 @@ class DrawGameController {
         
         // Start reset button flashing
         this.startResetButtonFlashing();
+        
+        // Stop any hint timers during flooding state
+        if (this.drawingRenderer) {
+            this.drawingRenderer.stopHintTimers();
+        }
     }
     
     /**
@@ -727,6 +732,13 @@ class DrawGameController {
             // Fallback: clear through drawing renderer
             if (this.drawingRenderer && typeof this.drawingRenderer.clear === 'function') {
                 this.drawingRenderer.clear();
+                
+                // Reinitialize for current number
+                if (this.currentNumber !== null) {
+                    setTimeout(() => {
+                        this.drawingRenderer.initializeForNumber(this.currentNumber);
+                    }, 100);
+                }
                 console.log('✅ Full reset completed via drawing renderer');
             } else {
                 console.warn('⚠️ No reset method available');
@@ -735,6 +747,13 @@ class DrawGameController {
         
         // Stop the flashing since user has responded
         this.stopResetButtonFlashing();
+        
+        // Restart hint timers after reset
+        if (this.drawingRenderer) {
+            setTimeout(() => {
+                this.drawingRenderer.restartHintTimers();
+            }, 500);
+        }
     }
     
     /**
