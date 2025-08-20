@@ -597,10 +597,13 @@ class DrawGameController {
             return;
         }
         
-        // Store original styles
+        // Store original styles and functionality
         if (!redoButton.dataset.originalBackground) {
             redoButton.dataset.originalBackground = redoButton.style.background || DRAW_CONFIG.LINE_LENGTH_FLOODING.NORMAL_COLOR;
         }
+        
+        // Change button functionality to full reset during flooding
+        this.overrideResetButtonBehavior(redoButton);
         
         // Start flashing animation
         let flashOn = true;
@@ -642,7 +645,96 @@ class DrawGameController {
             // Restore original appearance
             redoButton.style.background = redoButton.dataset.originalBackground || DRAW_CONFIG.LINE_LENGTH_FLOODING.NORMAL_COLOR;
             redoButton.style.transform = redoButton.style.transform.replace(/scale\([^)]*\)/g, '');
+            
+            // Restore original button functionality
+            this.restoreResetButtonBehavior(redoButton);
         }
+    }
+    
+    /**
+     * NEW: Override reset button to clear all drawing during flooding
+     */
+    overrideResetButtonBehavior(redoButton) {
+        // Store original event listeners if not already stored
+        if (!redoButton.dataset.originalListenersStored) {
+            redoButton.dataset.originalListenersStored = 'true';
+            
+            // Clone button to remove all existing event listeners
+            const newButton = redoButton.cloneNode(true);
+            redoButton.parentNode.replaceChild(newButton, redoButton);
+            
+            // Update reference
+            const updatedButton = document.getElementById('redoButton');
+            
+            // Add new full-reset functionality
+            const fullResetHandler = (e) => {
+                e.preventDefault();
+                console.log('🧹 Full reset triggered by orange button');
+                this.performFullReset();
+            };
+            
+            updatedButton.addEventListener('click', fullResetHandler);
+            updatedButton.addEventListener('touchend', fullResetHandler);
+            
+            // Store handler reference for cleanup
+            updatedButton.fullResetHandler = fullResetHandler;
+        }
+    }
+    
+    /**
+     * NEW: Restore reset button to normal undo functionality
+     */
+    restoreResetButtonBehavior(redoButton) {
+        if (redoButton.dataset.originalListenersStored === 'true') {
+            redoButton.dataset.originalListenersStored = 'false';
+            
+            // Clone button to remove flood-reset listeners
+            const newButton = redoButton.cloneNode(true);
+            redoButton.parentNode.replaceChild(newButton, redoButton);
+            
+            // Get updated reference and restore normal undo functionality
+            const updatedButton = document.getElementById('redoButton');
+            
+            // Add normal undo functionality back
+            const undoHandler = (e) => {
+                e.preventDefault();
+                if (window.drawingRenderer && typeof window.drawingRenderer.undoLastStroke === 'function') {
+                    window.drawingRenderer.undoLastStroke();
+                }
+            };
+            
+            updatedButton.addEventListener('click', undoHandler);
+            updatedButton.addEventListener('touchend', undoHandler);
+            
+            console.log('🔄 Reset button functionality restored to normal undo');
+        }
+    }
+    
+    /**
+     * NEW: Perform full reset of all drawing
+     */
+    performFullReset() {
+        console.log('🧹 Performing full drawing reset');
+        
+        // Call the interaction handler's reset canvas method directly
+        if (this.drawingRenderer && 
+            this.drawingRenderer.interactionHandler && 
+            typeof this.drawingRenderer.interactionHandler.resetCanvas === 'function') {
+            
+            this.drawingRenderer.interactionHandler.resetCanvas();
+            console.log('✅ Full reset completed via interaction handler');
+        } else {
+            // Fallback: clear through drawing renderer
+            if (this.drawingRenderer && typeof this.drawingRenderer.clear === 'function') {
+                this.drawingRenderer.clear();
+                console.log('✅ Full reset completed via drawing renderer');
+            } else {
+                console.warn('⚠️ No reset method available');
+            }
+        }
+        
+        // Stop the flashing since user has responded
+        this.stopResetButtonFlashing();
     }
     
     /**
