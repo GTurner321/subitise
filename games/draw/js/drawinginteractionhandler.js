@@ -157,18 +157,21 @@ class DrawingInteractionHandler {
             const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             dot.setAttribute('cx', point.x);
             dot.setAttribute('cy', point.y);
-            dot.setAttribute('r', 3); // Small radius for visibility
+            dot.setAttribute('r', 5); // Larger radius for better visibility
             dot.setAttribute('fill', 'red');
-            dot.setAttribute('stroke', 'white');
-            dot.setAttribute('stroke-width', 1);
+            dot.setAttribute('stroke', 'yellow'); // Bright yellow stroke for contrast
+            dot.setAttribute('stroke-width', 2); // Thicker stroke
             dot.setAttribute('class', 'debug-completion-point');
             dot.setAttribute('data-point-id', point.id);
             
-            // Add to drawing group so it's visible
+            // IMPORTANT: Add to drawing group which is on TOP of outline group
+            // This ensures dots appear in front of the number outline
             this.drawingGroup.appendChild(dot);
+            
+            console.log(`🔴 Debug dot ${index} placed at (${point.x.toFixed(1)}, ${point.y.toFixed(1)})`);
         });
         
-        console.log(`✅ Debug completion points displayed as red dots`);
+        console.log(`✅ Debug completion points displayed as red dots with yellow borders`);
     }
     
     /**
@@ -448,8 +451,10 @@ class DrawingInteractionHandler {
                     if (DRAW_CONFIG.DEBUG_MODE || window.DEBUG_SHOW_POINTS) {
                         const debugDot = this.drawingGroup.querySelector(`[data-point-id="${completionPoint.id}"]`);
                         if (debugDot) {
-                            debugDot.setAttribute('fill', 'green');
-                            debugDot.setAttribute('r', 4); // Slightly larger when covered
+                            debugDot.setAttribute('fill', 'lime'); // Bright green for visibility
+                            debugDot.setAttribute('stroke', 'darkgreen'); // Dark green border
+                            debugDot.setAttribute('r', 6); // Larger when covered
+                            debugDot.setAttribute('stroke-width', 3); // Thicker border when covered
                         }
                     }
                 }
