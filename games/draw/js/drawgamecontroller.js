@@ -94,13 +94,9 @@ class DrawGameController {
             await this.initializeRenderers();
             console.log('✅ Renderers ready');
             
-            // Step 8: Final verification and start
-            if (this.verifyAllSystemsReady()) {
-                this.startGame();
-                console.log('✅ Game initialization complete and game started');
-            } else {
-                throw new Error('System verification failed');
-            }
+            // Step 8: start, verification of all systems being ready is removed as it was causing delays
+            // Start game directly - components will fail naturally if not ready
+            this.startGame();
             
         } catch (error) {
             console.error('❌ Game initialization failed:', error);
