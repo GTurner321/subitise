@@ -124,12 +124,12 @@ const DRAW_CONFIG = {
         SYSTEM: {
             AUDIO_ENABLED: 'Audio enabled',
             AUDIO_DISABLED: 'Audio disabled'
-        }
+        },
 
         FLOODING: {
             TOO_MUCH_DRAWING: 'You have drawn too much outside the number, reset and start again',
             PRESS_RESET_BUTTON: 'Press the reset button'
-        }
+        },
     },
 
     // Line length flooding settings
