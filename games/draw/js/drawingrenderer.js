@@ -1,19 +1,18 @@
 /**
- * Drawing Renderer - FIXED Point-Based Completion Only
+ * Drawing Renderer - FIXED Canvas Area and Relaxed Point-Based Completion
  * 
  * PURPOSE: Handles all user drawing interaction with ONLY point-based completion
  * - SVG outline rendering with white fill and grey outline
  * - Point-based completion detection (prevents cheating) - ONLY SUCCESS METHOD
  * - Line thickness detection using % of game area height
- * - Canvas flooding prevention with auto-reset
+ * - Canvas flooding prevention with auto-reset (FIXED to use number render area)
  * - Improved visual flash timing (8 seconds, 2 flashes in 1 second)
  * - Mouse/touch event handling for user drawing
  * - Drawing line rendering and path management
  * - Undo functionality and drawing feedback
  * - Immediate completion feedback (500ms delay)
- * 
- * FIXED: Actually removed ALL legacy area-based methods
- * FIXED: Completion points actually initialize and work
+ * - FIXED: Canvas area calculation uses number render bounds (not full drawing area)
+ * - FIXED: Relaxed completion requirement (90% = 18/20 points instead of 100%)
  * 
  * COMPANION FILE: drawlayoutrenderer.js
  * - Contains all layout setup and positioning logic
@@ -24,7 +23,7 @@
 
 class DrawingRenderer {
     constructor(layoutRenderer) {
-        console.log('✏️ DrawingRenderer initializing - FIXED POINT-BASED COMPLETION ONLY');
+        console.log('✏️ DrawingRenderer initializing - FIXED canvas area and relaxed completion');
         
         // Reference to layout renderer
         this.layoutRenderer = layoutRenderer;
@@ -44,7 +43,7 @@ class DrawingRenderer {
         this.completionPoints = [];
         this.coveredCompletionPoints = new Set();
         
-        // Canvas flooding prevention
+        // Canvas flooding prevention (FIXED to use number render area)
         this.totalCanvasArea = 0;
         this.drawnCanvasArea = 0;
         this.canvasFloodingWarned = false;
@@ -64,14 +63,14 @@ class DrawingRenderer {
             preventContext: this.preventContextMenu.bind(this)
         };
         
-        console.log('✏️ DrawingRenderer initialized - FIXED point-based completion system ONLY');
+        console.log('✏️ DrawingRenderer initialized - FIXED canvas area calculation and 90% completion requirement');
     }
     
     /**
      * Initialize the drawing system for a specific number
      */
     initializeForNumber(number) {
-        console.log(`✏️ Initializing drawing for number ${number} - POINT-BASED ONLY`);
+        console.log(`✏️ Initializing drawing for number ${number} - 90% point coverage required`);
         
         if (!this.layoutRenderer || !this.layoutRenderer.isLayoutReady()) {
             console.log('⏳ Layout not ready, deferring drawing initialization');
@@ -92,7 +91,7 @@ class DrawingRenderer {
         // CRITICAL: Initialize completion points system (ONLY SUCCESS METHOD)
         this.initializeCompletionPoints(number);
         
-        // Calculate total canvas area for flooding detection
+        // FIXED: Calculate canvas area based on NUMBER RENDER bounds (not full drawing area)
         this.calculateCanvasArea();
         
         // Setup drawing events
@@ -102,15 +101,15 @@ class DrawingRenderer {
         this.startHintTimer();
         this.startVisualFlashTimer();
         
-        console.log(`✅ Drawing system ready for number ${number} with ${this.completionPoints.length} completion points (ONLY METHOD)`);
+        console.log(`✅ Drawing system ready for number ${number} with ${this.completionPoints.length} completion points (90% required)`);
         return true;
     }
     
     /**
-     * FIXED: Initialize completion points for current number (ONLY SUCCESS METHOD)
+     * Initialize completion points for current number (ONLY SUCCESS METHOD)
      */
     initializeCompletionPoints(number) {
-        console.log(`🎯 Initializing completion points for number ${number} - ONLY SUCCESS METHOD`);
+        console.log(`🎯 Initializing completion points for number ${number} - 90% coverage required`);
         
         // Get completion points from config
         const configPoints = DRAW_CONFIG.getCompletionPoints(number);
@@ -142,7 +141,7 @@ class DrawingRenderer {
         this.completionPoints = this.scaleCompletionPointsForSVG(configPoints, relativeNumberBounds);
         this.coveredCompletionPoints.clear();
         
-        console.log(`✅ Initialized ${this.completionPoints.length} completion points for number ${number} - ALL MUST BE COVERED`);
+        console.log(`✅ Initialized ${this.completionPoints.length} completion points for number ${number} - need ${Math.ceil(this.completionPoints.length * 0.9)} points (90%)`);
         
         // Debug: Log point positions if debug mode enabled
         if (DRAW_CONFIG.DEBUG_MODE) {
@@ -167,14 +166,19 @@ class DrawingRenderer {
     }
     
     /**
-     * Calculate total canvas area for flooding detection
+     * FIXED: Calculate canvas area based on NUMBER RENDER bounds (not full drawing area)
      */
     calculateCanvasArea() {
-        const drawingBounds = this.layoutRenderer.getDrawingAreaBounds();
-        if (drawingBounds) {
-            this.totalCanvasArea = drawingBounds.width * drawingBounds.height;
+        // Use the number render bounds (where the actual number outline is) instead of full drawing area
+        const numberBounds = this.layoutRenderer.getNumberRenderBounds();
+        if (numberBounds) {
+            this.totalCanvasArea = numberBounds.width * numberBounds.height;
             this.drawnCanvasArea = 0;
-            console.log(`📏 Canvas area calculated: ${this.totalCanvasArea.toFixed(0)}px² for flooding detection`);
+            console.log(`📏 Canvas area calculated from number render bounds: ${this.totalCanvasArea.toFixed(0)}px² for flooding detection`);
+            console.log(`📐 Number render area: ${numberBounds.width.toFixed(1)}×${numberBounds.height.toFixed(1)}px`);
+        } else {
+            console.warn('⚠️ Could not get number render bounds for canvas area calculation');
+            this.totalCanvasArea = 0;
         }
     }
     
@@ -452,7 +456,7 @@ class DrawingRenderer {
             // CRITICAL: Check completion points coverage with line thickness
             this.checkCompletionPointsCoverage(point);
             
-            // Check canvas flooding
+            // FIXED: Check canvas flooding using number render area
             this.checkCanvasFlooding(point);
             
             this.registerActivity();
@@ -541,7 +545,7 @@ class DrawingRenderer {
     }
     
     /**
-     * FIXED: Check coverage of completion points with line thickness
+     * Check coverage of completion points with line thickness
      */
     checkCompletionPointsCoverage(drawnPoint) {
         if (!this.completionPoints || this.completionPoints.length === 0) return;
@@ -569,23 +573,47 @@ class DrawingRenderer {
     }
     
     /**
-     * Check if canvas is being flooded with drawing
+     * FIXED: Check canvas flooding using number render area coordinates
      */
     checkCanvasFlooding(point) {
         if (this.canvasFloodingWarned || !this.totalCanvasArea) return;
         
-        // Estimate drawn area by calculating area contribution of this point
-        const lineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.DRAWING_LINE_THICKNESS) / 100;
-        const pointArea = Math.PI * Math.pow(lineThickness / 2, 2); // Circle area for line cap
+        // Get number render bounds to check if point is actually within the number area
+        const numberBounds = this.layoutRenderer.getNumberRenderBounds();
+        const drawingBounds = this.layoutRenderer.getDrawingAreaBounds();
         
-        this.drawnCanvasArea += pointArea;
+        if (!numberBounds || !drawingBounds) return;
         
-        // Check if coverage exceeds maximum allowed
-        const coveragePercentage = (this.drawnCanvasArea / this.totalCanvasArea) * 100;
+        // Convert to relative coordinates within drawing area
+        const relativeNumberBounds = {
+            x: numberBounds.x - drawingBounds.x,
+            y: numberBounds.y - drawingBounds.y,
+            width: numberBounds.width,
+            height: numberBounds.height
+        };
         
-        if (coveragePercentage > DRAW_CONFIG.STYLING.MAX_CANVAS_COVERAGE) {
-            console.warn(`🚨 Canvas flooding detected: ${coveragePercentage.toFixed(1)}% coverage`);
-            this.triggerCanvasFloodingWarning();
+        // Only count area if the point is within the number render bounds
+        const pointInNumberArea = (
+            point.x >= relativeNumberBounds.x && 
+            point.x <= relativeNumberBounds.x + relativeNumberBounds.width &&
+            point.y >= relativeNumberBounds.y && 
+            point.y <= relativeNumberBounds.y + relativeNumberBounds.height
+        );
+        
+        if (pointInNumberArea) {
+            // Calculate area contribution only for points within the number area
+            const lineThickness = (this.layoutRenderer.gameAreaDimensions.height * DRAW_CONFIG.STYLING.DRAWING_LINE_THICKNESS) / 100;
+            const pointArea = Math.PI * Math.pow(lineThickness / 2, 2); // Circle area for line cap
+            
+            this.drawnCanvasArea += pointArea;
+            
+            // Check if coverage exceeds maximum allowed (should now actually be ~30% of the smaller number area)
+            const coveragePercentage = (this.drawnCanvasArea / this.totalCanvasArea) * 100;
+            
+            if (coveragePercentage > DRAW_CONFIG.STYLING.MAX_CANVAS_COVERAGE) {
+                console.warn(`🚨 Canvas flooding detected: ${coveragePercentage.toFixed(1)}% coverage of number render area`);
+                this.triggerCanvasFloodingWarning();
+            }
         }
     }
     
@@ -654,7 +682,7 @@ class DrawingRenderer {
     }
     
     /**
-     * FIXED: Point-based completion checking (ONLY SUCCESS METHOD)
+     * FIXED: Point-based completion checking with relaxed 90% requirement (18/20 points)
      */
     checkCompletion() {
         if (this.isComplete || this.canvasFloodingWarned) return;
@@ -671,10 +699,15 @@ class DrawingRenderer {
         
         console.log(`🎯 Point coverage: ${coveredPoints}/${totalPoints} (${coverage.toFixed(1)}%)`);
         
-        // Require 100% of completion points to be covered
-        if (coverage >= DRAW_CONFIG.STYLING.POINT_COVERAGE_REQUIRED) {
-            console.log(`✅ Point-based completion achieved: ALL ${totalPoints} points covered!`);
+        // FIXED: Require 90% of completion points to be covered (18/20 instead of 20/20)
+        const requiredCoverage = 90; // Changed from 100% to 90%
+        
+        if (coverage >= requiredCoverage) {
+            console.log(`✅ Point-based completion achieved: ${coveredPoints}/${totalPoints} points covered (${coverage.toFixed(1)}% >= ${requiredCoverage}%)!`);
             this.completeNumber();
+        } else {
+            const pointsNeeded = Math.ceil((requiredCoverage / 100) * totalPoints) - coveredPoints;
+            console.log(`🎯 Need ${pointsNeeded} more points for completion (${requiredCoverage}% requirement)`);
         }
     }
     
@@ -682,7 +715,7 @@ class DrawingRenderer {
      * Complete the number drawing with immediate feedback
      */
     completeNumber() {
-        console.log(`🎉 Number ${this.currentNumber} completed via POINT-BASED completion!`);
+        console.log(`🎉 Number ${this.currentNumber} completed via POINT-BASED completion with 90% requirement!`);
         
         this.isComplete = true;
         this.clearHintTimer();
@@ -944,6 +977,8 @@ class DrawingRenderer {
             ? (this.drawnCanvasArea / this.totalCanvasArea) * 100 
             : 0;
         
+        const requiredPoints = Math.ceil(this.completionPoints.length * 0.9); // 90% requirement
+        
         return {
             currentNumber: this.currentNumber,
             isComplete: this.isComplete,
@@ -952,11 +987,14 @@ class DrawingRenderer {
             // Point-based progress (ONLY SUCCESS METHOD)
             completionPoints: this.completionPoints.length,
             coveredPoints: this.coveredCompletionPoints.size,
+            requiredPoints: requiredPoints,
             pointCoverage: pointCoverage,
+            completionRequirement: '90%', // Document the relaxed requirement
             
-            // Canvas flooding tracking
+            // Canvas flooding tracking (now uses number render area)
             canvasCoverage: canvasCoverage,
-            canvasFloodingWarned: this.canvasFloodingWarned
+            canvasFloodingWarned: this.canvasFloodingWarned,
+            canvasAreaType: 'number_render_bounds' // Document which area is being measured
         };
     }
     
@@ -986,4 +1024,4 @@ class DrawingRenderer {
 }
 
 // Export for global access
-console.log('✏️ DrawingRenderer class defined - ACTUALLY FIXED POINT-BASED COMPLETION ONLY');
+console.log('✏️ DrawingRenderer class defined - FIXED canvas area calculation and 90% completion requirement');
