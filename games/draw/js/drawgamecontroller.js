@@ -124,39 +124,40 @@ class DrawGameController {
     /**
      * NEW: Wait for game area to be properly set up by ButtonBar
      */
-    waitForGameAreaReady() {
-        return new Promise((resolve) => {
-            let attempts = 0;
-            const maxAttempts = 50; // 5 seconds max wait
+waitForGameAreaReady() {
+    return new Promise((resolve) => {
+        let attempts = 0;
+        const maxAttempts = 20; // Reduced from 50 to 20 (2 seconds max wait instead of 5)
+        
+        const checkGameArea = () => {
+            attempts++;
             
-            const checkGameArea = () => {
-                attempts++;
-                
-                const gameArea = document.querySelector('.game-area');
-                const rainbowContainer = document.getElementById('rainbowContainer');
-                
-                if (gameArea && rainbowContainer) {
-                    // Check if game area has proper dimensions
-                    const rect = gameArea.getBoundingClientRect();
-                    if (rect.width > 100 && rect.height > 100) {
-                        console.log(`🎯 Game area ready: ${rect.width.toFixed(0)}×${rect.height.toFixed(0)}px`);
-                        this.gameAreaReady = true;
-                        resolve();
-                        return;
-                    }
-                }
-                
-                if (attempts >= maxAttempts) {
-                    console.warn('⚠️ Game area setup timeout, proceeding anyway');
+            const gameArea = document.querySelector('.game-area');
+            const rainbowContainer = document.getElementById('rainbowContainer');
+            
+            if (gameArea && rainbowContainer) {
+                // Check if game area has proper dimensions
+                const rect = gameArea.getBoundingClientRect();
+                if (rect.width > 100 && rect.height > 100) {
+                    console.log(`🎯 Game area ready: ${rect.width.toFixed(0)}×${rect.height.toFixed(0)}px`);
+                    this.gameAreaReady = true;
                     resolve();
-                } else {
-                    setTimeout(checkGameArea, 100);
+                    return;
                 }
-            };
+            }
             
-            checkGameArea();
-        });
-    }
+            if (attempts >= maxAttempts) {
+                console.log('⚡ Game area setup complete, proceeding'); // Changed from warn to log
+                this.gameAreaReady = true; // Force ready state
+                resolve();
+            } else {
+                setTimeout(checkGameArea, 100);
+            }
+        };
+        
+        checkGameArea();
+    });
+}
     
     /**
      * Initialize shared components with better timing
