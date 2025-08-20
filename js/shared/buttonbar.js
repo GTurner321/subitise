@@ -256,29 +256,54 @@ class ButtonBar {
         });
     }
     
-    /**
-     * Reinitialize rainbow after game area has proper dimensions
-     */
-    reinitializeRainbow() {
-        // Check if rainbow exists and reinitialize it
-        if (window.Rainbow && typeof window.Rainbow === 'function') {
-            // If rainbow is a class, check for global instance
-            if (window.rainbow && typeof window.rainbow.initializeArcs === 'function') {
-                console.log('Reinitializing rainbow with proper game area dimensions');
-                window.rainbow.initializeArcs();
-            }
-        } else if (window.rainbow && typeof window.rainbow.initializeArcs === 'function') {
-            // Direct global rainbow instance
-            console.log('Reinitializing rainbow with proper game area dimensions');
-            window.rainbow.initializeArcs();
+/**
+ * FIXED: Reinitialize rainbow after game area has proper dimensions
+ * Now supports multiple games (subitGame, drawGame, sliderRandomGame, etc.)
+ */
+reinitializeRainbow() {
+    console.log('🌈 Reinitializing rainbow for all supported games');
+    
+    // Method 1: Direct rainbow instance (preferred)
+    if (window.rainbow && typeof window.rainbow.initializeArcs === 'function') {
+        console.log('✅ Reinitializing direct rainbow instance');
+        window.rainbow.initializeArcs();
+        return;
+    }
+    
+    // Method 2: Game controller instances
+    const gameControllers = [
+        { name: 'drawGame', instance: window.drawGame },
+        { name: 'subitGame', instance: window.subitGame },
+        { name: 'sliderRandomGame', instance: window.sliderRandomGame }
+    ];
+    
+    let rainbowFound = false;
+    
+    gameControllers.forEach(({ name, instance }) => {
+        if (instance && instance.rainbow && typeof instance.rainbow.initializeArcs === 'function') {
+            console.log(`✅ Reinitializing rainbow via ${name} controller`);
+            instance.rainbow.initializeArcs();
+            rainbowFound = true;
         }
-        
-        // Also trigger via game controller if available
-        if (window.subitGame && window.subitGame.rainbow && typeof window.subitGame.rainbow.initializeArcs === 'function') {
-            console.log('Reinitializing rainbow via game controller');
-            window.subitGame.rainbow.initializeArcs();
+    });
+    
+    // Method 3: Rainbow class constructor (fallback)
+    if (!rainbowFound && window.Rainbow && typeof window.Rainbow === 'function') {
+        console.log('⚠️ No existing rainbow found, attempting to create new instance');
+        try {
+            if (!window.rainbow) {
+                window.rainbow = new window.Rainbow();
+                console.log('✅ Created new rainbow instance');
+            }
+        } catch (error) {
+            console.error('❌ Failed to create rainbow instance:', error);
         }
     }
+    
+    if (!rainbowFound) {
+        console.warn('⚠️ No rainbow instances found to reinitialize');
+    }
+}
     
     calculateDimensions() {
         const screenWidth = window.innerWidth;
