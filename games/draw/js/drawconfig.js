@@ -134,7 +134,7 @@ const DRAW_CONFIG = {
 
     // Line length flooding settings
     LINE_LENGTH_FLOODING: {
-        HEIGHT_MULTIPLIER: 5, // 5x drawing area height
+        HEIGHT_MULTIPLIER: 6, // 6x drawing area height
         FLASH_INTERVAL: 1000, // 1 second
         WARNING_DELAY: 10000, // 10 seconds
         FLASH_COLOR: 'rgba(255, 165, 0, 0.9)', // Orange
