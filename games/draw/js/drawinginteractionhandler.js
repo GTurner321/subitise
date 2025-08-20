@@ -84,6 +84,14 @@ class DrawingInteractionHandler {
         // Setup drawing events
         this.setupDrawingEvents();
         
+        // Show debug completion points if enabled
+        if (window.DEBUG_SHOW_POINTS) {
+            // Delay slightly to ensure SVG is ready
+            setTimeout(() => {
+                this.showDebugCompletionPoints();
+            }, 100);
+        }
+        
         console.log(`✅ Interaction ready for number ${number} with ${this.completionPoints.length} completion points (90% required)`);
         return true;
     }
@@ -130,6 +138,37 @@ class DrawingInteractionHandler {
         if (DRAW_CONFIG.DEBUG_MODE) {
             console.log('🔍 Completion points:', this.completionPoints);
         }
+    }
+    
+    /**
+     * DEBUG: Show completion points as visible dots for testing
+     */
+    showDebugCompletionPoints() {
+        if (!DRAW_CONFIG.DEBUG_MODE && !window.DEBUG_SHOW_POINTS) return;
+        
+        console.log(`🔍 Showing ${this.completionPoints.length} debug completion points`);
+        
+        // Remove existing debug dots
+        const existingDots = this.drawingGroup.querySelectorAll('.debug-completion-point');
+        existingDots.forEach(dot => dot.remove());
+        
+        // Create debug dots for each completion point
+        this.completionPoints.forEach((point, index) => {
+            const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('cx', point.x);
+            dot.setAttribute('cy', point.y);
+            dot.setAttribute('r', 3); // Small radius for visibility
+            dot.setAttribute('fill', 'red');
+            dot.setAttribute('stroke', 'white');
+            dot.setAttribute('stroke-width', 1);
+            dot.setAttribute('class', 'debug-completion-point');
+            dot.setAttribute('data-point-id', point.id);
+            
+            // Add to drawing group so it's visible
+            this.drawingGroup.appendChild(dot);
+        });
+        
+        console.log(`✅ Debug completion points displayed as red dots`);
     }
     
     /**
@@ -383,7 +422,7 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * Check coverage of completion points with line thickness
+     * Check coverage of completion points with line thickness AND visual feedback
      */
     checkCompletionPointsCoverage(drawnPoint) {
         if (!this.completionPoints || this.completionPoints.length === 0) return;
@@ -404,6 +443,15 @@ class DrawingInteractionHandler {
             if (distance <= tolerance) {
                 if (!this.coveredCompletionPoints.has(completionPoint.id)) {
                     console.log(`🎯 Completion point ${completionPoint.id} covered! (${this.coveredCompletionPoints.size + 1}/${this.completionPoints.length})`);
+                    
+                    // DEBUG: Change dot color when covered
+                    if (DRAW_CONFIG.DEBUG_MODE || window.DEBUG_SHOW_POINTS) {
+                        const debugDot = this.drawingGroup.querySelector(`[data-point-id="${completionPoint.id}"]`);
+                        if (debugDot) {
+                            debugDot.setAttribute('fill', 'green');
+                            debugDot.setAttribute('r', 4); // Slightly larger when covered
+                        }
+                    }
                 }
                 this.coveredCompletionPoints.add(completionPoint.id);
             }
@@ -411,9 +459,16 @@ class DrawingInteractionHandler {
     }
     
     /**
-     * FIXED: Check canvas flooding using number render area coordinates
+     * TEMPORARILY DISABLED: Check canvas flooding using number render area coordinates
+     * Canvas flooding prevention is disabled for testing - drawing is unlimited
      */
     checkCanvasFlooding(point) {
+        // TEMPORARILY DISABLED - return early to allow unlimited drawing
+        console.log('🚫 Canvas flooding check DISABLED for testing');
+        return;
+        
+        // Original code commented out but preserved:
+        /*
         if (this.canvasFloodingWarned || !this.totalCanvasArea) return;
         
         // Get number render bounds to check if point is actually within the number area
@@ -453,6 +508,7 @@ class DrawingInteractionHandler {
                 this.triggerCanvasFloodingWarning();
             }
         }
+        */
     }
     
     /**
