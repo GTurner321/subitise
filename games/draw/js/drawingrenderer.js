@@ -305,16 +305,17 @@ class DrawingRenderer {
     }
     
     /**
-     * Start hint timer (20 seconds for audio hints)
+     * Start hint timer (10 seconds - synchronized with second flash)
      */
     startHintTimer() {
         if (this.isComplete) return;
         
         this.clearHintTimer();
         
+        // UPDATED: Hints given after 10 seconds (on second flash cycle)
         this.hintTimer = setTimeout(() => {
             this.showAudioHint();
-        }, DRAW_CONFIG.TIMING.HINT_DELAY);
+        }, 10000); // Changed from DRAW_CONFIG.TIMING.HINT_DELAY (20000) to 10000
     }
     
     /**
@@ -355,16 +356,17 @@ class DrawingRenderer {
     }
     
     /**
-     * Start visual flash timer (8 seconds, improved timing)
+     * Start visual flash timer (5 seconds - faster than before)
      */
     startVisualFlashTimer() {
         if (this.isComplete) return;
         
         this.clearVisualFlashTimer();
         
+        // UPDATED: Flash starts after 5 seconds instead of 8
         this.visualFlashTimer = setTimeout(() => {
             this.showVisualFlash();
-        }, DRAW_CONFIG.TIMING.VISUAL_FLASH_DELAY);
+        }, 5000); // Changed from DRAW_CONFIG.TIMING.VISUAL_FLASH_DELAY (8000) to 5000
     }
     
     /**
@@ -424,10 +426,10 @@ class DrawingRenderer {
         // Restart flash timer for next cycle after sequence completes
         setTimeout(() => {
             if (!this.isComplete) {
-                console.log('🔄 Restarting visual flash timer');
+                console.log('🔄 Restarting visual flash timer (5 second cycle)');
                 this.startVisualFlashTimer();
             }
-        }, DRAW_CONFIG.TIMING.VISUAL_FLASH_DURATION + 200); // Small buffer after flash sequence
+        }, 1200); // Small buffer after flash sequence (unchanged)
     }
     
     /**
