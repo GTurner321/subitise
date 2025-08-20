@@ -74,13 +74,13 @@ const DRAW_CONFIG = {
         DRAWING_LINE_THICKNESS: 4, // 4% of game area height
         DRAWING_LINE_COLOR: '#4CAF50', // Green
         
-        // NEW: Point-based completion criteria
-        POINT_COVERAGE_REQUIRED: 100, // 100% of completion points must be covered
-        POINT_TOLERANCE: 25, // Pixel tolerance for point proximity detection
-        
-        // NEW: Canvas flooding prevention
-        MAX_CANVAS_COVERAGE: 30, // Maximum 30% of canvas can be filled before reset
-        CANVAS_RESET_WARNING_TIME: 5000, // 5 seconds warning before reset
+        // UPDATED: Point-based completion criteria (relaxed from 100% to 90%)
+        POINT_COVERAGE_REQUIRED: 90, // Accept 18/20 points instead of requiring all 20
+        POINT_TOLERANCE: 25, // Pixel tolerance for point proximity detection (unchanged)
+    
+        // UPDATED: Canvas flooding prevention (clarified that this is for the number render area)
+        MAX_CANVAS_COVERAGE: 30, // Maximum 30% of NUMBER RENDER AREA can be filled before reset
+        CANVAS_RESET_WARNING_TIME: 5000, // 5 seconds warning before reset (unchanged)
         
         // Outline styling method
         OUTLINE_METHOD: 'stroke', // 'stroke' or 'layered' - use SVG stroke for cleaner outline
