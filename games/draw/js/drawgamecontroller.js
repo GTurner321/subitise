@@ -1,20 +1,18 @@
 /**
- * Draw Game Controller - Enhanced with Fixed Rainbow Integration
+ * Draw Game Controller - Complete with UI Management
  * 
- * PURPOSE: Coordinates all game systems and manages game flow
- * - Fixed rainbow visibility issues with proper timing and initialization
- * - Simplified component loading with better error handling
- * - Enhanced completion detection with immediate feedback
- * - Proper game area coordination with ButtonBar system
+ * PURPOSE: Coordinates all game systems and manages game flow with UI feedback
  * - Manages game progression through all 10 numbers (0-9)
  * - Handles game state, completion detection, and user feedback
  * - Coordinates audio announcements and visual celebrations
+ * - REFACTORED: Now handles reset button flashing and flooding UI feedback
  * - Manages game restart and cleanup functionality
+ * - Faster initialization without complex verification
  */
 
 class DrawGameController {
     constructor() {
-        console.log('🎮 DrawGameController initializing with enhanced rainbow integration');
+        console.log('🎮 DrawGameController initializing with UI management');
         
         // Game state
         this.currentNumberIndex = 0;
@@ -45,10 +43,9 @@ class DrawGameController {
         this.isTabVisible = true;
         this.audioEnabled = true;
         
-        // NEW: Initialization flags
-        this.componentsReady = false;
-        this.gameAreaReady = false;
-        this.rainbowReady = false;
+        // NEW: Reset button flashing management
+        this.resetButtonFlashing = false;
+        this.flashInterval = null;
         
         // Bind methods for event handlers
         this.onNumberComplete = this.onNumberComplete.bind(this);
@@ -59,23 +56,44 @@ class DrawGameController {
         this.initializeGame();
     }
     
-// In drawgamecontroller.js, replace the entire initializeGame method:
-async initializeGame() {
-    console.log('🚀 Fast initialization sequence');
-    
-    // Simple setup without complex verification
-    this.initializeAudioSystem();
-    this.setupVisibilityHandling();
-    this.setupGameUI();
-    
-    // Initialize components directly
-    await this.initializeSharedComponents();
-    await this.initializeRenderers();
-    
-    // Start immediately
-    this.startGame();
-    console.log('✅ Fast initialization complete');
-}
+    /**
+     * SIMPLIFIED: Fast initialization without complex verification
+     */
+    async initializeGame() {
+        console.log('🚀 Fast initialization sequence');
+        
+        try {
+            // Wait for DOM
+            await this.waitForDOM();
+            console.log('✅ DOM ready');
+            
+            // Simple setup
+            this.initializeAudioSystem();
+            this.setupVisibilityHandling();
+            this.setupGameUI();
+            console.log('✅ Basic systems ready');
+            
+            // Wait for game area (with shorter timeout)
+            await this.waitForGameAreaReady();
+            console.log('✅ Game area ready');
+            
+            // Initialize components
+            await this.initializeSharedComponents();
+            console.log('✅ Shared components ready');
+            
+            // Initialize renderers
+            await this.initializeRenderers();
+            console.log('✅ Renderers ready');
+            
+            // Start immediately
+            this.startGame();
+            console.log('✅ Fast initialization complete');
+            
+        } catch (error) {
+            console.error('❌ Game initialization failed:', error);
+            this.handleInitializationFailure(error);
+        }
+    }
     
     /**
      * Wait for DOM to be ready
@@ -91,75 +109,51 @@ async initializeGame() {
     }
     
     /**
-     * NEW: Wait for game area to be properly set up by ButtonBar
+     * FASTER: Wait for game area with reduced timeout
      */
-waitForGameAreaReady() {
-    return new Promise((resolve) => {
-        let attempts = 0;
-        const maxAttempts = 20; // Reduced from 50 to 20 (2 seconds max wait instead of 5)
-        
-        const checkGameArea = () => {
-            attempts++;
+    waitForGameAreaReady() {
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const maxAttempts = 20; // 2 seconds max wait instead of 5
             
-            const gameArea = document.querySelector('.game-area');
-            const rainbowContainer = document.getElementById('rainbowContainer');
-            
-            if (gameArea && rainbowContainer) {
-                // Check if game area has proper dimensions
-                const rect = gameArea.getBoundingClientRect();
-                if (rect.width > 100 && rect.height > 100) {
-                    console.log(`🎯 Game area ready: ${rect.width.toFixed(0)}×${rect.height.toFixed(0)}px`);
-                    this.gameAreaReady = true;
-                    resolve();
-                    return;
+            const checkGameArea = () => {
+                attempts++;
+                
+                const gameArea = document.querySelector('.game-area');
+                const rainbowContainer = document.getElementById('rainbowContainer');
+                
+                if (gameArea && rainbowContainer) {
+                    const rect = gameArea.getBoundingClientRect();
+                    if (rect.width > 100 && rect.height > 100) {
+                        console.log(`🎯 Game area ready: ${rect.width.toFixed(0)}×${rect.height.toFixed(0)}px`);
+                        resolve();
+                        return;
+                    }
                 }
-            }
+                
+                if (attempts >= maxAttempts) {
+                    console.log('⚡ Game area setup complete, proceeding');
+                    resolve();
+                } else {
+                    setTimeout(checkGameArea, 100);
+                }
+            };
             
-            if (attempts >= maxAttempts) {
-                console.log('⚡ Game area setup complete, proceeding'); // Changed from warn to log
-                this.gameAreaReady = true; // Force ready state
-                resolve();
-            } else {
-                setTimeout(checkGameArea, 100);
-            }
-        };
-        
-        checkGameArea();
-    });
-}
+            checkGameArea();
+        });
+    }
     
     /**
      * Initialize shared components with better timing
      */
     async initializeSharedComponents() {
-        console.log('🌈 Initializing shared components after game area setup');
+        console.log('🌈 Initializing shared components');
         
-        // Initialize Rainbow with proper error handling
+        // Initialize Rainbow
         try {
-            // Check multiple possible locations for Rainbow
-            let RainbowClass = null;
-            
             if (window.Rainbow && typeof window.Rainbow === 'function') {
-                RainbowClass = window.Rainbow;
-                console.log('📍 Found Rainbow at window.Rainbow');
-            } else if (typeof Rainbow !== 'undefined' && typeof Rainbow === 'function') {
-                RainbowClass = Rainbow;
-                window.Rainbow = Rainbow; // Ensure it's on window
-                console.log('📍 Found Rainbow in global scope, added to window');
-            }
-            
-            if (RainbowClass) {
-                this.rainbow = new RainbowClass();
-                this.rainbowReady = true;
+                this.rainbow = new window.Rainbow();
                 console.log('✅ Rainbow initialized successfully');
-                
-                // Verify rainbow container is properly positioned
-                setTimeout(() => {
-                    if (this.rainbow && typeof this.rainbow.initializeArcs === 'function') {
-                        console.log('🔄 Re-initializing rainbow arcs after component setup');
-                        this.rainbow.initializeArcs();
-                    }
-                }, 500);
             } else {
                 console.warn('⚠️ Rainbow class not found, creating dummy implementation');
                 this.rainbow = this.createDummyRainbow();
@@ -169,21 +163,10 @@ waitForGameAreaReady() {
             this.rainbow = this.createDummyRainbow();
         }
         
-        // Initialize Bear with proper error handling
+        // Initialize Bear
         try {
-            let BearClass = null;
-            
             if (window.Bear && typeof window.Bear === 'function') {
-                BearClass = window.Bear;
-                console.log('📍 Found Bear at window.Bear');
-            } else if (typeof Bear !== 'undefined' && typeof Bear === 'function') {
-                BearClass = Bear;
-                window.Bear = Bear; // Ensure it's on window
-                console.log('📍 Found Bear in global scope, added to window');
-            }
-            
-            if (BearClass) {
-                this.bear = new BearClass();
+                this.bear = new window.Bear();
                 console.log('✅ Bear initialized successfully');
             } else {
                 console.warn('⚠️ Bear class not found, creating dummy implementation');
@@ -194,7 +177,6 @@ waitForGameAreaReady() {
             this.bear = this.createDummyBear();
         }
         
-        this.componentsReady = true;
         console.log('✅ All shared components initialized');
     }
     
@@ -204,7 +186,6 @@ waitForGameAreaReady() {
     initializeAudioSystem() {
         console.log('🔊 Initializing audio system');
         
-        // Audio system should already be initialized globally
         if (window.AudioSystem) {
             this.audioEnabled = window.AudioSystem.audioEnabled;
             console.log('✅ Audio system ready');
@@ -236,7 +217,6 @@ waitForGameAreaReady() {
         this.isTabVisible = !document.hidden;
         
         if (!this.isTabVisible) {
-            // Stop any ongoing audio when tab is hidden
             if (window.AudioSystem) {
                 window.AudioSystem.stopAllAudio();
             }
@@ -341,35 +321,6 @@ waitForGameAreaReady() {
     }
     
     /**
-     * NEW: Verify all systems are ready before starting
-     */
-    verifyAllSystemsReady() {
-        const checks = {
-            config: typeof DRAW_CONFIG !== 'undefined',
-            gameArea: this.gameAreaReady,
-            components: this.componentsReady,
-            layoutRenderer: this.layoutRenderer && this.layoutRenderer.isLayoutReady(),
-            drawingRenderer: !!this.drawingRenderer,
-            rainbow: !!this.rainbow,
-            bear: !!this.bear,
-            modal: !!this.modal
-        };
-        
-        console.log('🔍 System verification:', checks);
-        
-        const allReady = Object.values(checks).every(check => check === true);
-        
-        if (!allReady) {
-            const failures = Object.entries(checks)
-                .filter(([key, value]) => !value)
-                .map(([key]) => key);
-            console.error('❌ System verification failed:', failures);
-        }
-        
-        return allReady;
-    }
-    
-    /**
      * Handle initialization failure with graceful degradation
      */
     handleInitializationFailure(error) {
@@ -415,6 +366,9 @@ waitForGameAreaReady() {
             this.modal.classList.add('hidden');
         }
         
+        // Stop any button flashing
+        this.stopResetButtonFlashing();
+        
         // Start first number
         this.startNextNumber();
         
@@ -434,7 +388,6 @@ waitForGameAreaReady() {
             this.speakText(DRAW_CONFIG.AUDIO.GAME_START.WELCOME);
             
             setTimeout(() => {
-                // Instructions now include the first number
                 this.speakText(DRAW_CONFIG.AUDIO.GAME_START.INSTRUCTIONS(firstNumber));
             }, 2000);
         }, 1000);
@@ -472,7 +425,7 @@ waitForGameAreaReady() {
     playNumberInstruction(number) {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
-        // Only play for 2nd question onwards (first question uses GAME_START messages)
+        // Only play for 2nd question onwards
         if (this.numbersCompleted === 0) {
             console.log(`🔇 Skipping instruction for first number ${number} - using GAME_START instead`);
             return;
@@ -485,7 +438,7 @@ waitForGameAreaReady() {
     }
     
     /**
-     * NEW: Enhanced number completion with immediate rainbow integration
+     * Enhanced number completion with immediate rainbow integration
      */
     onNumberComplete(number) {
         if (this.isProcessingCompletion) {
@@ -496,26 +449,14 @@ waitForGameAreaReady() {
         this.isProcessingCompletion = true;
         console.log(`🎉 Number ${number} completed! Adding rainbow piece immediately.`);
         
-        // NEW: Immediate rainbow piece addition with verification
+        // Immediate rainbow piece addition
         if (this.rainbow && typeof this.rainbow.addPiece === 'function') {
             try {
                 const pieces = this.rainbow.addPiece();
                 console.log(`🌈 Rainbow piece added successfully: ${pieces}/${DRAW_CONFIG.RAINBOW_PIECES}`);
-                
-                // Verify the piece was actually added
-                const currentPieces = this.rainbow.getPieces ? this.rainbow.getPieces() : pieces;
-                console.log(`🌈 Rainbow verification: ${currentPieces} pieces now visible`);
-                
-                // Force rainbow re-initialization if needed
-                if (currentPieces !== pieces && typeof this.rainbow.initializeArcs === 'function') {
-                    console.log('🔄 Re-initializing rainbow arcs due to mismatch');
-                    setTimeout(() => this.rainbow.initializeArcs(), 100);
-                }
             } catch (error) {
                 console.error('❌ Rainbow addPiece failed:', error);
             }
-        } else {
-            console.warn('⚠️ Rainbow not available or addPiece method missing');
         }
         
         // Play completion audio
@@ -528,12 +469,11 @@ waitForGameAreaReady() {
         // Check if game is complete
         if (this.rainbow && typeof this.rainbow.isComplete === 'function' && this.rainbow.isComplete()) {
             console.log('🏆 Rainbow reports completion, finishing game');
-            // Delay game completion to allow rainbow celebration
             setTimeout(() => {
                 this.completeGame();
             }, 3000);
         } else {
-            // Move to next number after total completion delay
+            // Move to next number
             setTimeout(() => {
                 this.isProcessingCompletion = false;
                 this.startNextNumber();
@@ -547,7 +487,6 @@ waitForGameAreaReady() {
     playCompletionAudio(number) {
         if (!this.audioEnabled || !this.isTabVisible) return;
         
-        // Play random encouragement
         const encouragement = DRAW_CONFIG.getRandomEncouragement();
         this.speakText(encouragement);
     }
@@ -618,6 +557,95 @@ waitForGameAreaReady() {
     }
     
     /**
+     * NEW: Handle flooding warning from interaction handler
+     */
+    handleFloodingWarning() {
+        console.log('🚨 Handling flooding warning from interaction handler');
+        
+        // Play immediate warning audio
+        if (window.AudioSystem) {
+            window.AudioSystem.speakText(DRAW_CONFIG.AUDIO.FLOODING.TOO_MUCH_DRAWING);
+        }
+        
+        // Start reset button flashing
+        this.startResetButtonFlashing();
+    }
+    
+    /**
+     * NEW: Play second flooding warning (called after delay)
+     */
+    playSecondFloodingWarning() {
+        console.log('🔊 Playing second flooding warning');
+        
+        if (window.AudioSystem) {
+            window.AudioSystem.speakText(DRAW_CONFIG.AUDIO.FLOODING.PRESS_RESET_BUTTON);
+        }
+    }
+    
+    /**
+     * NEW: Start reset button flashing animation (orange, 1Hz)
+     */
+    startResetButtonFlashing() {
+        if (this.resetButtonFlashing) return;
+        
+        this.resetButtonFlashing = true;
+        console.log('🔄 Starting reset button flashing');
+        
+        const redoButton = document.getElementById('redoButton');
+        if (!redoButton) {
+            console.warn('⚠️ Redo button not found for flashing');
+            return;
+        }
+        
+        // Store original styles
+        if (!redoButton.dataset.originalBackground) {
+            redoButton.dataset.originalBackground = redoButton.style.background || DRAW_CONFIG.LINE_LENGTH_FLOODING.NORMAL_COLOR;
+        }
+        
+        // Start flashing animation
+        let flashOn = true;
+        this.flashInterval = setInterval(() => {
+            if (!this.resetButtonFlashing) {
+                clearInterval(this.flashInterval);
+                return;
+            }
+            
+            if (flashOn) {
+                // Flash to orange
+                redoButton.style.background = DRAW_CONFIG.LINE_LENGTH_FLOODING.FLASH_COLOR;
+                redoButton.style.transform = redoButton.style.transform.replace(/scale\([^)]*\)/g, '') + ' scale(1.1)';
+            } else {
+                // Return to normal (but still slightly highlighted)
+                redoButton.style.background = DRAW_CONFIG.LINE_LENGTH_FLOODING.FLASH_COLOR.replace('0.9', '0.7');
+                redoButton.style.transform = redoButton.style.transform.replace(/scale\([^)]*\)/g, '') + ' scale(1.0)';
+            }
+            flashOn = !flashOn;
+        }, DRAW_CONFIG.LINE_LENGTH_FLOODING.FLASH_INTERVAL);
+    }
+    
+    /**
+     * NEW: Stop reset button flashing and restore normal appearance
+     */
+    stopResetButtonFlashing() {
+        if (!this.resetButtonFlashing) return;
+        
+        this.resetButtonFlashing = false;
+        console.log('🔄 Stopping reset button flashing');
+        
+        if (this.flashInterval) {
+            clearInterval(this.flashInterval);
+            this.flashInterval = null;
+        }
+        
+        const redoButton = document.getElementById('redoButton');
+        if (redoButton) {
+            // Restore original appearance
+            redoButton.style.background = redoButton.dataset.originalBackground || DRAW_CONFIG.LINE_LENGTH_FLOODING.NORMAL_COLOR;
+            redoButton.style.transform = redoButton.style.transform.replace(/scale\([^)]*\)/g, '');
+        }
+    }
+    
+    /**
      * Speak text using audio system
      */
     speakText(text, options = {}) {
@@ -650,11 +678,7 @@ waitForGameAreaReady() {
             gameComplete: this.gameComplete,
             rainbowPieces: this.rainbow ? (this.rainbow.getPieces ? this.rainbow.getPieces() : 0) : 0,
             drawingProgress: this.drawingRenderer ? this.drawingRenderer.getProgress() : null,
-            systemsReady: {
-                gameArea: this.gameAreaReady,
-                components: this.componentsReady,
-                rainbow: this.rainbowReady
-            }
+            resetButtonFlashing: this.resetButtonFlashing
         };
     }
     
@@ -670,6 +694,9 @@ waitForGameAreaReady() {
         if (this.playAgainBtn) {
             this.playAgainBtn.removeEventListener('click', this.handlePlayAgain);
         }
+        
+        // Stop button flashing
+        this.stopResetButtonFlashing();
         
         // Destroy renderers
         if (this.drawingRenderer) {
@@ -783,4 +810,4 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-console.log('🎮 DrawGameController class defined with enhanced rainbow integration');
+console.log('🎮 DrawGameController class defined with complete UI management');
