@@ -75,10 +75,10 @@ const BALLOON_CONFIG = {
     BALLOON_SPAWN_INTERVAL: 200, // ms between balloon spawns
     FALLING_NUMBER_SPEED: 180,   // pixels per second
     
-    // Colors
+    // Colors - Updated dark colors to be lighter
     BALLOON_COLORS: [
         '#FF0000', '#FF8000', '#FFFF00', '#80FF00', '#00FF00',
-        '#00FF80', '#00FFFF', '#0080FF', '#0000FF', '#8000FF',
+        '#00FF80', '#00FFFF', '#40A0FF', '#4080FF', '#A080FF', // Made blues lighter
         '#FF0080', '#FF4000', '#FFFF80', '#80FF80', '#80FFFF'
     ],
     
