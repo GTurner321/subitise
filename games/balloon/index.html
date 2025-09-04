@@ -7,6 +7,30 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="styles/balloonmain.css">
+    <style>
+        /* Ensure background renders */
+        html, body {
+            background: linear-gradient(135deg, #87CEEB, #98FB98, #FFE4B5) !important;
+            background-attachment: fixed !important;
+        }
+        
+        /* Ensure grass band renders */
+        .grass-band {
+            display: block !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 10vh !important;
+            background: linear-gradient(to top, 
+                rgba(144, 238, 144, 0.6),
+                rgba(152, 251, 152, 0.7),
+                rgba(173, 255, 47, 0.5)
+            ) !important;
+            z-index: 1 !important;
+            box-shadow: 0 -0.2vh 1vh rgba(144, 238, 144, 0.3) !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Main game area -->
