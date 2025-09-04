@@ -7,51 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="styles/balloonmain.css">
-    <style>
-        /* Beautiful subtle background gradient */
-        html, body {
-            background: linear-gradient(135deg, 
-                rgba(135, 206, 235, 0.2) 0%,
-                rgba(152, 251, 152, 0.15) 50%,
-                rgba(255, 228, 181, 0.2) 100%
-            ) !important;
-            background-attachment: fixed !important;
-            min-height: 100vh !important;
-        }
-        
-        .game-area {
-            background: transparent !important;
-        }
-        
-        /* Soft grass band at bottom */
-        .grass-band {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 80px !important;
-            background: linear-gradient(to top, 
-                rgba(144, 238, 144, 0.6),
-                rgba(152, 251, 152, 0.7),
-                rgba(173, 255, 47, 0.5)
-            ) !important;
-            z-index: 1 !important;
-            border: none !important;
-            box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3) !important;
-        }
-        
-        .grass-texture {
-            display: none !important;
-        }
-    </style>
 </head>
 <body>
-    <!-- Back to games navigation -->
-    <a href="../../index.html" class="back-button">
-        <i class="fas fa-arrow-left"></i>
-        Back to Games
-    </a>
-    
     <!-- Main game area -->
     <div class="game-area">
         <!-- Rainbow background -->
@@ -60,13 +17,6 @@
         <!-- Balloon game container -->
         <div class="balloon-container" id="balloonContainer">
             <svg id="balloonSVG" class="balloon-svg"></svg>
-        </div>
-        
-        <!-- Game info display -->
-        <div class="game-info-container">
-            <div class="target-number" id="targetNumber"></div>
-            <div class="progress-info" id="progressInfo"></div>
-            <div class="level-info" id="levelInfo"></div>
         </div>
     </div>
     
@@ -88,10 +38,15 @@
     </div>
     
     <!-- JavaScript files - Load in correct order -->
+    <!-- Shared systems first -->
     <script src="../../js/shared/audio.js"></script>
-    <script src="js/balloonconfig.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
+    
+    <!-- Game-specific files in dependency order -->
+    <script src="js/balloonconfig.js"></script>
+    <script src="js/balloonrenderer.js"></script>
+    <script src="js/balloonphysics.js"></script>
     <script src="js/balloongamecontroller.js"></script>
 </body>
 </html>
