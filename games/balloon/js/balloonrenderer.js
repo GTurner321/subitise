@@ -205,8 +205,8 @@ class BalloonRenderer {
         
         // Use responsive height positioning
         const gameAreaHeight = window.innerHeight;
-        const minStartHeight = gameAreaHeight * 0.55; // Start higher up
-        const maxStartHeight = gameAreaHeight * 0.85;
+        const minStartHeight = gameAreaHeight * 0.60; // Start lower down
+        const maxStartHeight = gameAreaHeight * 0.85; // Keep max the same
         const y = minStartHeight + Math.random() * (maxStartHeight - minStartHeight);
         
         const balloon = {
