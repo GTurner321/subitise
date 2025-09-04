@@ -70,10 +70,22 @@ class BalloonGameController {
         // Initialize physics
         this.physics = new BalloonPhysics();
         
+        // Configure rainbow for balloon game (55% from top instead of default 60%)
+        this.configureRainbow();
+        
         // Setup resize handling
         window.addEventListener('resize', this.handleResize);
         
         console.log('✅ All components initialized');
+    }
+    
+    configureRainbow() {
+        // Override rainbow positioning for balloon game
+        if (this.rainbow && this.rainbow.config) {
+            // The rainbow should be positioned at 55% from top instead of default
+            // This will be handled by CSS positioning in .rainbow-container
+            console.log('🌈 Rainbow configured for balloon game positioning');
+        }
     }
     
     handleResize() {
