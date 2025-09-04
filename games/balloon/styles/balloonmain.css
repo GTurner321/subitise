@@ -1,4 +1,4 @@
-/* Balloon Number Game Styles - Full Screen with Transparent Background */
+/* Balloon Number Game Styles - Responsive Design */
 
 /* Reset and base styles */
 * {
@@ -15,13 +15,13 @@ body {
     position: relative;
 }
 
-/* Grass band at bottom */
+/* Grass band at bottom - RESPONSIVE 10% of screen height */
 .grass-band {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    height: 80px !important;
+    height: 10vh !important; /* Responsive: 10% of viewport height */
     background: linear-gradient(to top, 
         rgba(144, 238, 144, 0.6),
         rgba(152, 251, 152, 0.7),
@@ -29,7 +29,7 @@ body {
     ) !important;
     z-index: 1 !important;
     border: none !important;
-    box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3) !important;
+    box-shadow: 0 -0.2vh 1vh rgba(144, 238, 144, 0.3) !important; /* Responsive shadow */
 }
 
 .grass-band::before {
@@ -38,13 +38,13 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 20px;
+    height: 2vh; /* Responsive grass texture height */
     background: repeating-linear-gradient(
         90deg,
         transparent,
-        transparent 10px,
-        rgba(0, 100, 0, 0.3) 10px,
-        rgba(0, 100, 0, 0.3) 15px
+        transparent 1vh,
+        rgba(0, 100, 0, 0.3) 1vh,
+        rgba(0, 100, 0, 0.3) 1.5vh
     );
 }
 
@@ -62,10 +62,10 @@ body {
     z-index: 2;
 }
 
-/* Rainbow container - positioned at bottom above grass */
+/* Rainbow container - positioned above grass */
 .rainbow-container {
     position: absolute;
-    bottom: 80px;
+    bottom: 10vh; /* Above responsive grass band */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
@@ -179,20 +179,20 @@ svg .falling-number-group * {
 
 .modal-content {
     background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-    padding: 40px;
-    border-radius: 20px;
+    padding: 5vh 4vw; /* Responsive padding */
+    border-radius: 2vh; /* Responsive border radius */
     text-align: center;
     animation: modalAppear 0.5s ease;
     pointer-events: auto;
     z-index: 1001;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    box-shadow: 0 2vh 4vh rgba(0,0,0,0.3);
     max-width: 90vw;
 }
 
 @keyframes modalAppear {
     from { 
         opacity: 0; 
-        transform: scale(0.5) translateY(-50px); 
+        transform: scale(0.5) translateY(-5vh); 
     }
     to { 
         opacity: 1; 
@@ -202,22 +202,22 @@ svg .falling-number-group * {
 
 .modal h2 {
     color: white;
-    font-size: 3rem;
-    margin-bottom: 15px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-size: 4vh; /* Responsive font size */
+    margin-bottom: 2vh;
+    text-shadow: 0.2vh 0.2vh 0.4vh rgba(0,0,0,0.3);
     animation: titleBounce 1s ease infinite;
 }
 
 @keyframes titleBounce {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+    50% { transform: translateY(-0.5vh); }
 }
 
 .modal p {
     color: white;
-    font-size: 1.2rem;
-    margin-bottom: 20px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    font-size: 2vh; /* Responsive font size */
+    margin-bottom: 2vh;
+    text-shadow: 0.1vh 0.1vh 0.2vh rgba(0,0,0,0.3);
     line-height: 1.4;
 }
 
@@ -225,25 +225,25 @@ svg .falling-number-group * {
     background: #4caf50;
     color: white;
     border: none;
-    padding: 15px 30px;
-    font-size: 1.5rem;
-    border-radius: 10px;
+    padding: 2vh 3vw; /* Responsive padding */
+    font-size: 2.5vh; /* Responsive font size */
+    border-radius: 1vh; /* Responsive border radius */
     cursor: pointer;
     font-weight: bold;
-    box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
+    box-shadow: 0 0.6vh 1.5vh rgba(76, 175, 80, 0.4);
     transition: all 0.3s ease;
     position: relative;
     z-index: 1002;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 1vh;
     margin: 0 auto;
 }
 
 .play-again-btn:hover {
     background: #45a049;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.5);
+    transform: translateY(-0.2vh);
+    box-shadow: 0 0.8vh 2vh rgba(76, 175, 80, 0.5);
 }
 
 .play-again-btn:active {
@@ -251,51 +251,47 @@ svg .falling-number-group * {
 }
 
 .play-again-btn i {
-    font-size: 1.2rem;
+    font-size: 2vh; /* Responsive icon size */
 }
 
 .hidden {
     display: none;
 }
 
-/* Back button styling - Maximum specificity override */
-html body .game-area .back-button,
-html body .back-button,
-body .back-button,
+/* Back button styling - positioned bottom-left, responsive */
 .back-button {
     position: fixed !important;
-    bottom: 20px !important;
-    left: 20px !important;
+    bottom: 2vh !important;
+    left: 2vh !important;
     top: unset !important;
     background: rgba(0, 0, 0, 0.7) !important;
     color: white !important;
     text-decoration: none !important;
-    padding: 12px 20px !important;
-    border-radius: 25px !important;
-    font-size: 1rem !important;
+    padding: 1.5vh 2.5vh !important; /* Responsive padding */
+    border-radius: 2.5vh !important; /* Responsive border radius */
+    font-size: 2vh !important; /* Responsive font size */
     font-weight: bold !important;
     z-index: 1004 !important;
     transition: all 0.3s ease !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 8px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    gap: 1vh !important; /* Responsive gap */
+    box-shadow: 0 0.4vh 1.2vh rgba(0, 0, 0, 0.3) !important;
     height: auto !important;
     width: auto !important;
-    max-height: 50px !important;
-    max-width: 200px !important;
     margin: 0 !important;
     transform: none !important;
+    min-height: 5vh !important; /* Responsive minimum height */
 }
 
 .back-button:hover {
     background: rgba(0, 0, 0, 0.9);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: translateY(-0.2vh);
+    box-shadow: 0 0.6vh 1.6vh rgba(0, 0, 0, 0.4);
 }
 
 .back-button i {
-    font-size: 1rem;
+    font-size: 2vh; /* Responsive icon size */
 }
 
 /* Touch feedback and accessibility */
@@ -306,83 +302,88 @@ body .back-button,
 /* Focus states for accessibility */
 .play-again-btn:focus,
 .back-button:focus {
-    outline: 3px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
+    outline: 0.3vh solid rgba(255, 255, 255, 0.8);
+    outline-offset: 0.2vh;
 }
 
-/* Responsive design for full screen */
+/* Responsive design for different screen sizes */
 @media (max-width: 768px) {
     .game-area {
         height: 100vh;
     }
     
     .balloon-container {
-        height: calc(100vh - 60px);
+        height: 100vh;
     }
     
     .grass-band {
-        height: 60px !important;
+        height: 8vh !important; /* Slightly smaller on mobile */
     }
     
     .rainbow-container {
-        bottom: 60px;
+        bottom: 8vh;
     }
     
     .modal h2 {
-        font-size: 2.5rem;
+        font-size: 3.5vh;
     }
     
     .play-again-btn {
-        font-size: 1.3rem;
-        padding: 12px 24px;
+        font-size: 2.2vh;
+        padding: 1.8vh 2.5vw;
+    }
+    
+    .back-button {
+        font-size: 1.8vh !important;
+        padding: 1.2vh 2vh !important;
     }
 }
 
 @media (max-width: 480px) {
     .balloon-container {
-        height: calc(100vh - 50px);
+        height: 100vh;
     }
     
     .grass-band {
-        height: 50px !important;
+        height: 6vh !important; /* Even smaller on very small screens */
     }
     
     .rainbow-container {
-        bottom: 50px;
+        bottom: 6vh;
     }
     
     .modal-content {
-        padding: 30px 20px;
-        margin: 0 10px;
+        padding: 3vh 2vw;
+        margin: 0 2vw;
     }
     
     .modal h2 {
-        font-size: 2rem;
+        font-size: 3vh;
     }
     
     .modal p {
-        font-size: 1rem;
+        font-size: 1.8vh;
     }
     
     .play-again-btn {
-        font-size: 1.2rem;
-        padding: 10px 20px;
+        font-size: 2vh;
+        padding: 1.5vh 2vw;
     }
     
     .back-button {
-        padding: 8px 16px;
-        font-size: 0.9rem;
+        padding: 1vh 1.5vh !important;
+        font-size: 1.6vh !important;
     }
 }
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
     .balloon-container {
-        border: 3px solid #000;
+        border: 0.3vh solid #000;
     }
     
     .balloon-group circle {
-        stroke-width: 4;
+        stroke-width: 0.4vh;
     }
 }
 
@@ -415,14 +416,14 @@ body .back-button,
     
     .balloon-container {
         box-shadow: none;
-        border: 2px solid #000;
+        border: 0.2vh solid #000;
     }
 }
 
 /* Balloon animations and effects */
 @keyframes balloonBob {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-5px); }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-0.5vh); }
 }
 
 .balloon-group.floating {
@@ -451,18 +452,18 @@ body .back-button,
 /* Level progression indicators */
 .level-progress-bar {
     width: 100%;
-    height: 8px;
+    height: 0.8vh;
     background: rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
+    border-radius: 0.4vh;
     overflow: hidden;
-    margin-top: 5px;
+    margin-top: 0.5vh;
 }
 
 .level-progress-fill {
     height: 100%;
     background: linear-gradient(90deg, #4CAF50, #45a049);
     transition: width 0.5s ease;
-    border-radius: 4px;
+    border-radius: 0.4vh;
 }
 
 /* Balloon spawn animation */
@@ -498,17 +499,17 @@ body .back-button,
 
 /* Custom scrollbar for any overflow areas */
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 0.8vh;
 }
 
 ::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    border-radius: 0.4vh;
 }
 
 ::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
+    border-radius: 0.4vh;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -526,10 +527,10 @@ body .back-button,
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 40px;
-    height: 40px;
-    margin: -20px 0 0 -20px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
+    width: 4vh;
+    height: 4vh;
+    margin: -2vh 0 0 -2vh;
+    border: 0.4vh solid rgba(255, 255, 255, 0.3);
     border-top-color: #4CAF50;
     border-radius: 50%;
     animation: loading-spin 1s linear infinite;
