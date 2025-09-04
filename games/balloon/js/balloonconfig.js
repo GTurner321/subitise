@@ -1,11 +1,16 @@
 const BALLOON_CONFIG = {
-    // Game dimensions - full height now
+    // Game dimensions - responsive to viewport
     get SVG_WIDTH() {
         return window.innerWidth;
     },
     get SVG_HEIGHT() {
-        return window.innerHeight; // Full height, no grass deduction
+        return window.innerHeight;
     },
+    
+    // Responsive dimensions (percentages of viewport height)
+    BALLOON_DIAMETER_PERCENT: 8,  // 8% of screen height
+    GRASS_BAND_PERCENT: 10,       // 10% of screen height
+    STRING_HEIGHT_PERCENT: 16,    // 16% of screen height (2x balloon diameter)
     
     // Rainbow settings (for shared rainbow.js compatibility)
     RAINBOW_PIECES: 10,
@@ -47,29 +52,28 @@ const BALLOON_CONFIG = {
     },
     
     // Balloon settings - Updated counts
-    TOTAL_BALLOONS: 26, // Reduced from 28: 8 correct + 18 incorrect
-    CORRECT_BALLOONS: 8, // Remains 8
-    INCORRECT_BALLOONS: 18, // Reduced from 20 to 18
+    TOTAL_BALLOONS: 26, // 8 correct + 18 incorrect
+    CORRECT_BALLOONS: 8,
+    INCORRECT_BALLOONS: 18,
     
     // Success criteria
-    MIN_CORRECT_BALLOONS: 6, // Reduced from 8 to 6
-    MAX_INCORRECT_BALLOONS: 4, // Remains 4
+    MIN_CORRECT_BALLOONS: 6,
+    MAX_INCORRECT_BALLOONS: 4,
     
-    // Balloon physics - Updated with larger ranges
-    BALLOON_RADIUS: 43, // Reduced from 54 to 43 (20% smaller)
-    BALLOON_RISE_SPEED_MIN: 8, // Reduced from 12 to 8
-    BALLOON_RISE_SPEED_MAX: 15, // Reduced from 20 to 15
-    BALLOON_SIDEWAYS_SPEED_MIN: 18, // Increased from 15 to 18 (20% faster)
-    BALLOON_SIDEWAYS_SPEED_MAX: 42, // Increased from 35 to 42 (20% faster)
+    // Responsive balloon physics - speeds in pixels per second (converted to vh in physics)
+    BALLOON_RISE_SPEED_MIN: 8,
+    BALLOON_RISE_SPEED_MAX: 15,
+    BALLOON_SIDEWAYS_SPEED_MIN: 18,
+    BALLOON_SIDEWAYS_SPEED_MAX: 42,
     
-    // Balloon positioning - Extended vertical range (10% higher)
-    BALLOON_START_HEIGHT_MIN: 0.55, // Changed from 0.65 to 0.55 (10% higher)
-    BALLOON_START_HEIGHT_MAX: 0.85, // Remains 0.85 (no lower)
-    BALLOON_RANGE_EXTENSION: 0.5, // For additional height variance
+    // Balloon positioning - as percentages of screen height
+    BALLOON_START_HEIGHT_MIN: 0.55, // 55% down from top
+    BALLOON_START_HEIGHT_MAX: 0.85, // 85% down from top
+    BALLOON_RANGE_EXTENSION: 0.5,   // For additional height variance
     
     // Animation settings
     BALLOON_SPAWN_INTERVAL: 200, // ms between balloon spawns
-    FALLING_NUMBER_SPEED: 180,
+    FALLING_NUMBER_SPEED: 180,   // pixels per second
     
     // Colors
     BALLOON_COLORS: [
