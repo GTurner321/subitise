@@ -62,14 +62,14 @@ body {
     z-index: 2;
 }
 
-/* Rainbow container - positioned above grass */
+/* Rainbow container - positioned above grass at 55% */
 .rainbow-container {
     position: absolute;
     bottom: 10vh; /* Above responsive grass band */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    height: 40%;
+    height: 45%; /* Adjusted for 55% positioning */
     z-index: 3;
     pointer-events: none;
 }
