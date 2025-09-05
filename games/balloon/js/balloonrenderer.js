@@ -7,7 +7,7 @@ class BalloonRenderer {
         this.trafficLightContainer = null;
         this.trafficLights = [];
         
-        // Responsive dimensions (all based on viewport height)
+        // Responsive dimensions (all based on viewport height) - DOUBLED SIZES
         this.dimensions = {
             balloonDiameter: 0,
             balloonRadius: 0,
@@ -36,13 +36,13 @@ class BalloonRenderer {
         const screenHeight = window.innerHeight;
         
         this.dimensions = {
-            // All dimensions responsive to screen height
-            balloonDiameter: screenHeight * 0.08, // 8vh
-            balloonRadius: screenHeight * 0.04,   // 4vh (half diameter)
-            stringHeight: screenHeight * 0.16,    // 16vh (2x diameter)
-            grassBandHeight: screenHeight * 0.10,  // 10vh
-            balloonTextSize: screenHeight * 0.032, // ~4vh (fits in balloon)
-            lozengeTextSize: screenHeight * 0.016  // 2vh (half balloon text)
+            // All dimensions responsive to screen height - DOUBLED SIZES
+            balloonDiameter: screenHeight * 0.16, // DOUBLED from 8vh to 16vh
+            balloonRadius: screenHeight * 0.08,   // DOUBLED from 4vh to 8vh (half diameter)
+            stringHeight: screenHeight * 0.32,    // DOUBLED from 16vh to 32vh (2x diameter)
+            grassBandHeight: screenHeight * 0.10,  // Keep 10vh
+            balloonTextSize: screenHeight * 0.064, // DOUBLED from ~4vh to ~8vh (fits in balloon)
+            lozengeTextSize: screenHeight * 0.032  // DOUBLED from 2vh to 4vh (half balloon text)
         };
         
         console.log('📏 Calculated responsive dimensions:', this.dimensions);
@@ -97,18 +97,18 @@ class BalloonRenderer {
         this.trafficLightContainer = document.createElement('div');
         this.repositionTrafficLight();
         
-        // Create traffic lights (need 8 for correct balloons)
+        // Create traffic lights (need 8 for correct balloons) - DOUBLED SIZES
         this.trafficLights = [];
         for (let i = 0; i < BALLOON_CONFIG.CORRECT_BALLOONS; i++) {
             const light = document.createElement('div');
             light.style.cssText = `
-                width: 2.5vh; 
-                height: 2.5vh; 
+                width: 5vh; 
+                height: 5vh; 
                 border-radius: 50%; 
                 background: #333;
-                border: 0.2vh solid #555; 
+                border: 0.4vh solid #555; 
                 transition: all 0.3s ease;
-                margin-bottom: 0.8vh;
+                margin-bottom: 1.6vh;
             `;
             
             this.trafficLights.push(light);
@@ -123,16 +123,16 @@ class BalloonRenderer {
             this.trafficLightContainer.style.cssText = `
                 position: fixed; 
                 top: 50%; 
-                right: 2vh; 
+                right: 4vh; 
                 transform: translateY(-50%); 
                 z-index: 1000;
                 background: rgba(0, 0, 0, 0.8); 
-                border-radius: 2vh; 
-                padding: 1.5vh 1vh;
+                border-radius: 4vh; 
+                padding: 3vh 2vh;
                 display: flex; 
                 flex-direction: column; 
                 align-items: center;
-                box-shadow: 0 0.4vh 1.2vh rgba(0, 0, 0, 0.3);
+                box-shadow: 0 0.8vh 2.4vh rgba(0, 0, 0, 0.3);
             `;
         }
     }
@@ -145,11 +145,11 @@ class BalloonRenderer {
                 if (wasUserPopped) {
                     // Green for user-popped balloons
                     light.style.backgroundColor = '#4CAF50';
-                    light.style.boxShadow = '0 0 1vh rgba(76, 175, 80, 0.8)';
+                    light.style.boxShadow = '0 0 2vh rgba(76, 175, 80, 0.8)';
                 } else {
                     // Grey for ceiling-hit balloons
                     light.style.backgroundColor = '#808080';
-                    light.style.boxShadow = '0 0 1vh rgba(128, 128, 128, 0.8)';
+                    light.style.boxShadow = '0 0 2vh rgba(128, 128, 128, 0.8)';
                 }
             } else {
                 // Dark for not processed
@@ -246,7 +246,7 @@ class BalloonRenderer {
         balloonCircle.setAttribute('r', this.dimensions.balloonRadius);
         balloonCircle.setAttribute('fill', balloon.color);
         balloonCircle.setAttribute('stroke', '#333');
-        balloonCircle.setAttribute('stroke-width', '2');
+        balloonCircle.setAttribute('stroke-width', '4'); // DOUBLED from 2 to 4
         
         // Highlight - responsive sizing
         const highlightRadius = this.dimensions.balloonRadius * 0.35; // 35% of balloon radius
@@ -308,7 +308,7 @@ class BalloonRenderer {
         
         string.setAttribute('d', pathData);
         string.setAttribute('stroke', '#8B4513');
-        string.setAttribute('stroke-width', '3.5');
+        string.setAttribute('stroke-width', '7'); // DOUBLED from 3.5 to 7
         string.setAttribute('fill', 'none');
         
         // Store string coordinates for updates
@@ -407,14 +407,14 @@ class BalloonRenderer {
     }
     
     createPopEffect(x, y) {
-        // Simple responsive pop effect - expanding circle that fades out
+        // Simple responsive pop effect - expanding circle that fades out - DOUBLED SIZES
         const popEffect = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         popEffect.setAttribute('cx', x);
         popEffect.setAttribute('cy', y);
         popEffect.setAttribute('r', this.dimensions.balloonRadius * 0.1);
         popEffect.setAttribute('fill', 'rgba(255, 255, 255, 0.8)');
         popEffect.setAttribute('stroke', 'rgba(255, 255, 255, 0.6)');
-        popEffect.setAttribute('stroke-width', '2');
+        popEffect.setAttribute('stroke-width', '4'); // DOUBLED from 2 to 4
         
         this.svg.appendChild(popEffect);
         
@@ -463,7 +463,7 @@ class BalloonRenderer {
         // Get text for lozenge
         const textContent = BALLOON_CONFIG.NUMBER_TO_WORD[number] || number.toString();
         
-        // Calculate responsive lozenge dimensions
+        // Calculate responsive lozenge dimensions - DOUBLED SIZES
         const charWidth = this.dimensions.lozengeTextSize * 0.75; // Responsive char width
         const padding = this.dimensions.lozengeTextSize * 1.25; // Responsive padding
         const rectWidth = Math.max(this.dimensions.balloonRadius * 2, textContent.length * charWidth + padding);
@@ -483,7 +483,7 @@ class BalloonRenderer {
         rect.setAttribute('ry', rectHeight * 0.5);
         rect.setAttribute('fill', '#add8e6');
         rect.setAttribute('stroke', '#4682b4');
-        rect.setAttribute('stroke-width', '2');
+        rect.setAttribute('stroke-width', '4'); // DOUBLED from 2 to 4
         
         // Create text element with word version of number
         const numberElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
