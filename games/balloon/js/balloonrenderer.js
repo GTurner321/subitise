@@ -240,6 +240,7 @@ class BalloonRenderer {
         fallingNumber.rectWidth = rectWidth;
         fallingNumber.rectHeight = rectHeight;
         
+        // IMPORTANT: Add to shared falling numbers array so physics can manage it
         this.fallingNumbers.push(fallingNumber);
         this.svg.appendChild(numberGroup);
         
