@@ -99,15 +99,25 @@ class BalloonPhysics {
      * Update falling numbers physics
      */
     updateFallingNumbers(deltaTime, currentTime) {
+        if (this.fallingNumbers.length > 0) {
+            console.log('Updating falling numbers. Count:', this.fallingNumbers.length);
+        }
+        
         this.fallingNumbers.forEach((fallingNumber, index) => {
             if (!fallingNumber.landed) {
                 // Only update Y position - never touch X
+                const oldY = fallingNumber.y;
                 fallingNumber.y += fallingNumber.speed * deltaTime;
+                
+                if (this.fallingNumbers.length > 0 && index === 0) {
+                    console.log('Falling number movement:', { oldY, newY: fallingNumber.y, targetY: fallingNumber.targetY });
+                }
                 
                 if (fallingNumber.y >= fallingNumber.targetY) {
                     fallingNumber.y = fallingNumber.targetY;
                     fallingNumber.landed = true;
                     fallingNumber.landedTime = currentTime;
+                    console.log('Falling number landed at:', fallingNumber.y);
                 }
                 
                 // Notify controller to update visuals
@@ -115,6 +125,7 @@ class BalloonPhysics {
             } else {
                 // Check if it's time to remove landed numbers (after 3 seconds)
                 if (currentTime - fallingNumber.landedTime > 3000) {
+                    console.log('Removing fallen number after 3 seconds');
                     this.controller.onFallingNumberRemovalReady(fallingNumber, index);
                 }
             }
