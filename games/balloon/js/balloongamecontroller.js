@@ -260,10 +260,18 @@ class BalloonGameController {
     makePersistentTargetNumber() {
         if (!this.targetNumberDisplay) return;
         
-        // Change to dark grey and 30% opacity, keep centered, LOWER Z-INDEX to go behind balloons
+        // Change to dark grey and 30% opacity, keep centered, FORCE LOWER Z-INDEX to go behind balloons
         this.targetNumberDisplay.style.color = '#666666';
         this.targetNumberDisplay.style.opacity = '0.3';
-        this.targetNumberDisplay.style.zIndex = '3'; // Lower than balloons (z-index: 10)
+        this.targetNumberDisplay.style.zIndex = '1'; // MUCH lower than balloons (z-index: 10)
+        this.targetNumberDisplay.style.position = 'fixed'; // Ensure positioning context
+        
+        // Force the element to be behind balloons in DOM order
+        if (this.targetNumberDisplay.parentNode) {
+            this.targetNumberDisplay.parentNode.removeChild(this.targetNumberDisplay);
+            // Re-append to document.body but at the beginning to ensure it's behind
+            document.body.insertBefore(this.targetNumberDisplay, document.body.firstChild);
+        }
         
         // Update child elements
         const numberElement = this.targetNumberDisplay.children[0];
@@ -272,14 +280,18 @@ class BalloonGameController {
         if (numberElement) {
             numberElement.style.color = '#666666';
             numberElement.style.textShadow = '0.6vh 0.6vh 1.2vh rgba(102, 102, 102, 0.3)';
+            numberElement.style.position = 'relative';
+            numberElement.style.zIndex = '1';
         }
         
         if (textElement) {
             textElement.style.color = '#666666';  
             textElement.style.textShadow = '0.2vh 0.2vh 0.4vh rgba(102, 102, 102, 0.2)';
+            textElement.style.position = 'relative';
+            textElement.style.zIndex = '1';
         }
         
-        console.log('🎯 Target number now persistent at 30% opacity and behind balloons');
+        console.log('🎯 Target number now persistent at 30% opacity and forced behind balloons');
     }
     
     hideTargetNumber() {
