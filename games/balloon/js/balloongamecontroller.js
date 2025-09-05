@@ -190,6 +190,7 @@ class BalloonGameController {
     }
     
     startNewQuestion() {
+        console.log('startNewQuestion called');
         this.questionCount++;
         this.gameActive = true;
         
@@ -218,9 +219,12 @@ class BalloonGameController {
         
         // Select target number for current level
         this.selectTargetNumber();
+        console.log('Target number selected:', this.targetNumber);
         
         // Show target number first, then start game
+        console.log('About to call showTargetNumber');
         this.showTargetNumber();
+        console.log('showTargetNumber called');
     }
     
     selectTargetNumber() {
