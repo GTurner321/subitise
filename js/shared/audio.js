@@ -15,6 +15,7 @@ class AudioSystem {
         this.config = {
             buttonsAtBottom: options.buttonsAtBottom || false,
             customBackUrl: options.backUrl || '../../index.html',
+            disableRotation: options.disableRotation || false, // NEW: Allow games to opt-out of rotation
             ...options
         };
         
@@ -33,7 +34,11 @@ class AudioSystem {
         this.createButtons();
         this.setupVisibilityHandling();
         this.setupFullscreenHandling();
-        this.setupResponsiveRotation();
+        
+        // Only setup rotation if not disabled
+        if (!this.config.disableRotation) {
+            this.setupResponsiveRotation();
+        }
     }
     
     /**
@@ -144,6 +149,8 @@ class AudioSystem {
     }
     
     setupResponsiveRotation() {
+        console.log('🔄 Setting up responsive rotation (can be disabled per game)');
+        
         // Function to check and apply rotation based on viewport dimensions
         const checkAndApplyRotation = () => {
             const isPortrait = window.innerHeight > window.innerWidth;
@@ -572,14 +579,15 @@ class AudioSystem {
     }
 }
 
-// Create global instance with default top positioning
+// Create global instance with default settings (rotation enabled)
 window.AudioSystem = new AudioSystem();
 window.AudioSystem.loadAudioPreference();
 
 // Expose method to override button positioning for specific games
-window.AudioSystem.setBottomPosition = function(bottomPosition = true, backUrl = '../../index.html') {
+window.AudioSystem.setBottomPosition = function(bottomPosition = true, backUrl = '../../index.html', disableRotation = false) {
     window.AudioSystem.updateButtonPosition({
         buttonsAtBottom: bottomPosition,
-        customBackUrl: backUrl
+        customBackUrl: backUrl,
+        disableRotation: disableRotation // NEW: Allow games to disable rotation
     });
 };
