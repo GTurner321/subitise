@@ -365,7 +365,10 @@ class BalloonGameController {
     }
     
     handleBalloonPop(balloon, poppedByUser = true) {
-        if (!this.gameActive) return;
+        if (!this.gameActive) {
+            console.log('Game not active, ignoring balloon pop');
+            return;
+        }
         
         console.log(`🎈 Balloon popped: ${balloon.number}, correct: ${balloon.isCorrect}, by user: ${poppedByUser}`);
         
@@ -375,21 +378,23 @@ class BalloonGameController {
             
             if (poppedByUser) {
                 this.correctBalloonsPopped++;
-                if (window.AudioSystem) {
+                if (window.AudioSystem && window.AudioSystem.audioEnabled && window.AudioSystem.isTabVisible) {
                     window.AudioSystem.playCompletionSound();
                 }
                 
                 // Give encouragement
-                if (window.AudioSystem && window.AudioSystem.audioEnabled) {
+                if (window.AudioSystem && window.AudioSystem.audioEnabled && window.AudioSystem.isTabVisible) {
                     const encouragements = ['Great job!', 'Well done!', 'Excellent!', 'Perfect!'];
                     setTimeout(() => {
-                        window.AudioSystem.speakText(encouragements[Math.floor(Math.random() * encouragements.length)]);
+                        if (window.AudioSystem && window.AudioSystem.audioEnabled && window.AudioSystem.isTabVisible) {
+                            window.AudioSystem.speakText(encouragements[Math.floor(Math.random() * encouragements.length)]);
+                        }
                     }, 200);
                 }
             } else {
                 // Correct balloon hit ceiling
                 this.correctBalloonsCeilingHit++;
-                if (window.AudioSystem) {
+                if (window.AudioSystem && window.AudioSystem.audioEnabled && window.AudioSystem.isTabVisible) {
                     window.AudioSystem.playCompletionSound();
                 }
             }
@@ -408,7 +413,7 @@ class BalloonGameController {
             if (poppedByUser) {
                 this.incorrectBalloonsPopped++;
             }
-            if (window.AudioSystem) {
+            if (window.AudioSystem && window.AudioSystem.audioEnabled && window.AudioSystem.isTabVisible) {
                 window.AudioSystem.playFailureSound();
             }
         }
