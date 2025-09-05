@@ -200,6 +200,12 @@ class BalloonGameController {
         this.renderer.clearAll();
         this.physics.clearAll();
         
+        // Remove previous target display if it exists
+        if (this.targetDisplay) {
+            this.renderer.removeTargetNumber(this.targetDisplay);
+            this.targetDisplay = null;
+        }
+        
         // Reset counters
         this.correctBalloonsPopped = 0;
         this.incorrectBalloonsPopped = 0;
