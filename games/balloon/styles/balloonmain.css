@@ -269,40 +269,40 @@ svg .falling-number-group * {
     display: none;
 }
 
-/* Back button styling - positioned bottom-left, responsive - DOUBLED SIZES */
+/* Back button styling - positioned bottom-left, responsive - REVERTED TO ORIGINAL SIZES */
 .back-button {
     position: fixed !important;
-    bottom: 4vh !important; /* DOUBLED from 2vh */
-    left: 4vh !important; /* DOUBLED from 2vh */
+    bottom: 2vh !important; /* REVERTED from 4vh */
+    left: 2vh !important; /* REVERTED from 4vh */
     top: unset !important;
     background: rgba(0, 0, 0, 0.7) !important;
     color: white !important;
     text-decoration: none !important;
-    padding: 3vh 5vh !important; /* DOUBLED from 1.5vh 2.5vh */
-    border-radius: 5vh !important; /* DOUBLED from 2.5vh */
-    font-size: 4vh !important; /* DOUBLED from 2vh */
+    padding: 1.5vh 2.5vh !important; /* REVERTED from 3vh 5vh */
+    border-radius: 2.5vh !important; /* REVERTED from 5vh */
+    font-size: 2vh !important; /* REVERTED from 4vh */
     font-weight: bold !important;
     z-index: 1004 !important;
     transition: all 0.3s ease !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 2vh !important; /* DOUBLED from 1vh */
-    box-shadow: 0 0.8vh 2.4vh rgba(0, 0, 0, 0.3) !important; /* DOUBLED shadows */
+    gap: 1vh !important; /* REVERTED from 2vh */
+    box-shadow: 0 0.4vh 1.2vh rgba(0, 0, 0, 0.3) !important; /* REVERTED shadows */
     height: auto !important;
     width: auto !important;
     margin: 0 !important;
     transform: none !important;
-    min-height: 10vh !important; /* DOUBLED from 5vh */
+    min-height: 5vh !important; /* REVERTED from 10vh */
 }
 
 .back-button:hover {
     background: rgba(0, 0, 0, 0.9);
-    transform: translateY(-0.4vh); /* DOUBLED from -0.2vh */
-    box-shadow: 0 1.2vh 3.2vh rgba(0, 0, 0, 0.4); /* DOUBLED shadows */
+    transform: translateY(-0.2vh); /* REVERTED from -0.4vh */
+    box-shadow: 0 0.6vh 1.6vh rgba(0, 0, 0, 0.4); /* REVERTED shadows */
 }
 
 .back-button i {
-    font-size: 4vh; /* DOUBLED from 2vh */
+    font-size: 2vh; /* REVERTED from 4vh */
 }
 
 /* Touch feedback and accessibility */
