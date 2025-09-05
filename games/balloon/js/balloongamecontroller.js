@@ -256,6 +256,8 @@ class BalloonGameController {
     }
     
     startBalloonSpawning() {
+        console.log('startBalloonSpawning called');
+        
         // Create balloons
         this.spawnBalloons();
         
@@ -263,7 +265,9 @@ class BalloonGameController {
         this.renderer.fadeInAllBalloons(this.balloons);
         
         // Start physics loop
+        console.log('About to start physics');
         this.physics.start();
+        console.log('Physics start called');
     }
     
     spawnBalloons() {
