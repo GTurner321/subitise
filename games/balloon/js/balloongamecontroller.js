@@ -342,8 +342,9 @@ class BalloonGameController {
         this.renderer.createPopEffect(balloon.x + balloon.radius, balloon.y + balloon.radius);
         
         if (balloon.isCorrect) {
-            // Create falling number
-            this.renderer.createFallingNumber(balloon.x + balloon.radius, balloon.y + balloon.radius, balloon.number);
+            // Create falling number and add to physics
+            const fallingNumber = this.renderer.createFallingNumber(balloon.x + balloon.radius, balloon.y + balloon.radius, balloon.number);
+            this.fallingNumbers.push(fallingNumber);
             
             // Add to pop order tracking
             this.balloonPopOrder.push(poppedByUser);
