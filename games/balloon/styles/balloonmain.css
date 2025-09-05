@@ -9,13 +9,20 @@
 
 body {
     font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #87CEEB, #98FB98, #FFE4B5);
+    background: linear-gradient(135deg, #87CEEB, #98FB98, #FFE4B5) !important;
+    background-attachment: fixed !important;
     overflow: hidden;
     height: 100vh;
     position: relative;
 }
 
-/* Grass band at bottom - RESPONSIVE 10% of screen height */
+/* Force background to show */
+html {
+    background: linear-gradient(135deg, #87CEEB, #98FB98, #FFE4B5) !important;
+    background-attachment: fixed !important;
+}
+
+/* Grass band at bottom - RESPONSIVE 10% of screen height - FORCE VISIBILITY */
 .grass-band {
     position: fixed !important;
     bottom: 0 !important;
@@ -23,13 +30,16 @@ body {
     width: 100% !important;
     height: 10vh !important; /* Responsive: 10% of viewport height */
     background: linear-gradient(to top, 
-        rgba(144, 238, 144, 0.6),
-        rgba(152, 251, 152, 0.7),
-        rgba(173, 255, 47, 0.5)
+        rgba(144, 238, 144, 0.8),
+        rgba(152, 251, 152, 0.9),
+        rgba(173, 255, 47, 0.7)
     ) !important;
     z-index: 1 !important;
     border: none !important;
     box-shadow: 0 -0.2vh 1vh rgba(144, 238, 144, 0.3) !important; /* Responsive shadow */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .grass-band::before {
@@ -46,6 +56,7 @@ body {
         rgba(0, 100, 0, 0.3) 1vh,
         rgba(0, 100, 0, 0.3) 1.5vh
     );
+    z-index: 2;
 }
 
 /* Game area - full height with no margins */
@@ -62,14 +73,14 @@ body {
     z-index: 2;
 }
 
-/* Rainbow container - positioned above grass at 55% */
+/* Rainbow container - positioned at 55% from top (CHANGED from 60% to 55%) */
 .rainbow-container {
     position: absolute;
     bottom: 10vh; /* Above responsive grass band */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    height: 45%; /* Adjusted for 55% positioning */
+    height: 35%; /* Adjusted for 55% positioning (100% - 55% - 10% grass = 35%) */
     z-index: 3;
     pointer-events: none;
 }
@@ -202,7 +213,7 @@ svg .falling-number-group * {
 
 .modal h2 {
     color: white;
-    font-size: 4vh; /* Responsive font size */
+    font-size: 8vh; /* DOUBLED from 4vh to 8vh */
     margin-bottom: 2vh;
     text-shadow: 0.2vh 0.2vh 0.4vh rgba(0,0,0,0.3);
     animation: titleBounce 1s ease infinite;
@@ -215,7 +226,7 @@ svg .falling-number-group * {
 
 .modal p {
     color: white;
-    font-size: 2vh; /* Responsive font size */
+    font-size: 4vh; /* DOUBLED from 2vh to 4vh */
     margin-bottom: 2vh;
     text-shadow: 0.1vh 0.1vh 0.2vh rgba(0,0,0,0.3);
     line-height: 1.4;
@@ -225,25 +236,25 @@ svg .falling-number-group * {
     background: #4caf50;
     color: white;
     border: none;
-    padding: 2vh 3vw; /* Responsive padding */
-    font-size: 2.5vh; /* Responsive font size */
-    border-radius: 1vh; /* Responsive border radius */
+    padding: 4vh 6vw; /* DOUBLED padding from 2vh 3vw to 4vh 6vw */
+    font-size: 5vh; /* DOUBLED from 2.5vh to 5vh */
+    border-radius: 2vh; /* DOUBLED from 1vh to 2vh */
     cursor: pointer;
     font-weight: bold;
-    box-shadow: 0 0.6vh 1.5vh rgba(76, 175, 80, 0.4);
+    box-shadow: 0 1.2vh 3vh rgba(76, 175, 80, 0.4); /* DOUBLED shadows */
     transition: all 0.3s ease;
     position: relative;
     z-index: 1002;
     display: flex;
     align-items: center;
-    gap: 1vh;
+    gap: 2vh; /* DOUBLED from 1vh to 2vh */
     margin: 0 auto;
 }
 
 .play-again-btn:hover {
     background: #45a049;
-    transform: translateY(-0.2vh);
-    box-shadow: 0 0.8vh 2vh rgba(76, 175, 80, 0.5);
+    transform: translateY(-0.4vh); /* DOUBLED from -0.2vh */
+    box-shadow: 0 1.6vh 4vh rgba(76, 175, 80, 0.5); /* DOUBLED shadows */
 }
 
 .play-again-btn:active {
@@ -251,47 +262,47 @@ svg .falling-number-group * {
 }
 
 .play-again-btn i {
-    font-size: 2vh; /* Responsive icon size */
+    font-size: 4vh; /* DOUBLED from 2vh to 4vh */
 }
 
 .hidden {
     display: none;
 }
 
-/* Back button styling - positioned bottom-left, responsive */
+/* Back button styling - positioned bottom-left, responsive - DOUBLED SIZES */
 .back-button {
     position: fixed !important;
-    bottom: 2vh !important;
-    left: 2vh !important;
+    bottom: 4vh !important; /* DOUBLED from 2vh */
+    left: 4vh !important; /* DOUBLED from 2vh */
     top: unset !important;
     background: rgba(0, 0, 0, 0.7) !important;
     color: white !important;
     text-decoration: none !important;
-    padding: 1.5vh 2.5vh !important; /* Responsive padding */
-    border-radius: 2.5vh !important; /* Responsive border radius */
-    font-size: 2vh !important; /* Responsive font size */
+    padding: 3vh 5vh !important; /* DOUBLED from 1.5vh 2.5vh */
+    border-radius: 5vh !important; /* DOUBLED from 2.5vh */
+    font-size: 4vh !important; /* DOUBLED from 2vh */
     font-weight: bold !important;
     z-index: 1004 !important;
     transition: all 0.3s ease !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 1vh !important; /* Responsive gap */
-    box-shadow: 0 0.4vh 1.2vh rgba(0, 0, 0, 0.3) !important;
+    gap: 2vh !important; /* DOUBLED from 1vh */
+    box-shadow: 0 0.8vh 2.4vh rgba(0, 0, 0, 0.3) !important; /* DOUBLED shadows */
     height: auto !important;
     width: auto !important;
     margin: 0 !important;
     transform: none !important;
-    min-height: 5vh !important; /* Responsive minimum height */
+    min-height: 10vh !important; /* DOUBLED from 5vh */
 }
 
 .back-button:hover {
     background: rgba(0, 0, 0, 0.9);
-    transform: translateY(-0.2vh);
-    box-shadow: 0 0.6vh 1.6vh rgba(0, 0, 0, 0.4);
+    transform: translateY(-0.4vh); /* DOUBLED from -0.2vh */
+    box-shadow: 0 1.2vh 3.2vh rgba(0, 0, 0, 0.4); /* DOUBLED shadows */
 }
 
 .back-button i {
-    font-size: 2vh; /* Responsive icon size */
+    font-size: 4vh; /* DOUBLED from 2vh */
 }
 
 /* Touch feedback and accessibility */
@@ -302,8 +313,8 @@ svg .falling-number-group * {
 /* Focus states for accessibility */
 .play-again-btn:focus,
 .back-button:focus {
-    outline: 0.3vh solid rgba(255, 255, 255, 0.8);
-    outline-offset: 0.2vh;
+    outline: 0.6vh solid rgba(255, 255, 255, 0.8); /* DOUBLED from 0.3vh */
+    outline-offset: 0.4vh; /* DOUBLED from 0.2vh */
 }
 
 /* Responsive design for different screen sizes */
@@ -322,20 +333,21 @@ svg .falling-number-group * {
     
     .rainbow-container {
         bottom: 8vh;
+        height: 37%; /* Adjusted for mobile grass band */
     }
     
     .modal h2 {
-        font-size: 3.5vh;
+        font-size: 7vh; /* Slightly smaller on mobile */
     }
     
     .play-again-btn {
-        font-size: 2.2vh;
-        padding: 1.8vh 2.5vw;
+        font-size: 4.4vh;
+        padding: 3.6vh 5vw;
     }
     
     .back-button {
-        font-size: 1.8vh !important;
-        padding: 1.2vh 2vh !important;
+        font-size: 3.6vh !important;
+        padding: 2.4vh 4vh !important;
     }
 }
 
@@ -350,40 +362,41 @@ svg .falling-number-group * {
     
     .rainbow-container {
         bottom: 6vh;
+        height: 39%; /* Adjusted for smaller grass band */
     }
     
     .modal-content {
-        padding: 3vh 2vw;
+        padding: 6vh 4vw; /* DOUBLED from 3vh 2vw */
         margin: 0 2vw;
     }
     
     .modal h2 {
-        font-size: 3vh;
+        font-size: 6vh; /* DOUBLED from 3vh */
     }
     
     .modal p {
-        font-size: 1.8vh;
+        font-size: 3.6vh; /* DOUBLED from 1.8vh */
     }
     
     .play-again-btn {
-        font-size: 2vh;
-        padding: 1.5vh 2vw;
+        font-size: 4vh; /* DOUBLED from 2vh */
+        padding: 3vh 4vw; /* DOUBLED from 1.5vh 2vw */
     }
     
     .back-button {
-        padding: 1vh 1.5vh !important;
-        font-size: 1.6vh !important;
+        padding: 2vh 3vh !important; /* DOUBLED from 1vh 1.5vh */
+        font-size: 3.2vh !important; /* DOUBLED from 1.6vh */
     }
 }
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
     .balloon-container {
-        border: 0.3vh solid #000;
+        border: 0.6vh solid #000; /* DOUBLED from 0.3vh */
     }
     
     .balloon-group circle {
-        stroke-width: 0.4vh;
+        stroke-width: 0.8vh; /* DOUBLED from 0.4vh */
     }
 }
 
@@ -416,14 +429,14 @@ svg .falling-number-group * {
     
     .balloon-container {
         box-shadow: none;
-        border: 0.2vh solid #000;
+        border: 0.4vh solid #000; /* DOUBLED from 0.2vh */
     }
 }
 
 /* Balloon animations and effects */
 @keyframes balloonBob {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-0.5vh); }
+    50% { transform: translateY(-1vh); } /* DOUBLED from -0.5vh */
 }
 
 .balloon-group.floating {
@@ -452,18 +465,18 @@ svg .falling-number-group * {
 /* Level progression indicators */
 .level-progress-bar {
     width: 100%;
-    height: 0.8vh;
+    height: 1.6vh; /* DOUBLED from 0.8vh */
     background: rgba(255, 255, 255, 0.3);
-    border-radius: 0.4vh;
+    border-radius: 0.8vh; /* DOUBLED from 0.4vh */
     overflow: hidden;
-    margin-top: 0.5vh;
+    margin-top: 1vh; /* DOUBLED from 0.5vh */
 }
 
 .level-progress-fill {
     height: 100%;
     background: linear-gradient(90deg, #4CAF50, #45a049);
     transition: width 0.5s ease;
-    border-radius: 0.4vh;
+    border-radius: 0.8vh; /* DOUBLED from 0.4vh */
 }
 
 /* Balloon spawn animation */
@@ -499,17 +512,17 @@ svg .falling-number-group * {
 
 /* Custom scrollbar for any overflow areas */
 ::-webkit-scrollbar {
-    width: 0.8vh;
+    width: 1.6vh; /* DOUBLED from 0.8vh */
 }
 
 ::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 0.4vh;
+    border-radius: 0.8vh; /* DOUBLED from 0.4vh */
 }
 
 ::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.3);
-    border-radius: 0.4vh;
+    border-radius: 0.8vh; /* DOUBLED from 0.4vh */
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -527,10 +540,10 @@ svg .falling-number-group * {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 4vh;
-    height: 4vh;
-    margin: -2vh 0 0 -2vh;
-    border: 0.4vh solid rgba(255, 255, 255, 0.3);
+    width: 8vh; /* DOUBLED from 4vh */
+    height: 8vh; /* DOUBLED from 4vh */
+    margin: -4vh 0 0 -4vh; /* DOUBLED from -2vh */
+    border: 0.8vh solid rgba(255, 255, 255, 0.3); /* DOUBLED from 0.4vh */
     border-top-color: #4CAF50;
     border-radius: 50%;
     animation: loading-spin 1s linear infinite;
