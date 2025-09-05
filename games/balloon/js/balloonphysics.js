@@ -47,8 +47,16 @@ class BalloonPhysics {
         // Update falling numbers physics
         this.updateFallingNumbers(deltaTime, currentTime);
         
-        // Continue animation loop
-        this.animationId = requestAnimationFrame((time) => this.update(time));
+        // Continue animation loop only if we have active objects
+        const hasActiveBalloons = this.balloons.some(b => !b.popped);
+        const hasFallingNumbers = this.fallingNumbers.length > 0;
+        
+        if (hasActiveBalloons || hasFallingNumbers) {
+            this.animationId = requestAnimationFrame((time) => this.update(time));
+        } else {
+            // No active objects, but keep running flag true so external calls still work
+            this.animationId = null;
+        }
     }
 
     /**
