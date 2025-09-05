@@ -269,40 +269,11 @@ svg .falling-number-group * {
     display: none;
 }
 
-/* Back button styling - positioned bottom-left, responsive - REVERTED TO ORIGINAL SIZES */
-.back-button {
-    position: fixed !important;
-    bottom: 2vh !important; /* REVERTED from 4vh */
-    left: 2vh !important; /* REVERTED from 4vh */
-    top: unset !important;
-    background: rgba(0, 0, 0, 0.7) !important;
-    color: white !important;
-    text-decoration: none !important;
-    padding: 1.5vh 2.5vh !important; /* REVERTED from 3vh 5vh */
-    border-radius: 2.5vh !important; /* REVERTED from 5vh */
-    font-size: 2vh !important; /* REVERTED from 4vh */
-    font-weight: bold !important;
-    z-index: 1004 !important;
-    transition: all 0.3s ease !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 1vh !important; /* REVERTED from 2vh */
-    box-shadow: 0 0.4vh 1.2vh rgba(0, 0, 0, 0.3) !important; /* REVERTED shadows */
-    height: auto !important;
-    width: auto !important;
-    margin: 0 !important;
-    transform: none !important;
-    min-height: 5vh !important; /* REVERTED from 10vh */
-}
-
-.back-button:hover {
-    background: rgba(0, 0, 0, 0.9);
-    transform: translateY(-0.2vh); /* REVERTED from -0.4vh */
-    box-shadow: 0 0.6vh 1.6vh rgba(0, 0, 0, 0.4); /* REVERTED shadows */
-}
-
-.back-button i {
-    font-size: 2vh; /* REVERTED from 4vh */
+/* REMOVE BACK BUTTON OVERRIDES - Let shared main.css handle back button styling */
+/* Only add balloon-specific positioning if needed */
+.buttons-bottom .back-button {
+    bottom: 2vh !important;
+    top: auto !important;
 }
 
 /* Touch feedback and accessibility */
