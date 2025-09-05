@@ -244,13 +244,12 @@ class BalloonRenderer {
         fallingNumber.rectWidth = rectWidth;
         fallingNumber.rectHeight = rectHeight;
         
-        // IMPORTANT: Add to shared falling numbers array so physics can manage it
-        this.fallingNumbers.push(fallingNumber);
+        // Don't add to renderer's array - let physics manage it
         this.svg.appendChild(numberGroup);
-        
-        console.log('Added falling number to array. Total falling numbers:', this.fallingNumbers.length);
-        console.log('Added element to SVG:', numberGroup);
-        
+
+        console.log('Created falling number element:', numberGroup);
+        console.log('Returning falling number to physics for management');
+
         return fallingNumber;
     }
 
