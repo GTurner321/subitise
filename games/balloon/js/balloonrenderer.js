@@ -285,6 +285,7 @@ class BalloonRenderer {
         targetDisplay.style.cssText = `
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             z-index: 100; text-align: center; opacity: 0; transition: opacity 1s ease-in-out;
+            pointer-events: none;
         `;
         
         // Large number
@@ -306,17 +307,33 @@ class BalloonRenderer {
         targetDisplay.appendChild(textElement);
         document.body.appendChild(targetDisplay);
         
+        // Store references for later styling changes
+        targetDisplay.numberElement = numberElement;
+        targetDisplay.textElement = textElement;
+        
         // Fade in
         setTimeout(() => {
             targetDisplay.style.opacity = '1';
         }, 100);
         
-        // Return element so controller can manage removal
+        // Return element so controller can manage styling changes
         return targetDisplay;
     }
 
     /**
-     * Remove target number display
+     * Fade target number to background state (dark grey, reduced opacity)
+     */
+    fadeTargetNumberToBackground(targetDisplay) {
+        if (targetDisplay && targetDisplay.numberElement && targetDisplay.textElement) {
+            // Change to dark grey and reduce opacity
+            targetDisplay.numberElement.style.color = '#555555';
+            targetDisplay.textElement.style.color = '#555555';
+            targetDisplay.style.opacity = '0.3';
+        }
+    }
+
+    /**
+     * Remove target number display completely
      */
     removeTargetNumber(targetDisplay) {
         if (targetDisplay) {
