@@ -44,9 +44,9 @@ class BalloonGameController {
     async initializeGame() {
         console.log('🎈 Initializing Balloon Game Controller');
         
-        // Setup shared audio system for bottom-right positioning
+        // Setup shared audio system for bottom-right positioning WITH ROTATION DISABLED
         if (window.AudioSystem) {
-            window.AudioSystem.setBottomPosition(true, '../../index.html');
+            window.AudioSystem.setBottomPosition(true, '../../index.html', true); // TRUE = disable rotation
         }
         
         // Initialize components in order
@@ -203,35 +203,35 @@ class BalloonGameController {
             top: 50%; 
             left: 50%; 
             transform: translate(-50%, -50%);
-            z-index: 100; 
+            z-index: 5; 
             text-align: center; 
             opacity: 0; 
             transition: all 1s ease-in-out;
             pointer-events: none;
         `;
         
-        // Large number - responsive sizing
+        // Large number - responsive sizing (DOUBLED from 6vh to 12vh)
         const numberElement = document.createElement('div');
         numberElement.textContent = this.targetNumber.toString();
         numberElement.style.cssText = `
-            font-size: 12vh; 
+            font-size: 24vh; 
             font-weight: bold; 
             color: #dc3545;
             font-family: Arial, sans-serif; 
             line-height: 1; 
-            margin-bottom: 1vh;
-            text-shadow: 0.3vh 0.3vh 0.6vh rgba(220, 53, 69, 0.3);
+            margin-bottom: 2vh;
+            text-shadow: 0.6vh 0.6vh 1.2vh rgba(220, 53, 69, 0.3);
         `;
         
-        // Text version - responsive sizing
+        // Text version - responsive sizing (DOUBLED from 1.5vh to 3vh)
         const textElement = document.createElement('div');
         textElement.textContent = BALLOON_CONFIG.NUMBER_TO_WORD[this.targetNumber] || this.targetNumber.toString();
         textElement.style.cssText = `
-            font-size: 3vh; 
+            font-size: 6vh; 
             font-weight: bold; 
             color: #dc3545; 
             font-family: Arial, sans-serif;
-            text-shadow: 0.1vh 0.1vh 0.2vh rgba(220, 53, 69, 0.2);
+            text-shadow: 0.2vh 0.2vh 0.4vh rgba(220, 53, 69, 0.2);
         `;
         
         this.targetNumberDisplay.appendChild(numberElement);
@@ -260,9 +260,10 @@ class BalloonGameController {
     makePersistentTargetNumber() {
         if (!this.targetNumberDisplay) return;
         
-        // Change to dark grey and 30% opacity, keep centered
+        // Change to dark grey and 30% opacity, keep centered, LOWER Z-INDEX to go behind balloons
         this.targetNumberDisplay.style.color = '#666666';
         this.targetNumberDisplay.style.opacity = '0.3';
+        this.targetNumberDisplay.style.zIndex = '3'; // Lower than balloons (z-index: 10)
         
         // Update child elements
         const numberElement = this.targetNumberDisplay.children[0];
@@ -270,15 +271,15 @@ class BalloonGameController {
         
         if (numberElement) {
             numberElement.style.color = '#666666';
-            numberElement.style.textShadow = '0.3vh 0.3vh 0.6vh rgba(102, 102, 102, 0.3)';
+            numberElement.style.textShadow = '0.6vh 0.6vh 1.2vh rgba(102, 102, 102, 0.3)';
         }
         
         if (textElement) {
             textElement.style.color = '#666666';  
-            textElement.style.textShadow = '0.1vh 0.1vh 0.2vh rgba(102, 102, 102, 0.2)';
+            textElement.style.textShadow = '0.2vh 0.2vh 0.4vh rgba(102, 102, 102, 0.2)';
         }
         
-        console.log('🎯 Target number now persistent at 30% opacity');
+        console.log('🎯 Target number now persistent at 30% opacity and behind balloons');
     }
     
     hideTargetNumber() {
