@@ -483,7 +483,7 @@ class BalloonRenderer {
         rect.setAttribute('ry', rectHeight * 0.5);
         rect.setAttribute('fill', '#add8e6');
         rect.setAttribute('stroke', '#4682b4');
-        rect.setAttribute('stroke-width', '4'); // DOUBLED from 2 to 4
+        rect.setAttribute('stroke-width', '2'); // REVERTED to original
         
         // Create text element with word version of number
         const numberElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
