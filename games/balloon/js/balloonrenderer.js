@@ -315,7 +315,7 @@ class BalloonRenderer {
         targetDisplay.appendChild(textElement);
         document.body.appendChild(targetDisplay);
         
-        // Store references for later styling changes
+        // Store references DIRECTLY on the target display element
         targetDisplay.numberElement = numberElement;
         targetDisplay.textElement = textElement;
         
@@ -323,6 +323,12 @@ class BalloonRenderer {
         setTimeout(() => {
             targetDisplay.style.opacity = '1';
         }, 100);
+        
+        console.log('Created target display with elements:', {
+            targetDisplay,
+            numberElement: targetDisplay.numberElement,
+            textElement: targetDisplay.textElement
+        });
         
         // Return element so controller can manage styling changes
         return targetDisplay;
