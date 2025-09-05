@@ -400,6 +400,9 @@ class BalloonGameController {
     
     endQuestion() {
         this.gameActive = false;
+        
+        // IMPORTANT: Only stop physics AFTER checking that falling numbers are done
+        console.log('Ending question - stopping physics now that falling numbers are complete');
         this.physics.stop();
         
         // Clear any remaining balloons
