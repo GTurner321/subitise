@@ -252,9 +252,9 @@ class BalloonGameController {
             }, 1000);
         }
         
-        // Fade out and start game
+        // Fade to background and start game
         setTimeout(() => {
-            this.renderer.removeTargetNumber(targetDisplay);
+            this.renderer.fadeTargetNumberToBackground(targetDisplay);
             this.startBalloonSpawning();
         }, 4000);
     }
