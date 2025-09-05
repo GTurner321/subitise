@@ -1,8 +1,8 @@
 class BalloonRenderer {
-    constructor(svg, config) {
+    constructor(svg, config, fallingNumbers) {
         this.svg = svg;
         this.config = config;
-        this.fallingNumbers = [];
+        this.fallingNumbers = fallingNumbers; // Share reference with physics
         
         // UI elements
         this.trafficLightContainer = null;
