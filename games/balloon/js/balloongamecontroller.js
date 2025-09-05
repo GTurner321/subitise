@@ -68,7 +68,7 @@ class BalloonGameController {
     }
     
     createRenderer() {
-        this.renderer = new BalloonRenderer(this.svg, BALLOON_CONFIG);
+        this.renderer = new BalloonRenderer(this.svg, BALLOON_CONFIG, this.fallingNumbers);
     }
     
     createPhysics() {
