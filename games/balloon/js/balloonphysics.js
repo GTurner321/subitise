@@ -36,7 +36,12 @@ class BalloonPhysics {
      * Main physics update loop
      */
     update(currentTime) {
-        if (!this.isRunning) return;
+        if (!this.isRunning) {
+            console.log('Physics update called but not running');
+            return;
+        }
+        
+        console.log('Physics update running - falling numbers:', this.fallingNumbers.length);
         
         const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
