@@ -175,6 +175,8 @@ class BalloonRenderer {
      * Create falling number animation
      */
     createFallingNumber(x, y, number) {
+        console.log('createFallingNumber called with:', { x, y, number });
+        
         const grassBandHeight = 80;
         const gameAreaHeight = this.config.SVG_HEIGHT;
         const grassBandTop = gameAreaHeight - grassBandHeight;
@@ -194,6 +196,8 @@ class BalloonRenderer {
             landed: false,
             landedTime: 0
         };
+        
+        console.log('Created falling number object:', fallingNumber);
         
         // Get text to measure width
         const textContent = this.config.NUMBER_TO_WORD[number] || number.toString();
@@ -243,6 +247,9 @@ class BalloonRenderer {
         // IMPORTANT: Add to shared falling numbers array so physics can manage it
         this.fallingNumbers.push(fallingNumber);
         this.svg.appendChild(numberGroup);
+        
+        console.log('Added falling number to array. Total falling numbers:', this.fallingNumbers.length);
+        console.log('Added element to SVG:', numberGroup);
         
         return fallingNumber;
     }
