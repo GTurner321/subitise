@@ -279,58 +279,56 @@ numberText.textContent = balloon.number.toString();
         }
     }
 
-    /**
-     * Show target number display
-     */
-    showTargetNumber(targetNumber) {
-        // Create target number display
-        const targetDisplay = document.createElement('div');
-        targetDisplay.id = 'targetNumberDisplay';
-        targetDisplay.style.cssText = `
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 100; text-align: center; opacity: 0; transition: opacity 1s ease-in-out;
-            pointer-events: none;
-        `;
-        
-        // Large number
-        const numberElement = document.createElement('div');
-        numberElement.textContent = targetNumber.toString();
-        numberElement.style.cssText = `
-            font-size: 8rem; font-weight: bold; color: #dc3545;
-            font-family: Arial, sans-serif; line-height: 1; margin-bottom: 10px;
-        `;
-        
-        // Text version
-        const textElement = document.createElement('div');
-        textElement.textContent = this.config.NUMBER_TO_WORD[targetNumber] || targetNumber.toString();
-        textElement.style.cssText = `
-            font-size: 2rem; font-weight: bold; color: #dc3545; font-family: Arial, sans-serif;
-        `;
-        
-        targetDisplay.appendChild(numberElement);
-        targetDisplay.appendChild(textElement);
-        document.body.appendChild(targetDisplay);
-        targetDisplay.style.zIndex = '5'; // Lower than the balloon SVG container
-        
-        // Store references DIRECTLY on the target display element
-        targetDisplay.numberElement = numberElement;
-        targetDisplay.textElement = textElement;
-        
-        // Fade in
-        setTimeout(() => {
-            targetDisplay.style.opacity = '1';
-        }, 100);
-        
-        console.log('Created target display with elements:', {
-            targetDisplay,
-            numberElement: targetDisplay.numberElement,
-            textElement: targetDisplay.textElement
-        });
-        
-        // Return element so controller can manage styling changes
-        return targetDisplay;
-    }
+ // In balloonrenderer.js, change the showTargetNumber method:
 
+showTargetNumber(targetNumber) {
+    // Create target number display
+    const targetDisplay = document.createElement('div');
+    targetDisplay.id = 'targetNumberDisplay';
+    targetDisplay.style.cssText = `
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        z-index: 2; text-align: center; opacity: 0; transition: opacity 1s ease-in-out;
+        pointer-events: none;
+    `;
+    
+    // Large number
+    const numberElement = document.createElement('div');
+    numberElement.textContent = targetNumber.toString();
+    numberElement.style.cssText = `
+        font-size: 8rem; font-weight: bold; color: #dc3545;
+        font-family: Arial, sans-serif; line-height: 1; margin-bottom: 10px;
+    `;
+    
+    // Text version
+    const textElement = document.createElement('div');
+    textElement.textContent = this.config.NUMBER_TO_WORD[targetNumber] || targetNumber.toString();
+    textElement.style.cssText = `
+        font-size: 2rem; font-weight: bold; color: #dc3545; font-family: Arial, sans-serif;
+    `;
+    
+    targetDisplay.appendChild(numberElement);
+    targetDisplay.appendChild(textElement);
+    document.body.appendChild(targetDisplay);
+    
+    // Store references DIRECTLY on the target display element
+    targetDisplay.numberElement = numberElement;
+    targetDisplay.textElement = textElement;
+    
+    // Fade in
+    setTimeout(() => {
+        targetDisplay.style.opacity = '1';
+    }, 100);
+    
+    console.log('Created target display with elements:', {
+        targetDisplay,
+        numberElement: targetDisplay.numberElement,
+        textElement: targetDisplay.textElement
+    });
+    
+    // Return element so controller can manage styling changes
+    return targetDisplay;
+}
+    
     /**
      * Fade target number to background state (dark grey, reduced opacity)
      */
