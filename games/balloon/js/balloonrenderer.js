@@ -313,6 +313,7 @@ class BalloonRenderer {
         targetDisplay.appendChild(numberElement);
         targetDisplay.appendChild(textElement);
         document.body.appendChild(targetDisplay);
+        targetDisplay.style.zIndex = '5'; // Lower than the balloon SVG container
         
         // Store references DIRECTLY on the target display element
         targetDisplay.numberElement = numberElement;
