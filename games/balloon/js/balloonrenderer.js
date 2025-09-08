@@ -357,32 +357,44 @@ numberText.textContent = balloon.number.toString();
         }
     }
 
-    /**
-     * Create traffic light UI
-     */
-    createTrafficLight() {
-        this.trafficLightContainer = document.createElement('div');
-        this.trafficLightContainer.style.cssText = `
-            position: fixed; top: 50%; right: 20px; transform: translateY(-50%); z-index: 1000;
-            background: rgba(0, 0, 0, 0.8); border-radius: 20px; padding: 15px 10px;
-            display: flex; flex-direction: column; align-items: center; gap: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+createTrafficLight() {
+    const sizes = this.config.TRAFFIC_LIGHT_SIZE;
+    
+    this.trafficLightContainer = document.createElement('div');
+    this.trafficLightContainer.style.cssText = `
+        position: fixed; 
+        top: 50%; 
+        right: ${sizes.rightMargin}px; 
+        transform: translateY(-50%); 
+        z-index: 1000;
+        background: rgba(64, 64, 64, 0.9); 
+        border-radius: ${sizes.borderRadius}px; 
+        padding: ${sizes.padding}px ${Math.floor(sizes.padding * 0.67)}px;
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        gap: ${sizes.gap}px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    `;
+    
+    // Create traffic lights (need 8 for correct balloons)
+    for (let i = 0; i < this.config.CORRECT_BALLOONS; i++) {
+        const light = document.createElement('div');
+        light.style.cssText = `
+            width: ${sizes.lightSize}px; 
+            height: ${sizes.lightSize}px; 
+            border-radius: 50%; 
+            background: #333;
+            border: ${sizes.borderWidth}px solid #555; 
+            transition: all 0.3s ease;
         `;
         
-        // Create traffic lights (need 8 for correct balloons)
-        for (let i = 0; i < this.config.CORRECT_BALLOONS; i++) {
-            const light = document.createElement('div');
-            light.style.cssText = `
-                width: 20px; height: 20px; border-radius: 50%; background: #333;
-                border: 2px solid #555; transition: all 0.3s ease;
-            `;
-            
-            this.trafficLights.push(light);
-            this.trafficLightContainer.appendChild(light);
-        }
-        
-        document.body.appendChild(this.trafficLightContainer);
+        this.trafficLights.push(light);
+        this.trafficLightContainer.appendChild(light);
     }
+    
+    document.body.appendChild(this.trafficLightContainer);
+}
 
     /**
      * Update traffic light based on balloon pop order
