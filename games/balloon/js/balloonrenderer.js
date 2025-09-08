@@ -279,7 +279,7 @@ numberText.textContent = balloon.number.toString();
         }
     }
 
- // In balloonrenderer.js, change the showTargetNumber method:
+// In balloonrenderer.js, change the showTargetNumber method:
 
 showTargetNumber(targetNumber) {
     // Create target number display
@@ -308,7 +308,9 @@ showTargetNumber(targetNumber) {
     
     targetDisplay.appendChild(numberElement);
     targetDisplay.appendChild(textElement);
-    document.body.appendChild(targetDisplay);
+    // Append to the game area container instead of body to ensure proper layering
+    const gameArea = document.querySelector('.game-area') || document.body;
+    gameArea.appendChild(targetDisplay);
     
     // Store references DIRECTLY on the target display element
     targetDisplay.numberElement = numberElement;
