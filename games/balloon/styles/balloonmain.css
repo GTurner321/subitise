@@ -257,44 +257,10 @@ svg .falling-number-group * {
     display: none;
 }
 
-/* Back button styling - Maximum specificity override */
-html body .game-area .back-button,
-html body .back-button,
-body .back-button,
 .back-button {
-    position: fixed !important;
     bottom: 20px !important;
+    top: auto !important;
     left: 20px !important;
-    top: unset !important;
-    background: rgba(0, 0, 0, 0.7) !important;
-    color: white !important;
-    text-decoration: none !important;
-    padding: 12px 20px !important;
-    border-radius: 25px !important;
-    font-size: 1rem !important;
-    font-weight: bold !important;
-    z-index: 1004 !important;
-    transition: all 0.3s ease !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-    height: auto !important;
-    width: auto !important;
-    max-height: 50px !important;
-    max-width: 200px !important;
-    margin: 0 !important;
-    transform: none !important;
-}
-
-.back-button:hover {
-    background: rgba(0, 0, 0, 0.9);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-}
-
-.back-button i {
-    font-size: 1rem;
 }
 
 /* Touch feedback and accessibility */
