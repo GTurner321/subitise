@@ -55,8 +55,24 @@ const BALLOON_CONFIG = {
     MIN_CORRECT_BALLOONS: 6, // Reduced from 8 to 6
     MAX_INCORRECT_BALLOONS: 4, // Remains 4
     
+    // Responsive balloon physics
+    get BALLOON_RADIUS() {
+        return Math.floor(window.innerHeight * 0.07); // 7% of screen height
+    },
+    
+    get BALLOON_STRING_HEIGHT() {
+        return Math.floor(window.innerHeight * 0.14); // 14% of screen height
+    },
+    
+    get GRASS_BAND_HEIGHT() {
+        return Math.floor(window.innerHeight * 0.13); // 13% of screen height
+    },
+    
+    get BALLOON_FONT_SIZE() {
+        return Math.floor((window.innerHeight / 600) * 36); // Scales from 36px at 600px height
+    },
+    
     // Balloon physics - Updated with larger ranges
-    BALLOON_RADIUS: 43, // Reduced from 54 to 43 (20% smaller)
     BALLOON_RISE_SPEED_MIN: 8, // Reduced from 12 to 8
     BALLOON_RISE_SPEED_MAX: 15, // Reduced from 20 to 15
     BALLOON_SIDEWAYS_SPEED_MIN: 18, // Increased from 15 to 18 (20% faster)
