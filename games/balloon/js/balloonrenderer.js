@@ -171,19 +171,19 @@ numberText.textContent = balloon.number.toString();
     /**
      * Create falling number animation
      */
-    createFallingNumber(x, y, number) {
-        console.log('createFallingNumber called with:', { x, y, number });
-        
-        const grassBandHeight = 80;
-        const gameAreaHeight = this.config.SVG_HEIGHT;
-        const grassBandTop = gameAreaHeight - grassBandHeight;
-        
-        const minHeightFromTop = grassBandHeight * 0.2;
-        const maxHeightFromTop = grassBandHeight * 0.6;
-        const randomHeightFromTop = minHeightFromTop + Math.random() * (maxHeightFromTop - minHeightFromTop);
-        const targetY = grassBandTop + randomHeightFromTop;
-        
-        const fallingNumber = {
+ createFallingNumber(x, y, number) {
+    console.log('createFallingNumber called with:', { x, y, number });
+    
+    const grassBandHeight = this.config.GRASS_BAND_HEIGHT; // Use responsive grass band height
+    const gameAreaHeight = this.config.SVG_HEIGHT;
+    const grassBandTop = gameAreaHeight - grassBandHeight;
+    
+    const minHeightFromTop = grassBandHeight * 0.2;
+    const maxHeightFromTop = grassBandHeight * 0.6;
+    const randomHeightFromTop = minHeightFromTop + Math.random() * (maxHeightFromTop - minHeightFromTop);
+    const targetY = grassBandTop + randomHeightFromTop;
+    
+    const fallingNumber = {
             x: x, // Fixed x position - no sideways movement
             y: y,
             targetY: targetY,
