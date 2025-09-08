@@ -41,16 +41,21 @@ class BalloonGameController {
         this.initializeGame();
     }
     
-    async initializeGame() {
-        window.addEventListener('resize', this.handleResize);
-        this.initializeRainbow();
-        this.setupEventListeners();
-        this.createSVG();
-        this.createRenderer();
-        this.createPhysics();
-        this.loadGameState();
-        this.startNewQuestion();
+async initializeGame() {
+    // Set buttons to bottom position for balloon game
+    if (window.AudioSystem && window.AudioSystem.setBottomPosition) {
+        window.AudioSystem.setBottomPosition(true, '../../index.html', false);
     }
+    
+    window.addEventListener('resize', this.handleResize);
+    this.initializeRainbow();
+    this.setupEventListeners();
+    this.createSVG();
+    this.createRenderer();
+    this.createPhysics();
+    this.loadGameState();
+    this.startNewQuestion();
+}
     
     initializeRainbow() {
         // Rainbow will auto-initialize using the global CONFIG we set
