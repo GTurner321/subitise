@@ -41,15 +41,15 @@ class BalloonRenderer {
         highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.6)');
         
         // Number text
-        const numberText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        numberText.setAttribute('x', balloon.x + balloon.radius);
-        numberText.setAttribute('y', balloon.y + balloon.radius + 2);
-        numberText.setAttribute('text-anchor', 'middle');
-        numberText.setAttribute('dominant-baseline', 'middle');
-        numberText.setAttribute('font-size', '36');
-        numberText.setAttribute('font-weight', 'bold');
-        numberText.setAttribute('fill', '#000000');
-        numberText.textContent = balloon.number.toString();
+const numberText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+numberText.setAttribute('x', balloon.x + balloon.radius);
+numberText.setAttribute('y', balloon.y + balloon.radius + 2);
+numberText.setAttribute('text-anchor', 'middle');
+numberText.setAttribute('dominant-baseline', 'middle');
+numberText.setAttribute('font-size', this.config.BALLOON_FONT_SIZE); // Use responsive font size
+numberText.setAttribute('font-weight', 'bold');
+numberText.setAttribute('fill', '#000000');
+numberText.textContent = balloon.number.toString();
         
         balloonGroup.appendChild(balloonCircle);
         balloonGroup.appendChild(highlight);
@@ -66,34 +66,31 @@ class BalloonRenderer {
         return balloonGroup;
     }
 
-    /**
-     * Create curved balloon string
-     */
-    createBalloonString(balloon) {
-        const string = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const startX = balloon.x + balloon.radius;
-        const startY = balloon.y + balloon.radius * 2;
-        const endX = startX;
-        const endY = startY + 120;
-        
-        const pathData = `M ${startX} ${startY} 
-                         C ${startX + 6} ${startY + 12}, ${startX + 18} ${startY + 18}, ${startX + 18} ${startY + 30}
-                         C ${startX + 18} ${startY + 42}, ${startX - 18} ${startY + 48}, ${startX - 18} ${startY + 60}
-                         C ${startX - 18} ${startY + 72}, ${startX + 12} ${startY + 78}, ${startX + 12} ${startY + 90}
-                         C ${startX + 12} ${startY + 102}, ${endX - 6} ${endY - 12}, ${endX} ${endY}`;
-        
-        string.setAttribute('d', pathData);
-        string.setAttribute('stroke', '#8B4513');
-        string.setAttribute('stroke-width', 3.5);
-        string.setAttribute('fill', 'none');
-        
-        balloon.stringStartX = startX;
-        balloon.stringStartY = startY;
-        balloon.stringEndX = endX;
-        balloon.stringEndY = endY;
-        
-        return string;
-    }
+ createBalloonString(balloon) {
+    const string = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const startX = balloon.x + balloon.radius;
+    const startY = balloon.y + balloon.radius * 2;
+    const endX = startX;
+    const endY = startY + this.config.BALLOON_STRING_HEIGHT; // Use responsive string height
+    
+    const pathData = `M ${startX} ${startY} 
+                     C ${startX + 6} ${startY + 12}, ${startX + 18} ${startY + 18}, ${startX + 18} ${startY + 30}
+                     C ${startX + 18} ${startY + 42}, ${startX - 18} ${startY + 48}, ${startX - 18} ${startY + 60}
+                     C ${startX - 18} ${startY + 72}, ${startX + 12} ${startY + 78}, ${startX + 12} ${startY + 90}
+                     C ${startX + 12} ${startY + 102}, ${endX - 6} ${endY - 12}, ${endX} ${endY}`;
+    
+    string.setAttribute('d', pathData);
+    string.setAttribute('stroke', '#8B4513');
+    string.setAttribute('stroke-width', 3.5);
+    string.setAttribute('fill', 'none');
+    
+    balloon.stringStartX = startX;
+    balloon.stringStartY = startY;
+    balloon.stringEndX = endX;
+    balloon.stringEndY = endY;
+    
+    return string;
+}
 
     /**
      * Update balloon visual position based on physics
