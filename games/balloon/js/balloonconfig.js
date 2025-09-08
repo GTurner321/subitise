@@ -71,6 +71,21 @@ const BALLOON_CONFIG = {
     get BALLOON_FONT_SIZE() {
         return Math.floor((window.innerHeight / 600) * 36); // Scales from 36px at 600px height
     },
+
+    get TRAFFIC_LIGHT_SIZE() {
+    const baseHeight = 600; // Reference height for scaling
+    const currentHeight = window.innerHeight;
+    const scale = currentHeight / baseHeight;
+    
+    return {
+        lightSize: Math.floor(20 * scale), // 20px at 600px height
+        gap: Math.floor(8 * scale), // 8px gap at 600px height
+        padding: Math.floor(15 * scale), // 15px padding at 600px height
+        borderRadius: Math.floor(20 * scale), // 20px border radius at 600px height
+        rightMargin: Math.floor(20 * scale), // 20px from edge at 600px height
+        borderWidth: Math.max(1, Math.floor(2 * scale)) // 2px border, minimum 1px
+    };
+},
     
     // Balloon physics - Updated with larger ranges
     BALLOON_RISE_SPEED_MIN: 8, // Reduced from 12 to 8
