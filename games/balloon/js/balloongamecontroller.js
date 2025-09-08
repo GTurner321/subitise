@@ -243,7 +243,7 @@ class BalloonGameController {
     }
     
     showTargetNumber() {
-        const targetDisplay = this.renderer.showTargetNumber(this.targetNumber);
+        this.targetDisplay = this.renderer.showTargetNumber(this.targetNumber);
         
         // Give audio instruction
         if (window.AudioSystem && window.AudioSystem.audioEnabled) {
@@ -254,9 +254,10 @@ class BalloonGameController {
         
         // Fade to background and start game
         setTimeout(() => {
-            this.renderer.fadeTargetNumberToBackground(targetDisplay);
-            this.startBalloonSpawning();
+        this.renderer.fadeTargetNumberToBackground(this.targetDisplay);
+        this.startBalloonSpawning();
         }, 4000);
+
     }
     
     startBalloonSpawning() {
