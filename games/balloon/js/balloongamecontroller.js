@@ -91,12 +91,32 @@ async initializeGame() {
         }
     }
     
-    handleResize() {
-        if (this.svg) {
-            this.updateSVGDimensions();
-        }
-        this.initializeRainbow();
+handleResize() {
+    if (this.svg) {
+        this.updateSVGDimensions();
     }
+    
+    // Update all existing balloons with new responsive sizes
+    if (this.balloons && this.renderer) {
+        this.balloons.forEach(balloon => {
+            // Update balloon radius
+            balloon.radius = BALLOON_CONFIG.BALLOON_RADIUS;
+            
+            // Update visual elements if they exist
+            if (balloon.circle) {
+                balloon.circle.setAttribute('r', balloon.radius);
+            }
+            if (balloon.text) {
+                balloon.text.setAttribute('font-size', BALLOON_CONFIG.BALLOON_FONT_SIZE);
+            }
+            if (balloon.highlight) {
+                balloon.highlight.setAttribute('r', 14); // You may want to make this responsive too
+            }
+        });
+    }
+    
+    this.initializeRainbow();
+}
     
     setupEventListeners() {
         if (this.playAgainBtn) {
