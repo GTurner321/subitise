@@ -96,6 +96,17 @@ handleResize() {
         this.updateSVGDimensions();
     }
     
+    // Update traffic light sizing
+    if (this.renderer && this.renderer.trafficLightContainer) {
+        this.renderer.trafficLightContainer.remove();
+        this.renderer.trafficLights = [];
+        this.renderer.createTrafficLight();
+        // Restore current state
+        if (this.balloonPopOrder) {
+            this.renderer.updateTrafficLight(this.balloonPopOrder);
+        }
+    }
+    
     // Update all existing balloons with new responsive sizes
     if (this.balloons && this.renderer) {
         this.balloons.forEach(balloon => {
