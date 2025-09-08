@@ -386,17 +386,31 @@ handleResize() {
             // Add to pop order tracking
             this.balloonPopOrder.push(poppedByUser);
             
-            if (poppedByUser) {
-                this.correctBalloonsPopped++;
-                if (window.AudioSystem) window.AudioSystem.playCompletionSound();
-                
-                if (window.AudioSystem && window.AudioSystem.audioEnabled) {
-                    const encouragements = ['Great job!', 'Well done!', 'Excellent!', 'Perfect!'];
-                    setTimeout(() => {
-                        window.AudioSystem.speakText(encouragements[Math.floor(Math.random() * encouragements.length)]);
-                    }, 200);
-                }
-            } else {
+// In balloongamecontroller.js, update the popBalloon method to ensure audio context is ready:
+
+if (poppedByUser) {
+    this.correctBalloonsPopped++;
+    
+    // Ensure audio context is ready on first user interaction
+    if (window.AudioSystem && window.AudioSystem.audioContext) {
+        if (window.AudioSystem.audioContext.state === 'suspended') {
+            window.AudioSystem.audioContext.resume().then(() => {
+                // Play sound after context is resumed
+                window.AudioSystem.playCompletionSound();
+            });
+        } else {
+            // Context already running
+            window.AudioSystem.playCompletionSound();
+        }
+    }
+    
+    if (window.AudioSystem && window.AudioSystem.audioEnabled) {
+        const encouragements = ['Great job!', 'Well done!', 'Excellent!', 'Perfect!'];
+        setTimeout(() => {
+            window.AudioSystem.speakText(encouragements[Math.floor(Math.random() * encouragements.length)]);
+        }, 800);
+    }
+} else {
                 // Correct balloon hit ceiling
                 this.correctBalloonsCeilingHit++;
                 if (window.AudioSystem) window.AudioSystem.playCompletionSound();
