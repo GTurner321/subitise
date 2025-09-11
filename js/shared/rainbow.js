@@ -126,7 +126,7 @@ class Rainbow {
         
         // Calculate horizontal stretch factor for narrow screens
         const aspectRatio = gameAreaWidth / gameAreaHeight;
-        const targetAspectRatio = 1.25; // 1.25:1 aspect ratio threshold
+        const targetAspectRatio = 1.4; // 1.4:1 aspect ratio threshold
         let horizontalStretch = 1;
         
         if (aspectRatio < targetAspectRatio) {
