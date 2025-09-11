@@ -19,11 +19,8 @@ class StacksGameController {
         // SIMPLIFIED: Track existing block positions for non-overlap placement
         this.existingGroundBlocks = [];
         
-        // Audio
-        this.audioContext = null;
-        this.audioEnabled = STACKS_CONFIG.AUDIO_ENABLED;
-        this.muteButton = null;
-        this.muteContainer = null;
+        // Audio - simplified to use shared system
+        this.audioReady = false;
         
         // DOM elements
         this.container = document.getElementById('stacksContainer');
@@ -41,8 +38,7 @@ class StacksGameController {
         window.addEventListener('resize', this.handleResize);
         await this.initializeAudio();
         this.removeGameInfoElements();
-        this.createMuteButton();
-        this.createBackButton();
+        // Removed createMuteButton() and createBackButton() - using shared systems
         this.setupEventListeners();
         this.createSVG();
         this.startNewQuestion();
@@ -71,68 +67,9 @@ class StacksGameController {
     }
     
     async initializeAudio() {
-        if (!this.audioEnabled) return;
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
-            this.audioEnabled = false;
-        }
-    }
-    
-    createMuteButton() {
-        const muteContainer = document.createElement('div');
-        muteContainer.className = 'mute-container';
-        
-        this.muteButton = document.createElement('button');
-        this.muteButton.className = 'mute-button';
-        
-        this.updateMuteButtonIcon();
-        
-        this.muteButton.addEventListener('click', () => this.toggleAudio());
-        this.muteButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.toggleAudio();
-        });
-        
-        muteContainer.appendChild(this.muteButton);
-        document.body.appendChild(muteContainer);
-        this.muteContainer = muteContainer;
-    }
-    
-    createBackButton() {
-        const backButton = document.createElement('a');
-        backButton.href = '../../index.html';
-        backButton.className = 'back-button';
-        
-        backButton.innerHTML = `
-            <i class="fas fa-arrow-left"></i>
-            Back to Games
-        `;
-        
-        document.body.appendChild(backButton);
-        this.backButton = backButton;
-    }
-    
-    updateMuteButtonIcon() {
-        if (this.muteButton) {
-            this.muteButton.innerHTML = this.audioEnabled ? '🔊' : '🔇';
-            this.muteButton.title = this.audioEnabled ? 'Mute Audio' : 'Unmute Audio';
-        }
-    }
-    
-    toggleAudio() {
-        this.audioEnabled = !this.audioEnabled;
-        this.updateMuteButtonIcon();
-        
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
-        
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                this.speakText('Audio enabled');
-            }, 100);
-        }
+        // The shared AudioSystem handles audio context creation
+        // Just set a flag that we're ready for audio
+        this.audioReady = true;
     }
     
     setupEventListeners() {
@@ -255,13 +192,11 @@ class StacksGameController {
         
         console.log('Tower rendered with simplified positioning');
         
-        // Give audio instruction
-        if (this.audioEnabled) {
-            setTimeout(() => {
-                const sortedNumbers = [...numbers].sort((a, b) => a - b);
-                this.speakText(`Build a tower with ${sortedNumbers.join(', ')} from bottom to top`);
-            }, 1000);
-        }
+        // Give audio instruction using shared system
+        setTimeout(() => {
+            const sortedNumbers = [...numbers].sort((a, b) => a - b);
+            this.speakText(`Build a tower with ${sortedNumbers.join(', ')} from bottom to top`);
+        }, 1000);
     }
     
     // SIMPLIFIED: Calculate container positions with proper stacking
@@ -387,13 +322,11 @@ class StacksGameController {
             this.currentTeddy = teddy;
         }
         
-        // Audio feedback
-        if (this.audioEnabled) {
-            this.playSuccessSound();
-            setTimeout(() => {
-                this.speakText('Well done! Tower complete!');
-            }, 500);
-        }
+        // Audio feedback using shared system
+        this.playSuccessSound();
+        setTimeout(() => {
+            this.speakText('Well done! Tower complete!');
+        }, 500);
         
         // Move tower to side after delay
         setTimeout(() => {
@@ -537,129 +470,51 @@ class StacksGameController {
         }, STACKS_CONFIG.FINAL_RAINBOW_ARCS * 300 + 1000);
     }
     
-showCompletionModal() {
-    if (this.modal && this.modalTitle && this.modalMessage) {
-        // FIXED: Use simple "Well Done!" message as requested
-        this.modalTitle.textContent = '🌈 Well Done! 🌈';
-                
-        this.modal.classList.remove('hidden');
-        
-        if (this.audioEnabled) {
+    showCompletionModal() {
+        if (this.modal && this.modalTitle && this.modalMessage) {
+            // FIXED: Use simple "Well Done!" message as requested
+            this.modalTitle.textContent = '🌈 Well Done! 🌈';
+                    
+            this.modal.classList.remove('hidden');
+            
             setTimeout(() => {
                 this.speakText('Well done! You have completed all the towers! Play again or return to the home page.');
             }, 500);
+            
+            setTimeout(() => {
+                this.bear.startCelebration();
+            }, 1000);
         }
-        
-        setTimeout(() => {
-            this.bear.startCelebration();
-        }, 1000);
     }
-}
     
-    // Audio feedback methods
+    // Audio feedback methods - using shared AudioSystem
     playDragStartSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(440, this.audioContext.currentTime);
-            gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.1);
-        } catch (error) {
-            // Silent failure
+        if (window.AudioSystem) {
+            window.AudioSystem.playTone(440, 0.1, 'sine', 0.1);
         }
     }
     
     playDropSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
-            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.2);
-        } catch (error) {
-            // Silent failure
+        if (window.AudioSystem) {
+            window.AudioSystem.playTone(523.25, 0.2, 'sine', 0.2);
         }
     }
     
     playReturnSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(330, this.audioContext.currentTime);
-            gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.15);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.15);
-        } catch (error) {
-            // Silent failure
+        if (window.AudioSystem) {
+            window.AudioSystem.playTone(330, 0.15, 'sine', 0.15);
         }
     }
     
     playSuccessSound() {
-        if (!this.audioEnabled || !this.audioContext) return;
-        
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1);
-            oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2);
-            
-            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.5);
-        } catch (error) {
-            // Silent failure
+        if (window.AudioSystem) {
+            window.AudioSystem.playCompletionSound();
         }
     }
     
     speakText(text) {
-        if (!this.audioEnabled) return;
-        
-        try {
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.3;
-                utterance.volume = 0.8;
-                
-                speechSynthesis.speak(utterance);
-            }
-        } catch (error) {
-            // Silent failure
+        if (window.AudioSystem) {
+            window.AudioSystem.speakText(text);
         }
     }
     
@@ -679,16 +534,11 @@ showCompletionModal() {
         this.rainbow.reset();
         this.bear.reset();
         
+        // Stop any speech synthesis
         if ('speechSynthesis' in window) speechSynthesis.cancel();
         if (this.audioContext) this.audioContext.close();
         
-        if (this.muteContainer && this.muteContainer.parentNode) {
-            this.muteContainer.parentNode.removeChild(this.muteContainer);
-        }
-        
-        if (this.backButton && this.backButton.parentNode) {
-            this.backButton.parentNode.removeChild(this.backButton);
-        }
+        // Removed manual button cleanup - handled by shared systems
     }
 }
 
