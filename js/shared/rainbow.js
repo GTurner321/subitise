@@ -11,8 +11,8 @@ class Rainbow {
         
         // UPDATED: Height-based responsive configuration
         this.config = {
-            // CHANGED: Largest arc radius: 55% of game area HEIGHT (was 40% of width)
-            maxRadiusPercent: 55,
+            // CHANGED: Largest arc radius: 70% of game area HEIGHT (increased from 55%)
+            maxRadiusPercent: 70,
             // CHANGED: Center 20% of game area HEIGHT from the bottom (was 5% of width)
             centerFromBottomPercent: 20,
             // CHANGED: Arc thickness: 2.5% of game area HEIGHT (was 1.5% of width)
