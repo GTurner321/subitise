@@ -1,22 +1,22 @@
-console.log('🌈 LOADING RESPONSIVE RAINBOW FILE - Simple SVG arc approach');
+console.log('🌈 LOADING RESPONSIVE RAINBOW FILE - Height-based positioning');
 
 class Rainbow {
     constructor() {
-        console.log('Rainbow constructor - simple SVG arcs with stroke thickness');
+        console.log('Rainbow constructor - height-based positioning with larger arcs');
         this.container = document.getElementById('rainbowContainer');
         this.gameArea = document.querySelector('.game-area');
         this.pieces = 0;
         this.totalPieces = 10;
         this.arcs = [];
         
-        // Responsive configuration
+        // UPDATED: Height-based responsive configuration
         this.config = {
-            // Largest arc radius: 40% of game area width (reduced from 42%)
-            maxRadiusPercent: 40,
-            // Center 5% of game area width from the bottom (raised from 3%)
-            centerFromBottomPercent: 5,
-            // Arc thickness: 1.5% of game area width (reduced from 2%)
-            thicknessPercent: 1.5,
+            // CHANGED: Largest arc radius: 55% of game area HEIGHT (was 40% of width)
+            maxRadiusPercent: 55,
+            // CHANGED: Center 20% of game area HEIGHT from the bottom (was 5% of width)
+            centerFromBottomPercent: 20,
+            // CHANGED: Arc thickness: 2.5% of game area HEIGHT (was 1.5% of width)
+            thicknessPercent: 2.5,
             // Default transparency for arcs (25% opaque = 0.25 opacity)
             defaultOpacity: 0.25,
             // Celebration opacity (65% opaque = 0.65 opacity)
@@ -122,14 +122,22 @@ class Rainbow {
         const gameAreaWidth = gameAreaRect.width;
         const gameAreaHeight = gameAreaRect.height;
         
-        // Calculate responsive dimensions based on game area width
-        const maxRadius = (gameAreaWidth * this.config.maxRadiusPercent) / 100;
-        const thickness = (gameAreaWidth * this.config.thicknessPercent) / 100;
-        const centerFromBottom = (gameAreaWidth * this.config.centerFromBottomPercent) / 100;
+        // UPDATED: Calculate responsive dimensions based on game area HEIGHT
+        const maxRadius = (gameAreaHeight * this.config.maxRadiusPercent) / 100;
+        const thickness = (gameAreaHeight * this.config.thicknessPercent) / 100;
+        const centerFromBottom = (gameAreaHeight * this.config.centerFromBottomPercent) / 100;
         
         // Calculate fixed center position for all arcs
-        const centerX = gameAreaWidth / 2; // Horizontal center
-        const centerY = gameAreaHeight - centerFromBottom; // Fixed distance from bottom
+        const centerX = gameAreaWidth / 2; // Horizontal center (unchanged)
+        const centerY = gameAreaHeight - centerFromBottom; // UPDATED: Height-based bottom offset
+        
+        console.log('🌈 Rainbow dimensions:', {
+            gameAreaHeight,
+            maxRadius: `${maxRadius}px (${this.config.maxRadiusPercent}% of ${gameAreaHeight}px)`,
+            thickness: `${thickness}px (${this.config.thicknessPercent}% of height)`,
+            centerFromBottom: `${centerFromBottom}px (${this.config.centerFromBottomPercent}% of height)`,
+            centerPosition: { x: centerX, y: centerY }
+        });
         
         // Create SVG container
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -155,7 +163,7 @@ class Rainbow {
             
             // Create SVG path element
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const pathData = this.createArcPath(centerX, centerY, radius, startAngle, endAngle);
+            const pathData = this.createArcPath(centerX, centerY, radius, startAngle, endAngle, horizontalStretch);
             
             path.setAttribute('d', pathData);
             path.setAttribute('stroke', 'transparent'); // Start transparent
@@ -364,4 +372,4 @@ class Rainbow {
 
 // MISSING: Global export for universal access
 window.Rainbow = Rainbow;
-console.log('🌈 Rainbow class exported to window.Rainbow');
+console.log('🌈 Rainbow class exported to window.Rainbow - HEIGHT-BASED POSITIONING');
