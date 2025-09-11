@@ -88,22 +88,24 @@ class Rainbow {
         this.initializeArcs();
     }
     
-    createArcPath(centerX, centerY, radius, startAngle, endAngle) {
+    createArcPath(centerX, centerY, radius, startAngle, endAngle, horizontalStretch = 1) {
         // Convert angles to radians - adjusting for SVG coordinate system
         // In SVG, 0° is at 3 o'clock, we want our arc from about 10 o'clock to 2 o'clock
         const startRad = ((startAngle - 90) * Math.PI) / 180; // Subtract 90 to start from top
         const endRad = ((endAngle - 90) * Math.PI) / 180;
         
-        // Calculate start and end points
-        const startX = centerX + radius * Math.cos(startRad);
+        // Calculate start and end points with horizontal stretch applied
+        const startX = centerX + radius * Math.cos(startRad) * horizontalStretch;
         const startY = centerY + radius * Math.sin(startRad);
-        const endX = centerX + radius * Math.cos(endRad);
+        const endX = centerX + radius * Math.cos(endRad) * horizontalStretch;
         const endY = centerY + radius * Math.sin(endRad);
         
-        // Create arc path - use sweep flag for clockwise direction
+        // Create elliptical arc path with different x and y radii for stretching
+        const radiusX = radius * horizontalStretch;
+        const radiusY = radius;
         const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
         
-        const pathData = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
+        const pathData = `M ${startX} ${startY} A ${radiusX} ${radiusY} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
         
         return pathData;
     }
@@ -122,17 +124,30 @@ class Rainbow {
         const gameAreaWidth = gameAreaRect.width;
         const gameAreaHeight = gameAreaRect.height;
         
-        // UPDATED: Calculate responsive dimensions based on game area HEIGHT
+        // Calculate horizontal stretch factor for narrow screens
+        const aspectRatio = gameAreaWidth / gameAreaHeight;
+        const targetAspectRatio = 1.25; // 1.25:1 aspect ratio threshold
+        let horizontalStretch = 1;
+        
+        if (aspectRatio < targetAspectRatio) {
+            horizontalStretch = aspectRatio / targetAspectRatio;
+            console.log('🌈 Applying horizontal stretch factor:', horizontalStretch, 'for aspect ratio:', aspectRatio);
+        }
+        
+        // Calculate responsive dimensions based on game area HEIGHT
         const maxRadius = (gameAreaHeight * this.config.maxRadiusPercent) / 100;
         const thickness = (gameAreaHeight * this.config.thicknessPercent) / 100;
         const centerFromBottom = (gameAreaHeight * this.config.centerFromBottomPercent) / 100;
         
         // Calculate fixed center position for all arcs
-        const centerX = gameAreaWidth / 2; // Horizontal center (unchanged)
-        const centerY = gameAreaHeight - centerFromBottom; // UPDATED: Height-based bottom offset
+        const centerX = gameAreaWidth / 2; // Horizontal center
+        const centerY = gameAreaHeight - centerFromBottom; // Height-based bottom offset
         
         console.log('🌈 Rainbow dimensions:', {
+            gameAreaWidth,
             gameAreaHeight,
+            aspectRatio: aspectRatio.toFixed(2),
+            horizontalStretch: horizontalStretch.toFixed(2),
             maxRadius: `${maxRadius}px (${this.config.maxRadiusPercent}% of ${gameAreaHeight}px)`,
             thickness: `${thickness}px (${this.config.thicknessPercent}% of height)`,
             centerFromBottom: `${centerFromBottom}px (${this.config.centerFromBottomPercent}% of height)`,
@@ -148,7 +163,7 @@ class Rainbow {
         svg.style.height = '100%';
         svg.style.pointerEvents = 'none';
         svg.style.overflow = 'visible';
-        svg.style.zIndex = '1'; // Same as rainbow container, below icons (z-index: 2)
+        svg.style.zIndex = '1';
         
         // Arc parameters for 160 degrees centered on vertical (80 degrees each side of north)
         const startAngle = -80;  // 80 degrees counterclockwise from top
@@ -157,7 +172,7 @@ class Rainbow {
         // Create all 10 arcs
         for (let i = 0; i < this.totalPieces; i++) {
             // Calculate radius for this arc (decreasing from outside to inside)
-            const radius = maxRadius - (i * thickness) - (thickness / 2); // Center the stroke on the ring
+            const radius = maxRadius - (i * thickness) - (thickness / 2);
             
             if (radius <= thickness / 2) break; // Stop if radius would be too small
             
@@ -171,7 +186,7 @@ class Rainbow {
             path.setAttribute('stroke-linecap', 'round');
             path.setAttribute('fill', 'none');
             path.style.opacity = this.config.defaultOpacity;
-            path.style.transition = 'stroke 1.5s ease-in-out'; // 1.5 second fade-in
+            path.style.transition = 'stroke 1.5s ease-in-out';
             path.style.pointerEvents = 'none';
             
             // Store the target color for later use
@@ -370,6 +385,6 @@ class Rainbow {
     }
 }
 
-// MISSING: Global export for universal access
+// Global export for universal access
 window.Rainbow = Rainbow;
-console.log('🌈 Rainbow class exported to window.Rainbow - HEIGHT-BASED POSITIONING');
+console.log('🌈 Rainbow class exported to window.Rainbow - HEIGHT-BASED POSITIONING WITH HORIZONTAL STRETCH');
