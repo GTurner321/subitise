@@ -89,7 +89,7 @@ class StacksGameController {
         this.container.appendChild(this.svg);
         
         // Initialize renderer AFTER SVG is in DOM
-        this.renderer = new StacksRenderer(this.svg, this);
+        this.renderer = new StacksGameRenderer(this.svg, this);
         
         console.log('SVG created and renderer initialized');
     }
