@@ -73,12 +73,21 @@
         </div>
     </div>
     
-    <!-- JavaScript files - Load in correct order -->
+    <!-- JavaScript files - UPDATED ORDER with new components -->
     <script src="js/stacksconfig.js"></script>
     <script src="../../js/shared/audio.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
-    <script src="js/stacksrenderer.js"></script>
+    
+    <!-- NEW: Component files - Load in dependency order -->
+    <script src="js/components/StacksElementManager.js"></script>
+    <script src="js/components/StacksDragDropHandler.js"></script>
+    <script src="js/components/StacksGameRenderer.js"></script>
+    
+    <!-- Game controller (unchanged) -->
     <script src="js/stacksgamecontroller.js"></script>
+    
+    <!-- REMOVED: Old monolithic renderer -->
+    <!-- <script src="js/stacksrenderer.js"></script> -->
 </body>
 </html>
