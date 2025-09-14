@@ -33,12 +33,12 @@ class StacksRenderer {
                 return;
             }
             
-            const currentYPercent = pxToVh(block._centerY);
+            const currentYPercent = block._yPercent; // Use stored percentage
             
             // Apply gravity if block is significantly above grass area
             if (currentYPercent < grassTop - 5) {
                 const grassMidY = 85; // 85% from top (middle of grass)
-                this.applyGravity(block, block._centerX, grassMidY);
+                this.applyGravity(block, block._xPercent, grassMidY);
             }
         });
     }
@@ -50,6 +50,132 @@ class StacksRenderer {
         this.svg.setAttribute('width', width);
         this.svg.setAttribute('height', height);
         this.svg.removeAttribute('viewBox');
+        
+        // CRITICAL: Update all existing elements when dimensions change
+        this.updateAllElementPositions();
+    }
+    
+    // NEW: Update all elements to maintain their percentage positions
+    updateAllElementPositions() {
+        // Update all blocks
+        const blocks = this.svg.querySelectorAll('.block');
+        blocks.forEach(block => {
+            if (block._xPercent !== undefined && block._yPercent !== undefined) {
+                this.updateBlockPositionFromPercent(block);
+            }
+        });
+        
+        // Update all containers
+        const containers = this.svg.querySelectorAll('.container');
+        containers.forEach(container => {
+            if (container._xPercent !== undefined && container._yPercent !== undefined) {
+                this.updateContainerPositionFromPercent(container);
+            }
+        });
+        
+        // Update all teddies
+        const teddies = this.svg.querySelectorAll('.teddy');
+        teddies.forEach(teddy => {
+            if (teddy._xPercent !== undefined && teddy._yPercent !== undefined) {
+                this.updateTeddyPositionFromPercent(teddy);
+            }
+        });
+    }
+    
+    // NEW: Update block position from its stored percentage coordinates
+    updateBlockPositionFromPercent(block) {
+        const newX = vwToPx(block._xPercent);
+        const newY = vhToPx(block._yPercent);
+        
+        // Update pixel coordinates
+        block._centerX = newX;
+        block._centerY = newY;
+        
+        // Recalculate dimensions for new screen size
+        const isWide = block._isWide || false;
+        block._dimensions = getBlockDimensions(isWide);
+        
+        // Update visual position
+        this.updateBlockVisualPosition(block);
+    }
+    
+    // NEW: Update visual position without changing stored coordinates
+    updateBlockVisualPosition(block) {
+        const dimensions = block._dimensions;
+        const centerX = block._centerX;
+        const centerY = block._centerY;
+        
+        const rect = block._rect;
+        const shadow = block._shadow;
+        const text = block._text;
+        
+        rect.setAttribute('x', centerX - dimensions.width/2);
+        rect.setAttribute('y', centerY - dimensions.height/2);
+        rect.setAttribute('width', dimensions.width);
+        rect.setAttribute('height', dimensions.height);
+        
+        shadow.setAttribute('x', centerX - dimensions.width/2 + 3);
+        shadow.setAttribute('y', centerY - dimensions.height/2 + 3);
+        shadow.setAttribute('width', dimensions.width);
+        shadow.setAttribute('height', dimensions.height);
+        
+        text.setAttribute('x', centerX);
+        text.setAttribute('y', centerY);
+        
+        // Update font size for new dimensions
+        const baseFontSize = Math.min(dimensions.height * 0.5, dimensions.width * 0.4);
+        const finalFontSize = block._isWide ? baseFontSize : baseFontSize * STACKS_CONFIG.BLOCK_FONT_SIZE_MULTIPLIER;
+        text.setAttribute('font-size', finalFontSize);
+    }
+    
+    // NEW: Update container position from percentage coordinates
+    updateContainerPositionFromPercent(container) {
+        const newX = vwToPx(container._xPercent);
+        const newY = vhToPx(container._yPercent);
+        
+        container._centerX = newX;
+        container._centerY = newY;
+        
+        const isWide = container._isWide || false;
+        const dimensions = getBlockDimensions(isWide);
+        
+        container.setAttribute('x', newX - dimensions.width/2);
+        container.setAttribute('y', newY - dimensions.height/2);
+        container.setAttribute('width', dimensions.width);
+        container.setAttribute('height', dimensions.height);
+    }
+    
+    // NEW: Update teddy position from percentage coordinates
+    updateTeddyPositionFromPercent(teddy) {
+        const newX = vwToPx(teddy._xPercent);
+        const newY = vhToPx(teddy._yPercent);
+        
+        teddy._centerX = newX;
+        teddy._centerY = newY;
+        
+        // Recalculate teddy size
+        const baseSize = vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT) * 0.8;
+        const size = baseSize * STACKS_CONFIG.TEDDY_SIZE_MULTIPLIER;
+        teddy._size = size;
+        
+        if (teddy.tagName === 'image') {
+            // Image teddy
+            teddy.setAttribute('x', newX - size/2);
+            teddy.setAttribute('y', newY - size - vhToPx(STACKS_CONFIG.BLOCK_HEIGHT_PERCENT)/2);
+            teddy.setAttribute('width', size);
+            teddy.setAttribute('height', size);
+        } else if (teddy.tagName === 'g') {
+            // Fallback teddy group - update all child elements
+            const children = teddy.children;
+            for (let child of children) {
+                if (child.tagName === 'circle') {
+                    const radius = size/3;
+                    child.setAttribute('cx', newX);
+                    child.setAttribute('cy', newY - size/2);
+                    child.setAttribute('r', radius);
+                }
+            }
+        }
     }
     
     setupEventListeners() {
@@ -72,7 +198,7 @@ class StacksRenderer {
     }
     
     handleResize() {
-        this.updateSVGDimensions();
+        this.updateSVGDimensions(); // This now triggers updateAllElementPositions()
     }
     
     getEventPoint(e) {
@@ -149,13 +275,13 @@ class StacksRenderer {
         blockGroup.appendChild(rect);
         blockGroup.appendChild(text);
         
-        // Store references and positions
+        // Store references and positions (BOTH pixels AND percentages)
         blockGroup._rect = rect;
         blockGroup._text = text;
         blockGroup._shadow = shadow;
         blockGroup._centerX = x;
         blockGroup._centerY = y;
-        blockGroup._xPercent = xPercent;
+        blockGroup._xPercent = xPercent; // KEEP percentage coordinates
         blockGroup._yPercent = yPercent;
         blockGroup._number = number;
         blockGroup._isWide = isWide;
@@ -184,10 +310,10 @@ class StacksRenderer {
         container.setAttribute('ry', '8');
         container.setAttribute('opacity', STACKS_CONFIG.CONTAINER_OPACITY);
         
-        // Store position data
+        // Store position data (BOTH pixels AND percentages)
         container._centerX = x;
         container._centerY = y;
-        container._xPercent = xPercent;
+        container._xPercent = xPercent; // KEEP percentage coordinates
         container._yPercent = yPercent;
         container._index = index;
         container._isWide = isWide;
@@ -208,10 +334,10 @@ class StacksRenderer {
         teddy.setAttribute('width', size);
         teddy.setAttribute('height', size);
         
-        // Store position data
+        // Store position data (BOTH pixels AND percentages)
         teddy._centerX = x;
         teddy._centerY = y - size/2;
-        teddy._xPercent = xPercent;
+        teddy._xPercent = xPercent; // KEEP percentage coordinates
         teddy._yPercent = yPercent;
         teddy._size = size;
         
@@ -245,7 +371,7 @@ class StacksRenderer {
             const fallbackGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             fallbackGroup.setAttribute('class', 'teddy fallback-teddy');
             
-            // Store position data
+            // Store position data (BOTH pixels AND percentages)
             fallbackGroup._centerX = x;
             fallbackGroup._centerY = y - size/2;
             fallbackGroup._xPercent = pxToVw(x);
@@ -285,6 +411,134 @@ class StacksRenderer {
         }
     }
     
+    // Updated method - always store BOTH pixel and percentage coordinates
+    updateBlockPosition(block, centerX, centerY) {
+        // Don't move locked elements (completed towers)
+        if (block._isLocked) return;
+        
+        const dimensions = block._dimensions;
+        
+        const rect = block._rect;
+        const shadow = block._shadow;
+        const text = block._text;
+        
+        rect.setAttribute('x', centerX - dimensions.width/2);
+        rect.setAttribute('y', centerY - dimensions.height/2);
+        
+        shadow.setAttribute('x', centerX - dimensions.width/2 + 3);
+        shadow.setAttribute('y', centerY - dimensions.height/2 + 3);
+        
+        text.setAttribute('x', centerX);
+        text.setAttribute('y', centerY);
+        
+        // Update stored position (BOTH pixels AND percentages)
+        block._centerX = centerX;
+        block._centerY = centerY;
+        block._xPercent = pxToVw(centerX);
+        block._yPercent = pxToVh(centerY);
+    }
+    
+    // Updated method to also store percentages
+    placeBlockOnGrass(block, x, y) {
+        console.log('=== PLACE BLOCK ON GRASS ===');
+        console.log('Input coordinates (pixels):', x, y);
+        
+        // Clear any container association
+        block._container = null;
+        
+        // Validate input coordinates
+        if (isNaN(x) || isNaN(y) || x === undefined || y === undefined) {
+            console.error('Invalid coordinates for placeBlockOnGrass:', x, y);
+            // Use safe fallback position
+            x = window.innerWidth * 0.5;
+            y = window.innerHeight * 0.85;
+            console.log('Using fallback position (pixels):', x, y);
+        }
+        
+        // Convert pixels to percentages
+        let finalXPercent = (x * 100) / window.innerWidth;
+        let finalYPercent = (y * 100) / window.innerHeight;
+        
+        console.log('Converted to percentages:', finalXPercent.toFixed(1), finalYPercent.toFixed(1));
+        
+        // FIXED: Apply gravity if dropped above grass (grass starts at 80% from top)
+        const grassTop = 80;
+        
+        if (finalYPercent < grassTop) {
+            // Dropped above grass - apply gravity animation to bring to grass
+            console.log('Block dropped above grass, applying gravity animation');
+            finalYPercent = 85; // 85% from top (middle of grass area)
+            
+            // Convert to pixels for animation
+            const finalX = (finalXPercent * window.innerWidth) / 100;
+            const finalY = (finalYPercent * window.innerHeight) / 100;
+            
+            console.log('Gravity animation to:', finalXPercent.toFixed(1), finalYPercent.toFixed(1));
+            
+            // Animate the fall
+            block.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            this.updateBlockPosition(block, finalX, finalY);
+            
+            // Store final position after animation (now includes percentages)
+            setTimeout(() => {
+                block.style.transition = '';
+                console.log('Gravity animation complete');
+            }, 600);
+            
+        } else {
+            console.log('Block dropped in grass area, using drop position');
+            
+            // Convert final percentages back to pixels for SVG positioning
+            const finalX = (finalXPercent * window.innerWidth) / 100;
+            const finalY = (finalYPercent * window.innerHeight) / 100;
+            
+            // Apply positioning immediately (includes percentage storage)
+            this.updateBlockPosition(block, finalX, finalY);
+        }
+        
+        // Ensure block remains interactive
+        block.style.cursor = 'grab';
+        block.style.pointerEvents = 'all';
+        
+        console.log('Block placed successfully - stored as %:', finalXPercent.toFixed(1), finalYPercent.toFixed(1));
+        console.log('=== PLACE BLOCK COMPLETE ===');
+    }
+    
+    // Updated method to store percentages
+    placeBlockInContainer(block, container) {
+        console.log('=== PLACE BLOCK IN CONTAINER ===');
+        console.log('Placing block', block.getAttribute('data-number'), 'in container', container.getAttribute('data-index'));
+        
+        const centerX = container._centerX;
+        const centerY = container._centerY;
+        
+        console.log('Container center:', centerX, centerY);
+        
+        // Update position (now includes percentage storage)
+        this.updateBlockPosition(block, centerX, centerY);
+        block._container = container;
+        
+        console.log('Block placed in container, new position:', centerX, centerY);
+        console.log('=== PLACE IN CONTAINER COMPLETE ===');
+    }
+    
+    // Updated method to apply gravity with percentage storage
+    applyGravity(block, targetXPercent, targetYPercent) {
+        const targetX = vwToPx(targetXPercent);
+        const targetY = vhToPx(targetYPercent);
+        const fallDuration = 400;
+        
+        // Animate the block falling to the ground
+        block.style.transition = `all ${fallDuration}ms ease-out`;
+        this.updateBlockPosition(block, targetX, targetY); // Now stores percentages too
+        
+        // Clean up transition after animation
+        setTimeout(() => {
+            block.style.transition = '';
+        }, fallDuration);
+    }
+    
+    // Continue with rest of the existing methods...
     renderTowerWithPositions(blocks, containers, containerPositions, blockPositions, isWide = false) {
         // Clear only NEW tower elements
         this.clearNewTowerElements();
@@ -379,7 +633,7 @@ class StacksRenderer {
         const newX = point.x + this.dragOffset.x;
         const newY = point.y + this.dragOffset.y;
         
-        // Update block position
+        // Update block position (now stores percentages)
         this.updateBlockPosition(this.draggedElement, newX, newY);
         
         // Check for hover over containers
@@ -603,152 +857,61 @@ class StacksRenderer {
         return true;
     }
     
-calculateOverlapArea(container, dragX, dragY, draggedBlock) {
-    if (!draggedBlock || !draggedBlock._dimensions) return 0;
-    
-    const dragWidth = draggedBlock._dimensions.width;
-    const dragHeight = draggedBlock._dimensions.height;
-    
-    // Dragged block bounds
-    const dragLeft = dragX - dragWidth / 2;
-    const dragRight = dragX + dragWidth / 2;
-    const dragTop = dragY - dragHeight / 2;
-    const dragBottom = dragY + dragHeight / 2;
-    
-    // Container bounds
-    const containerX = container._centerX;
-    const containerY = container._centerY;
-    const containerWidth = parseFloat(container.getAttribute('width'));
-    const containerHeight = parseFloat(container.getAttribute('height'));
-    
-    const containerLeft = containerX - containerWidth / 2;
-    const containerRight = containerX + containerWidth / 2;
-    const containerTop = containerY - containerHeight / 2;
-    const containerBottom = containerY + containerHeight / 2;
-    
-    // Calculate overlap rectangle
-    const overlapLeft = Math.max(dragLeft, containerLeft);
-    const overlapRight = Math.min(dragRight, containerRight);
-    const overlapTop = Math.max(dragTop, containerTop);
-    const overlapBottom = Math.min(dragBottom, containerBottom);
-    
-    // Check if there's any overlap
-    if (overlapLeft >= overlapRight || overlapTop >= overlapBottom) {
-        return 0; // No overlap
-    }
-    
-    // Calculate overlap dimensions
-    const overlapWidth = overlapRight - overlapLeft;
-    const overlapHeight = overlapBottom - overlapTop;
-    
-    // FIXED: Calculate percentage overlap for BOTH width and height
-    const widthOverlapPercent = overlapWidth / dragWidth;
-    const heightOverlapPercent = overlapHeight / dragHeight;
-    
-    console.log('Overlap analysis:', {
-        widthOverlap: (widthOverlapPercent * 100).toFixed(1) + '%',
-        heightOverlap: (heightOverlapPercent * 100).toFixed(1) + '%',
-        widthMeets50: widthOverlapPercent >= 0.5,
-        heightMeets50: heightOverlapPercent >= 0.5
-    });
-    
-    // FIXED: Both width AND height must be >= 50% for valid placement
-    if (widthOverlapPercent >= 0.5 && heightOverlapPercent >= 0.5) {
-        return Math.min(widthOverlapPercent, heightOverlapPercent);
-    } else {
-        return 0; // Insufficient overlap in either dimension
-    }
-}
-    
-    placeBlockOnGrass(block, x, y) {
-        console.log('=== PLACE BLOCK ON GRASS ===');
-        console.log('Input coordinates (pixels):', x, y);
+    calculateOverlapArea(container, dragX, dragY, draggedBlock) {
+        if (!draggedBlock || !draggedBlock._dimensions) return 0;
         
-        // Clear any container association
-        block._container = null;
+        const dragWidth = draggedBlock._dimensions.width;
+        const dragHeight = draggedBlock._dimensions.height;
         
-        // Validate input coordinates
-        if (isNaN(x) || isNaN(y) || x === undefined || y === undefined) {
-            console.error('Invalid coordinates for placeBlockOnGrass:', x, y);
-            // Use safe fallback position
-            x = window.innerWidth * 0.5;
-            y = window.innerHeight * 0.85;
-            console.log('Using fallback position (pixels):', x, y);
+        // Dragged block bounds
+        const dragLeft = dragX - dragWidth / 2;
+        const dragRight = dragX + dragWidth / 2;
+        const dragTop = dragY - dragHeight / 2;
+        const dragBottom = dragY + dragHeight / 2;
+        
+        // Container bounds
+        const containerX = container._centerX;
+        const containerY = container._centerY;
+        const containerWidth = parseFloat(container.getAttribute('width'));
+        const containerHeight = parseFloat(container.getAttribute('height'));
+        
+        const containerLeft = containerX - containerWidth / 2;
+        const containerRight = containerX + containerWidth / 2;
+        const containerTop = containerY - containerHeight / 2;
+        const containerBottom = containerY + containerHeight / 2;
+        
+        // Calculate overlap rectangle
+        const overlapLeft = Math.max(dragLeft, containerLeft);
+        const overlapRight = Math.min(dragRight, containerRight);
+        const overlapTop = Math.max(dragTop, containerTop);
+        const overlapBottom = Math.min(dragBottom, containerBottom);
+        
+        // Check if there's any overlap
+        if (overlapLeft >= overlapRight || overlapTop >= overlapBottom) {
+            return 0; // No overlap
         }
         
-        // Convert pixels to percentages
-        let finalXPercent = (x * 100) / window.innerWidth;
-        let finalYPercent = (y * 100) / window.innerHeight;
+        // Calculate overlap dimensions
+        const overlapWidth = overlapRight - overlapLeft;
+        const overlapHeight = overlapBottom - overlapTop;
         
-        console.log('Converted to percentages:', finalXPercent.toFixed(1), finalYPercent.toFixed(1));
+        // FIXED: Calculate percentage overlap for BOTH width and height
+        const widthOverlapPercent = overlapWidth / dragWidth;
+        const heightOverlapPercent = overlapHeight / dragHeight;
         
-        // FIXED: Apply gravity if dropped above grass (grass starts at 80% from top)
-        const grassTop = 80;
+        console.log('Overlap analysis:', {
+            widthOverlap: (widthOverlapPercent * 100).toFixed(1) + '%',
+            heightOverlap: (heightOverlapPercent * 100).toFixed(1) + '%',
+            widthMeets50: widthOverlapPercent >= 0.5,
+            heightMeets50: heightOverlapPercent >= 0.5
+        });
         
-        if (finalYPercent < grassTop) {
-            // Dropped above grass - apply gravity animation to bring to grass
-            console.log('Block dropped above grass, applying gravity animation');
-            finalYPercent = 85; // 85% from top (middle of grass area)
-            
-            // Convert to pixels for animation
-            const finalX = (finalXPercent * window.innerWidth) / 100;
-            const finalY = (finalYPercent * window.innerHeight) / 100;
-            
-            console.log('Gravity animation to:', finalXPercent.toFixed(1), finalYPercent.toFixed(1));
-            
-            // Animate the fall
-            block.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-            this.updateBlockPosition(block, finalX, finalY);
-            
-            // Store final position after animation
-            setTimeout(() => {
-                block.style.transition = '';
-                block._centerX = finalX;
-                block._centerY = finalY;
-                block._xPercent = finalXPercent;
-                block._yPercent = finalYPercent;
-                console.log('Gravity animation complete');
-            }, 600);
-            
+        // FIXED: Both width AND height must be >= 50% for valid placement
+        if (widthOverlapPercent >= 0.5 && heightOverlapPercent >= 0.5) {
+            return Math.min(widthOverlapPercent, heightOverlapPercent);
         } else {
-            console.log('Block dropped in grass area, using drop position');
-            
-            // Convert final percentages back to pixels for SVG positioning
-            const finalX = (finalXPercent * window.innerWidth) / 100;
-            const finalY = (finalYPercent * window.innerHeight) / 100;
-            
-            // Apply positioning immediately (no animation needed)
-            this.updateBlockPosition(block, finalX, finalY);
-            
-            // Store position
-            block._centerX = finalX;
-            block._centerY = finalY;
-            block._xPercent = finalXPercent;
-            block._yPercent = finalYPercent;
+            return 0; // Insufficient overlap in either dimension
         }
-        
-        // Ensure block remains interactive
-        block.style.cursor = 'grab';
-        block.style.pointerEvents = 'all';
-        
-        console.log('Block placed successfully - stored as %:', finalXPercent.toFixed(1), finalYPercent.toFixed(1));
-        console.log('=== PLACE BLOCK COMPLETE ===');
-    }
-    
-    applyGravity(block, targetX, targetYPercent) {
-        const targetY = vhToPx(targetYPercent);
-        const fallDuration = 400;
-        
-        // Animate the block falling to the ground
-        block.style.transition = `all ${fallDuration}ms ease-out`;
-        this.updateBlockPosition(block, targetX, targetY);
-        
-        // Update stored coordinates after animation
-        setTimeout(() => {
-            block.style.transition = '';
-            block._xPercent = pxToVw(targetX);
-            block._yPercent = targetYPercent;
-        }, fallDuration);
     }
     
     swapBlocks(block1, block2) {
@@ -781,12 +944,8 @@ calculateOverlapArea(container, dragX, dragY, draggedBlock) {
         
         console.log('Displacing block to:', x, y, '% =', groundX, groundY, 'px');
         
-        // Animate the block to the ground
+        // Animate the block to the ground (now includes percentage storage)
         this.animateBlockToPosition(block, groundX, groundY, () => {
-            block._centerX = groundX;
-            block._centerY = groundY;
-            block._xPercent = x;
-            block._yPercent = y;
             block._container = null;
             
             // Ensure block remains interactive
@@ -815,7 +974,7 @@ calculateOverlapArea(container, dragX, dragY, draggedBlock) {
         block.classList.add('new-tower-element');
         
         block.style.transition = `all ${duration}ms ease-out`;
-        this.updateBlockPosition(block, targetX, targetY);
+        this.updateBlockPosition(block, targetX, targetY); // Now stores percentages
         
         setTimeout(() => {
             block.style.transition = '';
@@ -828,26 +987,6 @@ calculateOverlapArea(container, dragX, dragY, draggedBlock) {
         return Array.from(blocks).filter(block => !this.getContainerForBlock(block));
     }
     
-    placeBlockInContainer(block, container) {
-        console.log('=== PLACE BLOCK IN CONTAINER ===');
-        console.log('Placing block', block.getAttribute('data-number'), 'in container', container.getAttribute('data-index'));
-        
-        const centerX = container._centerX;
-        const centerY = container._centerY;
-        
-        console.log('Container center:', centerX, centerY);
-        
-        this.updateBlockPosition(block, centerX, centerY);
-        block._centerX = centerX;
-        block._centerY = centerY;
-        block._xPercent = container._xPercent;
-        block._yPercent = container._yPercent;
-        block._container = container;
-        
-        console.log('Block placed in container, new position:', centerX, centerY);
-        console.log('=== PLACE IN CONTAINER COMPLETE ===');
-    }
-    
     returnBlockToGround(block) {
         // Clear any container association
         block._container = null;
@@ -856,39 +995,8 @@ calculateOverlapArea(container, dragX, dragY, draggedBlock) {
         const fallbackX = window.innerWidth * 0.5;
         const fallbackY = window.innerHeight * 0.85;
         
-        // Animate the block to the ground
-        this.animateBlockToPosition(block, fallbackX, fallbackY, () => {
-            block._centerX = fallbackX;
-            block._centerY = fallbackY;
-            block._xPercent = 50;
-            block._yPercent = 85;
-        });
-    }
-    
-    updateBlockPosition(block, centerX, centerY) {
-        // Don't move locked elements (completed towers)
-        if (block._isLocked) return;
-        
-        const dimensions = block._dimensions;
-        
-        const rect = block._rect;
-        const shadow = block._shadow;
-        const text = block._text;
-        
-        rect.setAttribute('x', centerX - dimensions.width/2);
-        rect.setAttribute('y', centerY - dimensions.height/2);
-        
-        shadow.setAttribute('x', centerX - dimensions.width/2 + 3);
-        shadow.setAttribute('y', centerY - dimensions.height/2 + 3);
-        
-        text.setAttribute('x', centerX);
-        text.setAttribute('y', centerY);
-        
-        // Update stored position and percentages
-        block._centerX = centerX;
-        block._centerY = centerY;
-        block._xPercent = pxToVw(centerX);
-        block._yPercent = pxToVh(centerY);
+        // Animate the block to the ground (now stores percentages)
+        this.animateBlockToPosition(block, fallbackX, fallbackY);
     }
     
     getDistanceToContainer(container, x, y) {
@@ -928,7 +1036,7 @@ calculateOverlapArea(container, dragX, dragY, draggedBlock) {
             
             if (element.classList.contains('block')) {
                 const newX = element._centerX + deltaX;
-                this.updateBlockPosition(element, newX, element._centerY);
+                this.updateBlockPosition(element, newX, element._centerY); // Now updates percentages
                 
                 // Mark as completed tower
                 element.classList.add('completed-tower');
@@ -944,18 +1052,14 @@ calculateOverlapArea(container, dragX, dragY, draggedBlock) {
                 
             } else if (element.classList.contains('teddy')) {
                 // Handle both image teddies and fallback teddy groups
+                const newCenterX = element._centerX + deltaX;
+                
                 if (element.tagName === 'image') {
                     const currentTeddyX = parseFloat(element.getAttribute('x'));
                     const newTeddyX = currentTeddyX + deltaX;
                     element.setAttribute('x', newTeddyX);
-                    
-                    element._centerX = element._centerX + deltaX;
-                    element._xPercent = pxToVw(element._centerX);
                 } else if (element.tagName === 'g') {
                     // Fallback teddy group - move all child elements
-                    const newCenterX = element._centerX + deltaX;
-                    
-                    // Update all child elements
                     const children = element.children;
                     for (let child of children) {
                         if (child.tagName === 'circle') {
@@ -963,16 +1067,17 @@ calculateOverlapArea(container, dragX, dragY, draggedBlock) {
                             child.setAttribute('cx', currentX + deltaX);
                         }
                     }
-                    
-                    element._centerX = newCenterX;
-                    element._xPercent = pxToVw(newCenterX);
                 }
+                
+                // Update stored coordinates (BOTH pixels and percentages)
+                element._centerX = newCenterX;
+                element._xPercent = pxToVw(newCenterX);
                 
                 // Mark teddy as completed tower element
                 element.classList.add('completed-tower');
                 element.style.opacity = STACKS_CONFIG.COMPLETED_TOWER_OPACITY;
                 element._isLocked = true;
-                element._finalX = element._centerX;
+                element._finalX = newCenterX;
             }
         });
         
