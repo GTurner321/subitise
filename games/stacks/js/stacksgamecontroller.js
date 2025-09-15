@@ -16,6 +16,10 @@ class StacksGameController {
         this.gameActive = false;
         this.completedTowers = [];
         
+        // NEW: Continuation game state
+        this.isInContinuationMode = false;
+        this.continuationQuestion = 1; // 1-4 for the 4 harder towers
+        
         // SIMPLIFIED: Track existing block positions for non-overlap placement
         this.existingGroundBlocks = [];
         
@@ -29,6 +33,9 @@ class StacksGameController {
         this.modalMessage = document.getElementById('modalMessage');
         this.playAgainBtn = document.getElementById('playAgainBtn');
         
+        // NEW: Continuation modal elements (will be created dynamically)
+        this.continuationModal = null;
+        
         this.handleResize = this.handleResize.bind(this);
         
         this.initializeGame();
@@ -38,10 +45,36 @@ class StacksGameController {
         window.addEventListener('resize', this.handleResize);
         await this.initializeAudio();
         this.removeGameInfoElements();
-        // Removed createMuteButton() and createBackButton() - using shared systems
         this.setupEventListeners();
         this.createSVG();
+        this.createContinuationModal(); // NEW: Create the continuation modal
         this.startNewQuestion();
+    }
+    
+    // NEW: Create continuation modal for asking about harder towers
+    createContinuationModal() {
+        // Create modal HTML structure
+        this.continuationModal = document.createElement('div');
+        this.continuationModal.className = 'modal hidden';
+        this.continuationModal.id = 'continuationModal';
+        this.continuationModal.innerHTML = `
+            <div class="modal-content">
+                <h2 id="continuationModalTitle">🌈 Great Job! 🌈</h2>
+                <p id="continuationModalMessage">Would you like to continue with 4 harder towers?</p>
+                <button class="play-again-btn" id="continueBtn">
+                    <i class="fas fa-arrow-right"></i>
+                    CONTINUE TO 4 MORE
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(this.continuationModal);
+        
+        // Add event listener for continue button
+        const continueBtn = document.getElementById('continueBtn');
+        if (continueBtn) {
+            continueBtn.addEventListener('click', () => this.startContinuationMode());
+        }
     }
     
     removeGameInfoElements() {
@@ -115,16 +148,19 @@ class StacksGameController {
     }
     
     startNewGame() {
-        // Reset game state
+        // Reset ALL game state for completely new game
         this.currentLevel = 1;
         this.currentQuestion = 1;
         this.totalMoves = 0;
         this.questionMoves = 0;
         this.completedTowers = [];
         this.existingGroundBlocks = [];
+        this.isInContinuationMode = false;
+        this.continuationQuestion = 1;
         
-        // Hide modal
+        // Hide all modals
         if (this.modal) this.modal.classList.add('hidden');
+        if (this.continuationModal) this.continuationModal.classList.add('hidden');
         
         // Reset rainbow and bear
         this.rainbow.reset();
@@ -133,13 +169,60 @@ class StacksGameController {
         this.startNewQuestion();
     }
     
+    // NEW: Start continuation mode with harder towers
+    startContinuationMode() {
+        console.log('Starting continuation mode with 4 harder towers');
+        
+        // Hide continuation modal
+        if (this.continuationModal) {
+            this.continuationModal.classList.add('hidden');
+        }
+        
+        // Set continuation mode flags
+        this.isInContinuationMode = true;
+        this.continuationQuestion = 1; // Start with first harder tower (4 blocks)
+        
+        // Clear existing towers but keep rainbow arcs
+        this.clearExistingTowers();
+        
+        // Reset some game state but keep rainbow progress
+        this.currentQuestion = 4; // Start from tower 4 (since we're doing 4,5,6,7 block towers)
+        this.totalMoves = 0;
+        this.questionMoves = 0;
+        this.existingGroundBlocks = [];
+        
+        // Start first harder tower
+        this.startNewQuestion();
+        
+        // Give audio instruction
+        setTimeout(() => {
+            this.speakText('Now let\'s try some harder towers with different numbers!');
+        }, 1000);
+    }
+    
+    // NEW: Clear existing towers but preserve rainbow
+    clearExistingTowers() {
+        // Remove all completed tower blocks and teddies
+        const completedElements = this.svg.querySelectorAll('.completed-tower');
+        completedElements.forEach(element => {
+            if (element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+        });
+        
+        // Clear completed towers array
+        this.completedTowers = [];
+        
+        console.log('Cleared existing towers, rainbow arcs preserved');
+    }
+    
     startNewQuestion() {
         this.gameActive = true;
         this.questionMoves = 0;
         
-        console.log('Starting new question:', this.currentQuestion);
+        console.log('Starting new question:', this.currentQuestion, 'Continuation mode:', this.isInContinuationMode);
         
-        // Clear only NEW tower elements (preserve completed towers)
+        // Clear only NEW tower elements (preserve completed towers and rainbow)
         if (this.renderer) {
             this.renderer.clearNewTowerElements();
             console.log('Cleared previous tower elements');
@@ -148,26 +231,44 @@ class StacksGameController {
         // Reset ground blocks for new question
         this.existingGroundBlocks = [];
         
-        // FIXED: Don't render new tower containers after 6th question
-        if (this.currentQuestion > 6) {
-            console.log('All 6 towers completed, no more template towers needed');
+        // Check if we should stop creating new towers
+        if (!this.isInContinuationMode && this.currentQuestion > 6) {
+            console.log('All 6 initial towers completed, no more template towers needed');
             return;
         }
         
-        // Generate numbers for current level and question
-        const blockCount = this.currentQuestion + 1;
-        const levelConfig = STACKS_CONFIG.LEVELS[this.currentLevel];
-        const numbers = levelConfig.generateNumbers(blockCount);
+        if (this.isInContinuationMode && this.continuationQuestion > 4) {
+            console.log('All 4 continuation towers completed');
+            return;
+        }
         
-        console.log('Generated numbers:', numbers, 'for level:', this.currentLevel, 'question:', this.currentQuestion);
+        // Generate numbers for current tower
+        let blockCount;
+        let numbers;
+        let useWideBlocks = false;
+        
+        if (this.isInContinuationMode) {
+            // Generate numbers for continuation towers (4,5,6,7 blocks)
+            blockCount = 3 + this.continuationQuestion; // 4,5,6,7 blocks
+            numbers = this.generateContinuationNumbers(blockCount);
+            useWideBlocks = blockCount >= 6; // Use wide blocks for 6 and 7 block towers
+        } else {
+            // Original game logic
+            blockCount = this.currentQuestion + 1;
+            const levelConfig = STACKS_CONFIG.LEVELS[this.currentLevel];
+            numbers = levelConfig.generateNumbers(blockCount);
+            useWideBlocks = levelConfig.useWideBlocks;
+        }
+        
+        console.log('Generated numbers:', numbers, 'for', blockCount, 'blocks, continuation mode:', this.isInContinuationMode);
         
         if (!numbers) {
-            console.error('Failed to generate numbers for level', this.currentLevel, 'question', this.currentQuestion);
+            console.error('Failed to generate numbers');
             return;
         }
         
         // Create blocks with random colors (no repeats)
-        const blocks = this.createGameBlocks(numbers, levelConfig.useWideBlocks);
+        const blocks = this.createGameBlocks(numbers, useWideBlocks);
         
         // Create containers
         const containers = [];
@@ -175,7 +276,7 @@ class StacksGameController {
             containers.push({ index: i });
         }
         
-        // SIMPLIFIED: Calculate positions using new logic
+        // Calculate positions
         const containerPositions = this.calculateContainerPositions(blockCount);
         const blockPositions = this.calculateSimplifiedBlockPositions(blocks.length);
         
@@ -185,18 +286,71 @@ class StacksGameController {
             containers, 
             containerPositions,
             blockPositions,
-            levelConfig.useWideBlocks
+            useWideBlocks
         );
         
         console.log('New tower rendered with', containerPositions.length, 'containers and', blockPositions.length, 'blocks');
-        
-        console.log('Tower rendered with simplified positioning');
         
         // Give audio instruction using shared system
         setTimeout(() => {
             const sortedNumbers = [...numbers].sort((a, b) => a - b);
             this.speakText(`Build a tower with ${sortedNumbers.join(', ')} from bottom to top`);
         }, 1000);
+    }
+    
+    // NEW: Generate numbers for continuation towers based on specified ranges
+    generateContinuationNumbers(blockCount) {
+        let min, max;
+        
+        switch (blockCount) {
+            case 4: // 4-block tower: {1-20}
+                min = 1;
+                max = 20;
+                break;
+            case 5: // 5-block tower: {21-40}
+                min = 21;
+                max = 40;
+                break;
+            case 6: // 6-block tower: {1-100}
+                min = 1;
+                max = 100;
+                break;
+            case 7: // 7-block tower: {101-999}
+                min = 101;
+                max = 999;
+                break;
+            default:
+                console.error('Invalid block count for continuation mode:', blockCount);
+                return null;
+        }
+        
+        // Generate random numbers from the range (no repeats, not necessarily consecutive)
+        const availableNumbers = [];
+        for (let i = min; i <= max; i++) {
+            availableNumbers.push(i);
+        }
+        
+        // Randomly select required number of unique numbers
+        const selectedNumbers = [];
+        for (let i = 0; i < blockCount; i++) {
+            if (availableNumbers.length === 0) break;
+            
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            const selectedNumber = availableNumbers.splice(randomIndex, 1)[0];
+            selectedNumbers.push(selectedNumber);
+        }
+        
+        // Shuffle the selected numbers so they're not in order
+        return this.shuffleArray([...selectedNumbers]);
+    }
+    
+    // Shuffle array helper method
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
     }
     
     // SIMPLIFIED: Calculate container positions with proper stacking
@@ -305,7 +459,10 @@ class StacksGameController {
         this.rainbow.addPiece();
         
         // Add teddy to top of tower
-        const teddyImageUrl = STACKS_CONFIG.TEDDY_IMAGES[this.currentQuestion - 1];
+        const teddyImageUrl = this.isInContinuationMode ? 
+            STACKS_CONFIG.TEDDY_IMAGES[(this.continuationQuestion - 1) % STACKS_CONFIG.TEDDY_IMAGES.length] :
+            STACKS_CONFIG.TEDDY_IMAGES[this.currentQuestion - 1];
+            
         const topContainer = this.renderer.getAllContainers()
             .sort((a, b) => parseFloat(a.getAttribute('y')) - parseFloat(b.getAttribute('y')))[0];
         
@@ -341,11 +498,18 @@ class StacksGameController {
         const teddy = this.currentTeddy;
         
         // Determine which side this tower goes to (alternating left/right)
-        const isLeftSide = this.currentQuestion % 2 === 1;
+        let isLeftSide;
+        if (this.isInContinuationMode) {
+            // For continuation towers, continue the alternating pattern
+            const totalTowersSoFar = 6 + this.continuationQuestion;
+            isLeftSide = totalTowersSoFar % 2 === 1;
+        } else {
+            isLeftSide = this.currentQuestion % 2 === 1;
+        }
         
-        console.log('Moving tower', this.currentQuestion, 'to', isLeftSide ? 'left' : 'right', 'side');
+        console.log('Moving tower to', isLeftSide ? 'left' : 'right', 'side');
         
-        // FIXED: Calculate target position with proper spacing (one block width apart)
+        // Calculate target position with proper spacing
         let targetXPercent;
         const spacing = STACKS_CONFIG.COMPLETED_TOWER_SPACING_PERCENT;
         
@@ -371,36 +535,59 @@ class StacksGameController {
                 blocks: towerBlocks,
                 teddy: teddy,
                 position: targetXPercent,
-                question: this.currentQuestion,
+                question: this.isInContinuationMode ? (6 + this.continuationQuestion) : this.currentQuestion,
                 side: isLeftSide ? 'left' : 'right'
             });
             
-            console.log('Tower', this.currentQuestion, 'stored at position:', targetXPercent + '%');
+            console.log('Tower stored at position:', targetXPercent + '%');
             
-            // FIXED: Check if this is the 6th tower (all towers complete)
-            if (this.currentQuestion === 6) {
-                // Restore all towers to full opacity
-                this.restoreAllTowersOpacity();
-                
-                // Complete the rainbow (add remaining pieces to total 10)
-                this.completeRainbow();
-                
-                // Start end sequence
-                setTimeout(() => {
-                    this.endGame();
-                }, 2000);
+            // Check what to do next
+            if (this.isInContinuationMode) {
+                // In continuation mode - check if all 4 harder towers are done
+                if (this.continuationQuestion === 4) {
+                    // All towers complete! 
+                    this.restoreAllTowersOpacity();
+                    this.completeRainbow();
+                    setTimeout(() => {
+                        this.endGame();
+                    }, 2000);
+                } else {
+                    // Move to next continuation tower
+                    this.continuationQuestion++;
+                    setTimeout(() => {
+                        this.startNewQuestion();
+                    }, 1000);
+                }
             } else {
-                // Check level progression
-                this.checkLevelProgression();
-                
-                // Start next question - NEW containers will be rendered here
-                this.currentQuestion++;
-                console.log('Starting next question:', this.currentQuestion);
-                setTimeout(() => {
-                    this.startNewQuestion();
-                }, 1000);
+                // Original mode - check if first 6 towers are done
+                if (this.currentQuestion === 6) {
+                    // First 6 towers complete - show continuation modal
+                    setTimeout(() => {
+                        this.showContinuationModal();
+                    }, 1000);
+                } else {
+                    // Check level progression and continue
+                    this.checkLevelProgression();
+                    this.currentQuestion++;
+                    console.log('Starting next question:', this.currentQuestion);
+                    setTimeout(() => {
+                        this.startNewQuestion();
+                    }, 1000);
+                }
             }
         });
+    }
+    
+    // NEW: Show continuation modal asking about harder towers
+    showContinuationModal() {
+        if (this.continuationModal) {
+            this.continuationModal.classList.remove('hidden');
+            
+            // Give audio message
+            setTimeout(() => {
+                this.speakText('Great job! You have completed 6 towers. Would you like to continue with 4 harder towers using different numbers?');
+            }, 500);
+        }
     }
     
     restoreAllTowersOpacity() {
@@ -538,7 +725,10 @@ class StacksGameController {
         if ('speechSynthesis' in window) speechSynthesis.cancel();
         if (this.audioContext) this.audioContext.close();
         
-        // Removed manual button cleanup - handled by shared systems
+        // Remove continuation modal
+        if (this.continuationModal && this.continuationModal.parentNode) {
+            this.continuationModal.parentNode.removeChild(this.continuationModal);
+        }
     }
 }
 
