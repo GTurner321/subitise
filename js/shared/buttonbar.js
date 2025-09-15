@@ -255,10 +255,10 @@ class ButtonBar {
             dimensions: this.dimensions
         });
     }
-    
+
 /**
  * FIXED: Reinitialize rainbow after game area has proper dimensions
- * Now supports multiple games (subitGame, drawGame, sliderRandomGame, etc.)
+ * Now supports multiple games including addition game
  */
 reinitializeRainbow() {
     console.log('🌈 Reinitializing rainbow for all supported games');
@@ -270,10 +270,11 @@ reinitializeRainbow() {
         return;
     }
     
-    // Method 2: Game controller instances
+    // Method 2: Game controller instances - UPDATED to include addGame
     const gameControllers = [
         { name: 'drawGame', instance: window.drawGame },
         { name: 'subitGame', instance: window.subitGame },
+        { name: 'addGame', instance: window.addGame },           // ✅ ADDED THIS LINE
         { name: 'sliderRandomGame', instance: window.sliderRandomGame }
     ];
     
@@ -303,7 +304,7 @@ reinitializeRainbow() {
     if (!rainbowFound) {
         console.warn('⚠️ No rainbow instances found to reinitialize');
     }
-}
+}    
     
     calculateDimensions() {
         const screenWidth = window.innerWidth;
