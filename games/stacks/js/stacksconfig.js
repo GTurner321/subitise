@@ -109,17 +109,8 @@ const STACKS_CONFIG = {
         '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'
     ],
     
-    // Teddy images
-    TEDDY_IMAGES: [
-        '../../assets/trumps/blackbear.png',
-        '../../assets/trumps/dinosaur.png', 
-        '../../assets/trumps/flabberjabber.png',
-        '../../assets/raisin/guineapig1.png',
-        '../../assets/bear.png',
-        '../../assets/trumps/vowels.png',
-        '../../assets/trumps/gemsbear.png',
-        '../../assets/trumps/knightbear.png'
-    ],
+    // NOTE: TEDDY_IMAGES array removed - now handled dynamically in game controller
+    // with randomized selection from all available assets to prevent repeats
     
     // Audio settings
     AUDIO_ENABLED: true,
