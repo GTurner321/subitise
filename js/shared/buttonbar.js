@@ -274,7 +274,10 @@ reinitializeRainbow() {
     const gameControllers = [
         { name: 'drawGame', instance: window.drawGame },
         { name: 'subitGame', instance: window.subitGame },
-        { name: 'addGame', instance: window.addGame },           // ✅ ADDED THIS LINE
+        { name: 'addGame', instance: window.addGame },
+        { name: 'twodiceGame', instance: window.twodiceGame },
+        { name: 'plusoneGame', instance: window.plusoneGame },
+        { name: 'raisinGame', instance: window.raisinGame },
         { name: 'sliderRandomGame', instance: window.sliderRandomGame }
     ];
     
