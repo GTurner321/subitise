@@ -275,8 +275,8 @@ reinitializeRainbow() {
         { name: 'drawGame', instance: window.drawGame },
         { name: 'subitGame', instance: window.subitGame },
         { name: 'addGame', instance: window.addGame },
-        { name: 'twodiceGame', instance: window.twodiceGame },
-        { name: 'plusoneGame', instance: window.plusoneGame },
+        { name: 'twoDiceGame', instance: window.twoDiceGame },
+        { name: 'plusOneGame', instance: window.plusOneGame },
         { name: 'raisinGame', instance: window.raisinGame },
         { name: 'sliderRandomGame', instance: window.sliderRandomGame }
     ];
