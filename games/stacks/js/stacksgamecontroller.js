@@ -60,10 +60,9 @@ class StacksGameController {
         this.continuationModal.innerHTML = `
             <div class="modal-content">
                 <h2 id="continuationModalTitle">🌈 Great Job! 🌈</h2>
-                <p id="continuationModalMessage">Would you like to continue with 4 harder towers?</p>
                 <button class="play-again-btn" id="continueBtn">
                     <i class="fas fa-arrow-right"></i>
-                    CONTINUE TO 4 MORE
+                    CONTINUE
                 </button>
             </div>
         `;
@@ -196,7 +195,7 @@ class StacksGameController {
         
         // Give audio instruction
         setTimeout(() => {
-            this.speakText('Now let\'s try some harder towers with different numbers!');
+            this.speakText('Now let\'s try some harder towers with different numbers. Order the blocks from lowest to highest.');
         }, 1000);
     }
     
@@ -585,7 +584,7 @@ class StacksGameController {
             
             // Give audio message
             setTimeout(() => {
-                this.speakText('Great job! You have completed 6 towers. Would you like to continue with 4 harder towers using different numbers?');
+                this.speakText('Great job! You have completed 6 towers.');
             }, 500);
         }
     }
