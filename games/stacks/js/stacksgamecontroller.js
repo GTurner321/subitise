@@ -20,6 +20,10 @@ class StacksGameController {
         this.isInContinuationMode = false;
         this.continuationQuestion = 1; // 1-4 for the 4 harder towers
         
+        // NEW: Randomized teddy images for towers (no repeats per game)
+        this.availableTeddyImages = [];
+        this.shuffleTeddyImages();
+        
         // SIMPLIFIED: Track existing block positions for non-overlap placement
         this.existingGroundBlocks = [];
         
@@ -39,6 +43,60 @@ class StacksGameController {
         this.handleResize = this.handleResize.bind(this);
         
         this.initializeGame();
+    }
+    
+    // NEW: Shuffle teddy images for random assignment (no repeats per game)
+    shuffleTeddyImages() {
+        // All available teddy images from the assets
+        const allTeddyImages = [
+            '../../assets/bear.png',
+            '../../assets/trumps/biscuitbear.png',
+            '../../assets/trumps/blackbear.png',
+            '../../assets/trumps/casperrabbit.png',
+            '../../assets/trumps/chick.png',
+            '../../assets/trumps/dinosaur.png',
+            '../../assets/trumps/elephant.png',
+            '../../assets/trumps/flabberjabber.png',
+            '../../assets/trumps/gemsbear.png',
+            '../../assets/trumps/knightbear.png',
+            '../../assets/trumps/legoduck.png',
+            '../../assets/trumps/penguin.png',
+            '../../assets/trumps/sheep.png',
+            '../../assets/trumps/softrabbit.png',
+            '../../assets/trumps/vowels.png',
+            '../../assets/raisin/guineapig3.png'
+        ];
+        
+        // Shuffle the array using Fisher-Yates algorithm
+        this.availableTeddyImages = [...allTeddyImages];
+        for (let i = this.availableTeddyImages.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.availableTeddyImages[i], this.availableTeddyImages[j]] = 
+                [this.availableTeddyImages[j], this.availableTeddyImages[i]];
+        }
+        
+        console.log('Shuffled teddy images for new game:', this.availableTeddyImages.slice(0, 10));
+    }
+    
+    // NEW: Get next teddy image from shuffled list
+    getNextTeddyImage() {
+        // Calculate which teddy to use based on total towers completed
+        let teddyIndex;
+        if (this.isInContinuationMode) {
+            // For continuation towers (7th-10th towers)
+            teddyIndex = 6 + (this.continuationQuestion - 1);
+        } else {
+            // For regular towers (1st-6th towers)
+            teddyIndex = this.currentQuestion - 1;
+        }
+        
+        // Ensure we don't go out of bounds
+        if (teddyIndex >= this.availableTeddyImages.length) {
+            teddyIndex = teddyIndex % this.availableTeddyImages.length;
+        }
+        
+        console.log(`Using teddy ${teddyIndex}: ${this.availableTeddyImages[teddyIndex]}`);
+        return this.availableTeddyImages[teddyIndex];
     }
     
     async initializeGame() {
@@ -156,6 +214,9 @@ class StacksGameController {
         this.existingGroundBlocks = [];
         this.isInContinuationMode = false;
         this.continuationQuestion = 1;
+        
+        // NEW: Reshuffle teddy images for new game
+        this.shuffleTeddyImages();
         
         // Hide all modals
         if (this.modal) this.modal.classList.add('hidden');
@@ -458,9 +519,7 @@ class StacksGameController {
         this.rainbow.addPiece();
         
         // Add teddy to top of tower
-        const teddyImageUrl = this.isInContinuationMode ? 
-            STACKS_CONFIG.TEDDY_IMAGES[(this.continuationQuestion - 1) % STACKS_CONFIG.TEDDY_IMAGES.length] :
-            STACKS_CONFIG.TEDDY_IMAGES[this.currentQuestion - 1];
+        const teddyImageUrl = this.getNextTeddyImage(); // NEW: Use randomized teddy selection
             
         const topContainer = this.renderer.getAllContainers()
             .sort((a, b) => parseFloat(a.getAttribute('y')) - parseFloat(b.getAttribute('y')))[0];
