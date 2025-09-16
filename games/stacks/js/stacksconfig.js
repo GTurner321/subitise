@@ -1,4 +1,4 @@
-// Stacks Game Configuration - Fixed positioning and simplified block placement
+// Stacks Game Configuration - Updated with new number sets and lighter colors
 const STACKS_CONFIG = {
     // Game dimensions (percentage of viewport) - Square blocks
     BLOCK_HEIGHT_PERCENT: 9.6,  // 9.6% of viewport height
@@ -56,7 +56,7 @@ const STACKS_CONFIG = {
     BLOCK_ANIMATION_DURATION: 500,
     TEDDY_APPEAR_DELAY: 1000,
     
-    // Level system
+    // Level system - UPDATED with new number sets
     LEVELS: {
         1: {
             name: "Level 1",
@@ -72,26 +72,26 @@ const STACKS_CONFIG = {
         },
         3: {
             name: "Level 3",
-            description: "Numbers 11-20, consecutive", 
-            generateNumbers: (count) => generateConsecutiveNumbers(11, 20, count),
+            description: "Multiples of 10", // SWAPPED: Now multiples of 10
+            generateNumbers: (count) => generateConsecutiveFromSet([10,20,30,40,50,60,70,80,90], count),
             moveThreshold: 2
         },
         4: {
             name: "Level 4",
-            description: "Multiples of 10",
-            generateNumbers: (count) => generateConsecutiveFromSet([10,20,30,40,50,60,70,80,90], count),
+            description: "Numbers 11-25, consecutive", // UPDATED: Now 11-25 instead of multiples of 10
+            generateNumbers: (count) => generateConsecutiveNumbers(11, 25, count),
             moveThreshold: 2
         },
         5: {
             name: "Level 5",
-            description: "Numbers 1-99",
-            generateNumbers: (count) => generateConsecutiveNumbers(1, 99, count),
+            description: "Numbers 24-99", // UPDATED: Changed from 1-99 to 24-99
+            generateNumbers: (count) => generateConsecutiveNumbers(24, 99, count),
             moveThreshold: 2
         },
         6: {
             name: "Level 6", 
-            description: "Hundreds (##0)",
-            generateNumbers: (count) => generateConsecutiveHundreds(count),
+            description: "Hundreds or tens table (3-digit)", // UPDATED description
+            generateNumbers: (count) => generateLevel6Numbers(count),
             moveThreshold: 2,
             useWideBlocks: true
         }
@@ -103,10 +103,18 @@ const STACKS_CONFIG = {
     CONTAINER_STROKE_WIDTH: 2,
     CONTAINER_OPACITY: 0.6, // FIXED: 60% opaque (40% transparent)
     
-    // FIXED: Brighter color palette from previous game
+    // UPDATED: Lighter, more primary colors
     BLOCK_COLORS: [
-        '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', 
-        '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'
+        '#FFB3BA', // Light Red/Pink
+        '#FFDFBA', // Light Orange/Peach  
+        '#FFFFBA', // Light Yellow
+        '#BAFFC9', // Light Green
+        '#BAE1FF', // Light Blue
+        '#E1BAFF', // Light Purple/Lavender
+        '#FFE1FF', // Light Magenta/Pink
+        '#C9FFBA', // Light Lime Green
+        '#FFCBA4', // Light Coral
+        '#D4EDDA'  // Light Mint
     ],
     
     // NOTE: TEDDY_IMAGES array removed - now handled dynamically in game controller
@@ -126,6 +134,22 @@ const STACKS_CONFIG = {
     TOTAL_QUESTIONS: 6,  // FIXED: Changed from 8 to 6 as per requirement
     FINAL_RAINBOW_ARCS: 3
 };
+
+// NEW: Generate numbers for Level 6 - either hundreds or 3-digit tens table
+function generateLevel6Numbers(count) {
+    // 50% chance for each type
+    if (Math.random() < 0.5) {
+        // Traditional hundreds: 100, 200, 300, etc.
+        return generateConsecutiveHundreds(count);
+    } else {
+        // 3-digit tens table: 100, 110, 120, ..., 990
+        const tensTable = [];
+        for (let i = 100; i <= 990; i += 10) {
+            tensTable.push(i);
+        }
+        return generateConsecutiveFromSet(tensTable, count);
+    }
+}
 
 // SIMPLIFIED: Generate random ground position using predefined locations
 function generateRandomGroundPosition(existingBlocks = []) {
@@ -156,9 +180,6 @@ function generateRandomGroundPosition(existingBlocks = []) {
     const selectedPosition = availablePositions[Math.floor(Math.random() * availablePositions.length)];
     return { x: selectedPosition.x, y: selectedPosition.y };
 }
-
-// REMOVED: Old complex positioning functions that were causing errors
-// These functions are no longer used - all positioning is now done directly in the renderer
 
 // Helper function for container placement - FIXED to use tower base position
 function getContainerGroundY() {
