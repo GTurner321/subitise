@@ -689,24 +689,17 @@ class StacksGameController {
         
         for (let i = 0; i < piecesToAdd; i++) {
             setTimeout(() => {
-                this.rainbow.addPiece();
-            }, i * 200);
-        }
-        
-        // FIXED: Check if rainbow is complete after adding pieces and start celebration
-        setTimeout(() => {
-            if (this.rainbow.getPieces() >= totalPieces) {
-                console.log('🌈 Rainbow complete! Starting celebration sequence...');
+                const pieces = this.rainbow.addPiece();
+                console.log(`Added rainbow piece: ${pieces}/${totalPieces}`);
                 
-                // Start rainbow celebration sequence
-                if (this.rainbow.startFinalCelebration) {
-                    this.rainbow.startFinalCelebration();
-                } else {
-                    // Fallback: trigger completion
+                // Check if complete after each piece is added
+                if (pieces >= totalPieces) {
+                    console.log('🌈 Rainbow complete! Triggering celebration...');
+                    // The rainbow's own isComplete() method should handle the celebration
                     this.rainbow.isComplete();
                 }
-            }
-        }, piecesToAdd * 200 + 500);
+            }, i * 200);
+        }
     }
     
     checkLevelProgression() {
