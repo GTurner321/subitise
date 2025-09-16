@@ -254,7 +254,7 @@ class StacksGameController {
         // Start first harder tower
         this.startNewQuestion();
         
-        // Give audio instruction
+        // Give audio instruction - UPDATED: Simplified message for set 5 onwards
         setTimeout(() => {
             this.speakText('Now let\'s try some harder towers with different numbers. Order the blocks from lowest to highest.');
         }, 1000);
@@ -351,11 +351,24 @@ class StacksGameController {
         
         console.log('New tower rendered with', containerPositions.length, 'containers and', blockPositions.length, 'blocks');
         
-        // Give audio instruction using shared system
+        // Give audio instruction using shared system - UPDATED for sets 5 onwards
         setTimeout(() => {
-            const sortedNumbers = [...numbers].sort((a, b) => a - b);
-            this.speakText(`Build a tower with ${sortedNumbers.join(', ')} from bottom to top`);
+            this.giveAudioInstruction(numbers);
         }, 1000);
+    }
+    
+    // UPDATED: Give appropriate audio instruction based on current level
+    giveAudioInstruction(numbers) {
+        const sortedNumbers = [...numbers].sort((a, b) => a - b);
+        const lowestNumber = sortedNumbers[0];
+        
+        // For sets 5 onwards (currentLevel >= 5 or continuation mode), use simplified instruction
+        if (this.currentLevel >= 5 || this.isInContinuationMode) {
+            this.speakText(`Order the numbers from lowest to highest, starting with block number ${lowestNumber}`);
+        } else {
+            // For sets 1-4, call out all numbers
+            this.speakText(`Build a tower with ${sortedNumbers.join(', ')} from bottom to top`);
+        }
     }
     
     // NEW: Generate numbers for continuation towers based on specified ranges
@@ -471,7 +484,7 @@ class StacksGameController {
     createGameBlocks(numbers, useWideBlocks = false) {
         const blocks = [];
         
-        // FIXED: Use brighter colors with no repeats
+        // UPDATED: Use lighter, more primary colors with no repeats
         const availableColors = [...STACKS_CONFIG.BLOCK_COLORS]; // Copy array
         
         numbers.forEach(number => {
@@ -515,8 +528,9 @@ class StacksGameController {
         // FIXED: Hide containers on completion
         this.renderer.hideCurrentTowerContainers();
         
-        // Add rainbow piece
-        this.rainbow.addPiece();
+        // Add rainbow piece - FIXED: This should trigger celebration when complete
+        const pieces = this.rainbow.addPiece();
+        console.log(`Rainbow pieces: ${pieces}/${STACKS_CONFIG.RAINBOW_PIECES}`);
         
         // Add teddy to top of tower
         const teddyImageUrl = this.getNextTeddyImage(); // NEW: Use randomized teddy selection
@@ -664,6 +678,7 @@ class StacksGameController {
         console.log('All towers restored to full opacity');
     }
     
+    // FIXED: Complete rainbow and trigger celebration sequence
     completeRainbow() {
         // Add remaining rainbow pieces to reach total of 10
         const currentPieces = this.rainbow.getPieces();
@@ -678,10 +693,18 @@ class StacksGameController {
             }, i * 200);
         }
         
-        // Start rainbow end sequence after all pieces are added
+        // FIXED: Check if rainbow is complete after adding pieces and start celebration
         setTimeout(() => {
-            if (this.rainbow.startCongratulationsSequence) {
-                this.rainbow.startCongratulationsSequence();
+            if (this.rainbow.getPieces() >= totalPieces) {
+                console.log('🌈 Rainbow complete! Starting celebration sequence...');
+                
+                // Start rainbow celebration sequence
+                if (this.rainbow.startFinalCelebration) {
+                    this.rainbow.startFinalCelebration();
+                } else {
+                    // Fallback: trigger completion
+                    this.rainbow.isComplete();
+                }
             }
         }, piecesToAdd * 200 + 500);
     }
@@ -703,31 +726,40 @@ class StacksGameController {
         }
     }
     
+    // FIXED: End game with proper celebration sequence
     endGame() {
+        console.log('🎮 Starting end game sequence...');
+        
+        // Add final rainbow arcs
         for (let i = 0; i < STACKS_CONFIG.FINAL_RAINBOW_ARCS; i++) {
             setTimeout(() => {
                 this.rainbow.addPiece();
             }, i * 300);
         }
         
+        // Show completion modal and start bear celebration
         setTimeout(() => {
             this.showCompletionModal();
         }, STACKS_CONFIG.FINAL_RAINBOW_ARCS * 300 + 1000);
     }
     
+    // FIXED: Show completion modal with bear celebration
     showCompletionModal() {
-        if (this.modal && this.modalTitle && this.modalMessage) {
+        if (this.modal && this.modalTitle) {
             // FIXED: Use simple "Well Done!" message as requested
             this.modalTitle.textContent = '🌈 Well Done! 🌈';
                     
             this.modal.classList.remove('hidden');
             
+            // FIXED: Start bear celebration when modal shows
             setTimeout(() => {
-                this.speakText('Well done! You have completed all the towers! Play again or return to the home page.');
+                console.log('🐻 Starting bear celebration...');
+                this.bear.startCelebration();
             }, 500);
             
+            // Give completion audio message
             setTimeout(() => {
-                this.bear.startCelebration();
+                this.speakText('Well done! You have completed all the towers! Play again or return to the home page.');
             }, 1000);
         }
     }
