@@ -622,7 +622,7 @@ class StacksGameController {
                     this.completeRainbow();
                     setTimeout(() => {
                         this.endGame();
-                    }, 2000);
+                    }, 0); // UPDATED: Reduced delay to 0 (2 seconds faster)
                 } else {
                     // Move to next continuation tower
                     this.continuationQuestion++;
