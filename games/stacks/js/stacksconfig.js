@@ -135,19 +135,31 @@ const STACKS_CONFIG = {
     FINAL_RAINBOW_ARCS: 3
 };
 
-// NEW: Generate numbers for Level 6 - either hundreds or 3-digit tens table
+// NEW: Generate numbers for Level 6 - either hundreds or consecutive tens within same hundred
 function generateLevel6Numbers(count) {
     // 50% chance for each type
     if (Math.random() < 0.5) {
         // Traditional hundreds: 100, 200, 300, etc.
         return generateConsecutiveHundreds(count);
     } else {
-        // 3-digit tens table: 100, 110, 120, ..., 990
-        const tensTable = [];
-        for (let i = 100; i <= 990; i += 10) {
-            tensTable.push(i);
+        // NEW: Consecutive 3-digit numbers in tens (7 numbers max, tens position 0-3)
+        // Valid starting tens positions: 0, 1, 2, 3 (so 7 consecutive numbers stay in same hundred)
+        const validStartingTens = [0, 1, 2, 3]; // Can start at X00, X10, X20, X30
+        const selectedTens = validStartingTens[Math.floor(Math.random() * validStartingTens.length)];
+        
+        // Choose random hundred (1-9 for 100-900)
+        const hundred = (Math.floor(Math.random() * 9) + 1) * 100; // 100, 200, 300, ..., 900
+        
+        // Generate consecutive numbers starting from hundred + (selectedTens * 10)
+        const startNumber = hundred + (selectedTens * 10);
+        const numbers = [];
+        
+        for (let i = 0; i < count; i++) {
+            numbers.push(startNumber + (i * 10));
         }
-        return generateConsecutiveFromSet(tensTable, count);
+        
+        console.log(`Level 6 consecutive tens: Starting at ${startNumber}, generated:`, numbers);
+        return shuffleArray([...numbers]);
     }
 }
 
