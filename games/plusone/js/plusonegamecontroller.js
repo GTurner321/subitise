@@ -240,26 +240,26 @@ class PlusOneGameController {
         // Set the correct operator symbol from the start
         this.updateOperatorSymbol();
         
-        // Start all elements at 0% opacity
+        // Start all elements at 0% opacity but don't flash them
         this.hideAllElements();
         
-        // Set up game area for controlled fade-in
+        // Set up game area for controlled fade-in - reduced delay
         setTimeout(() => {
             if (this.sumRow) {
                 this.sumRow.classList.add('sum-bar-ready');
             }
-        }, CONFIG.INITIAL_FADE_DELAY);
+        }, 500); // Reduced from 1000ms
         
-        // Wait for initial delay, then fade everything in together
+        // Wait for shorter delay, then fade everything in together
         setTimeout(() => {
             this.controlledFadeIn();
             this.initializationComplete = true;
             
             setTimeout(() => {
                 this.gameLogic.startNewQuestion();
-            }, 500);
+            }, 300); // Reduced from 500ms
             
-        }, CONFIG.INITIAL_FADE_DELAY);
+        }, 500); // Reduced from 1000ms to minimize delay
     }
 
     updateOperatorSymbol() {
