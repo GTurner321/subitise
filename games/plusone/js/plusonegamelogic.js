@@ -423,15 +423,18 @@ class PlusOneGameLogic {
             correctAnswer = true;
         }
         
-        // Record first attempt
+        // Track if this was the first attempt at any answer for this question
+        const wasFirstAttemptAtQuestion = !this.controller.hasAttemptedAnyAnswer;
+        
+        // Mark that an attempt has been made
         if (!this.controller.hasAttemptedAnyAnswer) {
             this.controller.hasAttemptedAnyAnswer = true;
         }
         
         if (correctAnswer) {
             this.usedAnswersInCurrentQuestion.add(selectedNumber);
-            console.log(`✅ Used answer: ${selectedNumber}. Used: [${Array.from(this.usedAnswersInCurrentQuestion).join(', ')}]`);
-            this.checkQuestionCompletion();
+            console.log(`✅ Used answer: ${selectedNumber}. Used: [${Array.from(this.usedAnswersInCurrentQuestion).join(', ')}]. First attempt: ${wasFirstAttemptAtQuestion}`);
+            this.checkQuestionCompletion(wasFirstAttemptAtQuestion);
         } else {
             this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
@@ -542,7 +545,7 @@ class PlusOneGameLogic {
         }, 2100);
     }
 
-    checkQuestionCompletion() {
+    checkQuestionCompletion(wasFirstAttemptAtQuestion = false) {
         const questionComplete = this.controller.leftFilled && this.controller.totalFilled;
         
         if (questionComplete) {
@@ -551,13 +554,17 @@ class PlusOneGameLogic {
             
             this.controller.checkMark.classList.add('visible');
             
-            const wasFirstAttempt = !this.controller.hasAttemptedAnyAnswer;
-            this.handleLevelProgression(wasFirstAttempt);
+            // Check if this was a first attempt completion of the ENTIRE question
+            // (Not just the individual box that was just filled)
+            const wasQuestionCompletedOnFirstAttempt = wasFirstAttemptAtQuestion && !this.controller.hasAttemptedAnyAnswer;
+            
+            console.log(`🎯 Question completed! Individual box first attempt: ${wasFirstAttemptAtQuestion}, Overall first attempt: ${wasQuestionCompletedOnFirstAttempt}, Had any attempts: ${this.controller.hasAttemptedAnyAnswer}`);
+            this.handleLevelProgression(wasQuestionCompletedOnFirstAttempt);
             
             const pieces = this.controller.rainbow.addPiece();
             
-            if (this.controller.shouldUsePictureFormat() || wasFirstAttempt) {
-                this.giveCompletionFeedback(wasFirstAttempt);
+            if (this.controller.shouldUsePictureFormat() || wasQuestionCompletedOnFirstAttempt) {
+                this.giveCompletionFeedback(wasQuestionCompletedOnFirstAttempt);
             }
             
             this.controller.questionsCompleted++;
