@@ -300,7 +300,7 @@ class PlusOneContentRenderer {
         const isPictureFormat = CONFIG.usesPictureFormat(currentLevel, gameMode);
         
         if (isPictureFormat) {
-            this.renderIcons(leftCount);
+            this.renderIcons(leftCount, gameMode);
         } else {
             this.renderNumbers(leftCount, gameMode);
         }
@@ -312,7 +312,7 @@ class PlusOneContentRenderer {
         return { left: leftCount, right: rightCount, total: totalValue };
     }
 
-    renderIcons(leftCount) {
+    renderIcons(leftCount, gameMode = CONFIG.GAME_MODES.PLUS_ONE) {
         // Choose one icon type and color for all icons in this round
         const iconClass = this.helpers.getRandomIcon();
         const iconColor = this.helpers.getRandomColor();
@@ -320,12 +320,17 @@ class PlusOneContentRenderer {
         console.log(`🎨 Selected: ${iconClass} in color ${iconColor}`);
         console.log(`📐 Game area dimensions:`, this.gameAreaDimensions);
         
+        // Determine right side count based on game mode
+        const rightCount = gameMode === CONFIG.GAME_MODES.PLUS_TWO ? 2 : 1; // 2 for Plus Two, 1 for Plus One/Minus One
+        
+        console.log(`🎮 Game mode: ${gameMode}, Right side icons: ${rightCount}`);
+        
         // Store the new content counts
-        this.currentContentCount = { left: leftCount, right: 1 };
+        this.currentContentCount = { left: leftCount, right: rightCount };
         
         // Generate positions for both sides (as percentages of game area)
         const leftPositions = this.helpers.generatePositions(leftCount, 'left', 'icon');
-        const rightPositions = this.helpers.generatePositions(1, 'right', 'icon'); // Always 1 icon on right
+        const rightPositions = this.helpers.generatePositions(rightCount, 'right', 'icon');
         
         // Store positions for future resize events
         this.storedPositions.left = [...leftPositions];
