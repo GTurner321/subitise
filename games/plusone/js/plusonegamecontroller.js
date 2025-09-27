@@ -412,6 +412,11 @@ class PlusOneGameController {
         // Apply level 4 cap for new games
         this.currentLevel = Math.min(this.currentLevel, 4);
         
+        // Debug: Log starting level information
+        const levelConfig = this.getCurrentLevels()[this.currentLevel];
+        const willUsePictureFormat = this.shouldUsePictureFormat();
+        console.log(`🚀 Starting game - Level ${this.currentLevel}: ${levelConfig.name}, Format: ${willUsePictureFormat ? 'Pictures' : 'Numbers'}, Numbers: [${levelConfig.numbers.join(', ')}]`);
+        
         this.questionsCompleted = 0;
         this.gameComplete = false;
         this.usedNumbersInLevel.clear();
