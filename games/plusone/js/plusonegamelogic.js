@@ -585,18 +585,26 @@ class PlusOneGameLogic {
         if (wasFirstAttempt) {
             if (this.controller.currentLevel < 10) {
                 this.controller.currentLevel++;
+                console.log(`📈 Level progression: ${oldLevel} → ${this.controller.currentLevel} (first attempt success)`);
             }
             this.controller.failedAtCurrentLevel = false;
         } else {
             if (this.controller.failedAtCurrentLevel) {
                 if (this.controller.currentLevel > 1) {
                     this.controller.currentLevel--;
+                    console.log(`📉 Level regression: ${oldLevel} → ${this.controller.currentLevel} (redemption system)`);
                 }
                 this.controller.failedAtCurrentLevel = false;
             } else {
                 this.controller.failedAtCurrentLevel = true;
+                console.log(`⚠️ Failed at level ${this.controller.currentLevel}, marked for potential regression`);
             }
         }
+        
+        // Log level transition information
+        const newLevelConfig = this.controller.getCurrentLevels()[this.controller.currentLevel];
+        const willUsePictureFormat = CONFIG.usesPictureFormat(this.controller.currentLevel, this.controller.gameMode);
+        console.log(`🎯 Next level ${this.controller.currentLevel}: ${newLevelConfig.name}, Format: ${willUsePictureFormat ? 'Pictures' : 'Numbers'}`);
     }
 
     giveCompletionFeedback(wasFirstAttempt = true) {
