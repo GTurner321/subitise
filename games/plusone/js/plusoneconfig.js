@@ -1,12 +1,13 @@
-// Plus One and Minus One game configuration settings
+// Plus One, Minus One, and Plus Two game configuration settings
 const CONFIG = {
-    // Game modes
+    // Game modes - UPDATED to include Plus Two
     GAME_MODES: {
         PLUS_ONE: 'plus_one',
-        MINUS_ONE: 'minus_one'
+        MINUS_ONE: 'minus_one',
+        PLUS_TWO: 'plus_two'
     },
     
-    // Plus One level definitions
+    // Plus One level definitions (same as before)
     PLUS_ONE_LEVELS: {
         1: { numbers: [1, 2, 3, 4], name: 'Level 1' },
         2: { numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9], name: 'Level 2' },
@@ -32,7 +33,7 @@ const CONFIG = {
         }
     },
     
-    // Minus One level definitions
+    // Minus One level definitions (same as before)
     MINUS_ONE_LEVELS: {
         1: { numbers: [2, 3, 4, 5], name: 'Level 1' },
         2: { numbers: [6, 7, 8, 9, 10, 11], name: 'Level 2' },
@@ -58,14 +59,47 @@ const CONFIG = {
         10: { numbers: [200, 300, 400, 500, 600, 700, 800, 900, 1000], name: 'Level 10' }
     },
     
-    // Get appropriate levels based on game mode
-    getLevels: function(gameMode) {
-        return gameMode === this.GAME_MODES.MINUS_ONE ? this.MINUS_ONE_LEVELS : this.PLUS_ONE_LEVELS;
+    // Plus Two level definitions - NEW (same ranges as Plus One)
+    PLUS_TWO_LEVELS: {
+        1: { numbers: [1, 2, 3, 4], name: 'Level 1' },
+        2: { numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9], name: 'Level 2' },
+        3: { numbers: [10, 11, 12, 13, 14, 15, 16, 17, 18], name: 'Level 3' },
+        4: { numbers: [20, 30, 40, 50, 60, 70, 80, 90], name: 'Level 4' },
+        5: { numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9], name: 'Level 5' }, // Same as level 2
+        6: { 
+            // 20-98, excluding #9 format (19,29,39,49,59,69,79,89)
+            numbers: Array.from({length: 79}, (_, i) => i + 20).filter(num => num % 10 !== 9), 
+            name: 'Level 6' 
+        },
+        7: { 
+            // Repeat level 6: 20-98, excluding #9 format
+            numbers: Array.from({length: 79}, (_, i) => i + 20).filter(num => num % 10 !== 9), 
+            name: 'Level 7' 
+        },
+        8: { numbers: [19, 29, 39, 49, 59, 69, 79, 89], name: 'Level 8' },
+        9: { numbers: Array.from({length: 99}, (_, i) => i + 100), name: 'Level 9' }, // 100-198
+        10: { 
+            // ##0 format: numbers ending in 0 from 100 to 990
+            numbers: Array.from({length: 90}, (_, i) => (i + 10) * 10), 
+            name: 'Level 10' 
+        }
     },
     
-    // Check if level uses picture format (only Plus One levels 1, 2, and 5)
+    // Get appropriate levels based on game mode - UPDATED
+    getLevels: function(gameMode) {
+        if (gameMode === this.GAME_MODES.MINUS_ONE) {
+            return this.MINUS_ONE_LEVELS;
+        } else if (gameMode === this.GAME_MODES.PLUS_TWO) {
+            return this.PLUS_TWO_LEVELS;
+        } else {
+            return this.PLUS_ONE_LEVELS;
+        }
+    },
+    
+    // Check if level uses picture format - UPDATED to include Plus Two
     usesPictureFormat: function(level, gameMode) {
-        return gameMode === this.GAME_MODES.PLUS_ONE && (level <= 2 || level === 5);
+        return (gameMode === this.GAME_MODES.PLUS_ONE || gameMode === this.GAME_MODES.PLUS_TWO) && 
+               (level <= 2 || level === 5);
     },
     
     // Font Awesome icons suitable for nursery age children (levels 1-2 and 5 only)
@@ -178,9 +212,9 @@ const CONFIG = {
         900: 'nine hundred', 1000: 'one thousand'
     },
     
-    // Audio messages for both game modes
+    // Audio messages for all three game modes - UPDATED
     AUDIO: {
-        // Plus One messages
+        // Plus One messages (same as before)
         PLUS_ONE: {
             FIRST_QUESTION: 'Complete the plus one sum',
             SECOND_QUESTION: 'Try again and complete the sum',
@@ -195,17 +229,15 @@ const CONFIG = {
                 WHAT_COMES_AFTER: (n) => `What number comes after ${n}?`
             },
             SUM_REPETITION: (n, answer) => `One more than ${n} is ${answer}`,
-            GAME_COMPLETE: 'Well done! Choose the top button to play again, the bottom button to try subtracting one, or return to the home page.'
+            GAME_COMPLETE: 'Well done! Choose the top button to play again, the middle button to try subtracting one, or the bottom button to try adding two, or return to the home page.'
         },
         
-        // Minus One messages
+        // Minus One messages (same as before)
         MINUS_ONE: {
             FIRST_QUESTION: 'Complete the minus one sum',
             SECOND_QUESTION: 'Try again and complete the sum',
             LATER_QUESTIONS: 'Complete the sum',
-            // First question format
             FIRST_NUMBER_FORMAT_QUESTION: (n) => `What number is one less than ${n}?`,
-            // Random question formats for subsequent questions
             NUMBER_FORMAT_QUESTIONS: [
                 (n) => `What number is 1 less than ${n}?`,
                 (n) => `What is ${n} subtract 1?`,
@@ -222,7 +254,25 @@ const CONFIG = {
                 WHAT_COMES_BEFORE: (n) => `What number comes before ${n}?`
             },
             SUM_REPETITION: (n, answer) => `One less than ${n} is ${answer}`,
-            GAME_COMPLETE: 'Well done! Choose the top button to play again, the bottom button to play plus one, or return to the home page.'
+            GAME_COMPLETE: 'Well done! Choose the top button to play again, the middle button to play plus one, or the bottom button to try adding two, or return to the home page.'
+        },
+        
+        // Plus Two messages - NEW
+        PLUS_TWO: {
+            FIRST_QUESTION: 'Complete the plus two sum',
+            SECOND_QUESTION: 'Try again and complete the sum',
+            LATER_QUESTIONS: 'Complete the sum',
+            NUMBER_FORMAT_QUESTION: (n) => `What number is two more than ${n}?`,
+            HINTS: {
+                COUNT_LEFT: 'Count the number of pictures on the left side',
+                COUNT_RIGHT: 'Count the number of pictures on the right side',
+                WHAT_IS_PLUS_TWO: (n) => `What is ${n} plus two?`
+            },
+            NUMBER_HINTS: {
+                WHAT_COMES_AFTER_TWO: (n) => `What number comes two after ${n}?`
+            },
+            SUM_REPETITION: (n, answer) => `Two more than ${n} is ${answer}`,
+            GAME_COMPLETE: 'Well done! Choose the top button to play again, the middle button to try subtracting one, or the bottom button to try adding one, or return to the home page.'
         },
         
         // Common messages
@@ -279,17 +329,19 @@ const CONFIG = {
     FAILSAFE_TIMEOUT: 2000,
     MAX_READY_CHECKS: 40,
     
-    // Local storage keys for session-only persistence (not cross-session)
+    // Local storage keys for session-only persistence (not cross-session) - UPDATED
     STORAGE_KEYS: {
         PLUS_ONE_LEVEL: 'session_plusone_current_level',
-        MINUS_ONE_LEVEL: 'session_minusone_current_level'
+        MINUS_ONE_LEVEL: 'session_minusone_current_level',
+        PLUS_TWO_LEVEL: 'session_plustwo_current_level'
     },
     
-    // Session storage management
+    // Session storage management - UPDATED
     clearStoredLevels: function() {
         try {
             sessionStorage.removeItem(this.STORAGE_KEYS.PLUS_ONE_LEVEL);
             sessionStorage.removeItem(this.STORAGE_KEYS.MINUS_ONE_LEVEL);
+            sessionStorage.removeItem(this.STORAGE_KEYS.PLUS_TWO_LEVEL);
         } catch (error) {
             console.warn('Could not clear stored levels:', error);
         }
