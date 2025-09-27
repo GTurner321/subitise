@@ -55,7 +55,7 @@ class PlusOneContentRenderer {
             console.log('🚀 ButtonBar already available, setting up coordination immediately');
             this.buttonBarReady = true;
             this.setupButtonBarCoordination();
-            // Update dimensions immediately
+            // Update dimensions immediately but only once
             setTimeout(() => {
                 this.updateGameAreaDimensions();
             }, 50);
@@ -64,14 +64,14 @@ class PlusOneContentRenderer {
             // Don't wait - assume ButtonBar will be ready soon and proceed
             this.buttonBarReady = true;
             
-            // Set up basic game area dimensions immediately
+            // Set up basic game area dimensions immediately but only once
             setTimeout(() => {
                 this.updateGameAreaDimensions();
             }, 100);
             
             // Still try to set up coordination when ButtonBar becomes available
             let checkCount = 0;
-            const maxChecks = 10;
+            const maxChecks = 5; // Reduced from 10 to minimize retries
             
             const quickCheck = () => {
                 checkCount++;
@@ -183,24 +183,39 @@ class PlusOneContentRenderer {
         // Get the actual game area dimensions after ButtonBar has set them
         const gameAreaRect = this.gameArea.getBoundingClientRect();
         
-        // Validate that we have reasonable dimensions
+        // Validate that we have reasonable dimensions - reduced retry threshold
         if (gameAreaRect.width < 50 || gameAreaRect.height < 50) {
-            console.log('⏳ Game area dimensions not ready, retrying...', gameAreaRect);
-            setTimeout(() => {
-                this.updateGameAreaDimensions();
-            }, 50);
-            return;
+            // Only retry once to minimize flashing
+            if (!this.hasRetriedDimensions) {
+                this.hasRetriedDimensions = true;
+                console.log('⏳ Game area dimensions not ready, retrying once...', gameAreaRect);
+                setTimeout(() => {
+                    this.updateGameAreaDimensions();
+                }, 100); // Longer delay to give ButtonBar time to set dimensions
+                return;
+            } else {
+                console.warn('⚠️ Game area dimensions still not ready after retry, proceeding with fallback');
+                // Use fallback dimensions to prevent infinite retry
+                this.gameAreaDimensions = {
+                    width: window.innerWidth * 0.8,
+                    height: window.innerHeight * 0.6,
+                    left: window.innerWidth * 0.1,
+                    top: window.innerHeight * 0.1
+                };
+            }
+        } else {
+            this.gameAreaDimensions = {
+                width: gameAreaRect.width,
+                height: gameAreaRect.height,
+                left: gameAreaRect.left,
+                top: gameAreaRect.top
+            };
         }
         
-        this.gameAreaDimensions = {
-            width: gameAreaRect.width,
-            height: gameAreaRect.height,
-            left: gameAreaRect.left,
-            top: gameAreaRect.top
-        };
-        
         // Update CSS custom property with actual game area width
-        document.documentElement.style.setProperty('--game-area-width', `${gameAreaRect.width}px`);
+        if (this.gameAreaDimensions.width > 0) {
+            document.documentElement.style.setProperty('--game-area-width', `${this.gameAreaDimensions.width}px`);
+        }
         
         // Mark game area as dimensions-ready
         if (this.gameArea) {
