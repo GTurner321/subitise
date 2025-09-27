@@ -31,6 +31,10 @@ class PlusOneGameLogic {
         this.controller.currentQuestionType = this.controller.shouldUsePictureFormat() ? 'picture' : 'number';
         
         this.controller.resetQuestionState();
+        
+        // IMPORTANT: Reset the used answers for this new question
+        this.usedAnswersInCurrentQuestion.clear();
+        
         this.generateQuestion();
         
         console.log(`🎮 NEW QUESTION: ${this.controller.currentNumber} ${this.controller.getOperatorSymbol()} ${this.controller.getOperatorValue()} = ${this.controller.currentAnswer}, Level: ${this.controller.currentLevel}, Mode: ${this.controller.gameMode}`);
@@ -423,19 +427,14 @@ class PlusOneGameLogic {
             correctAnswer = true;
         }
         
-        // Track if this was the first attempt at any answer for this question
-        const wasFirstAttemptAtQuestion = !this.controller.hasAttemptedAnyAnswer;
-        
-        // Mark that an attempt has been made
-        if (!this.controller.hasAttemptedAnyAnswer) {
-            this.controller.hasAttemptedAnyAnswer = true;
-        }
-        
         if (correctAnswer) {
             this.usedAnswersInCurrentQuestion.add(selectedNumber);
-            console.log(`✅ Used answer: ${selectedNumber}. Used: [${Array.from(this.usedAnswersInCurrentQuestion).join(', ')}]. First attempt: ${wasFirstAttemptAtQuestion}`);
-            this.checkQuestionCompletion(wasFirstAttemptAtQuestion);
+            console.log(`✅ Correct answer: ${selectedNumber}. Used: [${Array.from(this.usedAnswersInCurrentQuestion).join(', ')}]. No wrong attempts yet: ${!this.controller.hasAttemptedAnyAnswer}`);
+            this.checkQuestionCompletion();
         } else {
+            // Only mark as "attempted" on WRONG answers
+            this.controller.hasAttemptedAnyAnswer = true;
+            console.log(`❌ Wrong answer: ${selectedNumber}. Now marked as having wrong attempts.`);
             this.handleIncorrectAnswer(buttonElement, selectedNumber);
         }
     }
@@ -545,7 +544,7 @@ class PlusOneGameLogic {
         }, 2100);
     }
 
-    checkQuestionCompletion(wasFirstAttemptAtQuestion = false) {
+    checkQuestionCompletion() {
         const questionComplete = this.controller.leftFilled && this.controller.totalFilled;
         
         if (questionComplete) {
@@ -554,11 +553,10 @@ class PlusOneGameLogic {
             
             this.controller.checkMark.classList.add('visible');
             
-            // Check if this was a first attempt completion of the ENTIRE question
-            // (Not just the individual box that was just filled)
-            const wasQuestionCompletedOnFirstAttempt = wasFirstAttemptAtQuestion && !this.controller.hasAttemptedAnyAnswer;
+            // A question is completed on "first attempt" if no wrong answers were given
+            const wasQuestionCompletedOnFirstAttempt = !this.controller.hasAttemptedAnyAnswer;
             
-            console.log(`🎯 Question completed! Individual box first attempt: ${wasFirstAttemptAtQuestion}, Overall first attempt: ${wasQuestionCompletedOnFirstAttempt}, Had any attempts: ${this.controller.hasAttemptedAnyAnswer}`);
+            console.log(`🎯 Question completed! Had wrong attempts: ${this.controller.hasAttemptedAnyAnswer}, First attempt success: ${wasQuestionCompletedOnFirstAttempt}`);
             this.handleLevelProgression(wasQuestionCompletedOnFirstAttempt);
             
             const pieces = this.controller.rainbow.addPiece();
