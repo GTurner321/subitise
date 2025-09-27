@@ -464,8 +464,11 @@ class PlusOneGameController {
     resetQuestionState() {
         this.resetBoxState();
         this.hasAttemptedAnyAnswer = false;
-        this.usedAnswersInCurrentQuestion = new Set();
-        this.gameLogic.resetKeyboardState();
+        
+        // Reset the used answers set for the new question
+        if (this.gameLogic) {
+            this.gameLogic.usedAnswersInCurrentQuestion.clear();
+        }
     }
 
     resetBoxState() {
