@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balance Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="styles/balancemain.css">
+    <style>
+        /* Beautiful subtle background gradient */
+        html, body {
+            background: linear-gradient(135deg, 
+                rgba(173, 216, 230, 0.2) 0%,
+                rgba(135, 206, 250, 0.15) 50%,
+                rgba(176, 224, 230, 0.2) 100%
+            ) !important;
+            background-attachment: fixed !important;
+            min-height: 100vh !important;
+        }
+        
+        .game-area {
+            background: transparent !important;
+        }
+        
+        /* Soft grass band at bottom - 20% of screen */
+        .grass-band {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 20vh !important;
+            background: linear-gradient(to top, 
+                rgba(144, 238, 144, 0.6),
+                rgba(152, 251, 152, 0.7),
+                rgba(173, 255, 47, 0.5)
+            ) !important;
+            z-index: 1 !important;
+            border: none !important;
+            box-shadow: 0 -2px 10px rgba(144, 238, 144, 0.3) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main game area -->
+    <div class="game-area">
+        <!-- Rainbow background -->
+        <div class="rainbow-container" id="rainbowContainer"></div>
+        
+        <!-- Balance game container -->
+        <div class="balance-container" id="balanceContainer">
+            <svg id="balanceSVG" class="balance-svg"></svg>
+        </div>
+    </div>
+    
+    <!-- Grass band -->
+    <div class="grass-band"></div>
+    
+    <!-- Game completion modal -->
+    <div class="modal hidden" id="gameModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">🌈 Well Done! 🌈</h2>
+            <button class="play-again-btn" id="playAgainBtn">
+                <i class="fas fa-redo"></i>
+                PLAY AGAIN
+            </button>
+        </div>
+    </div>
+    
+    <!-- JavaScript files -->
+    <script src="js/balanceconfig.js"></script>
+    <script src="../../js/shared/audio.js"></script>
+    <script src="../../js/shared/rainbow.js"></script>
+    <script src="../../js/shared/Bear.js"></script>
+    <script src="js/balancephysics.js"></script>
+    <script src="js/balancerenderer.js"></script>
+    <script src="js/balancegamecontroller.js"></script>
+</body>
+</html>
