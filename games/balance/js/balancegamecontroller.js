@@ -109,10 +109,14 @@ class BalanceGameController {
             if (this.physics && this.gameActive) {
                 const weights = this.renderer.getWeights();
                 this.physics.updateWeights(weights.left, weights.right);
-                const state = this.physics.update(deltaTime);
                 
-                // Update visual rotation
-                this.renderer.updateSeesawRotation(state.angle);
+                // Get ground hit status from renderer
+                const groundHit = this.renderer.lastGroundHit || false;
+                const state = this.physics.update(deltaTime, groundHit);
+                
+                // Update visual rotation and get new ground hit status
+                const hitGround = this.renderer.updateSeesawRotation(state.angle);
+                this.renderer.lastGroundHit = hitGround;
                 
                 // Check for balance completion
                 if (state.isBalanced && this.gameActive) {
