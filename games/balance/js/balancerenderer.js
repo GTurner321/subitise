@@ -529,26 +529,47 @@ class BalanceRenderer {
     }
     
     /**
-     * Update seesaw rotation and pan positions
+     * Update seesaw rotation and pan positions with grass collision detection
      */
     updateSeesawRotation(angle) {
         if (!this.seesawGroup) return;
         
-        // Calculate new positions for bar endpoints at this angle
-        const angleRad = (angle * Math.PI) / 180;
+        const grassTopY = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT); // 80% from top
         const halfBarWidth = this.barWidth / 2;
         
-        // Left endpoint
-        const leftEndX = this.pivotX + (Math.cos(angleRad) * -halfBarWidth);
-        const leftEndY = this.pivotY + (Math.sin(angleRad) * -halfBarWidth);
+        // Calculate endpoint positions from physics angle
+        let angleRad = (angle * Math.PI) / 180;
+        let leftEndX = this.pivotX + (Math.cos(angleRad) * -halfBarWidth);
+        let leftEndY = this.pivotY + (Math.sin(angleRad) * -halfBarWidth);
+        let rightEndX = this.pivotX + (Math.cos(angleRad) * halfBarWidth);
+        let rightEndY = this.pivotY + (Math.sin(angleRad) * halfBarWidth);
         
-        // Right endpoint
-        const rightEndX = this.pivotX + (Math.cos(angleRad) * halfBarWidth);
-        const rightEndY = this.pivotY + (Math.sin(angleRad) * halfBarWidth);
+        // Track if we hit ground for bounce physics
+        let groundHit = false;
         
-        // Rotate the bar
+        // Clamp endpoints to grass level
+        if (leftEndY > grassTopY) {
+            leftEndY = grassTopY;
+            groundHit = true;
+        }
+        if (rightEndY > grassTopY) {
+            rightEndY = grassTopY;
+            groundHit = true;
+        }
+        
+        // Recalculate actual angle from clamped positions
+        const deltaY = rightEndY - leftEndY;
+        const deltaX = rightEndX - leftEndX;
+        const actualAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+        
+        // Update physics with actual angle (feedback loop)
+        if (this.gameController && this.gameController.physics) {
+            this.gameController.physics.setCurrentAngle(actualAngle);
+        }
+        
+        // Rotate the bar to actual angle
         this.seesawGroup.setAttribute('transform', 
-            `translate(${this.pivotX},${this.pivotY}) rotate(${angle})`);
+            `translate(${this.pivotX},${this.pivotY}) rotate(${actualAngle})`);
         
         const extensionHeight = vhToPx(BALANCE_CONFIG.EXTENSION_HEIGHT_PERCENT);
         const panDims = getPanDimensions();
@@ -662,6 +683,8 @@ class BalanceRenderer {
             // Move blocks with pan
             this.updateBlocksInPan(this.rightPan);
         }
+        
+        return groundHit; // Return whether we hit grass for physics bounce
     }
     
     /**
