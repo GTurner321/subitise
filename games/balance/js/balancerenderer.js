@@ -546,23 +546,12 @@ class BalanceRenderer {
         const rightEndX = this.pivotX + (Math.cos(angleRad) * halfBarWidth);
         const rightEndY = this.pivotY + (Math.sin(angleRad) * halfBarWidth);
         
-        // Check if either endpoint would go below grass top
-        const grassTop = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT);
-        const extensionHeight = vhToPx(BALANCE_CONFIG.EXTENSION_HEIGHT_PERCENT);
-        const panDims = getPanDimensions();
-        
-        const leftPanBottomY = leftEndY - extensionHeight + panDims.height;
-        const rightPanBottomY = rightEndY - extensionHeight + panDims.height;
-        
-        // If either pan would go below grass, limit the angle
-        if (leftPanBottomY > grassTop || rightPanBottomY > grassTop) {
-            console.log('Pan would go below grass, limiting rotation');
-            return; // Don't apply this rotation
-        }
-        
         // Rotate the bar
         this.seesawGroup.setAttribute('transform', 
             `translate(${this.pivotX},${this.pivotY}) rotate(${angle})`);
+        
+        const extensionHeight = vhToPx(BALANCE_CONFIG.EXTENSION_HEIGHT_PERCENT);
+        const panDims = getPanDimensions();
         
         // Update left pan and extension
         if (this.leftPan) {
