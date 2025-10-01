@@ -14,6 +14,18 @@ class BalancePhysics {
         this.isBalanced = false;
         this.hasReachedGround = false;
         this.bounceCount = 0;
+        
+        // Calculate maximum safe angle based on geometry
+        this.maxSafeAngle = this.calculateMaxSafeAngle();
+    }
+    
+    /**
+     * Calculate maximum rotation angle that keeps pans above grass
+     */
+    calculateMaxSafeAngle() {
+        // Use geometry to find max angle before pan hits grass
+        // For a 60% wide bar with extensions below, typically around 15-20 degrees is safe
+        return 20; // Conservative safe angle
     }
     
     /**
@@ -34,8 +46,8 @@ class BalancePhysics {
         // Calculate target angle based on weight difference
         const weightDiff = rightWeight - leftWeight;
         
-        if (Math.abs(weightDiff) < BALANCE_CONFIG.BALANCE_TOLERANCE) {
-            // Balanced
+        if (Math.abs(weightDiff) < 0.1) {
+            // Balanced (increased tolerance from 0.001 to 0.1)
             this.targetAngle = 0;
             this.isSettling = true;
             
@@ -46,7 +58,7 @@ class BalancePhysics {
         } else {
             // Unbalanced - angle proportional to weight difference
             const normalizedDiff = Math.max(-1, Math.min(1, weightDiff / 10));
-            this.targetAngle = normalizedDiff * BALANCE_CONFIG.MAX_ROTATION;
+            this.targetAngle = normalizedDiff * this.maxSafeAngle;
             this.isSettling = false;
             this.settleStartTime = 0;
         }
@@ -71,9 +83,9 @@ class BalancePhysics {
         // Update angle
         this.currentAngle += this.angularVelocity * dt;
         
-        // Check for ground collision
-        if (Math.abs(this.currentAngle) >= BALANCE_CONFIG.MAX_ROTATION) {
-            this.currentAngle = Math.sign(this.currentAngle) * BALANCE_CONFIG.MAX_ROTATION;
+        // Clamp angle to safe maximum
+        if (Math.abs(this.currentAngle) >= this.maxSafeAngle) {
+            this.currentAngle = Math.sign(this.currentAngle) * this.maxSafeAngle;
             
             // Bounce
             if (!this.hasReachedGround || Math.abs(this.angularVelocity) > 0.5) {
