@@ -64,27 +64,28 @@ class BalanceRenderer {
      * Initialize seesaw structure
      */
     createSeesaw() {
-        // Create seesaw group
-        this.seesawGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        this.seesawGroup.setAttribute('class', 'seesaw-group');
-        
-        // Create pivot (equilateral triangle)
+        // Create pivot (equilateral triangle) - BASE ON TOP OF GRASS
         const pivotHeight = vhToPx(BALANCE_CONFIG.PIVOT_HEIGHT_PERCENT);
         const pivotWidth = pivotHeight * (2 / Math.sqrt(3)); // Equilateral triangle
         const pivotX = window.innerWidth / 2;
-        const pivotY = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT);
+        const pivotY = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT); // Top of grass (80%)
         
+        // Triangle points - base at pivotY (top of grass), point upward
         this.pivot = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        const points = `${pivotX},${pivotY} ${pivotX - pivotWidth/2},${pivotY + pivotHeight} ${pivotX + pivotWidth/2},${pivotY + pivotHeight}`;
+        const points = `${pivotX},${pivotY - pivotHeight} ${pivotX - pivotWidth/2},${pivotY} ${pivotX + pivotWidth/2},${pivotY}`;
         this.pivot.setAttribute('points', points);
         this.pivot.setAttribute('fill', BALANCE_CONFIG.PIVOT_COLOR);
         this.pivot.setAttribute('stroke', BALANCE_CONFIG.PIVOT_STROKE);
         this.pivot.setAttribute('stroke-width', '3');
         this.svg.appendChild(this.pivot);
         
-        // Store pivot position
+        // Store pivot position (top of triangle, not base)
         this.pivotX = pivotX;
-        this.pivotY = pivotY;
+        this.pivotY = pivotY - pivotHeight;
+        
+        // Create seesaw group (for rotating bar only)
+        this.seesawGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        this.seesawGroup.setAttribute('class', 'seesaw-group');
         
         // Create bar
         const barWidth = vwToPx(BALANCE_CONFIG.SEESAW_WIDTH_PERCENT);
@@ -99,80 +100,73 @@ class BalanceRenderer {
         this.bar.setAttribute('rx', '3');
         this.seesawGroup.appendChild(this.bar);
         
-        // Create pans
-        this.leftPan = this.createPan(-barWidth / 2);
-        this.rightPan = this.createPan(barWidth / 2);
+        // Store bar endpoints for extension tracking
+        this.barWidth = barWidth;
         
-        this.seesawGroup.appendChild(this.leftPan.group);
-        this.seesawGroup.appendChild(this.rightPan.group);
-        
-        // Set initial transform
-        this.seesawGroup.setAttribute('transform', `translate(${pivotX},${pivotY})`);
+        // Set initial transform for bar
+        this.seesawGroup.setAttribute('transform', `translate(${this.pivotX},${this.pivotY})`);
         this.svg.appendChild(this.seesawGroup);
+        
+        // Create pans (separate from rotating bar, stay vertical)
+        this.leftPan = this.createPan(-barWidth / 2, 'left');
+        this.rightPan = this.createPan(barWidth / 2, 'right');
+        
+        this.svg.appendChild(this.leftPan.group);
+        this.svg.appendChild(this.rightPan.group);
     }
     
     /**
-     * Create a pan at the given x position
+     * Create a pan at the given x position (vertical extensions with invisible pans)
      */
-    createPan(xPos) {
+    createPan(xPos, side) {
         const panDims = getPanDimensions();
         const extensionHeight = vhToPx(BALANCE_CONFIG.EXTENSION_HEIGHT_PERCENT);
         
         const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', 'pan-group');
         
-        // Vertical extension
+        // Store initial position
+        const initialX = this.pivotX + xPos;
+        const initialY = this.pivotY;
+        
+        // Vertical extension (stays vertical, doesn't rotate with bar)
         const extension = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        extension.setAttribute('x1', xPos);
-        extension.setAttribute('y1', 0);
-        extension.setAttribute('x2', xPos);
-        extension.setAttribute('y2', -extensionHeight);
+        extension.setAttribute('x1', initialX);
+        extension.setAttribute('y1', initialY);
+        extension.setAttribute('x2', initialX);
+        extension.setAttribute('y2', initialY - extensionHeight);
         extension.setAttribute('stroke', BALANCE_CONFIG.SEESAW_COLOR);
         extension.setAttribute('stroke-width', '4');
         group.appendChild(extension);
         
-        // Pan base
-        const panY = -extensionHeight - panDims.height;
+        // Pan base - INVISIBLE (no fill, no stroke)
+        const panY = initialY - extensionHeight - panDims.height;
         const pan = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        pan.setAttribute('x', xPos - panDims.width / 2);
+        pan.setAttribute('x', initialX - panDims.width / 2);
         pan.setAttribute('y', panY);
         pan.setAttribute('width', panDims.width);
         pan.setAttribute('height', panDims.height);
-        pan.setAttribute('fill', BALANCE_CONFIG.PAN_COLOR);
-        pan.setAttribute('stroke', BALANCE_CONFIG.PAN_STROKE);
-        pan.setAttribute('stroke-width', '3');
+        pan.setAttribute('fill', 'transparent');
+        pan.setAttribute('stroke', 'none');
         pan.setAttribute('rx', '5');
         group.appendChild(pan);
         
-        // Left lip
-        const leftLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        leftLip.setAttribute('x1', xPos - panDims.width / 2);
-        leftLip.setAttribute('y1', panY);
-        leftLip.setAttribute('x2', xPos - panDims.width / 2);
-        leftLip.setAttribute('y2', panY - panDims.lipHeight);
-        leftLip.setAttribute('stroke', BALANCE_CONFIG.PAN_STROKE);
-        leftLip.setAttribute('stroke-width', '4');
-        group.appendChild(leftLip);
-        
-        // Right lip
-        const rightLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        rightLip.setAttribute('x1', xPos + panDims.width / 2);
-        rightLip.setAttribute('y1', panY);
-        rightLip.setAttribute('x2', xPos + panDims.width / 2);
-        rightLip.setAttribute('y2', panY - panDims.lipHeight);
-        rightLip.setAttribute('stroke', BALANCE_CONFIG.PAN_STROKE);
-        rightLip.setAttribute('stroke-width', '4');
-        group.appendChild(rightLip);
+        // Store extension element reference
+        group._extension = extension;
         
         return {
             group,
-            xPos,
-            panY,
+            xOffset: xPos, // Offset from pivot on bar
+            side,
+            currentX: initialX,
+            currentY: initialY - extensionHeight, // Top of extension
             bounds: {
-                left: xPos - panDims.width / 2,
-                right: xPos + panDims.width / 2,
+                left: initialX - panDims.width / 2,
+                right: initialX + panDims.width / 2,
                 top: panY,
                 bottom: panY + panDims.height
-            }
+            },
+            blocks: []
         };
     }
     
@@ -337,17 +331,14 @@ class BalanceRenderer {
      * Check if block is dropped in a pan
      */
     checkPanDrop(block, x, y) {
-        const worldX = x - this.pivotX;
-        const worldY = y - this.pivotY;
-        
         // Check left pan
-        if (this.isInPan(worldX, worldY, this.leftPan)) {
+        if (this.isInPan(x, y, this.leftPan)) {
             this.placeBlockInPan(block, this.leftPan, 'left');
             return true;
         }
         
         // Check right pan
-        if (this.isInPan(worldX, worldY, this.rightPan)) {
+        if (this.isInPan(x, y, this.rightPan)) {
             this.placeBlockInPan(block, this.rightPan, 'right');
             return true;
         }
@@ -396,13 +387,10 @@ class BalanceRenderer {
         const panBottom = pan.bounds.bottom;
         
         pan.blocks.forEach((block, index) => {
-            const worldX = pan.xPos;
-            const worldY = panBottom - blockDims.height/2 - (index * blockDims.height);
+            const x = pan.currentX;
+            const y = panBottom - blockDims.height/2 - (index * blockDims.height);
             
-            const screenX = this.pivotX + worldX;
-            const screenY = this.pivotY + worldY;
-            
-            this.updateBlockPosition(block, screenX, screenY);
+            this.updateBlockPosition(block, x, y);
         });
     }
     
@@ -459,13 +447,116 @@ class BalanceRenderer {
     }
     
     /**
-     * Update seesaw rotation
+     * Update seesaw rotation and pan positions
      */
     updateSeesawRotation(angle) {
-        if (this.seesawGroup) {
-            this.seesawGroup.setAttribute('transform', 
-                `translate(${this.pivotX},${this.pivotY}) rotate(${angle})`);
+        if (!this.seesawGroup) return;
+        
+        // Rotate the bar
+        this.seesawGroup.setAttribute('transform', 
+            `translate(${this.pivotX},${this.pivotY}) rotate(${angle})`);
+        
+        // Calculate new positions for bar endpoints
+        const angleRad = (angle * Math.PI) / 180;
+        const halfBarWidth = this.barWidth / 2;
+        
+        // Left endpoint
+        const leftEndX = this.pivotX + (Math.cos(angleRad) * -halfBarWidth);
+        const leftEndY = this.pivotY + (Math.sin(angleRad) * -halfBarWidth);
+        
+        // Right endpoint
+        const rightEndX = this.pivotX + (Math.cos(angleRad) * halfBarWidth);
+        const rightEndY = this.pivotY + (Math.sin(angleRad) * halfBarWidth);
+        
+        // Don't allow pans to go below grass top
+        const grassTop = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT);
+        const extensionHeight = vhToPx(BALANCE_CONFIG.EXTENSION_HEIGHT_PERCENT);
+        const panDims = getPanDimensions();
+        
+        // Update left pan and extension
+        if (this.leftPan) {
+            const panTopY = leftEndY - extensionHeight;
+            
+            // Clamp to grass level
+            if (panTopY + panDims.height > grassTop) {
+                // Would go below grass - don't update position
+                return;
+            }
+            
+            this.leftPan.currentX = leftEndX;
+            this.leftPan.currentY = panTopY;
+            
+            // Update extension (vertical)
+            const ext = this.leftPan.group._extension;
+            if (ext) {
+                ext.setAttribute('x1', leftEndX);
+                ext.setAttribute('y1', leftEndY);
+                ext.setAttribute('x2', leftEndX);
+                ext.setAttribute('y2', panTopY);
+            }
+            
+            // Update bounds
+            this.leftPan.bounds = {
+                left: leftEndX - panDims.width / 2,
+                right: leftEndX + panDims.width / 2,
+                top: panTopY,
+                bottom: panTopY + panDims.height
+            };
+            
+            // Move blocks with pan
+            this.updateBlocksInPan(this.leftPan);
         }
+        
+        // Update right pan and extension
+        if (this.rightPan) {
+            const panTopY = rightEndY - extensionHeight;
+            
+            // Clamp to grass level
+            if (panTopY + panDims.height > grassTop) {
+                // Would go below grass - don't update position
+                return;
+            }
+            
+            this.rightPan.currentX = rightEndX;
+            this.rightPan.currentY = panTopY;
+            
+            // Update extension (vertical)
+            const ext = this.rightPan.group._extension;
+            if (ext) {
+                ext.setAttribute('x1', rightEndX);
+                ext.setAttribute('y1', rightEndY);
+                ext.setAttribute('x2', rightEndX);
+                ext.setAttribute('y2', panTopY);
+            }
+            
+            // Update bounds
+            this.rightPan.bounds = {
+                left: rightEndX - panDims.width / 2,
+                right: rightEndX + panDims.width / 2,
+                top: panTopY,
+                bottom: panTopY + panDims.height
+            };
+            
+            // Move blocks with pan
+            this.updateBlocksInPan(this.rightPan);
+        }
+    }
+    
+    /**
+     * Update positions of blocks in a pan (move with pan)
+     */
+    updateBlocksInPan(pan) {
+        if (!pan.blocks || pan.blocks.length === 0) return;
+        
+        const blockDims = getBlockDimensions();
+        const panBottom = pan.bounds.bottom;
+        
+        pan.blocks.forEach((block, index) => {
+            const x = pan.currentX;
+            const y = panBottom - blockDims.height/2 - (index * blockDims.height);
+            
+            this.updateBlockPosition(block, x, y);
+        });
     }
     
     /**
