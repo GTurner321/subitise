@@ -12,20 +12,7 @@ class BalancePhysics {
         this.lastChangeTime = 0;
         this.settleStartTime = 0;
         this.isBalanced = false;
-        this.hasReachedGround = false;
-        this.bounceCount = 0;
-        
-        // Calculate maximum safe angle based on geometry
-        this.maxSafeAngle = this.calculateMaxSafeAngle();
-    }
-    
-    /**
-     * Calculate maximum rotation angle that keeps pans above grass
-     */
-    calculateMaxSafeAngle() {
-        // Use geometry to find max angle before pan hits grass
-        // For a 60% wide bar with extensions below, typically around 15-20 degrees is safe
-        return 20; // Conservative safe angle
+        this.hitGround = false;
     }
     
     /**
@@ -41,13 +28,14 @@ class BalancePhysics {
             this.lastChangeTime = Date.now();
             this.settleStartTime = 0;
             this.isBalanced = false;
+            this.hitGround = false;
         }
         
         // Calculate target angle based on weight difference
         const weightDiff = rightWeight - leftWeight;
         
         if (Math.abs(weightDiff) < 0.1) {
-            // Balanced (increased tolerance from 0.001 to 0.1)
+            // Balanced
             this.targetAngle = 0;
             this.isSettling = true;
             
@@ -57,8 +45,9 @@ class BalancePhysics {
             }
         } else {
             // Unbalanced - angle proportional to weight difference
+            // Allow large angles - renderer will clamp to grass collision
             const normalizedDiff = Math.max(-1, Math.min(1, weightDiff / 10));
-            this.targetAngle = normalizedDiff * this.maxSafeAngle;
+            this.targetAngle = normalizedDiff * 45; // Up to 45 degrees
             this.isSettling = false;
             this.settleStartTime = 0;
         }
@@ -66,8 +55,10 @@ class BalancePhysics {
     
     /**
      * Update physics simulation
+     * @param {number} deltaTime - Time since last update
+     * @param {boolean} groundHit - Whether endpoint hit grass (from renderer)
      */
-    update(deltaTime) {
+    update(deltaTime, groundHit = false) {
         const dt = deltaTime / 16.67; // Normalize to 60fps
         
         // Calculate angle difference
@@ -80,30 +71,16 @@ class BalancePhysics {
         // Apply dampening
         this.angularVelocity *= 0.95;
         
+        // If ground was hit, apply bounce
+        if (groundHit && !this.hitGround) {
+            this.angularVelocity *= -BALANCE_CONFIG.BOUNCE_DAMPENING;
+            this.hitGround = true;
+        } else if (!groundHit) {
+            this.hitGround = false;
+        }
+        
         // Update angle
         this.currentAngle += this.angularVelocity * dt;
-        
-        // Clamp angle to safe maximum
-        if (Math.abs(this.currentAngle) >= this.maxSafeAngle) {
-            this.currentAngle = Math.sign(this.currentAngle) * this.maxSafeAngle;
-            
-            // Bounce
-            if (!this.hasReachedGround || Math.abs(this.angularVelocity) > 0.5) {
-                this.angularVelocity *= -BALANCE_CONFIG.BOUNCE_DAMPENING;
-                this.hasReachedGround = true;
-                this.bounceCount++;
-                
-                // Stop bouncing after a few bounces
-                if (this.bounceCount > 3) {
-                    this.angularVelocity = 0;
-                }
-            } else {
-                this.angularVelocity = 0;
-            }
-        } else {
-            this.hasReachedGround = false;
-            this.bounceCount = 0;
-        }
         
         // Handle settling to balance
         if (this.isSettling && Math.abs(this.currentAngle) < 0.5 && Math.abs(this.angularVelocity) < 0.1) {
@@ -141,6 +118,13 @@ class BalancePhysics {
     }
     
     /**
+     * Set angle from renderer (after clamping)
+     */
+    setCurrentAngle(angle) {
+        this.currentAngle = angle;
+    }
+    
+    /**
      * Check if seesaw is balanced and settled
      */
     isFullyBalanced() {
@@ -160,8 +144,7 @@ class BalancePhysics {
         this.lastChangeTime = 0;
         this.settleStartTime = 0;
         this.isBalanced = false;
-        this.hasReachedGround = false;
-        this.bounceCount = 0;
+        this.hitGround = false;
     }
     
     /**
