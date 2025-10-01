@@ -260,16 +260,13 @@ class BalanceGameController {
     createFixedBlock(value, side) {
         const pan = side === 'left' ? this.renderer.leftPan : this.renderer.rightPan;
         
-        const worldX = pan.xPos;
-        const worldY = pan.bounds.bottom - getBlockDimensions().height/2;
-        
-        const screenX = this.renderer.pivotX + worldX;
-        const screenY = this.renderer.pivotY + worldY;
+        const x = pan.currentX;
+        const y = pan.bounds.bottom - getBlockDimensions().height/2;
         
         const block = this.renderer.createBlock(
             value,
-            pxToVw(screenX),
-            pxToVh(screenY),
+            pxToVw(x),
+            pxToVh(y),
             BALANCE_CONFIG.FIXED_BLOCK_COLOR,
             true
         );
