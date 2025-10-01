@@ -116,7 +116,7 @@ class BalanceRenderer {
     }
     
     /**
-     * Create a pan at the given x position (vertical extensions with invisible pans)
+     * Create a pan at the given x position (vertical extensions with visible base and lips)
      */
     createPan(xPos, side) {
         const panDims = getPanDimensions();
@@ -139,27 +139,49 @@ class BalanceRenderer {
         extension.setAttribute('stroke-width', '4');
         group.appendChild(extension);
         
-        // Pan base - INVISIBLE (no fill, no stroke)
+        // Pan base - VISIBLE bottom line only (5 blocks wide)
         const panY = initialY - extensionHeight - panDims.height;
-        const pan = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        pan.setAttribute('x', initialX - panDims.width / 2);
-        pan.setAttribute('y', panY);
-        pan.setAttribute('width', panDims.width);
-        pan.setAttribute('height', panDims.height);
-        pan.setAttribute('fill', 'transparent');
-        pan.setAttribute('stroke', 'none');
-        pan.setAttribute('rx', '5');
-        group.appendChild(pan);
+        const panBottom = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        panBottom.setAttribute('x1', initialX - panDims.width / 2);
+        panBottom.setAttribute('y1', panY + panDims.height);
+        panBottom.setAttribute('x2', initialX + panDims.width / 2);
+        panBottom.setAttribute('y2', panY + panDims.height);
+        panBottom.setAttribute('stroke', BALANCE_CONFIG.PAN_STROKE);
+        panBottom.setAttribute('stroke-width', '3');
+        group.appendChild(panBottom);
         
-        // Store extension element reference
+        // Left lip
+        const leftLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        leftLip.setAttribute('x1', initialX - panDims.width / 2);
+        leftLip.setAttribute('y1', panY);
+        leftLip.setAttribute('x2', initialX - panDims.width / 2);
+        leftLip.setAttribute('y2', panY + panDims.height + panDims.lipHeight);
+        leftLip.setAttribute('stroke', BALANCE_CONFIG.PAN_STROKE);
+        leftLip.setAttribute('stroke-width', '3');
+        group.appendChild(leftLip);
+        
+        // Right lip
+        const rightLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        rightLip.setAttribute('x1', initialX + panDims.width / 2);
+        rightLip.setAttribute('y1', panY);
+        rightLip.setAttribute('x2', initialX + panDims.width / 2);
+        rightLip.setAttribute('y2', panY + panDims.height + panDims.lipHeight);
+        rightLip.setAttribute('stroke', BALANCE_CONFIG.PAN_STROKE);
+        rightLip.setAttribute('stroke-width', '3');
+        group.appendChild(rightLip);
+        
+        // Store element references
         group._extension = extension;
+        group._panBottom = panBottom;
+        group._leftLip = leftLip;
+        group._rightLip = rightLip;
         
         return {
             group,
             xOffset: xPos, // Offset from pivot on bar
             side,
             currentX: initialX,
-            currentY: initialY - extensionHeight, // Top of extension
+            currentY: panY, // Top of pan
             bounds: {
                 left: initialX - panDims.width / 2,
                 right: initialX + panDims.width / 2,
@@ -378,19 +400,79 @@ class BalanceRenderer {
     }
     
     /**
-     * Arrange blocks in pan (stack them)
+     * Arrange blocks in pan (place horizontally if space, stack if overlapping)
      */
     arrangeBlocksInPan(pan) {
         if (!pan.blocks || pan.blocks.length === 0) return;
         
         const blockDims = getBlockDimensions();
         const panBottom = pan.bounds.bottom;
+        const panLeft = pan.bounds.left;
+        const panRight = pan.bounds.right;
         
-        pan.blocks.forEach((block, index) => {
-            const x = pan.currentX;
-            const y = panBottom - blockDims.height/2 - (index * blockDims.height);
+        // Track occupied horizontal spaces at each height level
+        const occupiedSpaces = []; // Array of {x, width, height} for each block
+        
+        pan.blocks.forEach((block) => {
+            const blockWidth = blockDims.width;
+            const blockHeight = blockDims.height;
             
-            this.updateBlockPosition(block, x, y);
+            // Try to find a horizontal position on the bottom first
+            let targetX = pan.currentX;
+            let targetY = panBottom - blockHeight / 2;
+            let placed = false;
+            
+            // Check all possible horizontal positions at each height level
+            for (let level = 0; level < pan.blocks.length; level++) {
+                const levelY = panBottom - blockHeight / 2 - (level * blockHeight);
+                
+                // Try different horizontal positions across the pan width
+                const positions = [];
+                const panWidth = panRight - panLeft;
+                const numPositions = Math.floor(panWidth / blockWidth);
+                
+                for (let i = 0; i < numPositions; i++) {
+                    const testX = panLeft + blockWidth / 2 + (i * blockWidth);
+                    positions.push(testX);
+                }
+                
+                // Check each position for overlap
+                for (let testX of positions) {
+                    let hasOverlap = false;
+                    
+                    // Check if this position overlaps with any existing blocks
+                    for (let occupied of occupiedSpaces) {
+                        const xOverlap = Math.abs(testX - occupied.x) < blockWidth * 0.9; // 90% overlap threshold
+                        const yOverlap = Math.abs(levelY - occupied.y) < blockHeight * 0.9;
+                        
+                        if (xOverlap && yOverlap) {
+                            hasOverlap = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!hasOverlap) {
+                        // Found a free spot
+                        targetX = testX;
+                        targetY = levelY;
+                        placed = true;
+                        break;
+                    }
+                }
+                
+                if (placed) break;
+            }
+            
+            // Place the block
+            this.updateBlockPosition(block, targetX, targetY);
+            
+            // Record this block's occupied space
+            occupiedSpaces.push({
+                x: targetX,
+                y: targetY,
+                width: blockWidth,
+                height: blockHeight
+            });
         });
     }
     
@@ -452,11 +534,7 @@ class BalanceRenderer {
     updateSeesawRotation(angle) {
         if (!this.seesawGroup) return;
         
-        // Rotate the bar
-        this.seesawGroup.setAttribute('transform', 
-            `translate(${this.pivotX},${this.pivotY}) rotate(${angle})`);
-        
-        // Calculate new positions for bar endpoints
+        // Calculate new positions for bar endpoints at this angle
         const angleRad = (angle * Math.PI) / 180;
         const halfBarWidth = this.barWidth / 2;
         
@@ -468,20 +546,27 @@ class BalanceRenderer {
         const rightEndX = this.pivotX + (Math.cos(angleRad) * halfBarWidth);
         const rightEndY = this.pivotY + (Math.sin(angleRad) * halfBarWidth);
         
-        // Don't allow pans to go below grass top
+        // Check if either endpoint would go below grass top
         const grassTop = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT);
         const extensionHeight = vhToPx(BALANCE_CONFIG.EXTENSION_HEIGHT_PERCENT);
         const panDims = getPanDimensions();
         
+        const leftPanBottomY = leftEndY - extensionHeight + panDims.height;
+        const rightPanBottomY = rightEndY - extensionHeight + panDims.height;
+        
+        // If either pan would go below grass, limit the angle
+        if (leftPanBottomY > grassTop || rightPanBottomY > grassTop) {
+            console.log('Pan would go below grass, limiting rotation');
+            return; // Don't apply this rotation
+        }
+        
+        // Rotate the bar
+        this.seesawGroup.setAttribute('transform', 
+            `translate(${this.pivotX},${this.pivotY}) rotate(${angle})`);
+        
         // Update left pan and extension
         if (this.leftPan) {
             const panTopY = leftEndY - extensionHeight;
-            
-            // Clamp to grass level
-            if (panTopY + panDims.height > grassTop) {
-                // Would go below grass - don't update position
-                return;
-            }
             
             this.leftPan.currentX = leftEndX;
             this.leftPan.currentY = panTopY;
@@ -492,7 +577,34 @@ class BalanceRenderer {
                 ext.setAttribute('x1', leftEndX);
                 ext.setAttribute('y1', leftEndY);
                 ext.setAttribute('x2', leftEndX);
-                ext.setAttribute('y2', panTopY);
+                ext.setAttribute('y2', leftEndY - extensionHeight);
+            }
+            
+            // Update pan bottom line
+            const panBottom = this.leftPan.group._panBottom;
+            if (panBottom) {
+                panBottom.setAttribute('x1', leftEndX - panDims.width / 2);
+                panBottom.setAttribute('y1', leftEndY - extensionHeight + panDims.height);
+                panBottom.setAttribute('x2', leftEndX + panDims.width / 2);
+                panBottom.setAttribute('y2', leftEndY - extensionHeight + panDims.height);
+            }
+            
+            // Update left lip
+            const leftLip = this.leftPan.group._leftLip;
+            if (leftLip) {
+                leftLip.setAttribute('x1', leftEndX - panDims.width / 2);
+                leftLip.setAttribute('y1', panTopY);
+                leftLip.setAttribute('x2', leftEndX - panDims.width / 2);
+                leftLip.setAttribute('y2', panTopY + panDims.height + panDims.lipHeight);
+            }
+            
+            // Update right lip
+            const rightLip = this.leftPan.group._rightLip;
+            if (rightLip) {
+                rightLip.setAttribute('x1', leftEndX + panDims.width / 2);
+                rightLip.setAttribute('y1', panTopY);
+                rightLip.setAttribute('x2', leftEndX + panDims.width / 2);
+                rightLip.setAttribute('y2', panTopY + panDims.height + panDims.lipHeight);
             }
             
             // Update bounds
@@ -511,12 +623,6 @@ class BalanceRenderer {
         if (this.rightPan) {
             const panTopY = rightEndY - extensionHeight;
             
-            // Clamp to grass level
-            if (panTopY + panDims.height > grassTop) {
-                // Would go below grass - don't update position
-                return;
-            }
-            
             this.rightPan.currentX = rightEndX;
             this.rightPan.currentY = panTopY;
             
@@ -526,7 +632,34 @@ class BalanceRenderer {
                 ext.setAttribute('x1', rightEndX);
                 ext.setAttribute('y1', rightEndY);
                 ext.setAttribute('x2', rightEndX);
-                ext.setAttribute('y2', panTopY);
+                ext.setAttribute('y2', rightEndY - extensionHeight);
+            }
+            
+            // Update pan bottom line
+            const panBottom = this.rightPan.group._panBottom;
+            if (panBottom) {
+                panBottom.setAttribute('x1', rightEndX - panDims.width / 2);
+                panBottom.setAttribute('y1', rightEndY - extensionHeight + panDims.height);
+                panBottom.setAttribute('x2', rightEndX + panDims.width / 2);
+                panBottom.setAttribute('y2', rightEndY - extensionHeight + panDims.height);
+            }
+            
+            // Update left lip
+            const leftLip = this.rightPan.group._leftLip;
+            if (leftLip) {
+                leftLip.setAttribute('x1', rightEndX - panDims.width / 2);
+                leftLip.setAttribute('y1', panTopY);
+                leftLip.setAttribute('x2', rightEndX - panDims.width / 2);
+                leftLip.setAttribute('y2', panTopY + panDims.height + panDims.lipHeight);
+            }
+            
+            // Update right lip
+            const rightLip = this.rightPan.group._rightLip;
+            if (rightLip) {
+                rightLip.setAttribute('x1', rightEndX + panDims.width / 2);
+                rightLip.setAttribute('y1', panTopY);
+                rightLip.setAttribute('x2', rightEndX + panDims.width / 2);
+                rightLip.setAttribute('y2', panTopY + panDims.height + panDims.lipHeight);
             }
             
             // Update bounds
