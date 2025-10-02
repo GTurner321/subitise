@@ -80,7 +80,7 @@ class BalanceRenderer {
         this.pivotX = pivotX;
         this.pivotY = pivotY - pivotHeight;
         
-        // Create seesaw group (bar only)
+        // Create seesaw group (bar + connection dots)
         this.seesawGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         this.seesawGroup.setAttribute('class', 'seesaw-group');
         
@@ -99,14 +99,19 @@ class BalanceRenderer {
         
         this.barWidth = barWidth;
         
+        // Create connection dots at bar endpoints (in local coordinates of rotating group)
+        this.leftConnectionDot = this.createConnectionDot();
+        this.leftConnectionDot.setAttribute('cx', -barWidth / 2);
+        this.leftConnectionDot.setAttribute('cy', 0);
+        this.seesawGroup.appendChild(this.leftConnectionDot);
+        
+        this.rightConnectionDot = this.createConnectionDot();
+        this.rightConnectionDot.setAttribute('cx', barWidth / 2);
+        this.rightConnectionDot.setAttribute('cy', 0);
+        this.seesawGroup.appendChild(this.rightConnectionDot);
+        
         this.seesawGroup.setAttribute('transform', `translate(${this.pivotX},${this.pivotY})`);
         this.svg.appendChild(this.seesawGroup);
-        
-        // Create connection dots (will be positioned by updateSeesawRotation)
-        this.leftConnectionDot = this.createConnectionDot();
-        this.rightConnectionDot = this.createConnectionDot();
-        this.svg.appendChild(this.leftConnectionDot);
-        this.svg.appendChild(this.rightConnectionDot);
         
         // Create pans as unified units
         this.leftPan = this.createPanUnit(-barWidth / 2, 'left');
@@ -497,11 +502,7 @@ class BalanceRenderer {
         this.seesawGroup.setAttribute('transform', 
             `translate(${this.pivotX},${this.pivotY}) rotate(${actualAngle})`);
         
-        // Update connection dots at BAR ENDPOINTS (not extension points)
-        this.leftConnectionDot.setAttribute('cx', leftEndX);
-        this.leftConnectionDot.setAttribute('cy', leftEndY);
-        this.rightConnectionDot.setAttribute('cx', rightEndX);
-        this.rightConnectionDot.setAttribute('cy', rightEndY);
+        // Connection dots rotate with the bar automatically since they're children of seesawGroup
         
         // Smooth pan movement to reduce jitter - only update if change is significant
         const threshold = 0.5; // pixels
