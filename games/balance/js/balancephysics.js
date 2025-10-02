@@ -1,6 +1,6 @@
 /**
  * BalancePhysics - Handles seesaw physics and animation
- * FIXED: Maintains state through tab switches, no unnecessary resets
+ * FIXED: Stops at equilibrium to eliminate jitter
  */
 class BalancePhysics {
     constructor() {
@@ -15,6 +15,7 @@ class BalancePhysics {
         this.isBalanced = false;
         this.hitGround = false;
         this.lastUpdateTime = 0;
+        this.isLocked = false; // Lock physics when at equilibrium
     }
     
     /**
@@ -31,6 +32,7 @@ class BalancePhysics {
             this.settleStartTime = 0;
             this.isBalanced = false;
             this.hitGround = false;
+            this.isLocked = false; // Unlock when weights change
         }
         
         // Calculate target angle based on weight difference
@@ -46,7 +48,7 @@ class BalancePhysics {
                 this.settleStartTime = Date.now();
             }
         } else {
-            // Unbalanced - angle proportional to weight difference
+            // Unbalanced
             const normalizedDiff = Math.max(-1, Math.min(1, weightDiff / 10));
             this.targetAngle = normalizedDiff * 45;
             this.isSettling = false;
@@ -60,6 +62,16 @@ class BalancePhysics {
      * @param {boolean} groundHit - Whether endpoint hit grass (from renderer)
      */
     update(deltaTime, groundHit = false) {
+        // If locked at equilibrium, don't update physics
+        if (this.isLocked) {
+            return {
+                angle: this.currentAngle,
+                isBalanced: this.isBalanced,
+                leftWeight: this.leftWeight,
+                rightWeight: this.rightWeight
+            };
+        }
+        
         // Handle large time gaps (like tab switches) by capping deltaTime
         const cappedDelta = Math.min(deltaTime, 100);
         const dt = cappedDelta / 16.67; // Normalize to 60fps
@@ -91,9 +103,11 @@ class BalancePhysics {
             this.currentAngle *= 0.9;
             this.angularVelocity *= 0.8;
             
-            if (Math.abs(this.currentAngle) < 0.01) {
+            // Lock at equilibrium when very close
+            if (Math.abs(this.currentAngle) < 0.01 && Math.abs(this.angularVelocity) < 0.01) {
                 this.currentAngle = 0;
                 this.angularVelocity = 0;
+                this.isLocked = true; // Lock to prevent jitter
             }
         }
         
@@ -149,6 +163,7 @@ class BalancePhysics {
         this.isBalanced = false;
         this.hitGround = false;
         this.lastUpdateTime = 0;
+        this.isLocked = false;
     }
     
     /**
@@ -158,5 +173,6 @@ class BalancePhysics {
         this.currentAngle = angle;
         this.targetAngle = angle;
         this.angularVelocity = 0;
+        this.isLocked = false; // Allow movement after setting angle
     }
 }
