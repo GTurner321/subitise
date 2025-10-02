@@ -161,23 +161,23 @@ class BalanceRenderer {
         panBottom.setAttribute('stroke-width', '3');
         group.appendChild(panBottom);
         
-        // Left lip - 0.4 blocks high (20% of original 2 blocks)
+        // Left lip - 0.4 blocks high - goes UP from pan bottom
         const lipHeight = blockHeight * 0.4;
         const leftLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         leftLip.setAttribute('x1', -panDims.width / 2);
         leftLip.setAttribute('y1', -extensionHeight);
         leftLip.setAttribute('x2', -panDims.width / 2);
-        leftLip.setAttribute('y2', -extensionHeight + lipHeight);
+        leftLip.setAttribute('y2', -extensionHeight - lipHeight); // Go UP (negative Y)
         leftLip.setAttribute('stroke', BALANCE_CONFIG.PAN_STROKE);
         leftLip.setAttribute('stroke-width', '3');
         group.appendChild(leftLip);
         
-        // Right lip - 0.4 blocks high
+        // Right lip - 0.4 blocks high - goes UP from pan bottom
         const rightLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         rightLip.setAttribute('x1', panDims.width / 2);
         rightLip.setAttribute('y1', -extensionHeight);
         rightLip.setAttribute('x2', panDims.width / 2);
-        rightLip.setAttribute('y2', -extensionHeight + lipHeight);
+        rightLip.setAttribute('y2', -extensionHeight - lipHeight); // Go UP (negative Y)
         rightLip.setAttribute('stroke', BALANCE_CONFIG.PAN_STROKE);
         rightLip.setAttribute('stroke-width', '3');
         group.appendChild(rightLip);
@@ -471,8 +471,9 @@ class BalanceRenderer {
         
         const grassTopY = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT);
         const halfBarWidth = this.barWidth / 2;
-        const barThickness = vhToPx(BALANCE_CONFIG.SEESAW_BAR_THICKNESS_PERCENT);
         
+        // Calculate where endpoints WANT to be based on physics angle
+        // Endpoints are ALWAYS 180° apart on the circle (rigid bar)
         let angleRad = (angle * Math.PI) / 180;
         let leftEndX = this.pivotX + (Math.cos(angleRad) * -halfBarWidth);
         let leftEndY = this.pivotY + (Math.sin(angleRad) * -halfBarWidth);
@@ -480,68 +481,84 @@ class BalanceRenderer {
         let rightEndY = this.pivotY + (Math.sin(angleRad) * halfBarWidth);
         
         let groundHit = false;
+        let actualAngle = angle;
         
-        // Prevent bar from going through ground - check BOTTOM of bar
-        const leftBottomY = leftEndY + (barThickness / 2) * Math.cos(angleRad);
-        const rightBottomY = rightEndY + (barThickness / 2) * Math.cos(angleRad);
-        
-        if (leftBottomY > grassTopY) {
-            leftEndY = grassTopY - (barThickness / 2) * Math.cos(angleRad);
+        // Check if EITHER endpoint would penetrate ground
+        if (leftEndY > grassTopY || rightEndY > grassTopY) {
             groundHit = true;
-        }
-        if (rightBottomY > grassTopY) {
-            rightEndY = grassTopY - (barThickness / 2) * Math.cos(angleRad);
-            groundHit = true;
+            
+            // Find the maximum angle where both endpoints stay above ground
+            // The limiting endpoint is whichever one would hit the ground first
+            
+            // For left endpoint: solve for angle where leftEndY = grassTopY
+            // pivotY + sin(θ) * -halfBarWidth = grassTopY
+            // sin(θ) = (grassTopY - pivotY) / -halfBarWidth
+            const leftLimitSin = (grassTopY - this.pivotY) / -halfBarWidth;
+            
+            // For right endpoint: solve for angle where rightEndY = grassTopY
+            // pivotY + sin(θ) * halfBarWidth = grassTopY
+            // sin(θ) = (grassTopY - pivotY) / halfBarWidth
+            const rightLimitSin = (grassTopY - this.pivotY) / halfBarWidth;
+            
+            // Clamp to valid range [-1, 1]
+            const leftLimitSinClamped = Math.max(-1, Math.min(1, leftLimitSin));
+            const rightLimitSinClamped = Math.max(-1, Math.min(1, rightLimitSin));
+            
+            // Calculate the limiting angles
+            const leftLimitAngle = Math.asin(leftLimitSinClamped);
+            const rightLimitAngle = Math.asin(rightLimitSinClamped);
+            
+            // Choose the more restrictive limit based on which side is going down
+            if (angle > 0) {
+                // Right side going down
+                actualAngle = Math.min(angle, rightLimitAngle) * (180 / Math.PI);
+            } else {
+                // Left side going down
+                actualAngle = Math.max(angle, leftLimitAngle) * (180 / Math.PI);
+            }
+            
+            // Recalculate endpoints with clamped angle
+            angleRad = (actualAngle * Math.PI) / 180;
+            leftEndX = this.pivotX + (Math.cos(angleRad) * -halfBarWidth);
+            leftEndY = this.pivotY + (Math.sin(angleRad) * -halfBarWidth);
+            rightEndX = this.pivotX + (Math.cos(angleRad) * halfBarWidth);
+            rightEndY = this.pivotY + (Math.sin(angleRad) * halfBarWidth);
         }
         
-        const deltaY = rightEndY - leftEndY;
-        const deltaX = rightEndX - leftEndX;
-        const actualAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-        
+        // Update physics with actual angle
         if (this.gameController && this.gameController.physics) {
             this.gameController.physics.setCurrentAngle(actualAngle);
         }
         
+        // Rotate bar (bar and connection dots rotate together)
         this.seesawGroup.setAttribute('transform', 
             `translate(${this.pivotX},${this.pivotY}) rotate(${actualAngle})`);
         
-        // Update pans - only if position changed significantly (reduce jitter)
-        const threshold = 0.1; // Very small threshold
-        
+        // Position pans at the endpoint positions
         if (this.leftPan) {
-            const xDiff = Math.abs(leftEndX - this.leftPan.currentX);
-            const yDiff = Math.abs(leftEndY - this.leftPan.currentY);
+            this.leftPan.currentX = leftEndX;
+            this.leftPan.currentY = leftEndY;
+            this.leftPan.group.setAttribute('transform', `translate(${leftEndX},${leftEndY})`);
             
-            if (xDiff > threshold || yDiff > threshold) {
-                this.leftPan.currentX = leftEndX;
-                this.leftPan.currentY = leftEndY;
-                this.leftPan.group.setAttribute('transform', `translate(${leftEndX},${leftEndY})`);
-                
-                this.leftPan.bounds = {
-                    left: leftEndX - this.leftPan.panDims.width / 2,
-                    right: leftEndX + this.leftPan.panDims.width / 2,
-                    top: leftEndY - this.leftPan.extensionHeight - this.leftPan.panDims.height,
-                    bottom: leftEndY - this.leftPan.extensionHeight
-                };
-            }
+            this.leftPan.bounds = {
+                left: leftEndX - this.leftPan.panDims.width / 2,
+                right: leftEndX + this.leftPan.panDims.width / 2,
+                top: leftEndY - this.leftPan.extensionHeight - this.leftPan.panDims.height,
+                bottom: leftEndY - this.leftPan.extensionHeight
+            };
         }
         
         if (this.rightPan) {
-            const xDiff = Math.abs(rightEndX - this.rightPan.currentX);
-            const yDiff = Math.abs(rightEndY - this.rightPan.currentY);
+            this.rightPan.currentX = rightEndX;
+            this.rightPan.currentY = rightEndY;
+            this.rightPan.group.setAttribute('transform', `translate(${rightEndX},${rightEndY})`);
             
-            if (xDiff > threshold || yDiff > threshold) {
-                this.rightPan.currentX = rightEndX;
-                this.rightPan.currentY = rightEndY;
-                this.rightPan.group.setAttribute('transform', `translate(${rightEndX},${rightEndY})`);
-                
-                this.rightPan.bounds = {
-                    left: rightEndX - this.rightPan.panDims.width / 2,
-                    right: rightEndX + this.rightPan.panDims.width / 2,
-                    top: rightEndY - this.rightPan.extensionHeight - this.rightPan.panDims.height,
-                    bottom: rightEndY - this.rightPan.extensionHeight
-                };
-            }
+            this.rightPan.bounds = {
+                left: rightEndX - this.rightPan.panDims.width / 2,
+                right: rightEndX + this.rightPan.panDims.width / 2,
+                top: rightEndY - this.rightPan.extensionHeight - this.rightPan.panDims.height,
+                bottom: rightEndY - this.rightPan.extensionHeight
+            };
         }
         
         return groundHit;
