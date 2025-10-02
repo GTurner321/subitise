@@ -229,10 +229,12 @@ class BalanceGameController {
     
     createFixedBlock(value, side) {
         const pan = side === 'left' ? this.renderer.leftPan : this.renderer.rightPan;
+        const blockDims = getBlockDimensions();
         
         // Create block at center of pan bottom (local coordinates)
+        // Local Y = 0 means the BOTTOM of the block is at the pan bottom
         const localX = 0; // Centered
-        const localY = 0; // Bottom of pan
+        const localY = -blockDims.height / 2; // Bottom of block at pan bottom
         
         const block = this.renderer.createBlock(
             value,
@@ -258,11 +260,20 @@ class BalanceGameController {
     }
     
     createGroundBlocks(values) {
-        const positions = generateGroundBlockPositions(values.length);
+        // Use the global function from balanceconfig.js
+        const positions = window.generateGroundBlockPositions 
+            ? window.generateGroundBlockPositions(values.length)
+            : generateGroundBlockPositions(values.length);
+            
         const colors = [...BALANCE_CONFIG.BLOCK_COLORS];
         
         values.forEach((value, index) => {
             const pos = positions[index];
+            if (!pos) {
+                console.warn('Missing position for block', index);
+                return;
+            }
+            
             const colorIndex = Math.floor(Math.random() * colors.length);
             const color = colors.splice(colorIndex, 1)[0];
             
