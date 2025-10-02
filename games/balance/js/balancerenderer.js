@@ -386,9 +386,10 @@ class BalanceRenderer {
         // Calculate local x position relative to pan center
         const localX = dropX - pan.currentX;
         
-        // Find y position: Start at pan bottom (y=0 means bottom of pan)
-        // We'll place the CENTER of the block at -blockDims.height/2 so bottom sits on pan
-        let targetY = -blockDims.height / 2;
+        // Find y position: Start at pan bottom
+        // Pan bottom is at local y = -extensionHeight
+        // Place block CENTER at pan bottom so block sits ON the pan line
+        let targetY = -pan.extensionHeight;
         
         // Check all blocks in pan for collision
         for (const otherBlock of pan.blocks) {
@@ -402,9 +403,8 @@ class BalanceRenderer {
                 // This block is below us - stack on top
                 // otherLocalY is the center of the other block
                 // Top of other block is at: otherLocalY - blockDims.height/2
-                // We want our bottom at that point, so our center is at: top - blockDims.height/2
-                const topOfOtherBlock = otherLocalY - blockDims.height / 2;
-                const ourNewCenter = topOfOtherBlock - blockDims.height / 2;
+                // We want our center one block height above that center
+                const ourNewCenter = otherLocalY - blockDims.height;
                 
                 if (ourNewCenter < targetY) {
                     targetY = ourNewCenter;
@@ -497,39 +497,51 @@ class BalanceRenderer {
         this.seesawGroup.setAttribute('transform', 
             `translate(${this.pivotX},${this.pivotY}) rotate(${actualAngle})`);
         
-        // Update connection dots
+        // Update connection dots at BAR ENDPOINTS (not extension points)
         this.leftConnectionDot.setAttribute('cx', leftEndX);
         this.leftConnectionDot.setAttribute('cy', leftEndY);
         this.rightConnectionDot.setAttribute('cx', rightEndX);
         this.rightConnectionDot.setAttribute('cy', rightEndY);
         
-        // Update pan units (move entire groups) - SINGLE TRANSFORM, NO JITTER
+        // Smooth pan movement to reduce jitter - only update if change is significant
+        const threshold = 0.5; // pixels
+        
         if (this.leftPan) {
-            this.leftPan.currentX = leftEndX;
-            this.leftPan.currentY = leftEndY;
-            this.leftPan.group.setAttribute('transform', `translate(${leftEndX},${leftEndY})`);
+            const xDiff = Math.abs(leftEndX - this.leftPan.currentX);
+            const yDiff = Math.abs(leftEndY - this.leftPan.currentY);
             
-            // Update bounds for drop detection
-            this.leftPan.bounds = {
-                left: leftEndX - this.leftPan.panDims.width / 2,
-                right: leftEndX + this.leftPan.panDims.width / 2,
-                top: leftEndY - this.leftPan.extensionHeight - this.leftPan.panDims.height,
-                bottom: leftEndY - this.leftPan.extensionHeight
-            };
+            if (xDiff > threshold || yDiff > threshold) {
+                this.leftPan.currentX = leftEndX;
+                this.leftPan.currentY = leftEndY;
+                this.leftPan.group.setAttribute('transform', `translate(${leftEndX},${leftEndY})`);
+                
+                // Update bounds for drop detection
+                this.leftPan.bounds = {
+                    left: leftEndX - this.leftPan.panDims.width / 2,
+                    right: leftEndX + this.leftPan.panDims.width / 2,
+                    top: leftEndY - this.leftPan.extensionHeight - this.leftPan.panDims.height,
+                    bottom: leftEndY - this.leftPan.extensionHeight
+                };
+            }
         }
         
         if (this.rightPan) {
-            this.rightPan.currentX = rightEndX;
-            this.rightPan.currentY = rightEndY;
-            this.rightPan.group.setAttribute('transform', `translate(${rightEndX},${rightEndY})`);
+            const xDiff = Math.abs(rightEndX - this.rightPan.currentX);
+            const yDiff = Math.abs(rightEndY - this.rightPan.currentY);
             
-            // Update bounds for drop detection
-            this.rightPan.bounds = {
-                left: rightEndX - this.rightPan.panDims.width / 2,
-                right: rightEndX + this.rightPan.panDims.width / 2,
-                top: rightEndY - this.rightPan.extensionHeight - this.rightPan.panDims.height,
-                bottom: rightEndY - this.rightPan.extensionHeight
-            };
+            if (xDiff > threshold || yDiff > threshold) {
+                this.rightPan.currentX = rightEndX;
+                this.rightPan.currentY = rightEndY;
+                this.rightPan.group.setAttribute('transform', `translate(${rightEndX},${rightEndY})`);
+                
+                // Update bounds for drop detection
+                this.rightPan.bounds = {
+                    left: rightEndX - this.rightPan.panDims.width / 2,
+                    right: rightEndX + this.rightPan.panDims.width / 2,
+                    top: rightEndY - this.rightPan.extensionHeight - this.rightPan.panDims.height,
+                    bottom: rightEndY - this.rightPan.extensionHeight
+                };
+            }
         }
         
         return groundHit;
