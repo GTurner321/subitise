@@ -71,7 +71,11 @@ class BalanceGameController {
     
     startAnimationLoop() {
         const animate = (currentTime) => {
-            if (!this.lastUpdateTime) this.lastUpdateTime = currentTime;
+            // Don't reset lastUpdateTime on first call or after tab switch
+            if (!this.lastUpdateTime) {
+                this.lastUpdateTime = currentTime;
+            }
+            
             const deltaTime = currentTime - this.lastUpdateTime;
             this.lastUpdateTime = currentTime;
             
@@ -232,9 +236,10 @@ class BalanceGameController {
         const blockDims = getBlockDimensions();
         
         // Create block at center of pan bottom (local coordinates)
-        // Local Y = 0 means the BOTTOM of the block is at the pan bottom
-        const localX = 0; // Centered
-        const localY = -blockDims.height / 2; // Bottom of block at pan bottom
+        // Pan bottom line is at local y = -extensionHeight
+        // Place block CENTER at that line so block sits ON the pan
+        const localX = 0; // Centered horizontally
+        const localY = -pan.extensionHeight; // Center at pan bottom line
         
         const block = this.renderer.createBlock(
             value,
