@@ -1,18 +1,20 @@
 /**
  * BalancePhysics - Handles seesaw physics and animation
+ * FIXED: Maintains state through tab switches, no unnecessary resets
  */
 class BalancePhysics {
     constructor() {
-        this.currentAngle = 0; // Current rotation angle
-        this.targetAngle = 0; // Target angle based on weight
-        this.angularVelocity = 0; // Current rotation speed
-        this.isSettling = false; // Whether seesaw is settling to balance
+        this.currentAngle = 0;
+        this.targetAngle = 0;
+        this.angularVelocity = 0;
+        this.isSettling = false;
         this.leftWeight = 0;
         this.rightWeight = 0;
         this.lastChangeTime = 0;
         this.settleStartTime = 0;
         this.isBalanced = false;
         this.hitGround = false;
+        this.lastUpdateTime = 0;
     }
     
     /**
@@ -45,9 +47,8 @@ class BalancePhysics {
             }
         } else {
             // Unbalanced - angle proportional to weight difference
-            // Allow large angles - renderer will clamp to grass collision
             const normalizedDiff = Math.max(-1, Math.min(1, weightDiff / 10));
-            this.targetAngle = normalizedDiff * 45; // Up to 45 degrees
+            this.targetAngle = normalizedDiff * 45;
             this.isSettling = false;
             this.settleStartTime = 0;
         }
@@ -59,7 +60,9 @@ class BalancePhysics {
      * @param {boolean} groundHit - Whether endpoint hit grass (from renderer)
      */
     update(deltaTime, groundHit = false) {
-        const dt = deltaTime / 16.67; // Normalize to 60fps
+        // Handle large time gaps (like tab switches) by capping deltaTime
+        const cappedDelta = Math.min(deltaTime, 100);
+        const dt = cappedDelta / 16.67; // Normalize to 60fps
         
         // Calculate angle difference
         let angleDiff = this.targetAngle - this.currentAngle;
@@ -132,7 +135,7 @@ class BalancePhysics {
     }
     
     /**
-     * Reset physics state
+     * Reset physics state (only called when starting new question)
      */
     reset() {
         this.currentAngle = 0;
@@ -145,6 +148,7 @@ class BalancePhysics {
         this.settleStartTime = 0;
         this.isBalanced = false;
         this.hitGround = false;
+        this.lastUpdateTime = 0;
     }
     
     /**
