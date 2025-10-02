@@ -1,6 +1,6 @@
 /**
  * BalanceRenderer - Handles SVG rendering and interactions
- * FIXED: Pan/extension unit, block stacking using BOTTOM of blocks, connection points, no jitter
+ * FIXED: Proper elbow connections, block positioning, pan lip height, no bar through ground
  */
 class BalanceRenderer {
     constructor(svg, gameController) {
@@ -15,7 +15,7 @@ class BalanceRenderer {
         this.rightPan = null;
         this.blocks = [];
         
-        // Connection points (black dots)
+        // Connection points (black dots at elbows)
         this.leftConnectionDot = null;
         this.rightConnectionDot = null;
         
@@ -99,7 +99,7 @@ class BalanceRenderer {
         
         this.barWidth = barWidth;
         
-        // Create connection dots at bar endpoints (in local coordinates of rotating group)
+        // Create connection dots at bar endpoints (elbow joints)
         this.leftConnectionDot = this.createConnectionDot();
         this.leftConnectionDot.setAttribute('cx', -barWidth / 2);
         this.leftConnectionDot.setAttribute('cy', 0);
@@ -113,7 +113,7 @@ class BalanceRenderer {
         this.seesawGroup.setAttribute('transform', `translate(${this.pivotX},${this.pivotY})`);
         this.svg.appendChild(this.seesawGroup);
         
-        // Create pans as unified units
+        // Create pans as unified units - extensions start AT bar endpoints (elbow joints)
         this.leftPan = this.createPanUnit(-barWidth / 2, 'left');
         this.rightPan = this.createPanUnit(barWidth / 2, 'right');
         
@@ -131,16 +131,17 @@ class BalanceRenderer {
     createPanUnit(xOffset, side) {
         const panDims = getPanDimensions();
         const extensionHeight = vhToPx(BALANCE_CONFIG.EXTENSION_HEIGHT_PERCENT);
+        const blockHeight = getBlockDimensions().height;
         
-        // Create group for entire pan unit (extension + pan + lips + blocks)
+        // Create group for entire pan unit
         const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         group.setAttribute('class', 'pan-unit');
         
-        // Calculate initial position
+        // Initial position (will be updated)
         const initialX = this.pivotX + xOffset;
         const initialY = this.pivotY;
         
-        // Vertical extension
+        // Vertical extension - starts at (0,0) which is the elbow/bar endpoint
         const extension = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         extension.setAttribute('x1', 0);
         extension.setAttribute('y1', 0);
@@ -150,7 +151,7 @@ class BalanceRenderer {
         extension.setAttribute('stroke-width', '4');
         group.appendChild(extension);
         
-        // Pan bottom line (5 blocks wide)
+        // Pan bottom line (5 blocks wide) at top of extension
         const panBottom = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         panBottom.setAttribute('x1', -panDims.width / 2);
         panBottom.setAttribute('y1', -extensionHeight);
@@ -160,22 +161,23 @@ class BalanceRenderer {
         panBottom.setAttribute('stroke-width', '3');
         group.appendChild(panBottom);
         
-        // Left lip (reduced height to 0.4 blocks)
+        // Left lip - 0.4 blocks high (20% of original 2 blocks)
+        const lipHeight = blockHeight * 0.4;
         const leftLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         leftLip.setAttribute('x1', -panDims.width / 2);
-        leftLip.setAttribute('y1', -extensionHeight - panDims.height);
+        leftLip.setAttribute('y1', -extensionHeight);
         leftLip.setAttribute('x2', -panDims.width / 2);
-        leftLip.setAttribute('y2', -extensionHeight + panDims.lipHeight);
+        leftLip.setAttribute('y2', -extensionHeight + lipHeight);
         leftLip.setAttribute('stroke', BALANCE_CONFIG.PAN_STROKE);
         leftLip.setAttribute('stroke-width', '3');
         group.appendChild(leftLip);
         
-        // Right lip (reduced height to 0.4 blocks)
+        // Right lip - 0.4 blocks high
         const rightLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         rightLip.setAttribute('x1', panDims.width / 2);
-        rightLip.setAttribute('y1', -extensionHeight - panDims.height);
+        rightLip.setAttribute('y1', -extensionHeight);
         rightLip.setAttribute('x2', panDims.width / 2);
-        rightLip.setAttribute('y2', -extensionHeight + panDims.lipHeight);
+        rightLip.setAttribute('y2', -extensionHeight + lipHeight);
         rightLip.setAttribute('stroke', BALANCE_CONFIG.PAN_STROKE);
         rightLip.setAttribute('stroke-width', '3');
         group.appendChild(rightLip);
@@ -191,7 +193,8 @@ class BalanceRenderer {
             currentY: initialY,
             panDims,
             extensionHeight,
-            blocks: [], // Blocks will be children of this group
+            lipHeight,
+            blocks: [],
             bounds: {
                 left: initialX - panDims.width / 2,
                 right: initialX + panDims.width / 2,
@@ -281,7 +284,6 @@ class BalanceRenderer {
     updateBlockInPan(block, pan, localX, localY) {
         const dims = block._dimensions;
         
-        // localX and localY represent the CENTER of the block
         block._rect.setAttribute('x', localX - dims.width/2);
         block._rect.setAttribute('y', localY - dims.height/2);
         
@@ -317,9 +319,9 @@ class BalanceRenderer {
             if (index > -1) pan.blocks.splice(index, 1);
             block._inPan = null;
             
-            // Move block to main SVG (out of pan group) with global coordinates
+            // Move block to main SVG with global coordinates
             const globalX = pan.currentX + parseFloat(block.getAttribute('data-local-x'));
-            const globalY = pan.currentY - pan.extensionHeight + parseFloat(block.getAttribute('data-local-y'));
+            const globalY = pan.currentY + parseFloat(block.getAttribute('data-local-y'));
             
             this.updateBlockPosition(block, globalX, globalY);
             this.svg.appendChild(block);
@@ -391,24 +393,20 @@ class BalanceRenderer {
         // Calculate local x position relative to pan center
         const localX = dropX - pan.currentX;
         
-        // Find y position: Start at pan bottom
-        // Pan bottom is at local y = -extensionHeight
-        // Place block CENTER at pan bottom so block sits ON the pan line
-        let targetY = -pan.extensionHeight;
+        // Pan bottom line is at local y = -extensionHeight
+        // Place block center 0.5 blocks ABOVE the pan line
+        let targetY = -pan.extensionHeight - (blockDims.height / 2);
         
-        // Check all blocks in pan for collision
+        // Check all blocks in pan for stacking
         for (const otherBlock of pan.blocks) {
             const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
             const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
             
-            // Check if blocks overlap horizontally
+            // Check horizontal overlap
             const xOverlap = Math.abs(localX - otherLocalX) < blockDims.width * 0.9;
             
             if (xOverlap) {
-                // This block is below us - stack on top
-                // otherLocalY is the center of the other block
-                // Top of other block is at: otherLocalY - blockDims.height/2
-                // We want our center one block height above that center
+                // Stack on top: place our center one block height above other block's center
                 const ourNewCenter = otherLocalY - blockDims.height;
                 
                 if (ourNewCenter < targetY) {
@@ -425,10 +423,10 @@ class BalanceRenderer {
         block.setAttribute('data-local-x', localX);
         block.setAttribute('data-local-y', targetY);
         
-        // Update block position in local coordinates
+        // Update block position
         this.updateBlockInPan(block, pan, localX, targetY);
         
-        // Move block to be child of pan group
+        // Move to pan group
         pan.group.appendChild(block);
     }
     
@@ -473,6 +471,7 @@ class BalanceRenderer {
         
         const grassTopY = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT);
         const halfBarWidth = this.barWidth / 2;
+        const barThickness = vhToPx(BALANCE_CONFIG.SEESAW_BAR_THICKNESS_PERCENT);
         
         let angleRad = (angle * Math.PI) / 180;
         let leftEndX = this.pivotX + (Math.cos(angleRad) * -halfBarWidth);
@@ -482,12 +481,16 @@ class BalanceRenderer {
         
         let groundHit = false;
         
-        if (leftEndY > grassTopY) {
-            leftEndY = grassTopY;
+        // Prevent bar from going through ground - check BOTTOM of bar
+        const leftBottomY = leftEndY + (barThickness / 2) * Math.cos(angleRad);
+        const rightBottomY = rightEndY + (barThickness / 2) * Math.cos(angleRad);
+        
+        if (leftBottomY > grassTopY) {
+            leftEndY = grassTopY - (barThickness / 2) * Math.cos(angleRad);
             groundHit = true;
         }
-        if (rightEndY > grassTopY) {
-            rightEndY = grassTopY;
+        if (rightBottomY > grassTopY) {
+            rightEndY = grassTopY - (barThickness / 2) * Math.cos(angleRad);
             groundHit = true;
         }
         
@@ -502,10 +505,8 @@ class BalanceRenderer {
         this.seesawGroup.setAttribute('transform', 
             `translate(${this.pivotX},${this.pivotY}) rotate(${actualAngle})`);
         
-        // Connection dots rotate with the bar automatically since they're children of seesawGroup
-        
-        // Smooth pan movement to reduce jitter - only update if change is significant
-        const threshold = 0.5; // pixels
+        // Update pans - only if position changed significantly (reduce jitter)
+        const threshold = 0.1; // Very small threshold
         
         if (this.leftPan) {
             const xDiff = Math.abs(leftEndX - this.leftPan.currentX);
@@ -516,7 +517,6 @@ class BalanceRenderer {
                 this.leftPan.currentY = leftEndY;
                 this.leftPan.group.setAttribute('transform', `translate(${leftEndX},${leftEndY})`);
                 
-                // Update bounds for drop detection
                 this.leftPan.bounds = {
                     left: leftEndX - this.leftPan.panDims.width / 2,
                     right: leftEndX + this.leftPan.panDims.width / 2,
@@ -535,7 +535,6 @@ class BalanceRenderer {
                 this.rightPan.currentY = rightEndY;
                 this.rightPan.group.setAttribute('transform', `translate(${rightEndX},${rightEndY})`);
                 
-                // Update bounds for drop detection
                 this.rightPan.bounds = {
                     left: rightEndX - this.rightPan.panDims.width / 2,
                     right: rightEndX + this.rightPan.panDims.width / 2,
@@ -569,13 +568,12 @@ class BalanceRenderer {
         // Clear blocks from main SVG
         const blocks = this.svg.querySelectorAll('.block:not(.fixed-block)');
         blocks.forEach(block => {
-            // Only remove if not in a pan
             if (!block._inPan) {
                 block.remove();
             }
         });
         
-        // Clear ALL blocks from pans (including fixed grey blocks)
+        // Clear ALL blocks from pans
         if (this.leftPan) {
             this.leftPan.blocks.forEach(block => block.remove());
             this.leftPan.blocks = [];
@@ -606,11 +604,11 @@ class BalanceRenderer {
         this.svg.removeEventListener('mousedown', this.handlePointerStart);
         this.svg.removeEventListener('touchstart', this.handlePointerStart);
         
-        document.addEventListener('mousemove', this.handlePointerMove);
-        document.addEventListener('touchmove', this.handlePointerMove);
+        document.removeEventListener('mousemove', this.handlePointerMove);
+        document.removeEventListener('touchmove', this.handlePointerMove);
         
-        document.addEventListener('mouseup', this.handlePointerEnd);
-        document.addEventListener('touchend', this.handlePointerEnd);
+        document.removeEventListener('mouseup', this.handlePointerEnd);
+        document.removeEventListener('touchend', this.handlePointerEnd);
         
         this.clearAll();
     }
