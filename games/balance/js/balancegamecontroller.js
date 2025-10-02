@@ -1,5 +1,6 @@
 /**
  * BalanceGameController - Main game logic and coordination
+ * FIXED: Remove teddy celebration, proper block clearing, maintain physics on tab switch
  */
 class BalanceGameController {
     constructor() {
@@ -17,10 +18,6 @@ class BalanceGameController {
         this.questionStartTime = 0;
         this.gameActive = false;
         
-        // Teddy images
-        this.availableTeddyImages = [];
-        this.shuffleTeddyImages();
-        
         // DOM elements
         this.container = document.getElementById('balanceContainer');
         this.modal = document.getElementById('gameModal');
@@ -32,33 +29,6 @@ class BalanceGameController {
         this.lastUpdateTime = 0;
         
         this.init();
-    }
-    
-    shuffleTeddyImages() {
-        const allImages = [
-            '../../assets/bear.png',
-            '../../assets/trumps/biscuitbear.png',
-            '../../assets/trumps/blackbear.png',
-            '../../assets/trumps/casperrabbit.png',
-            '../../assets/trumps/chick.png',
-            '../../assets/trumps/dinosaur.png',
-            '../../assets/trumps/elephant.png',
-            '../../assets/trumps/flabberjabber.png',
-            '../../assets/trumps/gemsbear.png',
-            '../../assets/trumps/knightbear.png'
-        ];
-        
-        this.availableTeddyImages = [...allImages];
-        for (let i = this.availableTeddyImages.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [this.availableTeddyImages[i], this.availableTeddyImages[j]] = 
-                [this.availableTeddyImages[j], this.availableTeddyImages[i]];
-        }
-    }
-    
-    getNextTeddyImage() {
-        const index = (this.currentQuestion - 1) % this.availableTeddyImages.length;
-        return this.availableTeddyImages[index];
     }
     
     async init() {
@@ -105,20 +75,18 @@ class BalanceGameController {
             const deltaTime = currentTime - this.lastUpdateTime;
             this.lastUpdateTime = currentTime;
             
-            // Update physics
-            if (this.physics && this.gameActive) {
+            // Update physics (continue even when not active to maintain state)
+            if (this.physics && this.renderer) {
                 const weights = this.renderer.getWeights();
                 this.physics.updateWeights(weights.left, weights.right);
                 
-                // Get ground hit status from renderer
                 const groundHit = this.renderer.lastGroundHit || false;
                 const state = this.physics.update(deltaTime, groundHit);
                 
-                // Update visual rotation and get new ground hit status
                 const hitGround = this.renderer.updateSeesawRotation(state.angle);
                 this.renderer.lastGroundHit = hitGround;
                 
-                // Check for balance completion
+                // Only check for balance completion when game is active
                 if (state.isBalanced && this.gameActive) {
                     this.completeQuestion();
                 }
@@ -137,8 +105,6 @@ class BalanceGameController {
         this.consecutiveSlow = 0;
         this.gameActive = false;
         
-        this.shuffleTeddyImages();
-        
         if (this.modal) this.modal.classList.add('hidden');
         
         this.rainbow.reset();
@@ -153,7 +119,7 @@ class BalanceGameController {
         
         console.log(`Starting question ${this.currentQuestion}, level ${this.currentLevel}`);
         
-        // Clear previous question
+        // Clear ALL previous blocks (including grey fixed blocks)
         this.renderer.clearMoveableBlocks();
         
         // Create seesaw if not exists
@@ -167,7 +133,7 @@ class BalanceGameController {
         // Generate question
         const questionData = this.generateQuestion();
         
-        // Create fixed blocks in pans
+        // Create fixed grey blocks in pans (centered at bottom)
         if (questionData.leftBlock) {
             this.createFixedBlock(questionData.leftBlock, 'left');
         }
@@ -264,24 +230,31 @@ class BalanceGameController {
     createFixedBlock(value, side) {
         const pan = side === 'left' ? this.renderer.leftPan : this.renderer.rightPan;
         
-        const x = pan.currentX;
-        const y = pan.bounds.bottom - getBlockDimensions().height/2;
+        // Create block at center of pan bottom (local coordinates)
+        const localX = 0; // Centered
+        const localY = 0; // Bottom of pan
         
         const block = this.renderer.createBlock(
             value,
-            pxToVw(x),
-            pxToVh(y),
+            0, // Will be positioned in local coordinates
+            0,
             BALANCE_CONFIG.FIXED_BLOCK_COLOR,
             true
         );
         
-        this.svg.appendChild(block);
-        
         // Add to pan
-        if (!pan.blocks) pan.blocks = [];
         pan.blocks.push(block);
         block._inPan = pan;
-        block._panSide = side;
+        
+        // Store local coordinates
+        block.setAttribute('data-local-x', localX);
+        block.setAttribute('data-local-y', localY);
+        
+        // Update block position in local coordinates
+        this.renderer.updateBlockInPan(block, pan, localX, localY);
+        
+        // Add to pan group
+        pan.group.appendChild(block);
     }
     
     createGroundBlocks(values) {
@@ -339,10 +312,7 @@ class BalanceGameController {
         // Add rainbow piece
         this.rainbow.addPiece();
         
-        // Add teddy
-        const teddyImg = this.getNextTeddyImage();
-        const teddy = this.renderer.createTeddy(50, 40, teddyImg);
-        this.svg.appendChild(teddy);
+        // NO TEDDY - removed
         
         // Play success sound
         if (window.AudioSystem) {
