@@ -235,15 +235,14 @@ class BalanceGameController {
         const pan = side === 'left' ? this.renderer.leftPan : this.renderer.rightPan;
         const blockDims = getBlockDimensions();
         
-        // Create block at center of pan bottom (local coordinates)
         // Pan bottom line is at local y = -extensionHeight
-        // Place block CENTER at that line so block sits ON the pan
+        // Place block center 0.5 blocks ABOVE the pan line
         const localX = 0; // Centered horizontally
-        const localY = -pan.extensionHeight; // Center at pan bottom line
+        const localY = -pan.extensionHeight - (blockDims.height / 2);
         
         const block = this.renderer.createBlock(
             value,
-            0, // Will be positioned in local coordinates
+            0,
             0,
             BALANCE_CONFIG.FIXED_BLOCK_COLOR,
             true
@@ -257,7 +256,7 @@ class BalanceGameController {
         block.setAttribute('data-local-x', localX);
         block.setAttribute('data-local-y', localY);
         
-        // Update block position in local coordinates
+        // Update block position
         this.renderer.updateBlockInPan(block, pan, localX, localY);
         
         // Add to pan group
