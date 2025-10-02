@@ -1,6 +1,6 @@
 /**
  * BalanceRenderer - Handles SVG rendering and interactions
- * FIXED: Pan/extension unit, block stacking, connection points, no jitter
+ * FIXED: Pan/extension unit, block stacking using BOTTOM of blocks, connection points, no jitter
  */
 class BalanceRenderer {
     constructor(svg, gameController) {
@@ -23,6 +23,9 @@ class BalanceRenderer {
         this.draggedBlock = null;
         this.dragOffset = { x: 0, y: 0 };
         this.isDragging = false;
+        
+        // Track last ground hit for physics
+        this.lastGroundHit = false;
         
         this.setupEventListeners();
     }
@@ -143,7 +146,6 @@ class BalanceRenderer {
         group.appendChild(extension);
         
         // Pan bottom line (5 blocks wide)
-        const panY = -extensionHeight - panDims.height;
         const panBottom = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         panBottom.setAttribute('x1', -panDims.width / 2);
         panBottom.setAttribute('y1', -extensionHeight);
@@ -271,6 +273,20 @@ class BalanceRenderer {
         block._centerY = y;
     }
     
+    updateBlockInPan(block, pan, localX, localY) {
+        const dims = block._dimensions;
+        
+        // localX and localY represent the CENTER of the block
+        block._rect.setAttribute('x', localX - dims.width/2);
+        block._rect.setAttribute('y', localY - dims.height/2);
+        
+        block._shadow.setAttribute('x', localX - dims.width/2 + 3);
+        block._shadow.setAttribute('y', localY - dims.height/2 + 3);
+        
+        block._text.setAttribute('x', localX);
+        block._text.setAttribute('y', localY);
+    }
+    
     handlePointerStart(e) {
         const point = this.getEventPoint(e);
         const block = this.findBlockAtPoint(point);
@@ -296,7 +312,11 @@ class BalanceRenderer {
             if (index > -1) pan.blocks.splice(index, 1);
             block._inPan = null;
             
-            // Move block to main SVG (out of pan group)
+            // Move block to main SVG (out of pan group) with global coordinates
+            const globalX = pan.currentX + parseFloat(block.getAttribute('data-local-x'));
+            const globalY = pan.currentY - pan.extensionHeight + parseFloat(block.getAttribute('data-local-y'));
+            
+            this.updateBlockPosition(block, globalX, globalY);
             this.svg.appendChild(block);
         }
     }
@@ -366,8 +386,9 @@ class BalanceRenderer {
         // Calculate local x position relative to pan center
         const localX = dropX - pan.currentX;
         
-        // Find y position: check for blocks below this x position
-        let targetY = 0; // Local y coordinate (0 = bottom of pan)
+        // Find y position: Start at pan bottom (y=0 means bottom of pan)
+        // We'll place the CENTER of the block at -blockDims.height/2 so bottom sits on pan
+        let targetY = -blockDims.height / 2;
         
         // Check all blocks in pan for collision
         for (const otherBlock of pan.blocks) {
@@ -375,13 +396,18 @@ class BalanceRenderer {
             const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
             
             // Check if blocks overlap horizontally
-            const xOverlap = Math.abs(localX - otherLocalX) < blockDims.width;
+            const xOverlap = Math.abs(localX - otherLocalX) < blockDims.width * 0.9;
             
             if (xOverlap) {
-                // Block is above this one, stack on top
-                const topOfOtherBlock = otherLocalY - blockDims.height;
-                if (topOfOtherBlock < targetY) {
-                    targetY = topOfOtherBlock;
+                // This block is below us - stack on top
+                // otherLocalY is the center of the other block
+                // Top of other block is at: otherLocalY - blockDims.height/2
+                // We want our bottom at that point, so our center is at: top - blockDims.height/2
+                const topOfOtherBlock = otherLocalY - blockDims.height / 2;
+                const ourNewCenter = topOfOtherBlock - blockDims.height / 2;
+                
+                if (ourNewCenter < targetY) {
+                    targetY = ourNewCenter;
                 }
             }
         }
@@ -399,23 +425,6 @@ class BalanceRenderer {
         
         // Move block to be child of pan group
         pan.group.appendChild(block);
-    }
-    
-    updateBlockInPan(block, pan, localX, localY) {
-        const dims = block._dimensions;
-        
-        // Convert local coordinates to element attributes
-        const x = localX;
-        const y = localY;
-        
-        block._rect.setAttribute('x', x - dims.width/2);
-        block._rect.setAttribute('y', y - dims.height/2);
-        
-        block._shadow.setAttribute('x', x - dims.width/2 + 3);
-        block._shadow.setAttribute('y', y - dims.height/2 + 3);
-        
-        block._text.setAttribute('x', x);
-        block._text.setAttribute('y', y);
     }
     
     placeBlockOnGround(block, x, y) {
@@ -494,13 +503,13 @@ class BalanceRenderer {
         this.rightConnectionDot.setAttribute('cx', rightEndX);
         this.rightConnectionDot.setAttribute('cy', rightEndY);
         
-        // Update pan units (move entire groups)
+        // Update pan units (move entire groups) - SINGLE TRANSFORM, NO JITTER
         if (this.leftPan) {
             this.leftPan.currentX = leftEndX;
             this.leftPan.currentY = leftEndY;
             this.leftPan.group.setAttribute('transform', `translate(${leftEndX},${leftEndY})`);
             
-            // Update bounds
+            // Update bounds for drop detection
             this.leftPan.bounds = {
                 left: leftEndX - this.leftPan.panDims.width / 2,
                 right: leftEndX + this.leftPan.panDims.width / 2,
@@ -514,7 +523,7 @@ class BalanceRenderer {
             this.rightPan.currentY = rightEndY;
             this.rightPan.group.setAttribute('transform', `translate(${rightEndX},${rightEndY})`);
             
-            // Update bounds
+            // Update bounds for drop detection
             this.rightPan.bounds = {
                 left: rightEndX - this.rightPan.panDims.width / 2,
                 right: rightEndX + this.rightPan.panDims.width / 2,
@@ -553,7 +562,7 @@ class BalanceRenderer {
             }
         });
         
-        // Clear blocks from pans (including fixed grey blocks)
+        // Clear ALL blocks from pans (including fixed grey blocks)
         if (this.leftPan) {
             this.leftPan.blocks.forEach(block => block.remove());
             this.leftPan.blocks = [];
@@ -584,11 +593,11 @@ class BalanceRenderer {
         this.svg.removeEventListener('mousedown', this.handlePointerStart);
         this.svg.removeEventListener('touchstart', this.handlePointerStart);
         
-        document.removeEventListener('mousemove', this.handlePointerMove);
-        document.removeEventListener('touchmove', this.handlePointerMove);
+        document.addEventListener('mousemove', this.handlePointerMove);
+        document.addEventListener('touchmove', this.handlePointerMove);
         
-        document.removeEventListener('mouseup', this.handlePointerEnd);
-        document.removeEventListener('touchend', this.handlePointerEnd);
+        document.addEventListener('mouseup', this.handlePointerEnd);
+        document.addEventListener('touchend', this.handlePointerEnd);
         
         this.clearAll();
     }
