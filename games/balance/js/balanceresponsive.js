@@ -283,10 +283,11 @@ class BalanceResponsiveManager {
             }
             // Update drop zone
             else if (child.classList.contains('drop-zone')) {
+                const dropZoneHeight = blockHeight * 3.5; // UPDATED: 3.5 blocks high
                 child.setAttribute('x', -panDims.width / 2);
-                child.setAttribute('y', -extensionHeight - (blockHeight * 2));
+                child.setAttribute('y', -extensionHeight - dropZoneHeight);
                 child.setAttribute('width', panDims.width);
-                child.setAttribute('height', blockHeight * 2);
+                child.setAttribute('height', dropZoneHeight);
             }
         }
     }
