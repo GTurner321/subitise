@@ -1,4 +1,4 @@
-/* Balance Game Styles */
+/* Balance Game Styles - Updated with drop zones and responsive features */
 
 /* Reset and base styles */
 * {
@@ -57,6 +57,7 @@ body {
     height: 100vh;
     width: 100vw;
     z-index: 2;
+    transition: transform 0.3s ease;
 }
 
 /* Rainbow container */
@@ -110,9 +111,39 @@ body {
     opacity: 0.9;
 }
 
+.block.dragging {
+    cursor: grabbing !important;
+    filter: brightness(1.2);
+    z-index: 1000;
+}
+
 .block rect,
 .block text {
     pointer-events: none !important;
+}
+
+/* NEW: Drop zone styling - visible grey areas in pans */
+.drop-zone {
+    fill: rgba(128, 128, 128, 0.3);
+    stroke: rgba(100, 100, 100, 0.5);
+    stroke-width: 2;
+    stroke-dasharray: 5, 5;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    rx: 8;
+    ry: 8;
+}
+
+.drop-zone.hover {
+    fill: rgba(76, 175, 80, 0.4);
+    stroke: rgba(76, 175, 80, 0.8);
+    stroke-width: 3;
+    stroke-dasharray: 3, 3;
+}
+
+.drop-zone.occupied {
+    fill: rgba(128, 128, 128, 0.15);
+    stroke: rgba(100, 100, 100, 0.3);
 }
 
 /* Seesaw styling */
@@ -226,6 +257,47 @@ body {
     font-size: 1.2rem;
 }
 
+/* NEW: Rotation overlay for portrait mode */
+.rotation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+
+.rotation-overlay.hidden {
+    display: none;
+}
+
+.rotation-message {
+    text-align: center;
+    color: white;
+    padding: 2rem;
+}
+
+.rotation-message i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: rotateIcon 2s ease-in-out infinite;
+}
+
+.rotation-message p {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+@keyframes rotateIcon {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+}
+
 /* Touch support */
 .balance-container {
     touch-action: none;
@@ -294,6 +366,21 @@ body {
     }
 }
 
+/* NEW: Portrait mode handling - rotate game area 90 degrees anticlockwise */
+@media (max-width: 768px) and (orientation: portrait) {
+    .game-area {
+        transform: rotate(-90deg);
+        transform-origin: center center;
+        width: 100vh;
+        height: 100vw;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        margin-left: -50vh;
+        margin-top: -50vw;
+    }
+}
+
 /* High contrast mode support */
 @media (prefers-contrast: high) {
     .balance-container {
@@ -302,6 +389,10 @@ body {
     
     .block rect {
         stroke-width: 4;
+    }
+    
+    .drop-zone {
+        stroke-width: 3;
     }
 }
 
@@ -312,7 +403,9 @@ body {
     .modal-content,
     .modal h2,
     .play-again-btn,
-    .seesaw-group {
+    .seesaw-group,
+    .game-area,
+    .rotation-message i {
         animation: none !important;
         transition: none !important;
     }
@@ -322,7 +415,8 @@ body {
 @media print {
     .modal,
     .rainbow-container,
-    .grass-band {
+    .grass-band,
+    .rotation-overlay {
         display: none;
     }
     
