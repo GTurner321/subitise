@@ -303,9 +303,6 @@ class BalanceGameController {
             this.speakText('Well done! Balanced!');
         }, 500);
         
-        // Check level progression BEFORE moving to next question
-        this.checkLevelProgression();
-        
         // Fade out current seesaw and blocks
         this.fadeOutSeesaw();
         
@@ -315,10 +312,55 @@ class BalanceGameController {
                 this.endGame();
             }, 4000);
         } else {
+            // Check level progression
+            this.checkLevelProgression();
+            
             this.currentQuestion++;
             setTimeout(() => {
                 this.fadeInNewQuestion();
             }, 3000);
+        }
+    }
+    
+    checkLevelProgression() {
+        const level = BALANCE_CONFIG.LEVELS[this.currentLevel];
+        
+        // Calculate time taken for this question
+        const timeTaken = Date.now() - this.questionStartTime;
+        
+        console.log(`Question completed in ${this.questionMoves} moves, ${(timeTaken/1000).toFixed(1)}s`);
+        
+        // Check if completed within time limit
+        const completedInTime = timeTaken <= level.questionTime;
+        
+        // Track consecutive performance
+        if (completedInTime) {
+            this.consecutiveCorrect++;
+            this.consecutiveSlow = 0;
+            console.log(`Consecutive correct: ${this.consecutiveCorrect}`);
+        } else {
+            this.consecutiveSlow++;
+            this.consecutiveCorrect = 0;
+            console.log(`Consecutive slow: ${this.consecutiveSlow}`);
+        }
+        
+        // Check for promotion (move to harder level)
+        if (this.consecutiveCorrect >= level.consecutiveForPromotion && this.currentLevel < 3) {
+            this.currentLevel++;
+            this.consecutiveCorrect = 0;
+            console.log(`🎉 Promoted to level ${this.currentLevel}!`);
+            setTimeout(() => {
+                this.speakText(`Well done! Moving to level ${this.currentLevel}`);
+            }, 1500);
+        }
+        // Check for demotion (move to easier level)
+        else if (this.consecutiveSlow >= level.consecutiveForDemotion && this.currentLevel > 1) {
+            this.currentLevel--;
+            this.consecutiveSlow = 0;
+            console.log(`Moving back to level ${this.currentLevel}`);
+            setTimeout(() => {
+                this.speakText(`Let's try an easier level`);
+            }, 1500);
         }
     }
     
