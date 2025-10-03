@@ -298,7 +298,8 @@ class BalanceRenderer {
         const point = this.getEventPoint(e);
         const block = this.findBlockAtPoint(point);
         
-        if (!block || block._isFixed) return;
+        // Allow all blocks to be dragged (removed isFixed check)
+        if (!block) return;
         
         e.preventDefault();
         e.stopPropagation();
@@ -325,6 +326,11 @@ class BalanceRenderer {
             
             this.updateBlockPosition(block, globalX, globalY);
             this.svg.appendChild(block);
+            
+            // Notify game controller that weights changed
+            if (this.gameController) {
+                this.gameController.onBlockMoved();
+            }
         }
     }
     
@@ -448,7 +454,8 @@ class BalanceRenderer {
     }
     
     findBlockAtPoint(point) {
-        const blocks = this.svg.querySelectorAll('.block:not(.fixed-block)');
+        // Find ALL blocks (including fixed ones)
+        const blocks = this.svg.querySelectorAll('.block');
         
         for (let block of blocks) {
             const rect = block._rect;
@@ -543,7 +550,7 @@ class BalanceRenderer {
             this.leftPan.bounds = {
                 left: leftEndX - this.leftPan.panDims.width / 2,
                 right: leftEndX + this.leftPan.panDims.width / 2,
-                top: leftEndY - this.leftPan.extensionHeight - this.leftPan.panDims.height,
+                top: leftEndY - this.leftPan.extensionHeight - this.leftPan.dropAreaHeight,
                 bottom: leftEndY - this.leftPan.extensionHeight
             };
         }
@@ -556,7 +563,7 @@ class BalanceRenderer {
             this.rightPan.bounds = {
                 left: rightEndX - this.rightPan.panDims.width / 2,
                 right: rightEndX + this.rightPan.panDims.width / 2,
-                top: rightEndY - this.rightPan.extensionHeight - this.rightPan.panDims.height,
+                top: rightEndY - this.rightPan.extensionHeight - this.rightPan.dropAreaHeight,
                 bottom: rightEndY - this.rightPan.extensionHeight
             };
         }
