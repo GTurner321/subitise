@@ -187,11 +187,13 @@ class BalanceElementManager {
         const dropZone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         dropZone.setAttribute('class', 'drop-zone');
         
-        // Position: centered horizontally, starts at pan bottom line
+        // UPDATED: Position centered horizontally, 3.5 blocks high
+        const dropZoneHeight = blockHeight * 3.5;
+        
         dropZone.setAttribute('x', -panDims.width / 2);
-        dropZone.setAttribute('y', -extensionHeight - (blockHeight * 2)); // 2 blocks high
+        dropZone.setAttribute('y', -extensionHeight - dropZoneHeight);
         dropZone.setAttribute('width', panDims.width);
-        dropZone.setAttribute('height', blockHeight * 2);
+        dropZone.setAttribute('height', dropZoneHeight);
         dropZone.setAttribute('rx', '8');
         dropZone.setAttribute('ry', '8');
         
