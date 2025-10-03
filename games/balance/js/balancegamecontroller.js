@@ -1,6 +1,6 @@
 /**
  * BalanceGameController - Main game logic and coordination
- * FIXED: Remove teddy celebration, proper block clearing, maintain physics on tab switch
+ * Updated to work with new component architecture
  */
 class BalanceGameController {
     constructor() {
@@ -40,6 +40,7 @@ class BalanceGameController {
     
     async initializeAudio() {
         // Audio system already initialized globally
+        console.log('Audio system ready');
     }
     
     setupEventListeners() {
@@ -47,7 +48,7 @@ class BalanceGameController {
             this.playAgainBtn.addEventListener('click', () => this.startNewGame());
         }
         
-        window.addEventListener('resize', () => this.handleResize());
+        // Note: Resize is now handled by ResponsiveManager
     }
     
     createSVG() {
@@ -61,17 +62,21 @@ class BalanceGameController {
         
         this.container.appendChild(this.svg);
         
-        // Initialize systems
-        this.renderer = new BalanceRenderer(this.svg, this);
+        // Initialize renderer with new component architecture
+        this.renderer = new BalanceGameRenderer(this.svg, this);
+        
+        // Initialize physics
         this.physics = new BalancePhysics();
         
         // Start animation loop
         this.startAnimationLoop();
+        
+        console.log('Game initialized with new component architecture');
     }
     
     startAnimationLoop() {
         const animate = (currentTime) => {
-            // Don't reset lastUpdateTime on first call or after tab switch
+            // Initialize lastUpdateTime on first call
             if (!this.lastUpdateTime) {
                 this.lastUpdateTime = currentTime;
             }
@@ -139,10 +144,10 @@ class BalanceGameController {
         
         // Create fixed grey blocks in pans (centered at bottom)
         if (questionData.leftBlock) {
-            this.createFixedBlock(questionData.leftBlock, 'left');
+            this.renderer.createFixedBlockInPan(questionData.leftBlock, 'left');
         }
         if (questionData.rightBlock) {
-            this.createFixedBlock(questionData.rightBlock, 'right');
+            this.renderer.createFixedBlockInPan(questionData.rightBlock, 'right');
         }
         
         // Create ground blocks
@@ -231,44 +236,9 @@ class BalanceGameController {
         return shuffleArray(blocks);
     }
     
-    createFixedBlock(value, side) {
-        const pan = side === 'left' ? this.renderer.leftPan : this.renderer.rightPan;
-        const blockDims = getBlockDimensions();
-        
-        // Pan bottom line is at local y = -extensionHeight
-        // Place block center 0.5 blocks ABOVE the pan line
-        const localX = 0; // Centered horizontally
-        const localY = -pan.extensionHeight - (blockDims.height / 2);
-        
-        const block = this.renderer.createBlock(
-            value,
-            0,
-            0,
-            BALANCE_CONFIG.FIXED_BLOCK_COLOR,
-            true
-        );
-        
-        // Add to pan
-        pan.blocks.push(block);
-        block._inPan = pan;
-        
-        // Store local coordinates
-        block.setAttribute('data-local-x', localX);
-        block.setAttribute('data-local-y', localY);
-        
-        // Update block position
-        this.renderer.updateBlockInPan(block, pan, localX, localY);
-        
-        // Add to pan group
-        pan.group.appendChild(block);
-    }
-    
     createGroundBlocks(values) {
         // Use the global function from balanceconfig.js
-        const positions = window.generateGroundBlockPositions 
-            ? window.generateGroundBlockPositions(values.length)
-            : generateGroundBlockPositions(values.length);
-            
+        const positions = generateGroundBlockPositions(values.length);
         const colors = [...BALANCE_CONFIG.BLOCK_COLORS];
         
         values.forEach((value, index) => {
@@ -288,6 +258,7 @@ class BalanceGameController {
     }
     
     onBlockMoved() {
+        // Called when a block is moved (from renderer)
         // Physics will handle balance checking
         // Just play sound feedback
         if (window.AudioSystem) {
@@ -319,12 +290,12 @@ class BalanceGameController {
         if (this.currentQuestion >= BALANCE_CONFIG.TOTAL_QUESTIONS) {
             setTimeout(() => {
                 this.endGame();
-            }, 4000); // After fade transitions
+            }, 4000);
         } else {
             this.currentQuestion++;
             setTimeout(() => {
                 this.fadeInNewQuestion();
-            }, 3000); // 1s fade out + 2s delay
+            }, 3000);
         }
     }
     
@@ -386,13 +357,6 @@ class BalanceGameController {
     speakText(text) {
         if (window.AudioSystem) {
             window.AudioSystem.speakText(text);
-        }
-    }
-    
-    handleResize() {
-        if (this.svg) {
-            this.svg.setAttribute('width', window.innerWidth);
-            this.svg.setAttribute('height', window.innerHeight);
         }
     }
     
