@@ -90,8 +90,8 @@ class BalanceGameController {
                 const hitGround = this.renderer.updateSeesawRotation(state.angle);
                 this.renderer.lastGroundHit = hitGround;
                 
-                // Only check for balance completion when game is active
-                if (state.isBalanced && this.gameActive) {
+                // Check for equilibrium with equal weights
+                if (this.gameActive && state.isBalanced && weights.left === weights.right && weights.left > 0) {
                     this.completeQuestion();
                 }
             }
@@ -298,36 +298,10 @@ class BalanceGameController {
     completeQuestion() {
         this.gameActive = false;
         
-        const questionTime = Date.now() - this.questionStartTime;
-        const level = BALANCE_CONFIG.LEVELS[this.currentLevel];
-        
-        console.log(`Question completed in ${questionTime}ms`);
-        
-        // Check timing for level progression
-        if (questionTime <= level.questionTime) {
-            this.consecutiveCorrect++;
-            this.consecutiveSlow = 0;
-            
-            if (this.consecutiveCorrect >= level.consecutiveForPromotion && this.currentLevel < 3) {
-                this.currentLevel++;
-                this.consecutiveCorrect = 0;
-                console.log(`Promoted to level ${this.currentLevel}`);
-            }
-        } else {
-            this.consecutiveSlow++;
-            this.consecutiveCorrect = 0;
-            
-            if (this.consecutiveSlow >= level.consecutiveForDemotion && this.currentLevel > 1) {
-                this.currentLevel--;
-                this.consecutiveSlow = 0;
-                console.log(`Demoted to level ${this.currentLevel}`);
-            }
-        }
+        console.log('Question completed - weights are equal!');
         
         // Add rainbow piece
         this.rainbow.addPiece();
-        
-        // NO TEDDY - removed
         
         // Play success sound
         if (window.AudioSystem) {
@@ -338,17 +312,46 @@ class BalanceGameController {
             this.speakText('Well done! Balanced!');
         }, 500);
         
+        // Fade out current seesaw and blocks
+        this.fadeOutSeesaw();
+        
         // Check if game complete
         if (this.currentQuestion >= BALANCE_CONFIG.TOTAL_QUESTIONS) {
             setTimeout(() => {
                 this.endGame();
-            }, 3000);
+            }, 4000); // After fade transitions
         } else {
             this.currentQuestion++;
             setTimeout(() => {
-                this.startNewQuestion();
-            }, 3000);
+                this.fadeInNewQuestion();
+            }, 3000); // 1s fade out + 2s delay
         }
+    }
+    
+    fadeOutSeesaw() {
+        // Fade out all game elements
+        if (this.container) {
+            this.container.style.transition = 'opacity 1s ease-out';
+            this.container.style.opacity = '0';
+        }
+    }
+    
+    fadeInNewQuestion() {
+        // Reset opacity to 0 before starting new question
+        if (this.container) {
+            this.container.style.opacity = '0';
+        }
+        
+        // Start new question
+        this.startNewQuestion();
+        
+        // Fade in after brief delay
+        setTimeout(() => {
+            if (this.container) {
+                this.container.style.transition = 'opacity 1s ease-in';
+                this.container.style.opacity = '1';
+            }
+        }, 100);
     }
     
     endGame() {
