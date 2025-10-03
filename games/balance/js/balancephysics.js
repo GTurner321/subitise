@@ -1,6 +1,6 @@
 /**
  * BalancePhysics - Handles seesaw physics and animation
- * FIXED: Stops at equilibrium AND when ground is hit (after bounce)
+ * FIXED: Impulse-based bounce regardless of weight difference
  */
 class BalancePhysics {
     constructor() {
@@ -22,8 +22,10 @@ class BalancePhysics {
     updateWeights(leftWeight, rightWeight) {
         const weightChanged = (this.leftWeight !== leftWeight || this.rightWeight !== rightWeight);
         
+        const oldWeightDiff = this.rightWeight - this.leftWeight;
         this.leftWeight = leftWeight;
         this.rightWeight = rightWeight;
+        const newWeightDiff = rightWeight - leftWeight;
         
         if (weightChanged) {
             this.lastChangeTime = Date.now();
@@ -32,6 +34,28 @@ class BalancePhysics {
             this.hitGround = false;
             this.isLocked = false;
             this.groundBounceCount = 0;
+            
+            // FIXED: More aggressive impulse that creates visible bounce even at extreme angles
+            // Calculate which side received the block
+            const weightChange = Math.abs(newWeightDiff - oldWeightDiff);
+            
+            // Determine impulse direction based on which side got heavier
+            let impulseDirection;
+            if (Math.abs(newWeightDiff) > Math.abs(oldWeightDiff)) {
+                // Weight difference increased - same direction as current tilt
+                impulseDirection = Math.sign(newWeightDiff);
+            } else {
+                // Weight difference decreased - opposite direction (lifting back up)
+                impulseDirection = -Math.sign(oldWeightDiff);
+            }
+            
+            // MUCH stronger impulse - 8 degrees per block to overcome strong target angle pull
+            const bounceImpulse = weightChange * 8;
+            
+            // Apply impulse
+            this.angularVelocity += impulseDirection * bounceImpulse;
+            
+            console.log(`Weight change: ${oldWeightDiff} -> ${newWeightDiff}, impulse: ${(impulseDirection * bounceImpulse).toFixed(1)}°, current angle: ${this.currentAngle.toFixed(1)}°`);
         }
         
         const weightDiff = rightWeight - leftWeight;
@@ -44,8 +68,11 @@ class BalancePhysics {
                 this.settleStartTime = Date.now();
             }
         } else {
-            const normalizedDiff = Math.max(-1, Math.min(1, weightDiff / 10));
-            this.targetAngle = normalizedDiff * 45;
+            // Calculate target angle with capping
+            const maxAngle = 45;
+            const sensitivity = 3;
+            const calculatedAngle = weightDiff * sensitivity;
+            this.targetAngle = Math.max(-maxAngle, Math.min(maxAngle, calculatedAngle));
             this.isSettling = false;
             this.settleStartTime = 0;
         }
@@ -66,10 +93,10 @@ class BalancePhysics {
         
         let angleDiff = this.targetAngle - this.currentAngle;
         
-        const acceleration = angleDiff * 0.02;
+        const acceleration = angleDiff * 0.03;
         this.angularVelocity += acceleration;
         
-        this.angularVelocity *= 0.95;
+        this.angularVelocity *= 0.97;
         
         if (groundHit && !this.hitGround) {
             this.angularVelocity *= -BALANCE_CONFIG.BOUNCE_DAMPENING;
