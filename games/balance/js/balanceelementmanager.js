@@ -187,8 +187,8 @@ class BalanceElementManager {
         const dropZone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         dropZone.setAttribute('class', 'drop-zone');
         
-        // UPDATED: Position centered horizontally, 3.5 blocks high
-        const dropZoneHeight = blockHeight * 3.5;
+        // UPDATED: Position centered horizontally, 2.5 blocks high (allows 5 blocks to stack)
+        const dropZoneHeight = blockHeight * 2.5;
         
         dropZone.setAttribute('x', -panDims.width / 2);
         dropZone.setAttribute('y', -extensionHeight - dropZoneHeight);
@@ -325,8 +325,8 @@ class BalanceElementManager {
         let groundHit = false;
         let actualAngle = angle;
         
-        // Check if endpoints would penetrate ground
-        if (leftEndY > grassTopY || rightEndY > grassTopY) {
+        // FIXED: More lenient ground detection - only clamp if actually touching
+        if (leftEndY >= grassTopY || rightEndY >= grassTopY) {
             groundHit = true;
             
             const leftLimitSin = (grassTopY - this.pivotY) / -halfBarWidth;
