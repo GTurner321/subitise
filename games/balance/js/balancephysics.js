@@ -62,7 +62,7 @@ class BalancePhysics {
      * @param {boolean} groundHit - Whether endpoint hit grass (from renderer)
      */
     update(deltaTime, groundHit = false) {
-        // If locked at equilibrium, don't update physics
+        // If locked at equilibrium, don't update physics at all
         if (this.isLocked) {
             return {
                 angle: this.currentAngle,
@@ -98,16 +98,17 @@ class BalancePhysics {
         this.currentAngle += this.angularVelocity * dt;
         
         // Handle settling to balance
-        if (this.isSettling && Math.abs(this.currentAngle) < 0.5 && Math.abs(this.angularVelocity) < 0.1) {
-            // Slowly move to exactly 0
-            this.currentAngle *= 0.9;
-            this.angularVelocity *= 0.8;
+        if (this.isSettling) {
+            // More aggressive dampening when settling
+            this.currentAngle *= 0.92;
+            this.angularVelocity *= 0.85;
             
-            // Lock at equilibrium when very close
-            if (Math.abs(this.currentAngle) < 0.01 && Math.abs(this.angularVelocity) < 0.01) {
+            // Lock at equilibrium when oscillations are tiny
+            if (Math.abs(this.currentAngle) < 0.05 && Math.abs(this.angularVelocity) < 0.05) {
                 this.currentAngle = 0;
                 this.angularVelocity = 0;
                 this.isLocked = true; // Lock to prevent jitter
+                console.log('Physics locked at equilibrium');
             }
         }
         
