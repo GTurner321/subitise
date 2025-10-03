@@ -67,13 +67,30 @@
         </div>
     </div>
     
-    <!-- JavaScript files -->
+    <!-- JavaScript files - NEW COMPONENT ARCHITECTURE -->
+    
+    <!-- 1. Configuration -->
     <script src="js/balanceconfig.js"></script>
+    
+    <!-- 2. Shared systems -->
     <script src="../../js/shared/audio.js"></script>
     <script src="../../js/shared/rainbow.js"></script>
     <script src="../../js/shared/Bear.js"></script>
+    
+    <!-- 3. Physics engine -->
     <script src="js/balancephysics.js"></script>
-    <script src="js/balancerenderer.js"></script>
+    
+    <!-- 4. NEW: Component managers (load in dependency order) -->
+    <script src="js/balanceelementmanager.js"></script>
+    <script src="js/balancedragdrop.js"></script>
+    <script src="js/balanceresponsive.js"></script>
+    
+    <!-- 5. NEW: Simplified renderer coordinator -->
+    <script src="js/balancegamerenderer.js"></script>
+    
+    <!-- 6. Main game controller -->
     <script src="js/balancegamecontroller.js"></script>
+    
+    <!-- NOTE: Old balancerenderer.js is no longer used - replaced by component architecture -->
 </body>
 </html>
