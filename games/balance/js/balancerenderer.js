@@ -374,13 +374,11 @@ class BalanceRenderer {
     
     checkPanDrop(block, x, y) {
         if (this.isInPan(x, y, this.leftPan)) {
-            this.placeBlockInPan(block, this.leftPan, x);
-            return true;
+            return this.placeBlockInPan(block, this.leftPan, x);
         }
         
         if (this.isInPan(x, y, this.rightPan)) {
-            this.placeBlockInPan(block, this.rightPan, x);
-            return true;
+            return this.placeBlockInPan(block, this.rightPan, x);
         }
         
         return false;
@@ -403,7 +401,8 @@ class BalanceRenderer {
         // Place block center 0.5 blocks ABOVE the pan line
         let targetY = -pan.extensionHeight - (blockDims.height / 2);
         
-        // Check all blocks in pan for stacking
+        // Check all blocks in pan for collision
+        let canDrop = true;
         for (const otherBlock of pan.blocks) {
             const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
             const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
@@ -412,13 +411,30 @@ class BalanceRenderer {
             const xOverlap = Math.abs(localX - otherLocalX) < blockDims.width * 0.9;
             
             if (xOverlap) {
-                // Stack on top: place our center one block height above other block's center
+                // Check if we're trying to drop ON TOP of this block or THROUGH it
+                const otherTop = otherLocalY - blockDims.height / 2;
+                const ourBottom = targetY + blockDims.height / 2;
+                
+                // If our bottom would be inside the other block, we can't drop yet
+                if (ourBottom > otherTop) {
+                    // We're overlapping - can't drop here
+                    canDrop = false;
+                    break;
+                }
+                
+                // We're above this block - stack on top
                 const ourNewCenter = otherLocalY - blockDims.height;
                 
                 if (ourNewCenter < targetY) {
                     targetY = ourNewCenter;
                 }
             }
+        }
+        
+        // If we can't drop (overlapping existing block), don't place it
+        if (!canDrop) {
+            console.log('Cannot drop block - overlapping existing block');
+            return false;
         }
         
         // Add block to pan
@@ -434,6 +450,8 @@ class BalanceRenderer {
         
         // Move to pan group
         pan.group.appendChild(block);
+        
+        return true;
     }
     
     placeBlockOnGround(block, x, y) {
@@ -550,8 +568,8 @@ class BalanceRenderer {
             this.leftPan.bounds = {
                 left: leftEndX - this.leftPan.panDims.width / 2,
                 right: leftEndX + this.leftPan.panDims.width / 2,
-                top: leftEndY - this.leftPan.extensionHeight - this.leftPan.dropAreaHeight,
-                bottom: leftEndY - this.leftPan.extensionHeight
+                top: leftEndY - this.leftPan.extensionHeight - this.leftPan.dropAreaStart - this.leftPan.dropAreaHeight,
+                bottom: leftEndY - this.leftPan.extensionHeight - this.leftPan.dropAreaStart
             };
         }
         
@@ -563,8 +581,8 @@ class BalanceRenderer {
             this.rightPan.bounds = {
                 left: rightEndX - this.rightPan.panDims.width / 2,
                 right: rightEndX + this.rightPan.panDims.width / 2,
-                top: rightEndY - this.rightPan.extensionHeight - this.rightPan.dropAreaHeight,
-                bottom: rightEndY - this.rightPan.extensionHeight
+                top: rightEndY - this.rightPan.extensionHeight - this.rightPan.dropAreaStart - this.rightPan.dropAreaHeight,
+                bottom: rightEndY - this.rightPan.extensionHeight - this.rightPan.dropAreaStart
             };
         }
         
