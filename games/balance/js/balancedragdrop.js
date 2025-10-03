@@ -271,54 +271,54 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Place block in pan
+     * Place block in pan - FIXED: Messy stacking, blocks fall straight down
      */
     placeBlockInPan(block, pan, dropX) {
         const blockDims = getBlockDimensions();
         
-        // Calculate local x position relative to pan center
+        // Calculate local x position relative to pan center (keep exact drop position)
         const localX = dropX - pan.currentX;
-        
-        // Pan bottom line is at local y = -extensionHeight
-        // Place block center 0.5 blocks ABOVE the pan line
-        let targetY = -pan.extensionHeight - (blockDims.height / 2);
-        
-        // Check for collisions with existing blocks
-        let canDrop = true;
-        for (const otherBlock of pan.blocks) {
-            const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
-            const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
-            
-            // Check horizontal overlap
-            const xOverlap = Math.abs(localX - otherLocalX) < blockDims.width * 0.9;
-            
-            if (xOverlap) {
-                // Check if we're trying to drop on top or through existing block
-                const otherTop = otherLocalY - blockDims.height / 2;
-                const ourBottom = targetY + blockDims.height / 2;
-                
-                // If our bottom would be inside the other block, can't drop
-                if (ourBottom > otherTop) {
-                    canDrop = false;
-                    console.log('Cannot drop - would overlap with existing block');
-                    break;
-                }
-                
-                // We're above this block - stack on top
-                const stackedY = otherLocalY - blockDims.height;
-                if (stackedY < targetY) {
-                    targetY = stackedY;
-                }
-            }
-        }
-        
-        if (!canDrop) {
-            return false;
-        }
         
         // Clamp localX to stay within pan bounds (with some margin)
         const maxX = (pan.panDims.width / 2) - (blockDims.width / 2);
         const clampedLocalX = Math.max(-maxX, Math.min(maxX, localX));
+        
+        // Start at pan bottom: block center 0.5 blocks ABOVE the pan line
+        let targetY = -pan.extensionHeight - (blockDims.height / 2);
+        
+        // FIXED: Check collision - block falls straight down until it hits something
+        // Sort blocks by Y position (bottom to top) to check in order
+        const sortedBlocks = [...pan.blocks].sort((a, b) => {
+            const aY = parseFloat(a.getAttribute('data-local-y'));
+            const bY = parseFloat(b.getAttribute('data-local-y'));
+            return bY - aY; // Higher Y (lower on screen) first
+        });
+        
+        for (const otherBlock of sortedBlocks) {
+            const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
+            const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
+            
+            // Check if blocks overlap horizontally (any overlap counts)
+            const otherLeft = otherLocalX - blockDims.width / 2;
+            const otherRight = otherLocalX + blockDims.width / 2;
+            const ourLeft = clampedLocalX - blockDims.width / 2;
+            const ourRight = clampedLocalX + blockDims.width / 2;
+            
+            const xOverlap = !(ourRight <= otherLeft || ourLeft >= otherRight);
+            
+            if (xOverlap) {
+                // This block is in our vertical path
+                const otherTop = otherLocalY - blockDims.height / 2;
+                const potentialBottom = targetY + blockDims.height / 2;
+                
+                // FIXED: If we would pass through this block, rest on top of it
+                if (potentialBottom >= otherTop) {
+                    // Place exactly on top of the other block
+                    targetY = otherLocalY - blockDims.height;
+                    console.log(`Stacking on block at Y=${otherLocalY.toFixed(1)}, new Y=${targetY.toFixed(1)}`);
+                }
+            }
+        }
         
         console.log(`Placing block at local position: (${clampedLocalX.toFixed(1)}, ${targetY.toFixed(1)})`);
         
@@ -390,12 +390,37 @@ class BalanceDragDropHandler {
     findBlockAtPoint(point) {
         const blocks = this.svg.querySelectorAll('.block');
         
-        for (let block of blocks) {
+        // Check blocks in reverse order (top to bottom in DOM)
+        const blockArray = Array.from(blocks).reverse();
+        
+        for (let block of blockArray) {
             const rect = block._rect;
-            const x = parseFloat(rect.getAttribute('x'));
-            const y = parseFloat(rect.getAttribute('y'));
-            const width = parseFloat(rect.getAttribute('width'));
-            const height = parseFloat(rect.getAttribute('height'));
+            if (!rect) continue;
+            
+            let x, y, width, height;
+            
+            // FIXED: Handle blocks in pans (use global coordinates)
+            if (block._inPan) {
+                const pan = block._inPan;
+                const localX = parseFloat(block.getAttribute('data-local-x') || 0);
+                const localY = parseFloat(block.getAttribute('data-local-y') || 0);
+                const dims = block._dimensions;
+                
+                // Convert local to global coordinates
+                const globalCenterX = pan.currentX + localX;
+                const globalCenterY = pan.currentY + localY;
+                
+                x = globalCenterX - dims.width / 2;
+                y = globalCenterY - dims.height / 2;
+                width = dims.width;
+                height = dims.height;
+            } else {
+                // Ground blocks - use rect attributes directly
+                x = parseFloat(rect.getAttribute('x'));
+                y = parseFloat(rect.getAttribute('y'));
+                width = parseFloat(rect.getAttribute('width'));
+                height = parseFloat(rect.getAttribute('height'));
+            }
             
             if (point.x >= x && point.x <= x + width && 
                 point.y >= y && point.y <= y + height) {
