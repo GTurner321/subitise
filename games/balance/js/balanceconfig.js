@@ -60,15 +60,20 @@ const BALANCE_CONFIG = {
     TEDDY_APPEAR_DELAY: 1000,
     
     // Level system
+    // Level system - UPDATED with fixed block distributions
     LEVELS: {
         1: {
             name: "Level 1",
             description: "Balance with 1s and 2s",
             targetRange: { min: 3, max: 9 },
-            availableBlocks: [1, 2],
-            extraBlocks: { 1: 2, 2: 2 }, // Minimum extras
+            availableBlocks: [1, 2, 3], // Include 3 in available set
+            blockDistribution: {
+                1: 6,  // 6x 1s
+                2: 5,  // 5x 2s
+                3: 1   // 1x 3
+            },
             otherSideStart: null, // Empty other side
-            questionTime: 20000, // 20 seconds
+            questionTime: 20000,
             consecutiveForPromotion: 3,
             consecutiveForDemotion: 2
         },
@@ -78,8 +83,13 @@ const BALANCE_CONFIG = {
             targetRange: { min: 3, max: 9 },
             otherSideRange: { min: 1, max: 4 },
             minDifference: 2,
-            availableBlocks: [1, 2, 3],
-            extraBlocks: { 1: 2, 2: 2 },
+            availableBlocks: [1, 2, 3, 4],
+            blockDistribution: {
+                1: 5,  // 5x 1s
+                2: 4,  // 4x 2s
+                3: 2,  // 2x 3s
+                4: 1   // 1x 4
+            },
             questionTime: 20000,
             consecutiveForPromotion: 3,
             consecutiveForDemotion: 2
@@ -91,7 +101,13 @@ const BALANCE_CONFIG = {
             otherSideRange: { min: 1, max: 7 },
             minDifference: 3,
             availableBlocks: [1, 2, 3, 4, 5],
-            extraBlocks: { 1: 2, 2: 2 },
+            blockDistribution: {
+                1: 4,  // 4x 1s
+                2: 4,  // 4x 2s
+                3: 2,  // 2x 3s
+                4: 1,  // 1x 4
+                5: 1   // 1x 5
+            },
             questionTime: 20000,
             consecutiveForPromotion: 3,
             consecutiveForDemotion: 2
