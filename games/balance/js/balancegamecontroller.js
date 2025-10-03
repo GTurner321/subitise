@@ -16,6 +16,7 @@ class BalanceGameController {
         this.consecutiveCorrect = 0;
         this.consecutiveSlow = 0;
         this.questionStartTime = 0;
+        this.questionMoves = 0;
         this.gameActive = false;
         
         // DOM elements
@@ -125,6 +126,7 @@ class BalanceGameController {
     startNewQuestion() {
         this.gameActive = true;
         this.questionStartTime = Date.now();
+        this.questionMoves = 0; // Track moves for this question
         
         console.log(`Starting question ${this.currentQuestion}, level ${this.currentLevel}`);
         
@@ -274,6 +276,9 @@ class BalanceGameController {
     
     onBlockMoved() {
         // Called when a block is moved (from renderer)
+        // Track moves for level progression
+        this.questionMoves++;
+        
         // Physics will handle balance checking
         // Just play sound feedback
         if (window.AudioSystem) {
@@ -297,6 +302,9 @@ class BalanceGameController {
         setTimeout(() => {
             this.speakText('Well done! Balanced!');
         }, 500);
+        
+        // Check level progression BEFORE moving to next question
+        this.checkLevelProgression();
         
         // Fade out current seesaw and blocks
         this.fadeOutSeesaw();
