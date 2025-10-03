@@ -206,32 +206,47 @@ class BalanceGameController {
     }
     
     generateGroundBlocksForTarget(target, level) {
+        // Use the fixed block distribution from level config
         const blocks = [];
-        const available = [...level.availableBlocks];
         
-        // Generate exact blocks needed
-        let remaining = target;
-        while (remaining > 0) {
-            const validBlocks = available.filter(b => b <= remaining);
-            if (validBlocks.length === 0) break;
+        // Add all blocks according to blockDistribution
+        if (level.blockDistribution) {
+            Object.entries(level.blockDistribution).forEach(([value, count]) => {
+                for (let i = 0; i < count; i++) {
+                    blocks.push(parseInt(value));
+                }
+            });
+        } else {
+            // Fallback to old method if blockDistribution not defined
+            const available = [...level.availableBlocks];
             
-            const block = validBlocks[Math.floor(Math.random() * validBlocks.length)];
-            blocks.push(block);
-            remaining -= block;
-        }
-        
-        // Add extra blocks
-        Object.entries(level.extraBlocks).forEach(([value, count]) => {
-            for (let i = 0; i < count; i++) {
-                blocks.push(parseInt(value));
+            // Generate exact blocks needed
+            let remaining = target;
+            while (remaining > 0) {
+                const validBlocks = available.filter(b => b <= remaining);
+                if (validBlocks.length === 0) break;
+                
+                const block = validBlocks[Math.floor(Math.random() * validBlocks.length)];
+                blocks.push(block);
+                remaining -= block;
             }
-        });
-        
-        // Add some random extras
-        const extraCount = 2 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < extraCount; i++) {
-            blocks.push(available[Math.floor(Math.random() * available.length)]);
+            
+            // Add extra blocks
+            Object.entries(level.extraBlocks).forEach(([value, count]) => {
+                for (let i = 0; i < count; i++) {
+                    blocks.push(parseInt(value));
+                }
+            });
+            
+            // Add random extras to reach 12
+            const targetTotal = 12;
+            const blocksNeeded = targetTotal - blocks.length;
+            for (let i = 0; i < blocksNeeded; i++) {
+                blocks.push(available[Math.floor(Math.random() * available.length)]);
+            }
         }
+        
+        console.log(`Generated ${blocks.length} blocks for level ${this.currentLevel}:`, blocks);
         
         return shuffleArray(blocks);
     }
