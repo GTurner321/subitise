@@ -64,18 +64,13 @@ class BalanceDragDropHandler {
         
         if (!block) return;
         
+        // FIXED: Allow dragging fixed blocks too (grey blocks in pans)
+        
         e.preventDefault();
         e.stopPropagation();
         
         this.isDragging = true;
         this.draggedBlock = block;
-        
-        this.dragOffset.x = block._centerX - point.x;
-        this.dragOffset.y = block._centerY - point.y;
-        
-        block.style.cursor = 'grabbing';
-        block.classList.add('dragging');
-        block._rect.setAttribute('stroke-width', '4');
         
         // Remove from pan if it was in one
         if (block._inPan) {
@@ -86,20 +81,41 @@ class BalanceDragDropHandler {
             // Update drop zone state
             this.updateDropZoneState(pan);
             
+            // Calculate global position BEFORE removing from pan
+            const localX = parseFloat(block.getAttribute('data-local-x') || 0);
+            const localY = parseFloat(block.getAttribute('data-local-y') || 0);
+            const globalX = pan.currentX + localX;
+            const globalY = pan.currentY + localY;
+            
+            // Remove pan association
             block._inPan = null;
             
-            // Move block to main SVG with global coordinates
-            const globalX = pan.currentX + parseFloat(block.getAttribute('data-local-x') || 0);
-            const globalY = pan.currentY + parseFloat(block.getAttribute('data-local-y') || 0);
-            
-            this.elementManager.updateBlockPosition(block, globalX, globalY);
+            // Move block to main SVG
             this.svg.appendChild(block);
+            
+            // Update to global coordinates
+            this.elementManager.updateBlockPosition(block, globalX, globalY);
+            
+            // Calculate drag offset AFTER moving to global coordinates
+            this.dragOffset.x = globalX - point.x;
+            this.dragOffset.y = globalY - point.y;
+            
+            console.log('Removed block from pan, now at global position:', globalX, globalY);
             
             // Notify game controller
             if (this.gameRenderer && this.gameRenderer.onBlockMoved) {
                 this.gameRenderer.onBlockMoved();
             }
+        } else {
+            // Block on ground - calculate offset normally
+            this.dragOffset.x = block._centerX - point.x;
+            this.dragOffset.y = block._centerY - point.y;
         }
+        
+        // Visual feedback
+        block.style.cursor = 'grabbing';
+        block.classList.add('dragging');
+        block._rect.setAttribute('stroke-width', '4');
         
         console.log('Started dragging block', block.getAttribute('data-number'));
     }
