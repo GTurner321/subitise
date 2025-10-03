@@ -357,6 +357,82 @@ class BalanceDragDropHandler {
     }
     
     /**
+     * NEW: Collapse blocks in pan when one is removed
+     * Makes blocks above the removed block fall down to fill gaps
+     */
+    collapseBlocksInPan(pan, removedBlockY) {
+        const blockDims = getBlockDimensions();
+        
+        // Find all blocks that were ABOVE the removed block
+        const blocksAbove = pan.blocks.filter(block => {
+            const blockY = parseFloat(block.getAttribute('data-local-y'));
+            return blockY < removedBlockY; // Lower Y = higher on screen
+        });
+        
+        if (blocksAbove.length === 0) {
+            console.log('No blocks above removed block');
+            return;
+        }
+        
+        console.log(`Found ${blocksAbove.length} blocks above removed block, recalculating positions`);
+        
+        // For each block above, recalculate its position as if freshly dropped
+        blocksAbove.forEach(block => {
+            const localX = parseFloat(block.getAttribute('data-local-x'));
+            
+            // Start at pan bottom
+            let newY = -pan.extensionHeight - (blockDims.height / 2);
+            
+            // Check all OTHER blocks for collision (exclude this block)
+            const otherBlocks = pan.blocks.filter(b => b !== block);
+            
+            // Sort by Y position (bottom to top)
+            const sortedBlocks = otherBlocks.sort((a, b) => {
+                const aY = parseFloat(a.getAttribute('data-local-y'));
+                const bY = parseFloat(b.getAttribute('data-local-y'));
+                return bY - aY;
+            });
+            
+            for (const otherBlock of sortedBlocks) {
+                const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
+                const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
+                
+                // Check horizontal overlap
+                const otherLeft = otherLocalX - blockDims.width / 2;
+                const otherRight = otherLocalX + blockDims.width / 2;
+                const ourLeft = localX - blockDims.width / 2;
+                const ourRight = localX + blockDims.width / 2;
+                
+                const xOverlap = !(ourRight <= otherLeft || ourLeft >= otherRight);
+                
+                if (xOverlap) {
+                    const otherTop = otherLocalY - blockDims.height / 2;
+                    const potentialBottom = newY + blockDims.height / 2;
+                    
+                    if (potentialBottom >= otherTop) {
+                        newY = otherLocalY - blockDims.height;
+                    }
+                }
+            }
+            
+            // Update block position if it changed
+            const oldY = parseFloat(block.getAttribute('data-local-y'));
+            if (Math.abs(newY - oldY) > 0.1) {
+                console.log(`Block falling from Y=${oldY.toFixed(1)} to Y=${newY.toFixed(1)}`);
+                
+                // Animate the fall
+                block.style.transition = 'all 0.3s ease-out';
+                block.setAttribute('data-local-y', newY);
+                this.elementManager.updateBlockInPan(block, pan, localX, newY);
+                
+                setTimeout(() => {
+                    block.style.transition = '';
+                }, 300);
+            }
+        });
+    }
+    
+    /**
      * Place block on ground
      */
     placeBlockOnGround(block, x, y) {
