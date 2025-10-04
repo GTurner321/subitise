@@ -157,6 +157,11 @@ class BalanceGameController {
         
         // Set initial physics state
         const initialWeights = this.renderer.getWeights();
+        const initialWeightDiff = Math.abs(initialWeights.right - initialWeights.left);
+        
+        // Tell physics what the starting weight difference is
+        this.physics.setInitialWeightDifference(initialWeightDiff);
+        
         this.physics.updateWeights(initialWeights.left, initialWeights.right);
         const targetAngle = this.physics.targetAngle;
         this.physics.setAngle(targetAngle);
