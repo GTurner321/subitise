@@ -78,27 +78,28 @@ class BalancePhysics {
             if (this.settleStartTime === 0 && !this.isBalanced) {
                 this.settleStartTime = Date.now();
             }
+            
+            console.log('⚖️ BALANCED - target angle: 0°');
         } else {
             // NEW PHYSICS: Map weight difference to angle
-            // At initial weight difference, bar should touch ground (maxGroundAngle)
-            // Each unit change moves proportionally
-            
-            // Get the starting weight difference from the question
             const initialWeightDiff = this.getInitialWeightDifference();
             
             if (initialWeightDiff > 0) {
                 // Calculate angle proportionally
-                // If current diff equals initial diff -> max angle (ground)
-                // If current diff is 0 -> 0 angle (balanced)
-                // Linear interpolation
                 const ratio = weightDiff / initialWeightDiff;
                 this.targetAngle = ratio * this.maxGroundAngle;
                 
-                console.log(`Weight diff: ${weightDiff}, Initial diff: ${initialWeightDiff}, Ratio: ${ratio.toFixed(2)}, Target angle: ${this.targetAngle.toFixed(1)}°`);
+                const degreesPerUnit = this.maxGroundAngle / initialWeightDiff;
+                
+                console.log(`📊 Weight diff: ${weightDiff}, Initial: ${initialWeightDiff}, Ratio: ${ratio.toFixed(2)}`);
+                console.log(`📐 Target angle: ${this.targetAngle.toFixed(1)}° (${degreesPerUnit.toFixed(1)}° per unit)`);
+                console.log(`🎯 Current angle: ${this.currentAngle.toFixed(1)}°, Diff: ${(this.targetAngle - this.currentAngle).toFixed(1)}°`);
             } else {
                 // Fallback if we don't know initial difference
-                const sensitivity = this.maxGroundAngle / 9; // Assume max difference of 9
+                const sensitivity = this.maxGroundAngle / 9;
                 this.targetAngle = Math.max(-this.maxGroundAngle, Math.min(this.maxGroundAngle, weightDiff * sensitivity));
+                
+                console.log(`⚠️ Using fallback physics: target ${this.targetAngle.toFixed(1)}°`);
             }
             
             this.isSettling = false;
@@ -139,26 +140,27 @@ class BalancePhysics {
         
         let angleDiff = this.targetAngle - this.currentAngle;
         
-        // Smooth acceleration toward target
-        const acceleration = angleDiff * 0.04;
+        // FIXED: Much stronger acceleration for more responsive movement
+        const acceleration = angleDiff * 0.08; // Increased from 0.04
         this.angularVelocity += acceleration;
         
-        // Damping
-        this.angularVelocity *= 0.96;
+        // FIXED: Less damping so movement is visible
+        this.angularVelocity *= 0.98; // Increased from 0.96
         
         if (groundHit && !this.hitGround) {
             this.angularVelocity *= -BALANCE_CONFIG.BOUNCE_DAMPENING;
             this.hitGround = true;
             this.groundBounceCount++;
             
-            console.log(`Ground bounce #${this.groundBounceCount}`);
+            console.log(`Ground bounce #${this.groundBounceCount}, angle: ${this.currentAngle.toFixed(1)}°, target: ${this.targetAngle.toFixed(1)}°`);
             
-            if (this.groundBounceCount >= 2) {
+            // FIXED: Only lock after settling near target, not just after bounces
+            if (this.groundBounceCount >= 3 && Math.abs(angleDiff) < 0.5) {
                 this.currentAngle = this.targetAngle;
                 this.angularVelocity = 0;
                 this.isLocked = true;
-                this.isBalanced = true;
-                console.log('Physics locked after ground bounces');
+                this.isBalanced = (this.leftWeight === this.rightWeight);
+                console.log('Physics locked after ground bounces and settling');
             }
         } else if (!groundHit) {
             this.hitGround = false;
@@ -167,8 +169,8 @@ class BalancePhysics {
         this.currentAngle += this.angularVelocity * dt;
         
         if (this.isSettling && !groundHit) {
-            this.currentAngle *= 0.92;
-            this.angularVelocity *= 0.85;
+            this.currentAngle *= 0.95; // Less aggressive damping
+            this.angularVelocity *= 0.90; // Less aggressive damping
             
             if (Math.abs(this.currentAngle) < 0.05 && Math.abs(this.angularVelocity) < 0.05) {
                 this.currentAngle = 0;
@@ -179,10 +181,11 @@ class BalancePhysics {
             }
         }
         
+        // FIXED: Don't auto-balance based on time, only when locked and weights equal
         if (this.isSettling && this.settleStartTime > 0 && !groundHit) {
             const settleTime = Date.now() - this.settleStartTime;
-            if (settleTime >= BALANCE_CONFIG.BALANCE_SETTLE_TIME) {
-                this.isBalanced = true;
+            if (settleTime >= BALANCE_CONFIG.BALANCE_SETTLE_TIME && Math.abs(angleDiff) < 0.1) {
+                this.isBalanced = (this.leftWeight === this.rightWeight);
             }
         }
         
