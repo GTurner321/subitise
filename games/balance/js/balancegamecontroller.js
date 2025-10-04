@@ -11,7 +11,7 @@ class BalanceGameController {
         this.bear = new Bear();
         
         // Game state
-        this.currentLevel = 1;
+        this.currentLevel = 0; // Start at level 0
         this.currentQuestion = 1;
         this.consecutiveCorrect = 0;
         this.consecutiveSlow = 0;
@@ -109,7 +109,7 @@ class BalanceGameController {
     }
     
     startNewGame() {
-        this.currentLevel = 1;
+        this.currentLevel = 0; // Start at level 0
         this.currentQuestion = 1;
         this.consecutiveCorrect = 0;
         this.consecutiveSlow = 0;
@@ -181,13 +181,13 @@ class BalanceGameController {
             groundBlocks: []
         };
         
-        if (this.currentLevel === 1) {
-            // Level 1: One block on left, empty right
+        if (this.currentLevel === 0 || this.currentLevel === 1) {
+            // Level 0 & 1: One block on left, empty right
             const target = level.targetRange.min + 
                 Math.floor(Math.random() * (level.targetRange.max - level.targetRange.min + 1));
             result.leftBlock = target;
             
-            // Generate ground blocks to make target
+            // Generate ground blocks from distribution
             result.groundBlocks = this.generateGroundBlocksForTarget(target, level);
             
         } else {
@@ -204,9 +204,8 @@ class BalanceGameController {
             result.leftBlock = target;
             result.rightBlock = other;
             
-            // Need to balance: add (target - other) to right side
-            const needed = Math.abs(target - other);
-            result.groundBlocks = this.generateGroundBlocksForTarget(needed, level);
+            // Generate ground blocks from distribution
+            result.groundBlocks = this.generateGroundBlocksForTarget(Math.abs(target - other), level);
         }
         
         return result;
@@ -342,27 +341,27 @@ class BalanceGameController {
         if (completedInTime) {
             this.consecutiveCorrect++;
             this.consecutiveSlow = 0;
-            console.log(`Consecutive correct: ${this.consecutiveCorrect}`);
+            console.log(`✅ Consecutive correct: ${this.consecutiveCorrect}/${level.consecutiveForPromotion} (fast completion)`);
         } else {
             this.consecutiveSlow++;
             this.consecutiveCorrect = 0;
-            console.log(`Consecutive slow: ${this.consecutiveSlow}`);
+            console.log(`⏰ Consecutive slow: ${this.consecutiveSlow}/${level.consecutiveForDemotion} (slow completion)`);
         }
         
         // Check for promotion (move to harder level)
         if (this.consecutiveCorrect >= level.consecutiveForPromotion && this.currentLevel < 3) {
             this.currentLevel++;
             this.consecutiveCorrect = 0;
-            console.log(`🎉 Promoted to level ${this.currentLevel}!`);
+            console.log(`🎉 PROMOTED to level ${this.currentLevel}!`);
             setTimeout(() => {
                 this.speakText(`Well done! Moving to level ${this.currentLevel}`);
             }, 1500);
         }
         // Check for demotion (move to easier level)
-        else if (this.consecutiveSlow >= level.consecutiveForDemotion && this.currentLevel > 1) {
+        else if (this.consecutiveSlow >= level.consecutiveForDemotion && this.currentLevel > 0) {
             this.currentLevel--;
             this.consecutiveSlow = 0;
-            console.log(`Moving back to level ${this.currentLevel}`);
+            console.log(`📉 Demoted to level ${this.currentLevel}`);
             setTimeout(() => {
                 this.speakText(`Let's try an easier level`);
             }, 1500);
