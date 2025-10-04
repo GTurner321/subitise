@@ -1,51 +1,30 @@
 /**
  * BalancePhysics - Handles seesaw physics and animation
- * REDESIGNED: Proper weight-based physics with ground-touching starting position
+ * Natural damped oscillation: accelerates to target, overshoots twice, then settles
  */
 class BalancePhysics {
     constructor() {
         this.currentAngle = 0;
         this.targetAngle = 0;
-        this.angularVelocity = 0;
+        this.angularVelocity = 0; // Velocity for natural oscillation
         this.isSettling = false;
         this.leftWeight = 0;
         this.rightWeight = 0;
         this.lastChangeTime = 0;
         this.settleStartTime = 0;
         this.isBalanced = false;
-        this.hitGround = false;
-        this.lastUpdateTime = 0;
-        this.isLocked = false;
-        this.groundBounceCount = 0;
+        this.overshootCount = 0; // Track number of overshoots
+        this.lastAngleDiff = 0; // Track direction changes
         
-        // NEW: Calculate maximum angle (when bar end touches ground)
+        // Calculate maximum angle (when bar end touches ground)
         this.maxGroundAngle = this.calculateMaxGroundAngle();
         console.log('Physics initialized with max ground angle:', this.maxGroundAngle.toFixed(2) + '°');
     }
     
-    /**
-     * Calculate the angle when the bar end just touches the ground
-     * This is based on the pivot height and bar width
-     */
     calculateMaxGroundAngle() {
-        // Get pivot and bar dimensions from config
         const pivotHeight = BALANCE_CONFIG.PIVOT_HEIGHT_PERCENT;
         const barWidth = BALANCE_CONFIG.SEESAW_WIDTH_PERCENT;
         const halfBarWidth = barWidth / 2;
-        
-        // The pivot point is at the top of the triangle
-        // When bar end touches ground, it forms a right triangle:
-        // - Opposite side: pivot height (vertical distance)
-        // - Adjacent side: half bar width (horizontal distance)
-        // - Angle: arcsin(opposite / hypotenuse)
-        
-        // Actually we need: sin(angle) = pivotHeight / halfBarWidth (in percentage units)
-        // But they're both percentages, so we need actual pixel ratio
-        // Since we don't have viewport yet, use the ratio
-        
-        // The bar endpoint is at distance halfBarWidth from pivot
-        // When it touches ground, vertical drop is pivotHeight
-        // angle = arcsin(pivotHeight / halfBarWidth)
         
         const angleRad = Math.asin(pivotHeight / halfBarWidth);
         const angleDeg = angleRad * (180 / Math.PI);
@@ -63,11 +42,8 @@ class BalancePhysics {
             this.lastChangeTime = Date.now();
             this.settleStartTime = 0;
             this.isBalanced = false;
-            this.hitGround = false;
-            this.isLocked = false; // CRITICAL: Unlock when weights change
-            this.groundBounceCount = 0;
-            
-            console.log('🔓 Physics UNLOCKED - weights changed');
+            this.overshootCount = 0; // Reset overshoot counter on weight change
+            this.lastAngleDiff = 0;
         }
         
         const weightDiff = rightWeight - leftWeight;
@@ -81,36 +57,27 @@ class BalancePhysics {
                 this.settleStartTime = Date.now();
             }
             
-            // Only log when weights actually changed
             if (weightChanged) {
                 console.log('⚖️ BALANCED - target angle: 0°');
             }
         } else {
-            // NEW PHYSICS: Map weight difference to angle
+            // Direct angle calculation based on weight difference
             const initialWeightDiff = this.getInitialWeightDifference();
             
             if (initialWeightDiff > 0) {
-                // Calculate angle proportionally
+                // Linear mapping: angle = (currentDiff / initialDiff) × maxAngle
                 const ratio = weightDiff / initialWeightDiff;
-                const oldTargetAngle = this.targetAngle;
                 this.targetAngle = ratio * this.maxGroundAngle;
                 
-                // Only log when weights actually changed
                 if (weightChanged) {
                     const degreesPerUnit = this.maxGroundAngle / initialWeightDiff;
-                    const angleChange = Math.abs(this.targetAngle - oldTargetAngle);
                     console.log(`📊 Weight: L=${leftWeight} R=${rightWeight} Diff=${weightDiff}`);
-                    console.log(`📐 Target: ${oldTargetAngle.toFixed(1)}° → ${this.targetAngle.toFixed(1)}° (change: ${angleChange.toFixed(1)}°, ${degreesPerUnit.toFixed(1)}°/unit)`);
-                    console.log(`🎯 Current angle: ${this.currentAngle.toFixed(1)}°, Locked: ${this.isLocked}`);
+                    console.log(`📐 Target: ${this.targetAngle.toFixed(1)}° (${degreesPerUnit.toFixed(1)}°/unit)`);
                 }
             } else {
-                // Fallback if we don't know initial difference
+                // Fallback
                 const sensitivity = this.maxGroundAngle / 9;
                 this.targetAngle = Math.max(-this.maxGroundAngle, Math.min(this.maxGroundAngle, weightDiff * sensitivity));
-                
-                if (weightChanged) {
-                    console.log(`⚠️ Using fallback physics: target ${this.targetAngle.toFixed(1)}°`);
-                }
             }
             
             this.isSettling = false;
@@ -118,84 +85,64 @@ class BalancePhysics {
         }
     }
     
-    /**
-     * Get the initial weight difference from the question
-     * This is stored when the question starts
-     */
     getInitialWeightDifference() {
-        // This will be set by the game controller when starting a question
-        return this.initialWeightDiff || 9; // Default to 9 if not set
+        return this.initialWeightDiff || 9;
     }
     
-    /**
-     * Set the initial weight difference for the current question
-     * Called by game controller when starting a new question
-     */
     setInitialWeightDifference(diff) {
         this.initialWeightDiff = Math.abs(diff);
         console.log('Initial weight difference set to:', this.initialWeightDiff);
     }
     
     update(deltaTime, groundHit = false) {
-        if (this.isLocked) {
-            return {
-                angle: this.currentAngle,
-                isBalanced: this.isBalanced,
-                leftWeight: this.leftWeight,
-                rightWeight: this.rightWeight
-            };
+        const cappedDelta = Math.min(deltaTime, 100);
+        const dt = cappedDelta / 16.67; // Normalize to 60fps
+        
+        const angleDiff = this.targetAngle - this.currentAngle;
+        
+        // Detect if we crossed the target (overshoot)
+        const crossedTarget = (this.lastAngleDiff > 0 && angleDiff < 0) || 
+                             (this.lastAngleDiff < 0 && angleDiff > 0);
+        
+        if (crossedTarget && Math.abs(this.lastAngleDiff) > 0.1) {
+            this.overshootCount++;
+            console.log(`🌊 Overshoot #${this.overshootCount}`);
         }
         
-        const cappedDelta = Math.min(deltaTime, 100);
-        const dt = cappedDelta / 16.67;
+        this.lastAngleDiff = angleDiff;
         
-        let angleDiff = this.targetAngle - this.currentAngle;
-        
-        // FIXED: Much stronger acceleration for more responsive movement
-        const acceleration = angleDiff * 0.08; // Increased from 0.04
-        this.angularVelocity += acceleration;
-        
-        // FIXED: Less damping so movement is visible
-        this.angularVelocity *= 0.98; // Increased from 0.96
-        
-        if (groundHit && !this.hitGround) {
-            this.angularVelocity *= -BALANCE_CONFIG.BOUNCE_DAMPENING;
-            this.hitGround = true;
-            this.groundBounceCount++;
+        // Apply different physics based on overshoot count
+        if (this.overshootCount >= 2) {
+            // After 2 overshoots, settle quickly to target
+            const settleSpeed = 0.3; // Fast settling
+            this.currentAngle += angleDiff * settleSpeed;
+            this.angularVelocity *= 0.8; // Heavy damping
             
-            console.log(`Ground bounce #${this.groundBounceCount}, angle: ${this.currentAngle.toFixed(1)}°, target: ${this.targetAngle.toFixed(1)}°`);
-            
-            // FIXED: Only lock after settling near target, not just after bounces
-            if (this.groundBounceCount >= 3 && Math.abs(angleDiff) < 0.5) {
+            // Snap to target when very close
+            if (Math.abs(angleDiff) < 0.1) {
                 this.currentAngle = this.targetAngle;
                 this.angularVelocity = 0;
-                this.isLocked = true;
-                this.isBalanced = (this.leftWeight === this.rightWeight);
-                console.log('Physics locked after ground bounces and settling');
             }
-        } else if (!groundHit) {
-            this.hitGround = false;
-        }
-        
-        this.currentAngle += this.angularVelocity * dt;
-        
-        if (this.isSettling && !groundHit) {
-            this.currentAngle *= 0.95; // Less aggressive damping
-            this.angularVelocity *= 0.90; // Less aggressive damping
+        } else {
+            // Natural oscillation with spring-like physics
+            const springStrength = 0.06; // How strongly it pulls toward target
+            const damping = 0.92; // How much velocity is preserved (higher = more bouncy)
             
-            if (Math.abs(this.currentAngle) < 0.05 && Math.abs(this.angularVelocity) < 0.05) {
-                this.currentAngle = 0;
-                this.angularVelocity = 0;
-                this.isLocked = true;
-                this.isBalanced = true;
-                console.log('Physics locked at mid-air equilibrium');
-            }
+            // Acceleration toward target (spring force)
+            const acceleration = angleDiff * springStrength;
+            this.angularVelocity += acceleration;
+            
+            // Apply damping to velocity
+            this.angularVelocity *= damping;
+            
+            // Update angle based on velocity
+            this.currentAngle += this.angularVelocity * dt;
         }
         
-        // FIXED: Don't auto-balance based on time, only when locked and weights equal
-        if (this.isSettling && this.settleStartTime > 0 && !groundHit) {
+        // Check if balanced
+        if (this.isSettling && this.settleStartTime > 0) {
             const settleTime = Date.now() - this.settleStartTime;
-            if (settleTime >= BALANCE_CONFIG.BALANCE_SETTLE_TIME && Math.abs(angleDiff) < 0.1) {
+            if (settleTime >= BALANCE_CONFIG.BALANCE_SETTLE_TIME) {
                 this.isBalanced = (this.leftWeight === this.rightWeight);
             }
         }
@@ -230,18 +177,14 @@ class BalancePhysics {
         this.lastChangeTime = 0;
         this.settleStartTime = 0;
         this.isBalanced = false;
-        this.hitGround = false;
-        this.lastUpdateTime = 0;
-        this.isLocked = false;
-        this.groundBounceCount = 0;
-        // Don't reset initialWeightDiff - it's set per question
+        this.overshootCount = 0;
+        this.lastAngleDiff = 0;
     }
     
     setAngle(angle) {
         this.currentAngle = angle;
         this.targetAngle = angle;
         this.angularVelocity = 0;
-        this.isLocked = false;
-        this.groundBounceCount = 0;
+        this.overshootCount = 0;
     }
 }
