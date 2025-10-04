@@ -59,9 +59,21 @@ const BALANCE_CONFIG = {
     BLOCK_ANIMATION_DURATION: 500,
     TEDDY_APPEAR_DELAY: 1000,
     
-    // Level system
-    // Level system - UPDATED with fixed block distributions
+// Level system - UPDATED with Level 0 and fixed block distributions
     LEVELS: {
+        0: {
+            name: "Level 0",
+            description: "Balance with 1s only",
+            targetRange: { min: 3, max: 9 },
+            availableBlocks: [1], // Only 1s
+            blockDistribution: {
+                1: 12  // 12x 1s
+            },
+            otherSideStart: null, // Empty other side
+            questionTime: 20000,
+            consecutiveForPromotion: 3,
+            consecutiveForDemotion: 0 // Can't go below level 0
+        },
         1: {
             name: "Level 1",
             description: "Balance with 1s and 2s",
