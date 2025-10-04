@@ -64,8 +64,10 @@ class BalancePhysics {
             this.settleStartTime = 0;
             this.isBalanced = false;
             this.hitGround = false;
-            this.isLocked = false;
+            this.isLocked = false; // CRITICAL: Unlock when weights change
             this.groundBounceCount = 0;
+            
+            console.log('🔓 Physics UNLOCKED - weights changed');
         }
         
         const weightDiff = rightWeight - leftWeight;
@@ -79,7 +81,10 @@ class BalancePhysics {
                 this.settleStartTime = Date.now();
             }
             
-            console.log('⚖️ BALANCED - target angle: 0°');
+            // Only log when weights actually changed
+            if (weightChanged) {
+                console.log('⚖️ BALANCED - target angle: 0°');
+            }
         } else {
             // NEW PHYSICS: Map weight difference to angle
             const initialWeightDiff = this.getInitialWeightDifference();
@@ -87,19 +92,25 @@ class BalancePhysics {
             if (initialWeightDiff > 0) {
                 // Calculate angle proportionally
                 const ratio = weightDiff / initialWeightDiff;
+                const oldTargetAngle = this.targetAngle;
                 this.targetAngle = ratio * this.maxGroundAngle;
                 
-                const degreesPerUnit = this.maxGroundAngle / initialWeightDiff;
-                
-                console.log(`📊 Weight diff: ${weightDiff}, Initial: ${initialWeightDiff}, Ratio: ${ratio.toFixed(2)}`);
-                console.log(`📐 Target angle: ${this.targetAngle.toFixed(1)}° (${degreesPerUnit.toFixed(1)}° per unit)`);
-                console.log(`🎯 Current angle: ${this.currentAngle.toFixed(1)}°, Diff: ${(this.targetAngle - this.currentAngle).toFixed(1)}°`);
+                // Only log when weights actually changed
+                if (weightChanged) {
+                    const degreesPerUnit = this.maxGroundAngle / initialWeightDiff;
+                    const angleChange = Math.abs(this.targetAngle - oldTargetAngle);
+                    console.log(`📊 Weight: L=${leftWeight} R=${rightWeight} Diff=${weightDiff}`);
+                    console.log(`📐 Target: ${oldTargetAngle.toFixed(1)}° → ${this.targetAngle.toFixed(1)}° (change: ${angleChange.toFixed(1)}°, ${degreesPerUnit.toFixed(1)}°/unit)`);
+                    console.log(`🎯 Current angle: ${this.currentAngle.toFixed(1)}°, Locked: ${this.isLocked}`);
+                }
             } else {
                 // Fallback if we don't know initial difference
                 const sensitivity = this.maxGroundAngle / 9;
                 this.targetAngle = Math.max(-this.maxGroundAngle, Math.min(this.maxGroundAngle, weightDiff * sensitivity));
                 
-                console.log(`⚠️ Using fallback physics: target ${this.targetAngle.toFixed(1)}°`);
+                if (weightChanged) {
+                    console.log(`⚠️ Using fallback physics: target ${this.targetAngle.toFixed(1)}°`);
+                }
             }
             
             this.isSettling = false;
