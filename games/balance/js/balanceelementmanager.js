@@ -309,6 +309,7 @@ class BalanceElementManager {
     updateBlockInPan(block, pan, localX, localY) {
         const dims = block._dimensions;
         
+        // Update all child elements to local coordinates
         block._rect.setAttribute('x', localX - dims.width/2);
         block._rect.setAttribute('y', localY - dims.height/2);
         
@@ -317,6 +318,14 @@ class BalanceElementManager {
         
         block._text.setAttribute('x', localX);
         block._text.setAttribute('y', localY);
+        
+        // CRITICAL: Update the group's transform to position it correctly
+        // The block group itself needs no transform when in a pan (pan group handles positioning)
+        block.removeAttribute('transform');
+        
+        // Store the center position for reference
+        block._centerX = localX;
+        block._centerY = localY;
     }
     
     /**
