@@ -18,7 +18,7 @@ const BALANCE_CONFIG = {
     GRASS_Y_MIN_PERCENT: 80,
     GRASS_Y_MAX_PERCENT: 100,
     
-    // Ground block positions (12 predefined positions)
+    // Ground block positions (12 predefined positions) - FIXED
     PREDEFINED_BLOCK_POSITIONS: [
         { x: 15.0, y: 85.0 },
         { x: 23.0, y: 87.0 },
@@ -31,17 +31,11 @@ const BALANCE_CONFIG = {
         { x: 79.0, y: 85.0 },
         { x: 20.0, y: 91.0 },
         { x: 60.0, y: 90.5 },
-        { x: 75.0, y: 91.5 },
-        { x: 27.0, y: 90.0 },
-        { x: 35.0, y: 88.5 },
-        { x: 43.0, y: 91.5 },
-        { x: 51.0, y: 89.0 },
-        { x: 67.0, y: 90.0 },
-        { x: 83.0, y: 88.0 }
+        { x: 75.0, y: 91.5 }
     ],
     
     // Physics settings
-    BALANCE_SETTLE_TIME: 5000, // 5 seconds to settle
+    BALANCE_SETTLE_TIME: 2000, // CHANGED: 2 seconds to settle (was 5 seconds)
     BALANCE_TOLERANCE: 0.001, // Tiny tolerance for balance detection
     ROTATION_SPEED: 0.5, // Degrees per frame when unbalanced
     MAX_ROTATION: 25, // Maximum rotation angle (degrees)
@@ -59,7 +53,7 @@ const BALANCE_CONFIG = {
     BLOCK_ANIMATION_DURATION: 500,
     TEDDY_APPEAR_DELAY: 1000,
     
-// Level system - UPDATED with Level 0 and fixed block distributions
+    // Level system - UPDATED with Level 0 and fixed block distributions
     LEVELS: {
         0: {
             name: "Level 0",
@@ -135,6 +129,9 @@ const BALANCE_CONFIG = {
     FIXED_BLOCK_COLOR: '#666666',
     FIXED_BLOCK_TEXT: '#FFFFFF',
     
+    // Success flash color
+    SUCCESS_COLOR: '#4caf50',
+    
     BLOCK_COLORS: [
         '#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF',
         '#E1BAFF', '#FFE1FF', '#C9FFBA', '#FFCBA4', '#D4EDDA'
@@ -167,16 +164,23 @@ function pxToVh(px) {
     return (px * 100) / window.innerHeight;
 }
 
-// Get block dimensions in pixels
-function getBlockDimensions() {
-    const height = vhToPx(BALANCE_CONFIG.BLOCK_HEIGHT_PERCENT);
-    const width = vhToPx(BALANCE_CONFIG.BLOCK_WIDTH_PERCENT);
-    return { width, height };
+// Get block dimensions in pixels - UPDATED to support weight scaling
+function getBlockDimensions(weight = 1) {
+    const baseHeight = vhToPx(BALANCE_CONFIG.BLOCK_HEIGHT_PERCENT);
+    const baseWidth = vhToPx(BALANCE_CONFIG.BLOCK_WIDTH_PERCENT);
+    
+    // Scale by sqrt(weight) so area scales linearly with weight
+    const scaleFactor = Math.sqrt(weight);
+    
+    return { 
+        width: baseWidth * scaleFactor, 
+        height: baseHeight * scaleFactor 
+    };
 }
 
 // Get pan dimensions in pixels
 function getPanDimensions() {
-    const blockDims = getBlockDimensions();
+    const blockDims = getBlockDimensions(1); // Use weight 1 for base size
     const width = blockDims.width * BALANCE_CONFIG.PAN_WIDTH_BLOCKS;
     const height = blockDims.height * BALANCE_CONFIG.PAN_HEIGHT_BLOCKS;
     const lipHeight = vhToPx(BALANCE_CONFIG.PAN_LIP_HEIGHT_PERCENT);
@@ -188,10 +192,15 @@ function generateGroundBlockPositions(count) {
     const positions = [];
     const availablePositions = [...BALANCE_CONFIG.PREDEFINED_BLOCK_POSITIONS];
     
-    for (let i = 0; i < Math.min(count, availablePositions.length); i++) {
+    // Ensure we don't request more positions than available
+    const positionsToGenerate = Math.min(count, availablePositions.length);
+    
+    for (let i = 0; i < positionsToGenerate; i++) {
         const randomIndex = Math.floor(Math.random() * availablePositions.length);
         positions.push(availablePositions.splice(randomIndex, 1)[0]);
     }
+    
+    console.log(`Generated ${positions.length} positions for ${count} blocks`);
     
     return positions;
 }
