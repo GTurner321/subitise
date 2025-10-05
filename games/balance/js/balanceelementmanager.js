@@ -1,6 +1,7 @@
 /**
  * BalanceElementManager - Handles creation and management of SVG elements
  * Creates seesaw, pans, blocks, drop zones, and manages their visual updates
+ * UPDATED: Block scaling by weight, green flash on balance
  */
 class BalanceElementManager {
     constructor(svg) {
@@ -14,6 +15,8 @@ class BalanceElementManager {
         this.rightPan = null;
         this.leftConnectionDot = null;
         this.rightConnectionDot = null;
+        this.leftExtension = null;  // NEW: Store extension references
+        this.rightExtension = null; // NEW: Store extension references
         this.blocks = [];
         
         // Store pivot position for calculations
@@ -102,7 +105,7 @@ class BalanceElementManager {
     createPanUnit(xOffset, side) {
         const panDims = getPanDimensions();
         const extensionHeight = vhToPx(BALANCE_CONFIG.EXTENSION_HEIGHT_PERCENT);
-        const blockHeight = getBlockDimensions().height;
+        const blockHeight = getBlockDimensions(1).height;
         
         // Create group for entire pan unit
         const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -122,7 +125,14 @@ class BalanceElementManager {
         extension.setAttribute('stroke-width', '4');
         group.appendChild(extension);
         
-        // NEW: Create drop zone FIRST (so it appears behind other elements)
+        // Store extension reference
+        if (side === 'left') {
+            this.leftExtension = extension;
+        } else {
+            this.rightExtension = extension;
+        }
+        
+        // Create drop zone FIRST (so it appears behind other elements)
         const dropZone = this.createDropZone(panDims, extensionHeight, blockHeight);
         group.appendChild(dropZone);
         
@@ -170,7 +180,9 @@ class BalanceElementManager {
             extensionHeight,
             lipHeight,
             blocks: [],
-            dropZone: dropZone, // Store reference to drop zone
+            dropZone: dropZone,
+            extension: extension, // Store extension reference
+            panBottom: panBottom, // Store pan bottom reference
             bounds: {
                 left: initialX - panDims.width / 2,
                 right: initialX + panDims.width / 2,
@@ -181,13 +193,13 @@ class BalanceElementManager {
     }
     
     /**
-     * NEW: Create drop zone rectangle for pan
+     * Create drop zone rectangle for pan
      */
     createDropZone(panDims, extensionHeight, blockHeight) {
         const dropZone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         dropZone.setAttribute('class', 'drop-zone');
         
-        // UPDATED: Position centered horizontally, 2.5 blocks high (allows 5 blocks to stack)
+        // Position centered horizontally, 2.5 blocks high (allows 5 blocks to stack)
         const dropZoneHeight = blockHeight * 2.5;
         
         dropZone.setAttribute('x', -panDims.width / 2);
@@ -201,12 +213,12 @@ class BalanceElementManager {
     }
     
     /**
-     * Create a game block
+     * Create a game block - UPDATED with weight-based scaling
      */
     createBlock(number, xPercent, yPercent, color, isFixed = false) {
         const x = vwToPx(xPercent);
         const y = vhToPx(yPercent);
-        const dimensions = getBlockDimensions();
+        const dimensions = getBlockDimensions(number); // CHANGED: Pass weight for scaling
         
         const blockGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         blockGroup.setAttribute('class', isFixed ? 'block fixed-block' : 'block');
@@ -261,6 +273,7 @@ class BalanceElementManager {
         blockGroup._dimensions = dimensions;
         blockGroup._isFixed = isFixed;
         blockGroup._inPan = null;
+        blockGroup._weight = number; // Store weight for reference
         
         return blockGroup;
     }
@@ -325,7 +338,7 @@ class BalanceElementManager {
         let groundHit = false;
         let actualAngle = angle;
         
-        // FIXED: More lenient ground detection - only clamp if actually touching
+        // More lenient ground detection - only clamp if actually touching
         if (leftEndY >= grassTopY || rightEndY >= grassTopY) {
             groundHit = true;
             
@@ -387,6 +400,40 @@ class BalanceElementManager {
     }
     
     /**
+     * NEW: Flash seesaw elements green when balance is achieved
+     */
+    flashBalanceSuccess() {
+        const elementsToFlash = [
+            { element: this.bar, type: 'fill' },
+            { element: this.leftExtension, type: 'stroke' },
+            { element: this.rightExtension, type: 'stroke' },
+            { element: this.leftPan?.panBottom, type: 'stroke' },
+            { element: this.rightPan?.panBottom, type: 'stroke' }
+        ];
+        
+        elementsToFlash.forEach(({ element, type }) => {
+            if (!element) return;
+            
+            // Store original color
+            const originalColor = element.getAttribute(type);
+            
+            // Flash green
+            element.style.transition = `${type} 0.3s ease`;
+            element.setAttribute(type, BALANCE_CONFIG.SUCCESS_COLOR);
+            
+            // Return to original after 600ms
+            setTimeout(() => {
+                element.setAttribute(type, originalColor);
+                setTimeout(() => {
+                    element.style.transition = '';
+                }, 300);
+            }, 600);
+        });
+        
+        console.log('✅ Balance success flash triggered');
+    }
+    
+    /**
      * Get weights from both pans
      */
     getWeights() {
@@ -442,6 +489,8 @@ class BalanceElementManager {
         this.rightPan = null;
         this.leftConnectionDot = null;
         this.rightConnectionDot = null;
+        this.leftExtension = null;
+        this.rightExtension = null;
     }
     
     /**
