@@ -1,6 +1,7 @@
 /**
  * BalanceDragDropHandler - Handles all drag and drop interactions
  * Manages dragging blocks, drop validation, and pan placement
+ * UPDATED: Drop zone always shows green on hover, handles scaled blocks
  */
 class BalanceDragDropHandler {
     constructor(svg, elementManager, gameRenderer) {
@@ -64,8 +65,6 @@ class BalanceDragDropHandler {
         
         if (!block) return;
         
-        // FIXED: Allow dragging fixed blocks too (grey blocks in pans)
-        
         e.preventDefault();
         e.stopPropagation();
         
@@ -78,7 +77,7 @@ class BalanceDragDropHandler {
             const index = pan.blocks.indexOf(block);
             if (index > -1) pan.blocks.splice(index, 1);
             
-            // Update drop zone state
+            // Update drop zone state (but don't change appearance)
             this.updateDropZoneState(pan);
             
             // Calculate global position BEFORE removing from pan
@@ -271,10 +270,10 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Place block in pan - FIXED: Messy stacking, blocks fall straight down
+     * Place block in pan - UPDATED: Handles scaled blocks
      */
     placeBlockInPan(block, pan, dropX) {
-        const blockDims = getBlockDimensions();
+        const blockDims = block._dimensions; // Use block's actual dimensions
         
         // Calculate local x position relative to pan center (keep exact drop position)
         const localX = dropX - pan.currentX;
@@ -286,8 +285,7 @@ class BalanceDragDropHandler {
         // Start at pan bottom: block center 0.5 blocks ABOVE the pan line
         let targetY = -pan.extensionHeight - (blockDims.height / 2);
         
-        // FIXED: Check collision - block falls straight down until it hits something
-        // Sort blocks by Y position (bottom to top) to check in order
+        // Check collision - block falls straight down until it hits something
         const sortedBlocks = [...pan.blocks].sort((a, b) => {
             const aY = parseFloat(a.getAttribute('data-local-y'));
             const bY = parseFloat(b.getAttribute('data-local-y'));
@@ -295,12 +293,13 @@ class BalanceDragDropHandler {
         });
         
         for (const otherBlock of sortedBlocks) {
+            const otherDims = otherBlock._dimensions; // Use other block's actual dimensions
             const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
             const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
             
             // Check if blocks overlap horizontally (any overlap counts)
-            const otherLeft = otherLocalX - blockDims.width / 2;
-            const otherRight = otherLocalX + blockDims.width / 2;
+            const otherLeft = otherLocalX - otherDims.width / 2;
+            const otherRight = otherLocalX + otherDims.width / 2;
             const ourLeft = clampedLocalX - blockDims.width / 2;
             const ourRight = clampedLocalX + blockDims.width / 2;
             
@@ -308,13 +307,13 @@ class BalanceDragDropHandler {
             
             if (xOverlap) {
                 // This block is in our vertical path
-                const otherTop = otherLocalY - blockDims.height / 2;
+                const otherTop = otherLocalY - otherDims.height / 2;
                 const potentialBottom = targetY + blockDims.height / 2;
                 
-                // FIXED: If we would pass through this block, rest on top of it
+                // If we would pass through this block, rest on top of it
                 if (potentialBottom >= otherTop) {
                     // Place exactly on top of the other block
-                    targetY = otherLocalY - blockDims.height;
+                    targetY = otherLocalY - (otherDims.height / 2) - (blockDims.height / 2);
                     console.log(`Stacking on block at Y=${otherLocalY.toFixed(1)}, new Y=${targetY.toFixed(1)}`);
                 }
             }
@@ -336,7 +335,7 @@ class BalanceDragDropHandler {
         // Move to pan group
         pan.group.appendChild(block);
         
-        // Update drop zone state
+        // Update drop zone state (keeps it ready for more blocks)
         this.updateDropZoneState(pan);
         
         console.log('Block placed successfully in pan');
@@ -344,25 +343,20 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Update drop zone visual state based on occupancy
+     * Update drop zone visual state - FIXED: Always keep it ready for drops
      */
     updateDropZoneState(pan) {
         if (!pan || !pan.dropZone) return;
         
-        if (pan.blocks.length > 0) {
-            pan.dropZone.classList.add('occupied');
-        } else {
-            pan.dropZone.classList.remove('occupied');
-        }
+        // Don't add 'occupied' class that dims the drop zone
+        // Drop zone should always be ready to receive blocks and show green on hover
+        // The CSS will handle the hover state consistently
     }
     
     /**
-     * NEW: Collapse blocks in pan when one is removed
-     * Makes blocks above the removed block fall down to fill gaps
+     * Collapse blocks in pan when one is removed - UPDATED: Handles scaled blocks
      */
     collapseBlocksInPan(pan, removedBlockY) {
-        const blockDims = getBlockDimensions();
-        
         // Find all blocks that were ABOVE the removed block
         const blocksAbove = pan.blocks.filter(block => {
             const blockY = parseFloat(block.getAttribute('data-local-y'));
@@ -378,6 +372,7 @@ class BalanceDragDropHandler {
         
         // For each block above, recalculate its position as if freshly dropped
         blocksAbove.forEach(block => {
+            const blockDims = block._dimensions; // Use block's actual dimensions
             const localX = parseFloat(block.getAttribute('data-local-x'));
             
             // Start at pan bottom
@@ -394,23 +389,24 @@ class BalanceDragDropHandler {
             });
             
             for (const otherBlock of sortedBlocks) {
+                const otherDims = otherBlock._dimensions; // Use other block's actual dimensions
                 const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
                 const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
                 
                 // Check horizontal overlap
-                const otherLeft = otherLocalX - blockDims.width / 2;
-                const otherRight = otherLocalX + blockDims.width / 2;
+                const otherLeft = otherLocalX - otherDims.width / 2;
+                const otherRight = otherLocalX + otherDims.width / 2;
                 const ourLeft = localX - blockDims.width / 2;
                 const ourRight = localX + blockDims.width / 2;
                 
                 const xOverlap = !(ourRight <= otherLeft || ourLeft >= otherRight);
                 
                 if (xOverlap) {
-                    const otherTop = otherLocalY - blockDims.height / 2;
+                    const otherTop = otherLocalY - otherDims.height / 2;
                     const potentialBottom = newY + blockDims.height / 2;
                     
                     if (potentialBottom >= otherTop) {
-                        newY = otherLocalY - blockDims.height;
+                        newY = otherLocalY - (otherDims.height / 2) - (blockDims.height / 2);
                     }
                 }
             }
@@ -461,7 +457,7 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Find block at given point
+     * Find block at given point - UPDATED: Handles scaled blocks
      */
     findBlockAtPoint(point) {
         const blocks = this.svg.querySelectorAll('.block');
@@ -475,7 +471,7 @@ class BalanceDragDropHandler {
             
             let x, y, width, height;
             
-            // FIXED: Handle blocks in pans (use global coordinates)
+            // Handle blocks in pans (use global coordinates)
             if (block._inPan) {
                 const pan = block._inPan;
                 const localX = parseFloat(block.getAttribute('data-local-x') || 0);
