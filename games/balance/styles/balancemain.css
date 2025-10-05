@@ -1,4 +1,4 @@
-/* Balance Game Styles - Updated with drop zones and responsive features */
+/* Balance Game Styles - Updated with always-ready drop zones */
 
 /* Reset and base styles */
 * {
@@ -122,10 +122,10 @@ body {
     pointer-events: none !important;
 }
 
-/* NEW: Drop zone styling - visible grey areas in pans */
+/* UPDATED: Drop zone styling - always ready for drops, always shows green on hover */
 .drop-zone {
-    fill: rgba(128, 128, 128, 0.3);
-    stroke: rgba(100, 100, 100, 0.5);
+    fill: rgba(128, 128, 128, 0.2);
+    stroke: rgba(100, 100, 100, 0.4);
     stroke-width: 2;
     stroke-dasharray: 5, 5;
     pointer-events: none;
@@ -134,17 +134,16 @@ body {
     ry: 8;
 }
 
+/* FIXED: Hover state always shows green, regardless of whether blocks are in the pan */
 .drop-zone.hover {
-    fill: rgba(76, 175, 80, 0.4);
-    stroke: rgba(76, 175, 80, 0.8);
-    stroke-width: 3;
-    stroke-dasharray: 3, 3;
+    fill: rgba(76, 175, 80, 0.5) !important;
+    stroke: rgba(76, 175, 80, 0.9) !important;
+    stroke-width: 3 !important;
+    stroke-dasharray: 3, 3 !important;
 }
 
-.drop-zone.occupied {
-    fill: rgba(128, 128, 128, 0.15);
-    stroke: rgba(100, 100, 100, 0.3);
-}
+/* REMOVED: The 'occupied' class logic that was dimming the drop zone */
+/* Drop zones are always ready to receive blocks */
 
 /* Seesaw styling */
 .seesaw-group {
@@ -257,7 +256,7 @@ body {
     font-size: 1.2rem;
 }
 
-/* NEW: Rotation overlay for portrait mode */
+/* Rotation overlay for portrait mode */
 .rotation-overlay {
     position: fixed;
     top: 0;
@@ -366,7 +365,7 @@ body {
     }
 }
 
-/* NEW: Portrait mode handling - rotate game area 90 degrees anticlockwise */
+/* Portrait mode handling - rotate game area 90 degrees anticlockwise */
 @media (max-width: 768px) and (orientation: portrait) {
     .game-area {
         transform: rotate(-90deg);
