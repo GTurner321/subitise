@@ -264,7 +264,8 @@ class BalanceGameController {
         const positions = generateGroundBlockPositions(values.length);
         console.log('Generated positions:', positions.length);
         
-        const colors = [...BALANCE_CONFIG.BLOCK_COLORS];
+        // FIXED: Ensure we have enough colors by cycling through them if needed
+        const colorPool = [...BALANCE_CONFIG.BLOCK_COLORS];
         
         values.forEach((value, index) => {
             const pos = positions[index];
@@ -273,14 +274,15 @@ class BalanceGameController {
                 return;
             }
             
-            const colorIndex = Math.floor(Math.random() * colors.length);
-            const color = colors.splice(colorIndex, 1)[0];
+            // FIXED: Cycle through colors if we run out
+            const colorIndex = index % colorPool.length;
+            const color = colorPool[colorIndex];
             
             const block = this.renderer.createBlock(value, pos.x, pos.y, color, false);
             this.svg.appendChild(block);
             this.renderer.blocks.push(block);
             
-            console.log(`Created block ${index + 1}/${values.length}: value=${value}, pos=(${pos.x}, ${pos.y})`);
+            console.log(`Created block ${index + 1}/${values.length}: value=${value}, pos=(${pos.x}, ${pos.y}), color=${color}`);
         });
         
         console.log(`Total blocks created: ${this.renderer.blocks.length}`);
@@ -320,6 +322,9 @@ class BalanceGameController {
             this.speakText('Well done! Balanced!');
         }, 500);
         
+        // Check level progression BEFORE incrementing question
+        this.checkLevelProgression();
+        
         // Fade out current seesaw and blocks
         this.fadeOutSeesaw();
         
@@ -329,9 +334,6 @@ class BalanceGameController {
                 this.endGame();
             }, 4000);
         } else {
-            // Check level progression
-            this.checkLevelProgression();
-            
             this.currentQuestion++;
             setTimeout(() => {
                 this.fadeInNewQuestion();
