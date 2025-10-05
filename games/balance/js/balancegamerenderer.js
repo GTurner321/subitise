@@ -69,7 +69,7 @@ class BalanceGameRenderer {
     }
     
     /**
-     * Create fixed block in pan (for game questions)
+     * Create fixed block in pan (for game questions) - FIXED: Uses base positioning
      */
     createFixedBlockInPan(value, side) {
         const pan = side === 'left' ? this.elementManager.leftPan : this.elementManager.rightPan;
@@ -78,11 +78,12 @@ class BalanceGameRenderer {
             return null;
         }
         
-        const blockDims = getBlockDimensions();
+        const blockDims = getBlockDimensions(value); // Get scaled dimensions
         
-        // Place block centered horizontally, 0.5 blocks above pan line
+        // FIXED: Place block centered horizontally, with BASE on pan line
         const localX = 0;
-        const localY = -pan.extensionHeight - (blockDims.height / 2);
+        const panLineY = -pan.extensionHeight;
+        const localY = panLineY - (blockDims.height / 2); // Center is half-height above base
         
         const block = this.elementManager.createBlock(
             value,
@@ -106,7 +107,7 @@ class BalanceGameRenderer {
         // Add to pan group
         pan.group.appendChild(block);
         
-        console.log(`Created fixed block ${value} in ${side} pan`);
+        console.log(`Created fixed block ${value} in ${side} pan at base position ${panLineY}`);
         return block;
     }
     
