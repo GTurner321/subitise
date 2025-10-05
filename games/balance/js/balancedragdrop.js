@@ -270,7 +270,7 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Place block in pan - UPDATED: Handles scaled blocks
+     * Place block in pan - FIXED: Places blocks by their base, not center
      */
     placeBlockInPan(block, pan, dropX) {
         const blockDims = block._dimensions; // Use block's actual dimensions
@@ -282,8 +282,9 @@ class BalanceDragDropHandler {
         const maxX = (pan.panDims.width / 2) - (blockDims.width / 2);
         const clampedLocalX = Math.max(-maxX, Math.min(maxX, localX));
         
-        // Start at pan bottom: block center 0.5 blocks ABOVE the pan line
-        let targetY = -pan.extensionHeight - (blockDims.height / 2);
+        // FIXED: Start at pan bottom - block BASE sits ON the pan line
+        // This means the center is half-height ABOVE the pan line
+        let targetYBase = -pan.extensionHeight; // Pan line position
         
         // Check collision - block falls straight down until it hits something
         const sortedBlocks = [...pan.blocks].sort((a, b) => {
@@ -297,6 +298,9 @@ class BalanceDragDropHandler {
             const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
             const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
             
+            // Calculate other block's base position
+            const otherBase = otherLocalY + (otherDims.height / 2);
+            
             // Check if blocks overlap horizontally (any overlap counts)
             const otherLeft = otherLocalX - otherDims.width / 2;
             const otherRight = otherLocalX + otherDims.width / 2;
@@ -307,14 +311,13 @@ class BalanceDragDropHandler {
             
             if (xOverlap) {
                 // This block is in our vertical path
-                const otherTop = otherLocalY - otherDims.height / 2;
-                const potentialBottom = targetY + blockDims.height / 2;
+                const otherTop = otherLocalY - (otherDims.height / 2);
                 
                 // If we would pass through this block, rest on top of it
-                if (potentialBottom >= otherTop) {
-                    // Place exactly on top of the other block
-                    targetY = otherLocalY - (otherDims.height / 2) - (blockDims.height / 2);
-                    console.log(`Stacking on block at Y=${otherLocalY.toFixed(1)}, new Y=${targetY.toFixed(1)}`);
+                // Our base should sit on the other block's top
+                if (targetYBase >= otherTop) {
+                    targetYBase = otherTop;
+                    console.log(`Stacking on block, base at Y=${targetYBase.toFixed(1)}`);
                 }
             }
         }
