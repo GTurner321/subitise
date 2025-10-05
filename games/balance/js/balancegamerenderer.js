@@ -85,6 +85,10 @@ class BalanceGameRenderer {
         const panLineY = -pan.extensionHeight;
         const localY = panLineY - (blockDims.height / 2); // Center is half-height above base
         
+        console.log(`Creating fixed block weight=${value} in ${side} pan`);
+        console.log(`Block dimensions: ${blockDims.width.toFixed(1)} x ${blockDims.height.toFixed(1)}`);
+        console.log(`Local position: center=(${localX}, ${localY.toFixed(1)}), base=${panLineY.toFixed(1)}`);
+        
         const block = this.elementManager.createBlock(
             value,
             0, // Temporary x
@@ -101,13 +105,15 @@ class BalanceGameRenderer {
         block.setAttribute('data-local-x', localX);
         block.setAttribute('data-local-y', localY);
         
+        // CRITICAL: Add to pan group BEFORE updating position
+        pan.group.appendChild(block);
+        
         // Update block position
         this.elementManager.updateBlockInPan(block, pan, localX, localY);
         
-        // Add to pan group
-        pan.group.appendChild(block);
+        console.log(`Fixed block created in ${side} pan. Pan now has ${pan.blocks.length} blocks.`);
+        console.log(`Current weights - Left: ${this.elementManager.getWeights().left}, Right: ${this.elementManager.getWeights().right}`);
         
-        console.log(`Created fixed block ${value} in ${side} pan at base position ${panLineY}`);
         return block;
     }
     
