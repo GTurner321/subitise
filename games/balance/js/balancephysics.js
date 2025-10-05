@@ -22,14 +22,29 @@ class BalancePhysics {
     }
     
     calculateMaxGroundAngle() {
-        const pivotHeight = BALANCE_CONFIG.PIVOT_HEIGHT_PERCENT;
-        const barWidth = BALANCE_CONFIG.SEESAW_WIDTH_PERCENT;
-        const halfBarWidth = barWidth / 2;
+        // FIXED: Calculate using actual pixel dimensions, not percentages
+        // This ensures the angle is correct regardless of viewport aspect ratio
         
-        const angleRad = Math.asin(pivotHeight / halfBarWidth);
+        const pivotHeightPx = vhToPx(BALANCE_CONFIG.PIVOT_HEIGHT_PERCENT);
+        const barWidthPx = vwToPx(BALANCE_CONFIG.SEESAW_WIDTH_PERCENT);
+        const halfBarWidthPx = barWidthPx / 2;
+        
+        // Calculate angle in actual pixel space
+        const ratio = pivotHeightPx / halfBarWidthPx;
+        const angleRad = Math.asin(Math.min(1, ratio)); // Clamp to prevent NaN
         const angleDeg = angleRad * (180 / Math.PI);
         
+        console.log(`Max angle calc: pivot=${pivotHeightPx.toFixed(1)}px, halfBar=${halfBarWidthPx.toFixed(1)}px, ratio=${ratio.toFixed(3)}, angle=${angleDeg.toFixed(2)}°`);
+        
         return angleDeg;
+    }
+    
+    /**
+     * Recalculate max ground angle (called on viewport resize)
+     */
+    recalculateMaxGroundAngle() {
+        this.maxGroundAngle = this.calculateMaxGroundAngle();
+        console.log('Max ground angle recalculated:', this.maxGroundAngle.toFixed(2) + '°');
     }
     
     updateWeights(leftWeight, rightWeight) {
@@ -42,8 +57,17 @@ class BalancePhysics {
             this.lastChangeTime = Date.now();
             this.settleStartTime = 0;
             this.isBalanced = false;
-            this.overshootCount = 0; // Reset overshoot counter on weight change
+            // FIXED: Reset overshoot count for NEW target, but give initial velocity boost
+            this.overshootCount = 0;
             this.lastAngleDiff = 0;
+            
+            // Give an initial velocity kick toward the new target for immediate visible movement
+            const oldTarget = this.targetAngle;
+            const angleDiff = this.targetAngle - this.currentAngle;
+            const kickStrength = 0.5; // Initial velocity boost
+            this.angularVelocity = angleDiff * kickStrength;
+            
+            console.log(`🚀 Weight changed - velocity kick: ${this.angularVelocity.toFixed(1)}°/frame`);
         }
         
         const weightDiff = rightWeight - leftWeight;
@@ -106,7 +130,7 @@ class BalancePhysics {
         
         if (crossedTarget && Math.abs(this.lastAngleDiff) > 0.1) {
             this.overshootCount++;
-            console.log(`🌊 Overshoot #${this.overshootCount}`);
+            console.log(`🌊 Overshoot #${this.overshootCount} at angle ${this.currentAngle.toFixed(1)}°`);
         }
         
         this.lastAngleDiff = angleDiff;
@@ -114,19 +138,21 @@ class BalancePhysics {
         // Apply different physics based on overshoot count
         if (this.overshootCount >= 2) {
             // After 2 overshoots, settle quickly to target
-            const settleSpeed = 0.3; // Fast settling
+            const settleSpeed = 0.25; // Fast settling
             this.currentAngle += angleDiff * settleSpeed;
-            this.angularVelocity *= 0.8; // Heavy damping
+            this.angularVelocity *= 0.7; // Heavy damping
             
             // Snap to target when very close
-            if (Math.abs(angleDiff) < 0.1) {
+            if (Math.abs(angleDiff) < 0.05) {
                 this.currentAngle = this.targetAngle;
                 this.angularVelocity = 0;
+                console.log(`✓ Settled at ${this.currentAngle.toFixed(1)}°`);
             }
         } else {
             // Natural oscillation with spring-like physics
-            const springStrength = 0.06; // How strongly it pulls toward target
-            const damping = 0.92; // How much velocity is preserved (higher = more bouncy)
+            // CRITICAL: Stronger spring for immediate visible movement
+            const springStrength = 0.12; // DOUBLED from 0.06 for faster response
+            const damping = 0.88; // REDUCED from 0.92 for less bouncy, faster settling
             
             // Acceleration toward target (spring force)
             const acceleration = angleDiff * springStrength;
