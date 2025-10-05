@@ -96,6 +96,11 @@ class BalanceResponsiveManager {
             svg.setAttribute('height', window.innerHeight);
         }
         
+        // CRITICAL: Recalculate max ground angle for physics
+        if (this.gameController && this.gameController.physics) {
+            this.gameController.physics.recalculateMaxGroundAngle();
+        }
+        
         // Update all element positions based on viewport width changes
         this.updateAllElementPositions();
         
