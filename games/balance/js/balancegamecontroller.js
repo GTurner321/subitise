@@ -1,6 +1,6 @@
 /**
  * BalanceGameController - Main game logic and coordination
- * Updated to work with new component architecture
+ * UPDATED: Triggers green flash on balance achievement
  */
 class BalanceGameController {
     constructor() {
@@ -258,8 +258,12 @@ class BalanceGameController {
     }
     
     createGroundBlocks(values) {
+        console.log('Creating ground blocks, count:', values.length, 'values:', values);
+        
         // Use the global function from balanceconfig.js
         const positions = generateGroundBlockPositions(values.length);
+        console.log('Generated positions:', positions.length);
+        
         const colors = [...BALANCE_CONFIG.BLOCK_COLORS];
         
         values.forEach((value, index) => {
@@ -275,7 +279,11 @@ class BalanceGameController {
             const block = this.renderer.createBlock(value, pos.x, pos.y, color, false);
             this.svg.appendChild(block);
             this.renderer.blocks.push(block);
+            
+            console.log(`Created block ${index + 1}/${values.length}: value=${value}, pos=(${pos.x}, ${pos.y})`);
         });
+        
+        console.log(`Total blocks created: ${this.renderer.blocks.length}`);
     }
     
     onBlockMoved() {
@@ -294,6 +302,11 @@ class BalanceGameController {
         this.gameActive = false;
         
         console.log('Question completed - weights are equal!');
+        
+        // TRIGGER GREEN FLASH on seesaw elements
+        if (this.renderer && this.renderer.elementManager) {
+            this.renderer.elementManager.flashBalanceSuccess();
+        }
         
         // Add rainbow piece
         this.rainbow.addPiece();
