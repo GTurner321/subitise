@@ -322,26 +322,32 @@ class BalanceDragDropHandler {
             }
         }
         
-        console.log(`Placing block at local position: (${clampedLocalX.toFixed(1)}, ${targetY.toFixed(1)})`);
+        // Convert base position to center position for storage
+        const targetY = targetYBase - (blockDims.height / 2);
+        
+        console.log(`Placing block weight=${block._weight} at local position: center=(${clampedLocalX.toFixed(1)}, ${targetY.toFixed(1)}), base=${targetYBase.toFixed(1)}`);
+        console.log(`Block dimensions: ${blockDims.width.toFixed(1)} x ${blockDims.height.toFixed(1)}`);
         
         // Add block to pan
         pan.blocks.push(block);
         block._inPan = pan;
         
-        // Store local coordinates
+        // Store local coordinates (as center position)
         block.setAttribute('data-local-x', clampedLocalX);
         block.setAttribute('data-local-y', targetY);
+        
+        // CRITICAL: Move block to pan group BEFORE updating position
+        pan.group.appendChild(block);
         
         // Update block position
         this.elementManager.updateBlockInPan(block, pan, clampedLocalX, targetY);
         
-        // Move to pan group
-        pan.group.appendChild(block);
-        
         // Update drop zone state (keeps it ready for more blocks)
         this.updateDropZoneState(pan);
         
-        console.log('Block placed successfully in pan');
+        console.log(`Block placed successfully in ${pan.side} pan. Pan now has ${pan.blocks.length} blocks.`);
+        console.log(`Current pan weights - Left: ${this.elementManager.getWeights().left}, Right: ${this.elementManager.getWeights().right}`);
+        
         return true;
     }
     
@@ -357,7 +363,7 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Collapse blocks in pan when one is removed - UPDATED: Handles scaled blocks
+     * Collapse blocks in pan when one is removed - FIXED: Uses base positioning
      */
     collapseBlocksInPan(pan, removedBlockY) {
         // Find all blocks that were ABOVE the removed block
@@ -378,8 +384,8 @@ class BalanceDragDropHandler {
             const blockDims = block._dimensions; // Use block's actual dimensions
             const localX = parseFloat(block.getAttribute('data-local-x'));
             
-            // Start at pan bottom
-            let newY = -pan.extensionHeight - (blockDims.height / 2);
+            // Start at pan bottom (base position)
+            let newYBase = -pan.extensionHeight;
             
             // Check all OTHER blocks for collision (exclude this block)
             const otherBlocks = pan.blocks.filter(b => b !== block);
@@ -406,13 +412,15 @@ class BalanceDragDropHandler {
                 
                 if (xOverlap) {
                     const otherTop = otherLocalY - otherDims.height / 2;
-                    const potentialBottom = newY + blockDims.height / 2;
                     
-                    if (potentialBottom >= otherTop) {
-                        newY = otherLocalY - (otherDims.height / 2) - (blockDims.height / 2);
+                    if (newYBase >= otherTop) {
+                        newYBase = otherTop;
                     }
                 }
             }
+            
+            // Convert base to center position
+            const newY = newYBase - (blockDims.height / 2);
             
             // Update block position if it changed
             const oldY = parseFloat(block.getAttribute('data-local-y'));
