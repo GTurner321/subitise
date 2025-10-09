@@ -1,17 +1,17 @@
 // Balance Game Configuration
 const BALANCE_CONFIG = {
-    // Game dimensions (percentage of viewport)
-    BLOCK_HEIGHT_PERCENT: 9.6,
-    BLOCK_WIDTH_PERCENT: 9.6,
+    // Game dimensions (percentage of viewport) - UPDATED: Reduced from 9.6% to 8%
+    BLOCK_HEIGHT_PERCENT: 8.0,
+    BLOCK_WIDTH_PERCENT: 8.0,
     
-    // Seesaw dimensions
+    // Seesaw dimensions - UPDATED: Increased by 20% to maintain current sizes
     SEESAW_WIDTH_PERCENT: 60,
     SEESAW_BAR_THICKNESS_PERCENT: 0.8,
     PIVOT_HEIGHT_PERCENT: 12,
-    EXTENSION_HEIGHT_PERCENT: 4.8, // Half a block height
-    PAN_WIDTH_BLOCKS: 5,
-    PAN_HEIGHT_BLOCKS: 2,
-    PAN_LIP_HEIGHT_PERCENT: 0.4,
+    EXTENSION_HEIGHT_PERCENT: 5.76, // Was 4.8, now 4.8 * 1.2 = 5.76
+    PAN_WIDTH_BLOCKS: 6, // Was 5, now 5 * 1.2 = 6
+    PAN_HEIGHT_BLOCKS: 2.4, // Was 2, now 2 * 1.2 = 2.4
+    PAN_LIP_HEIGHT_PERCENT: 0.48, // Was 0.4, now 0.4 * 1.2 = 0.48
     
     // Positioning
     PIVOT_Y_PERCENT: 80, // Top of grass area (20% from bottom)
@@ -35,7 +35,7 @@ const BALANCE_CONFIG = {
     ],
     
     // Physics settings
-    BALANCE_SETTLE_TIME: 2000, // CHANGED: 2 seconds to settle (was 5 seconds)
+    BALANCE_SETTLE_TIME: 2000, // 2 seconds to settle
     BALANCE_TOLERANCE: 0.001, // Tiny tolerance for balance detection
     ROTATION_SPEED: 0.5, // Degrees per frame when unbalanced
     MAX_ROTATION: 25, // Maximum rotation angle (degrees)
@@ -53,7 +53,7 @@ const BALANCE_CONFIG = {
     BLOCK_ANIMATION_DURATION: 500,
     TEDDY_APPEAR_DELAY: 1000,
     
-    // Level system - UPDATED with Level 0 and fixed block distributions
+    // Level system - UPDATED: Relaxed progression (2 correct, 30s time limit)
     LEVELS: {
         0: {
             name: "Level 0",
@@ -64,8 +64,8 @@ const BALANCE_CONFIG = {
                 1: 12  // 12x 1s
             },
             otherSideStart: null, // Empty other side
-            questionTime: 20000,
-            consecutiveForPromotion: 3,
+            questionTime: 30000, // UPDATED: 30 seconds (was 20)
+            consecutiveForPromotion: 2, // UPDATED: 2 correct (was 3)
             consecutiveForDemotion: 0 // Can't go below level 0
         },
         1: {
@@ -79,8 +79,8 @@ const BALANCE_CONFIG = {
                 3: 1   // 1x 3
             },
             otherSideStart: null, // Empty other side
-            questionTime: 20000,
-            consecutiveForPromotion: 3,
+            questionTime: 30000, // UPDATED: 30 seconds (was 20)
+            consecutiveForPromotion: 2, // UPDATED: 2 correct (was 3)
             consecutiveForDemotion: 2
         },
         2: {
@@ -96,8 +96,8 @@ const BALANCE_CONFIG = {
                 3: 2,  // 2x 3s
                 4: 1   // 1x 4
             },
-            questionTime: 20000,
-            consecutiveForPromotion: 3,
+            questionTime: 30000, // UPDATED: 30 seconds (was 20)
+            consecutiveForPromotion: 2, // UPDATED: 2 correct (was 3)
             consecutiveForDemotion: 2
         },
         3: {
@@ -114,8 +114,8 @@ const BALANCE_CONFIG = {
                 4: 1,  // 1x 4
                 5: 1   // 1x 5
             },
-            questionTime: 20000,
-            consecutiveForPromotion: 3,
+            questionTime: 30000, // UPDATED: 30 seconds (was 20)
+            consecutiveForPromotion: 2, // UPDATED: 2 correct (was 3)
             consecutiveForDemotion: 2
         }
     },
