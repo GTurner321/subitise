@@ -404,39 +404,46 @@ class BalanceElementManager {
     
     /**
      * Update z-ordering for ground blocks based on BASE position
-     * FIXED: Proper sorting - always sort by base, but only for overlapping blocks
+     * FIXED: Comprehensive horizontal overlap check using full block ranges
      */
     updateGroundBlockZOrdering() {
         const groundBlocks = Array.from(this.blockLayer.querySelectorAll('.block')).filter(b => !b._inPan);
         
-        // Calculate base positions for all blocks
+        // Build lookup for faster sorting
+        const blockData = new Map();
         groundBlocks.forEach(block => {
-            block._sortBase = block._centerY + (block._dimensions.height / 2);
+            const dims = block._dimensions;
+            blockData.set(block, {
+                base: block._centerY + (dims.height / 2),
+                left: block._centerX - (dims.width / 2),
+                right: block._centerX + (dims.width / 2),
+                centerX: block._centerX
+            });
         });
         
-        // Sort by base position - lower base (higher Y) comes later = appears in front
+        // Sort by base position for overlapping blocks
         groundBlocks.sort((a, b) => {
-            // Check for horizontal overlap
-            const aLeft = a._centerX - a._dimensions.width / 2;
-            const aRight = a._centerX + a._dimensions.width / 2;
-            const bLeft = b._centerX - b._dimensions.width / 2;
-            const bRight = b._centerX + b._dimensions.width / 2;
+            const aData = blockData.get(a);
+            const bData = blockData.get(b);
             
-            const xOverlap = !(aRight <= bLeft || aLeft >= bRight);
+            // Check for ANY horizontal overlap
+            const xOverlap = !(aData.right <= bData.left || aData.left >= bData.right);
             
             if (xOverlap) {
-                // Overlapping blocks: sort by base position
-                return a._sortBase - b._sortBase;
+                // Blocks overlap horizontally: sort by base (lower base = higher Y = in front)
+                return aData.base - bData.base;
             } else {
-                // Non-overlapping blocks: maintain stable order by comparing X positions
-                return a._centerX - b._centerX;
+                // Blocks don't overlap: sort by X position for stable ordering
+                return aData.centerX - bData.centerX;
             }
         });
         
-        // Re-append in sorted order
+        // Re-append in sorted order (later in DOM = higher z-index = in front)
         groundBlocks.forEach(block => {
             this.blockLayer.appendChild(block);
         });
+        
+        console.log('Ground block z-ordering updated');
     }
     
     /**
