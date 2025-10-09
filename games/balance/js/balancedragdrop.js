@@ -278,7 +278,7 @@ class BalanceDragDropHandler {
     
     /**
      * Place block in pan with gravity-based placement
-     * UPDATED: Forgiving placement - if overlap, tries to shift half-block left/right first
+     * UPDATED: Forgiving placement - tries shift left/right, then half-block higher if no edge space
      */
     placeBlockInPan(block, pan, dropX, dropY) {
         const blockDims = block._dimensions;
@@ -297,14 +297,20 @@ class BalanceDragDropHandler {
         if (hasOverlap) {
             console.log('⚠️ Overlap detected at drop position, trying forgiving placement...');
             
-            // UPDATED: Try shifting half-block to the side
+            // UPDATED: Try three strategies in order:
+            // 1. Shift half-block to the right (if space on right edge)
+            // 2. Shift half-block to the left (if space on left edge)
+            // 3. Shift half-block higher (if no edge space available)
+            
             const halfBlockWidth = blockDims.width / 2;
+            const halfBlockHeight = blockDims.height / 2;
             
             // Check which side has space (no overlap at drop position)
             const canShiftLeft = this.canShiftToSide(pan, clampedLocalX, localY, blockDims, -halfBlockWidth);
             const canShiftRight = this.canShiftToSide(pan, clampedLocalX, localY, blockDims, halfBlockWidth);
             
             let adjustedX = clampedLocalX;
+            let adjustedY = localY;
             
             if (canShiftRight) {
                 adjustedX = clampedLocalX + halfBlockWidth;
@@ -313,16 +319,24 @@ class BalanceDragDropHandler {
                 adjustedX = clampedLocalX - halfBlockWidth;
                 console.log('✓ Shifting half-block to the LEFT');
             } else {
-                console.log('❌ Cannot place block - no space on either side, falling to ground');
-                return false;
+                // No space on edges, try shifting half-block higher
+                adjustedY = localY - halfBlockHeight;
+                console.log('✓ No edge space - shifting half-block HIGHER');
+                
+                // Check if higher position still overlaps
+                const stillOverlaps = this.checkOverlapAtPosition(pan, clampedLocalX, adjustedY, blockDims);
+                if (stillOverlaps) {
+                    console.log('❌ Still overlaps even when higher - falling to ground');
+                    return false;
+                }
             }
             
             // Try placement at adjusted position
-            return this.tryPlacementAtPosition(block, pan, adjustedX, blockDims);
+            return this.tryPlacementAtPosition(block, pan, adjustedX, adjustedY, blockDims);
         }
         
         // No overlap, proceed with normal placement
-        return this.tryPlacementAtPosition(block, pan, clampedLocalX, blockDims);
+        return this.tryPlacementAtPosition(block, pan, clampedLocalX, localY, blockDims);
     }
     
     /**
@@ -342,11 +356,12 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Try to place block at given X position
+     * Try to place block at given X,Y position
+     * UPDATED: Now accepts Y position for higher placement attempts
      */
-    tryPlacementAtPosition(block, pan, localX, blockDims) {
-        // Find the resting position using gravity
-        const restingY = this.findRestingPosition(pan, localX, blockDims);
+    tryPlacementAtPosition(block, pan, localX, localY, blockDims) {
+        // Find the resting position using gravity (starting from localY, not drop position)
+        const restingY = this.findRestingPositionFrom(pan, localX, localY, blockDims);
         
         if (restingY === null) {
             console.log('❌ Cannot place block - no valid resting position found');
@@ -400,14 +415,15 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Find resting position for block using gravity
+     * Find resting position for block using gravity, starting from a given Y position
+     * UPDATED: Allows starting from higher positions (for forgiving placement)
      * Block falls until its base touches either the pan floor or the top of another block
      */
-    findRestingPosition(pan, localX, blockDims) {
+    findRestingPositionFrom(pan, localX, startY, blockDims) {
         const panLineY = -pan.extensionHeight;
         
-        // Start at pan bottom (base position)
-        let restingYBase = panLineY;
+        // Start at the given Y position (or pan bottom if startY is lower)
+        let restingYBase = Math.min(startY + blockDims.height / 2, panLineY);
         
         // Check all existing blocks
         for (const otherBlock of pan.blocks) {
@@ -437,9 +453,18 @@ class BalanceDragDropHandler {
         // Convert base position to center position
         const restingY = restingYBase - (blockDims.height / 2);
         
-        console.log(`Found resting position: base=${restingYBase.toFixed(1)}, center=${restingY.toFixed(1)}`);
+        console.log(`Found resting position from Y=${startY.toFixed(1)}: base=${restingYBase.toFixed(1)}, center=${restingY.toFixed(1)}`);
         
         return restingY;
+    }
+    
+    /**
+     * Find resting position for block using gravity (legacy method, uses pan bottom as start)
+     * Block falls until its base touches either the pan floor or the top of another block
+     */
+    findRestingPosition(pan, localX, blockDims) {
+        const panLineY = -pan.extensionHeight;
+        return this.findRestingPositionFrom(pan, localX, panLineY, blockDims);
     }
     
     /**
