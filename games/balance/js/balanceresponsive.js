@@ -1,7 +1,7 @@
 /**
  * BalanceResponsiveManager - Handles responsive resizing and screen rotation
  * Maintains element positions and dimensions on viewport changes
- * UPDATED: Supports extended drop zones (5.5 blocks high)
+ * UPDATED: Supports pivot shadow, visual drop zones (3.5 blocks), wider shadows (120%)
  */
 class BalanceResponsiveManager {
     constructor(elementManager, gameController) {
@@ -122,7 +122,7 @@ class BalanceResponsiveManager {
         // Update seesaw system
         this.updateSeesawSystem();
         
-        // Update pivot
+        // Update pivot and pivot shadow
         this.updatePivot();
     }
     
@@ -146,6 +146,12 @@ class BalanceResponsiveManager {
                 const blockDims = getBlockDimensions(weight);
                 block._dimensions = blockDims;
                 
+                // Update shadow dimensions (120% wider)
+                if (block._shadow) {
+                    block._shadow.setAttribute('rx', blockDims.width/2 * 1.2);
+                    block._shadow.setAttribute('ry', blockDims.height/4);
+                }
+                
                 // Update visual position
                 this.elementManager.updateBlockInPan(block, pan, localX, localY);
                 panBlocksUpdated++;
@@ -159,9 +165,9 @@ class BalanceResponsiveManager {
                 const blockDims = getBlockDimensions(weight);
                 block._dimensions = blockDims;
                 
-                // Update shadow dimensions
+                // Update shadow dimensions (120% wider)
                 if (block._shadow) {
-                    block._shadow.setAttribute('rx', blockDims.width/2 * 0.9);
+                    block._shadow.setAttribute('rx', blockDims.width/2 * 1.2);
                     block._shadow.setAttribute('ry', blockDims.height/4);
                 }
                 
@@ -230,13 +236,13 @@ class BalanceResponsiveManager {
     
     /**
      * Update pan dimensions and positions
-     * UPDATED: Handles 5.5 block high drop zones
+     * UPDATED: Handles visual drop zones (3.5 blocks)
      */
     updatePans() {
         const panDims = getPanDimensions();
         const extensionHeight = vhToPx(BALANCE_CONFIG.EXTENSION_HEIGHT_PERCENT);
         const blockHeight = getBlockDimensions(1).height;
-        const lipHeight = blockHeight * 0.48; // Updated from 0.4 to 0.48
+        const lipHeight = blockHeight * 0.48;
         
         // Update left pan
         if (this.elementManager.leftPan) {
@@ -253,7 +259,7 @@ class BalanceResponsiveManager {
     
     /**
      * Update individual pan dimensions
-     * UPDATED: Handles 5.5 block high drop zones
+     * UPDATED: Visual drop zone is 3.5 blocks (using 9.6% sizing)
      */
     updatePan(pan, panDims, extensionHeight, lipHeight, blockHeight) {
         pan.panDims = panDims;
@@ -296,32 +302,45 @@ class BalanceResponsiveManager {
                     child.setAttribute('y2', -extensionHeight - lipHeight);
                 }
             }
-            // UPDATED: Drop zone - 5.5 blocks high
+            // UPDATED: Drop zone - visual is 3.5 blocks high (using 9.6% sizing)
             else if (child.classList.contains('drop-zone')) {
-                const dropZoneHeight = blockHeight * 5.5; // Was 2.5, now 5.5
+                const visualHeight = vhToPx(9.6) * 3.5; // Visual height
+                const functionalHeight = blockHeight * 5.5; // Functional height
+                
                 child.setAttribute('x', -panDims.width / 2);
-                child.setAttribute('y', -extensionHeight - dropZoneHeight);
+                child.setAttribute('y', -extensionHeight - visualHeight);
                 child.setAttribute('width', panDims.width);
-                child.setAttribute('height', dropZoneHeight);
+                child.setAttribute('height', visualHeight);
+                child.setAttribute('data-functional-height', functionalHeight);
             }
         }
     }
     
     /**
-     * Update pivot triangle
+     * Update pivot triangle and pivot shadow
+     * UPDATED: Also updates pivot shadow position and dimensions
      */
     updatePivot() {
-        if (!this.elementManager.pivot) return;
-        
         const pivotHeight = vhToPx(BALANCE_CONFIG.PIVOT_HEIGHT_PERCENT);
         const pivotWidth = pivotHeight * (2 / Math.sqrt(3));
         const pivotX = window.innerWidth / 2;
         const pivotY = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT);
         
-        const points = `${pivotX},${pivotY - pivotHeight} ${pivotX - pivotWidth/2},${pivotY} ${pivotX + pivotWidth/2},${pivotY}`;
-        this.elementManager.pivot.setAttribute('points', points);
+        // Update pivot triangle
+        if (this.elementManager.pivot) {
+            const points = `${pivotX},${pivotY - pivotHeight} ${pivotX - pivotWidth/2},${pivotY} ${pivotX + pivotWidth/2},${pivotY}`;
+            this.elementManager.pivot.setAttribute('points', points);
+        }
         
-        console.log('Updated pivot');
+        // UPDATED: Update pivot shadow
+        if (this.elementManager.pivotShadow) {
+            this.elementManager.pivotShadow.setAttribute('cx', pivotX);
+            this.elementManager.pivotShadow.setAttribute('cy', pivotY + 2);
+            this.elementManager.pivotShadow.setAttribute('rx', pivotWidth/2 * 1.2); // 120% wider
+            this.elementManager.pivotShadow.setAttribute('ry', pivotHeight/4);
+        }
+        
+        console.log('Updated pivot and pivot shadow');
     }
     
     /**
