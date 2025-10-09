@@ -1,4 +1,4 @@
-/* Balance Game Styles - Updated with shadows and success glow */
+/* Balance Game Styles - Updated with lighter green hover and visual improvements */
 
 /* Reset and base styles */
 * {
@@ -122,23 +122,23 @@ body {
     pointer-events: none !important;
 }
 
-/* Block shadow styling - UPDATED: Lower z-index than blocks */
+/* Block shadow styling - Lower z-index than blocks */
 .block-shadow {
     z-index: -1;
     pointer-events: none;
     filter: blur(2px);
 }
 
-/* Success glow group - UPDATED: Pulsing green shadow effect */
+/* Success glow group - Pulsing green shadow effect */
 .success-glow-group {
     pointer-events: none;
     filter: blur(8px);
 }
 
-/* Drop zone styling - UPDATED: Extended height (3.5 visual + 2 invisible) */
+/* Drop zone styling - UPDATED: Lighter green hover effect */
 .drop-zone {
-    fill: rgba(128, 128, 128, 0.2);
-    stroke: rgba(100, 100, 100, 0.4);
+    fill: rgba(128, 128, 128, 0.15);
+    stroke: rgba(100, 100, 100, 0.3);
     stroke-width: 2;
     stroke-dasharray: 5, 5;
     pointer-events: none;
@@ -147,10 +147,10 @@ body {
     ry: 8;
 }
 
-/* Hover state always shows green */
+/* UPDATED: Lighter green hover state */
 .drop-zone.hover {
-    fill: rgba(76, 175, 80, 0.5) !important;
-    stroke: rgba(76, 175, 80, 0.9) !important;
+    fill: rgba(76, 175, 80, 0.3) !important;
+    stroke: rgba(76, 175, 80, 0.6) !important;
     stroke-width: 3 !important;
     stroke-dasharray: 3, 3 !important;
 }
