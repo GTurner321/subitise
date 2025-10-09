@@ -318,26 +318,31 @@ class BalanceGameController {
             window.AudioSystem.playCompletionSound();
         }
         
+        // UPDATED: Delay speech to allow glow to be visible
         setTimeout(() => {
             this.speakText('Well done! Balanced!');
-        }, 500);
+        }, 1000);
         
         // Check level progression BEFORE incrementing question
         this.checkLevelProgression();
         
-        // Fade out current seesaw and blocks
-        this.fadeOutSeesaw();
+        // UPDATED: Delay fade out by 2 seconds to let glow complete (was immediate)
+        setTimeout(() => {
+            this.fadeOutSeesaw();
+        }, 2000);
         
         // Check if game complete
         if (this.currentQuestion >= BALANCE_CONFIG.TOTAL_QUESTIONS) {
+            // UPDATED: Total delay now 6 seconds (2s glow + 4s fade)
             setTimeout(() => {
                 this.endGame();
-            }, 4000);
+            }, 6000);
         } else {
             this.currentQuestion++;
+            // UPDATED: Total delay now 5 seconds (2s glow + 3s fade)
             setTimeout(() => {
                 this.fadeInNewQuestion();
-            }, 3000);
+            }, 5000);
         }
     }
     
