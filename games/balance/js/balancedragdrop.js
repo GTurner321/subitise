@@ -1,7 +1,7 @@
 /**
  * BalanceDragDropHandler - Handles all drag and drop interactions
  * Manages dragging blocks, drop validation, and pan placement
- * UPDATED: Drop zone always shows green on hover, handles scaled blocks
+ * UPDATED: Smart column-based stacking, 6-block height limit, overflow handling, shadows
  */
 class BalanceDragDropHandler {
     constructor(svg, elementManager, gameRenderer) {
@@ -58,6 +58,7 @@ class BalanceDragDropHandler {
     
     /**
      * Handle start of drag operation
+     * UPDATED: Hide shadow when picking up
      */
     handlePointerStart(e) {
         const point = this.getEventPoint(e);
@@ -71,13 +72,16 @@ class BalanceDragDropHandler {
         this.isDragging = true;
         this.draggedBlock = block;
         
+        // Hide shadow when picking up
+        this.elementManager.hideBlockShadow(block);
+        
         // Remove from pan if it was in one
         if (block._inPan) {
             const pan = block._inPan;
             const index = pan.blocks.indexOf(block);
             if (index > -1) pan.blocks.splice(index, 1);
             
-            // Update drop zone state (but don't change appearance)
+            // Update drop zone state
             this.updateDropZoneState(pan);
             
             // Calculate global position BEFORE removing from pan
@@ -99,8 +103,6 @@ class BalanceDragDropHandler {
             this.dragOffset.x = globalX - point.x;
             this.dragOffset.y = globalY - point.y;
             
-            console.log('Removed block from pan, now at global position:', globalX, globalY);
-            
             // Notify game controller
             if (this.gameRenderer && this.gameRenderer.onBlockMoved) {
                 this.gameRenderer.onBlockMoved();
@@ -115,8 +117,6 @@ class BalanceDragDropHandler {
         block.style.cursor = 'grabbing';
         block.classList.add('dragging');
         block._rect.setAttribute('stroke-width', '4');
-        
-        console.log('Started dragging block', block.getAttribute('data-number'));
     }
     
     /**
@@ -139,6 +139,7 @@ class BalanceDragDropHandler {
     
     /**
      * Handle end of drag operation
+     * UPDATED: Show shadow when placing on ground
      */
     handlePointerEnd(e) {
         if (!this.isDragging || !this.draggedBlock) return;
@@ -149,15 +150,11 @@ class BalanceDragDropHandler {
         const dropX = point.x + this.dragOffset.x;
         const dropY = point.y + this.dragOffset.y;
         
-        console.log('=== DROP EVENT ===');
-        console.log('Block:', this.draggedBlock.getAttribute('data-number'));
-        console.log('Drop position:', dropX, dropY);
-        
         // Try to place in pan
         const placedInPan = this.tryPlaceInPan(dropX, dropY);
         
         if (!placedInPan) {
-            // Place on ground
+            // Place on ground with shadow
             this.placeBlockOnGround(this.draggedBlock, dropX, dropY);
         }
         
@@ -175,8 +172,6 @@ class BalanceDragDropHandler {
         if (this.gameRenderer && this.gameRenderer.onBlockMoved) {
             this.gameRenderer.onBlockMoved();
         }
-        
-        console.log('=== DROP COMPLETE ===');
     }
     
     /**
@@ -226,7 +221,6 @@ class BalanceDragDropHandler {
      * Check if point is over a pan's drop zone
      */
     isOverDropZone(x, y, pan) {
-        // Get drop zone in global coordinates
         const dropZone = pan.dropZone;
         const localX = parseFloat(dropZone.getAttribute('x'));
         const localY = parseFloat(dropZone.getAttribute('y'));
@@ -238,12 +232,7 @@ class BalanceDragDropHandler {
         const globalY = pan.currentY + localY;
         
         // Check if point is inside drop zone
-        const isInside = x >= globalX && 
-                        x <= globalX + width && 
-                        y >= globalY && 
-                        y <= globalY + height;
-        
-        return isInside;
+        return x >= globalX && x <= globalX + width && y >= globalY && y <= globalY + height;
     }
     
     /**
@@ -255,210 +244,257 @@ class BalanceDragDropHandler {
         
         // Check left pan first
         if (leftPan && this.isOverDropZone(x, y, leftPan)) {
-            console.log('Attempting to place in LEFT pan');
             return this.placeBlockInPan(this.draggedBlock, leftPan, x);
         }
         
         // Check right pan
         if (rightPan && this.isOverDropZone(x, y, rightPan)) {
-            console.log('Attempting to place in RIGHT pan');
             return this.placeBlockInPan(this.draggedBlock, rightPan, x);
         }
         
-        console.log('Not over any drop zone');
         return false;
     }
     
     /**
-     * Place block in pan - FIXED: Places blocks by their base, not center
+     * Place block in pan with smart column-based stacking
+     * UPDATED: Finds first available space in column, max 6 blocks high, overflow handling
      */
     placeBlockInPan(block, pan, dropX) {
-        const blockDims = block._dimensions; // Use block's actual dimensions
+        const blockDims = block._dimensions;
+        const unitBlockHeight = getBlockDimensions(1).height; // Height of a weight-1 block
         
-        // Calculate local x position relative to pan center (keep exact drop position)
+        // Calculate local x position relative to pan center
         const localX = dropX - pan.currentX;
         
-        // Clamp localX to stay within pan bounds (with some margin)
+        // Clamp localX to stay within pan bounds
         const maxX = (pan.panDims.width / 2) - (blockDims.width / 2);
         const clampedLocalX = Math.max(-maxX, Math.min(maxX, localX));
         
-        // FIXED: Start at pan bottom - block BASE sits ON the pan line
-        // This means the center is half-height ABOVE the pan line
-        let targetYBase = -pan.extensionHeight; // Pan line position
+        // Find the first available position in the column
+        const placement = this.findAvailablePositionInColumn(pan, clampedLocalX, blockDims, unitBlockHeight);
         
-        // Check collision - block falls straight down until it hits something
+        if (!placement.canPlace) {
+            console.log('❌ Cannot place block - pan full or no space in column');
+            return false;
+        }
+        
+        // If this is an overflow placement, try adjacent columns
+        if (placement.isOverflow) {
+            console.log('⚠️ Column full, searching for alternative position...');
+            const altPlacement = this.findAlternativePosition(pan, clampedLocalX, blockDims, unitBlockHeight);
+            
+            if (!altPlacement.canPlace) {
+                console.log('❌ No alternative position found - pan is full');
+                return false;
+            }
+            
+            // Use alternative position
+            return this.placementBlockAtPosition(block, pan, altPlacement.localX, altPlacement.targetY);
+        }
+        
+        // Place at found position
+        return this.placementBlockAtPosition(block, pan, clampedLocalX, placement.targetY);
+    }
+    
+    /**
+     * Find first available position in a column (smart stacking)
+     * UPDATED: Column-based placement with 6-block height limit
+     */
+    findAvailablePositionInColumn(pan, localX, blockDims, unitBlockHeight) {
+        const maxStackHeight = unitBlockHeight * 6; // 6 unit blocks high
+        const panLineY = -pan.extensionHeight;
+        
+        // Start at pan bottom
+        let targetYBase = panLineY;
+        
+        // Get all blocks sorted by height (bottom to top)
         const sortedBlocks = [...pan.blocks].sort((a, b) => {
             const aY = parseFloat(a.getAttribute('data-local-y'));
             const bY = parseFloat(b.getAttribute('data-local-y'));
             return bY - aY; // Higher Y (lower on screen) first
         });
         
+        // Check each existing block for horizontal overlap
         for (const otherBlock of sortedBlocks) {
-            const otherDims = otherBlock._dimensions; // Use other block's actual dimensions
+            const otherDims = otherBlock._dimensions;
             const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
             const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
             
-            // Calculate other block's base position
-            const otherBase = otherLocalY + (otherDims.height / 2);
-            
-            // Check if blocks overlap horizontally (any overlap counts)
+            // Calculate horizontal overlap
             const otherLeft = otherLocalX - otherDims.width / 2;
             const otherRight = otherLocalX + otherDims.width / 2;
-            const ourLeft = clampedLocalX - blockDims.width / 2;
-            const ourRight = clampedLocalX + blockDims.width / 2;
+            const ourLeft = localX - blockDims.width / 2;
+            const ourRight = localX + blockDims.width / 2;
             
             const xOverlap = !(ourRight <= otherLeft || ourLeft >= otherRight);
             
             if (xOverlap) {
-                // This block is in our vertical path
+                // This block is in our column
                 const otherTop = otherLocalY - (otherDims.height / 2);
                 
-                // If we would pass through this block, rest on top of it
-                // Our base should sit on the other block's top
-                if (targetYBase >= otherTop) {
+                // Check if there's enough space between this block and the next
+                const spaceNeeded = blockDims.height;
+                const spaceAvailable = targetYBase - otherTop;
+                
+                if (spaceAvailable >= spaceNeeded) {
+                    // Found a gap! Place here
                     targetYBase = otherTop;
-                    console.log(`Stacking on block, base at Y=${targetYBase.toFixed(1)}`);
+                    break;
+                } else {
+                    // Not enough space, move up to top of this block
+                    targetYBase = otherTop;
                 }
             }
         }
         
-        // Convert base position to center position for storage
+        // Convert base position to center position
         const targetY = targetYBase - (blockDims.height / 2);
         
-        console.log(`Placing block weight=${block._weight} at local position: center=(${clampedLocalX.toFixed(1)}, ${targetY.toFixed(1)}), base=${targetYBase.toFixed(1)}`);
-        console.log(`Block dimensions: ${blockDims.width.toFixed(1)} x ${blockDims.height.toFixed(1)}`);
+        // Check if this exceeds max height (6 unit blocks from pan line)
+        const heightFromPan = panLineY - targetY - (blockDims.height / 2);
         
+        if (heightFromPan > maxStackHeight) {
+            console.log(`⚠️ Column exceeds max height: ${heightFromPan.toFixed(1)}px > ${maxStackHeight.toFixed(1)}px`);
+            return { canPlace: false, isOverflow: true };
+        }
+        
+        return { canPlace: true, targetY, isOverflow: false };
+    }
+    
+    /**
+     * Find alternative position when primary column is full
+     * Searches left and right for available space
+     */
+    findAlternativePosition(pan, preferredX, blockDims, unitBlockHeight) {
+        const panWidth = pan.panDims.width;
+        const searchIncrement = blockDims.width * 0.5; // Search in half-block increments
+        const maxSearchDistance = panWidth / 2;
+        
+        // Try alternating left and right
+        for (let distance = searchIncrement; distance <= maxSearchDistance; distance += searchIncrement) {
+            // Try right
+            const rightX = preferredX + distance;
+            const maxX = (panWidth / 2) - (blockDims.width / 2);
+            
+            if (rightX <= maxX) {
+                const rightPlacement = this.findAvailablePositionInColumn(pan, rightX, blockDims, unitBlockHeight);
+                if (rightPlacement.canPlace && !rightPlacement.isOverflow) {
+                    console.log(`✓ Found space to the right at x=${rightX.toFixed(1)}`);
+                    return { canPlace: true, localX: rightX, targetY: rightPlacement.targetY };
+                }
+            }
+            
+            // Try left
+            const leftX = preferredX - distance;
+            const minX = -(panWidth / 2) + (blockDims.width / 2);
+            
+            if (leftX >= minX) {
+                const leftPlacement = this.findAvailablePositionInColumn(pan, leftX, blockDims, unitBlockHeight);
+                if (leftPlacement.canPlace && !leftPlacement.isOverflow) {
+                    console.log(`✓ Found space to the left at x=${leftX.toFixed(1)}`);
+                    return { canPlace: true, localX: leftX, targetY: leftPlacement.targetY };
+                }
+            }
+        }
+        
+        return { canPlace: false };
+    }
+    
+    /**
+     * Actually place the block at the determined position
+     */
+    placementBlockAtPosition(block, pan, localX, targetY) {
         // Add block to pan
         pan.blocks.push(block);
         block._inPan = pan;
         
-        // Store local coordinates (as center position)
-        block.setAttribute('data-local-x', clampedLocalX);
+        // Store local coordinates
+        block.setAttribute('data-local-x', localX);
         block.setAttribute('data-local-y', targetY);
         
-        // CRITICAL: Move block to pan group BEFORE updating position
+        // Move block to pan group BEFORE updating position
         pan.group.appendChild(block);
         
         // Update block position
-        this.elementManager.updateBlockInPan(block, pan, clampedLocalX, targetY);
+        this.elementManager.updateBlockInPan(block, pan, localX, targetY);
         
-        // Update drop zone state (keeps it ready for more blocks)
+        // Show shadow for block in pan
+        this.elementManager.showBlockShadow(block);
+        
+        // Update drop zone state
         this.updateDropZoneState(pan);
         
-        console.log(`Block placed successfully in ${pan.side} pan. Pan now has ${pan.blocks.length} blocks.`);
-        console.log(`Current pan weights - Left: ${this.elementManager.getWeights().left}, Right: ${this.elementManager.getWeights().right}`);
+        console.log(`✓ Block weight=${block._weight} placed in ${pan.side} pan at (${localX.toFixed(1)}, ${targetY.toFixed(1)})`);
         
         return true;
     }
     
     /**
-     * Update drop zone visual state - FIXED: Always keep it ready for drops
+     * Update drop zone visual state
      */
     updateDropZoneState(pan) {
         if (!pan || !pan.dropZone) return;
-        
-        // Don't add 'occupied' class that dims the drop zone
-        // Drop zone should always be ready to receive blocks and show green on hover
-        // The CSS will handle the hover state consistently
+        // Drop zone always ready for drops (no dimming)
     }
     
     /**
-     * Collapse blocks in pan when one is removed - FIXED: Uses base positioning
+     * Collapse blocks in pan when one is removed
+     * UPDATED: Uses column-based repositioning
      */
     collapseBlocksInPan(pan, removedBlockY) {
-        // Find all blocks that were ABOVE the removed block
-        const blocksAbove = pan.blocks.filter(block => {
-            const blockY = parseFloat(block.getAttribute('data-local-y'));
-            return blockY < removedBlockY; // Lower Y = higher on screen
-        });
+        // Recalculate all block positions using the smart stacking logic
+        const blocksToReposition = [...pan.blocks];
         
-        if (blocksAbove.length === 0) {
-            console.log('No blocks above removed block');
-            return;
-        }
-        
-        console.log(`Found ${blocksAbove.length} blocks above removed block, recalculating positions`);
-        
-        // For each block above, recalculate its position as if freshly dropped
-        blocksAbove.forEach(block => {
-            const blockDims = block._dimensions; // Use block's actual dimensions
+        blocksToReposition.forEach(block => {
+            const blockDims = block._dimensions;
             const localX = parseFloat(block.getAttribute('data-local-x'));
+            const unitBlockHeight = getBlockDimensions(1).height;
             
-            // Start at pan bottom (base position)
-            let newYBase = -pan.extensionHeight;
+            // Find new position for this block
+            const placement = this.findAvailablePositionInColumn(pan, localX, blockDims, unitBlockHeight);
             
-            // Check all OTHER blocks for collision (exclude this block)
-            const otherBlocks = pan.blocks.filter(b => b !== block);
-            
-            // Sort by Y position (bottom to top)
-            const sortedBlocks = otherBlocks.sort((a, b) => {
-                const aY = parseFloat(a.getAttribute('data-local-y'));
-                const bY = parseFloat(b.getAttribute('data-local-y'));
-                return bY - aY;
-            });
-            
-            for (const otherBlock of sortedBlocks) {
-                const otherDims = otherBlock._dimensions; // Use other block's actual dimensions
-                const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
-                const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
+            if (placement.canPlace) {
+                const oldY = parseFloat(block.getAttribute('data-local-y'));
                 
-                // Check horizontal overlap
-                const otherLeft = otherLocalX - otherDims.width / 2;
-                const otherRight = otherLocalX + otherDims.width / 2;
-                const ourLeft = localX - blockDims.width / 2;
-                const ourRight = localX + blockDims.width / 2;
-                
-                const xOverlap = !(ourRight <= otherLeft || ourLeft >= otherRight);
-                
-                if (xOverlap) {
-                    const otherTop = otherLocalY - otherDims.height / 2;
+                if (Math.abs(placement.targetY - oldY) > 0.1) {
+                    // Animate the fall
+                    block.style.transition = 'all 0.3s ease-out';
+                    block.setAttribute('data-local-y', placement.targetY);
+                    this.elementManager.updateBlockInPan(block, pan, localX, placement.targetY);
                     
-                    if (newYBase >= otherTop) {
-                        newYBase = otherTop;
-                    }
+                    setTimeout(() => {
+                        block.style.transition = '';
+                    }, 300);
                 }
-            }
-            
-            // Convert base to center position
-            const newY = newYBase - (blockDims.height / 2);
-            
-            // Update block position if it changed
-            const oldY = parseFloat(block.getAttribute('data-local-y'));
-            if (Math.abs(newY - oldY) > 0.1) {
-                console.log(`Block falling from Y=${oldY.toFixed(1)} to Y=${newY.toFixed(1)}`);
-                
-                // Animate the fall
-                block.style.transition = 'all 0.3s ease-out';
-                block.setAttribute('data-local-y', newY);
-                this.elementManager.updateBlockInPan(block, pan, localX, newY);
-                
-                setTimeout(() => {
-                    block.style.transition = '';
-                }, 300);
             }
         });
     }
     
     /**
      * Place block on ground
+     * UPDATED: Shows shadow when settled
      */
     placeBlockOnGround(block, x, y) {
         const grassTop = vhToPx(BALANCE_CONFIG.GRASS_Y_MIN_PERCENT);
         
         // Apply gravity if dropped above grass
         if (y < grassTop) {
-            console.log('Block above grass, applying gravity');
             y = vhToPx(85); // Middle of grass area
             
             block.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
             this.elementManager.updateBlockPosition(block, x, y);
             
+            // Show shadow after settling
             setTimeout(() => {
                 block.style.transition = '';
+                this.elementManager.showBlockShadow(block);
             }, 600);
         } else {
-            console.log('Placing block on ground at drop position');
             this.elementManager.updateBlockPosition(block, x, y);
+            // Show shadow immediately for ground placement
+            setTimeout(() => {
+                this.elementManager.showBlockShadow(block);
+            }, 100);
         }
         
         // Ensure block is in main SVG
@@ -468,12 +504,10 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Find block at given point - UPDATED: Handles scaled blocks
+     * Find block at given point
      */
     findBlockAtPoint(point) {
         const blocks = this.svg.querySelectorAll('.block');
-        
-        // Check blocks in reverse order (top to bottom in DOM)
         const blockArray = Array.from(blocks).reverse();
         
         for (let block of blockArray) {
@@ -482,14 +516,12 @@ class BalanceDragDropHandler {
             
             let x, y, width, height;
             
-            // Handle blocks in pans (use global coordinates)
             if (block._inPan) {
                 const pan = block._inPan;
                 const localX = parseFloat(block.getAttribute('data-local-x') || 0);
                 const localY = parseFloat(block.getAttribute('data-local-y') || 0);
                 const dims = block._dimensions;
                 
-                // Convert local to global coordinates
                 const globalCenterX = pan.currentX + localX;
                 const globalCenterY = pan.currentY + localY;
                 
@@ -498,7 +530,6 @@ class BalanceDragDropHandler {
                 width = dims.width;
                 height = dims.height;
             } else {
-                // Ground blocks - use rect attributes directly
                 x = parseFloat(rect.getAttribute('x'));
                 y = parseFloat(rect.getAttribute('y'));
                 width = parseFloat(rect.getAttribute('width'));
