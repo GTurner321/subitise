@@ -1,6 +1,6 @@
 /**
  * BalanceGameController - Main game logic and coordination
- * UPDATED: Triggers green flash on balance achievement
+ * UPDATED: Triggers success glow on balance achievement, updated level progression
  */
 class BalanceGameController {
     constructor() {
@@ -264,7 +264,7 @@ class BalanceGameController {
         const positions = generateGroundBlockPositions(values.length);
         console.log('Generated positions:', positions.length);
         
-        // FIXED: Ensure we have enough colors by cycling through them if needed
+        // Ensure we have enough colors by cycling through them if needed
         const colorPool = [...BALANCE_CONFIG.BLOCK_COLORS];
         
         values.forEach((value, index) => {
@@ -274,7 +274,7 @@ class BalanceGameController {
                 return;
             }
             
-            // FIXED: Cycle through colors if we run out
+            // Cycle through colors if we run out
             const colorIndex = index % colorPool.length;
             const color = colorPool[colorIndex];
             
@@ -305,7 +305,7 @@ class BalanceGameController {
         
         console.log('Question completed - weights are equal!');
         
-        // TRIGGER GREEN FLASH on seesaw elements
+        // TRIGGER SUCCESS GLOW on seesaw elements (replaces green flash)
         if (this.renderer && this.renderer.elementManager) {
             this.renderer.elementManager.flashBalanceSuccess();
         }
@@ -349,7 +349,7 @@ class BalanceGameController {
         
         console.log(`Question completed in ${this.questionMoves} moves, ${(timeTaken/1000).toFixed(1)}s`);
         
-        // Check if completed within time limit
+        // UPDATED: Check if completed within time limit (now 30 seconds)
         const completedInTime = timeTaken <= level.questionTime;
         
         // Track consecutive performance
@@ -363,7 +363,7 @@ class BalanceGameController {
             console.log(`⏰ Consecutive slow: ${this.consecutiveSlow}/${level.consecutiveForDemotion} (slow completion)`);
         }
         
-        // Check for promotion (move to harder level)
+        // UPDATED: Check for promotion (now requires 2 correct, was 3)
         if (this.consecutiveCorrect >= level.consecutiveForPromotion && this.currentLevel < 3) {
             this.currentLevel++;
             this.consecutiveCorrect = 0;
