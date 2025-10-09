@@ -1,17 +1,20 @@
 /**
  * BalanceElementManager - Handles creation and management of SVG elements
  * Creates seesaw, pans, blocks, drop zones, and manages their visual updates
- * UPDATED: Ground block shadows (wider, more transparent), no pan shadows, pivot shadow, 
- * restricted drop zone visuals, longer/wider success glow, z-ordering by base position
+ * UPDATED: All shadows behind all blocks, bar end shadows on ground contact, fixed z-ordering
  */
 class BalanceElementManager {
     constructor(svg) {
         this.svg = svg;
         
+        // SVG layers for proper z-ordering
+        this.shadowLayer = null; // NEW: Dedicated layer for all shadows
+        this.blockLayer = null;  // NEW: Layer for all blocks
+        
         // SVG elements
         this.seesawGroup = null;
         this.pivot = null;
-        this.pivotShadow = null; // NEW: Pivot shadow
+        this.pivotShadow = null;
         this.bar = null;
         this.leftPan = null;
         this.rightPan = null;
@@ -19,6 +22,8 @@ class BalanceElementManager {
         this.rightConnectionDot = null;
         this.leftExtension = null;
         this.rightExtension = null;
+        this.leftBarEndShadow = null;  // NEW: Bar end shadow
+        this.rightBarEndShadow = null; // NEW: Bar end shadow
         this.blocks = [];
         
         // Success glow elements
@@ -28,6 +33,27 @@ class BalanceElementManager {
         this.pivotX = 0;
         this.pivotY = 0;
         this.barWidth = 0;
+        
+        // Initialize layers
+        this.createLayers();
+    }
+    
+    /**
+     * Create layered SVG structure for proper z-ordering
+     * NEW: Shadow layer behind everything, then blocks on top
+     */
+    createLayers() {
+        // Shadow layer (bottom - all shadows here)
+        this.shadowLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        this.shadowLayer.setAttribute('class', 'shadow-layer');
+        this.svg.appendChild(this.shadowLayer);
+        
+        // Block layer (top - all blocks here)
+        this.blockLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        this.blockLayer.setAttribute('class', 'block-layer');
+        this.svg.appendChild(this.blockLayer);
+        
+        console.log('SVG layers created: shadows → blocks');
     }
     
     /**
@@ -40,28 +66,36 @@ class BalanceElementManager {
         const pivotX = window.innerWidth / 2;
         const pivotY = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT);
         
-        // NEW: Create pivot shadow first (behind pivot)
+        // Pivot shadow in shadow layer
         this.pivotShadow = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
         this.pivotShadow.setAttribute('cx', pivotX);
         this.pivotShadow.setAttribute('cy', pivotY + 2);
-        this.pivotShadow.setAttribute('rx', pivotWidth/2 * 1.2); // 120% wider
+        this.pivotShadow.setAttribute('rx', pivotWidth/2 * 1.2);
         this.pivotShadow.setAttribute('ry', pivotHeight/4);
         this.pivotShadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
         this.pivotShadow.style.filter = 'blur(2px)';
-        this.svg.appendChild(this.pivotShadow);
+        this.shadowLayer.appendChild(this.pivotShadow);
         
+        // Pivot triangle in block layer
         this.pivot = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
         const points = `${pivotX},${pivotY - pivotHeight} ${pivotX - pivotWidth/2},${pivotY} ${pivotX + pivotWidth/2},${pivotY}`;
         this.pivot.setAttribute('points', points);
         this.pivot.setAttribute('fill', BALANCE_CONFIG.PIVOT_COLOR);
         this.pivot.setAttribute('stroke', BALANCE_CONFIG.PIVOT_STROKE);
         this.pivot.setAttribute('stroke-width', '3');
-        this.svg.appendChild(this.pivot);
+        this.blockLayer.appendChild(this.pivot);
         
         this.pivotX = pivotX;
         this.pivotY = pivotY - pivotHeight;
         
-        // Create seesaw group (bar + connection dots)
+        // Create bar end shadows (initially hidden, in shadow layer)
+        const unitBlockWidth = getBlockDimensions(1).width;
+        this.leftBarEndShadow = this.createBarEndShadow(unitBlockWidth);
+        this.rightBarEndShadow = this.createBarEndShadow(unitBlockWidth);
+        this.shadowLayer.appendChild(this.leftBarEndShadow);
+        this.shadowLayer.appendChild(this.rightBarEndShadow);
+        
+        // Create seesaw group (bar + connection dots) in block layer
         this.seesawGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         this.seesawGroup.setAttribute('class', 'seesaw-group');
         
@@ -92,19 +126,34 @@ class BalanceElementManager {
         this.seesawGroup.appendChild(this.rightConnectionDot);
         
         this.seesawGroup.setAttribute('transform', `translate(${this.pivotX},${this.pivotY})`);
-        this.svg.appendChild(this.seesawGroup);
+        this.blockLayer.appendChild(this.seesawGroup);
         
-        // Create pans as unified units
+        // Create pans as unified units in block layer
         this.leftPan = this.createPanUnit(-barWidth / 2, 'left');
         this.rightPan = this.createPanUnit(barWidth / 2, 'right');
         
-        this.svg.appendChild(this.leftPan.group);
-        this.svg.appendChild(this.rightPan.group);
+        this.blockLayer.appendChild(this.leftPan.group);
+        this.blockLayer.appendChild(this.rightPan.group);
         
-        // Create success glow group (initially hidden)
+        // Create success glow group (initially hidden, behind seesaw)
         this.createSuccessGlowGroup();
         
         console.log('Seesaw system created');
+    }
+    
+    /**
+     * Create bar end shadow
+     * NEW: Shadow appears when bar end touches ground
+     */
+    createBarEndShadow(unitBlockWidth) {
+        const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        shadow.setAttribute('rx', unitBlockWidth/2 * 1.2);
+        shadow.setAttribute('ry', unitBlockWidth/4);
+        shadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
+        shadow.style.filter = 'blur(2px)';
+        shadow.style.opacity = '0';
+        shadow.style.transition = 'opacity 0.3s ease';
+        return shadow;
     }
     
     /**
@@ -119,7 +168,6 @@ class BalanceElementManager {
     
     /**
      * Create a pan unit (extension + pan bottom + lips + drop zone)
-     * UPDATED: Drop zone visual capture area restricted to 3.5 blocks high
      */
     createPanUnit(xOffset, side) {
         const panDims = getPanDimensions();
@@ -134,7 +182,7 @@ class BalanceElementManager {
         const initialX = this.pivotX + xOffset;
         const initialY = this.pivotY;
         
-        // Vertical extension - starts at (0,0) which is the elbow/bar endpoint
+        // Vertical extension
         const extension = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         extension.setAttribute('x1', 0);
         extension.setAttribute('y1', 0);
@@ -151,11 +199,11 @@ class BalanceElementManager {
             this.rightExtension = extension;
         }
         
-        // UPDATED: Create drop zone - visual is 3.5 blocks, functional is 5.5 blocks
+        // Create drop zone
         const dropZone = this.createDropZone(panDims, extensionHeight, blockHeight);
         group.appendChild(dropZone);
         
-        // Pan bottom line (6 blocks wide) at top of extension
+        // Pan bottom line
         const panBottom = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         panBottom.setAttribute('x1', -panDims.width / 2);
         panBottom.setAttribute('y1', -extensionHeight);
@@ -165,7 +213,7 @@ class BalanceElementManager {
         panBottom.setAttribute('stroke-width', '3');
         group.appendChild(panBottom);
         
-        // Left lip - 0.48 blocks high
+        // Lips
         const lipHeight = blockHeight * 0.48;
         const leftLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         leftLip.setAttribute('x1', -panDims.width / 2);
@@ -176,7 +224,6 @@ class BalanceElementManager {
         leftLip.setAttribute('stroke-width', '3');
         group.appendChild(leftLip);
         
-        // Right lip - 0.48 blocks high
         const rightLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         rightLip.setAttribute('x1', panDims.width / 2);
         rightLip.setAttribute('y1', -extensionHeight);
@@ -213,13 +260,12 @@ class BalanceElementManager {
     
     /**
      * Create drop zone rectangle for pan
-     * UPDATED: Visual area is 3.5 blocks (9.6% * 3.5), functional area is 5.5 blocks
      */
     createDropZone(panDims, extensionHeight, blockHeight) {
         const dropZone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         dropZone.setAttribute('class', 'drop-zone');
         
-        // Visual height: 3.5 blocks (using original 9.6% sizing for visual consistency)
+        // Visual height: 3.5 blocks
         const visualHeight = vhToPx(9.6) * 3.5;
         
         dropZone.setAttribute('x', -panDims.width / 2);
@@ -237,7 +283,7 @@ class BalanceElementManager {
     
     /**
      * Create a game block with shadow
-     * UPDATED: Ground blocks have visible shadows (wider, more transparent), pan blocks have no shadows
+     * UPDATED: Shadow goes in shadow layer, block goes in block layer
      */
     createBlock(number, xPercent, yPercent, color, isFixed = false) {
         const x = vwToPx(xPercent);
@@ -250,17 +296,20 @@ class BalanceElementManager {
         blockGroup.setAttribute('data-weight', number);
         if (!isFixed) blockGroup.style.cursor = 'grab';
         
-        // Shadow - UPDATED: 120% wider, more transparent (0.2 opacity)
+        // Shadow - created separately in shadow layer
         const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
         shadow.setAttribute('class', 'block-shadow');
         shadow.setAttribute('cx', x);
         shadow.setAttribute('cy', y + dimensions.height/2 + 3);
-        shadow.setAttribute('rx', dimensions.width/2 * 1.2); // 120% wider
+        shadow.setAttribute('rx', dimensions.width/2 * 1.2); // 120% of block width
         shadow.setAttribute('ry', dimensions.height/4);
-        shadow.setAttribute('fill', 'rgba(0,0,0,0.2)'); // More transparent
+        shadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
         shadow.style.opacity = isFixed ? '0' : '1'; // Ground blocks visible, pan blocks hidden
         shadow.style.transition = 'opacity 0.3s ease-in';
         shadow.style.filter = 'blur(2px)';
+        
+        // Add shadow to shadow layer
+        this.shadowLayer.appendChild(shadow);
         
         // Block rectangle
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -285,7 +334,6 @@ class BalanceElementManager {
         text.setAttribute('fill', isFixed ? BALANCE_CONFIG.FIXED_BLOCK_TEXT : '#000');
         text.textContent = number;
         
-        blockGroup.appendChild(shadow);
         blockGroup.appendChild(rect);
         blockGroup.appendChild(text);
         
@@ -307,7 +355,7 @@ class BalanceElementManager {
     
     /**
      * Update block position (pixel coordinates)
-     * UPDATED: Z-ordering by base position (lower base = front)
+     * UPDATED: Better z-ordering by base position with horizontal overlap check
      */
     updateBlockPosition(block, x, y) {
         if (block._isFixed && block._inPan) return;
@@ -330,7 +378,7 @@ class BalanceElementManager {
         block._xPercent = pxToVw(x);
         block._yPercent = pxToVh(y);
         
-        // Update z-ordering for ground blocks based on base position
+        // Update z-ordering for ground blocks
         if (!block._inPan) {
             this.updateGroundBlockZOrdering();
         }
@@ -356,12 +404,12 @@ class BalanceElementManager {
     
     /**
      * Update z-ordering for ground blocks based on BASE position
-     * UPDATED: Blocks with lower base (higher Y + height/2) appear in front
+     * FIXED: Only reorders blocks that actually overlap horizontally
      */
     updateGroundBlockZOrdering() {
-        const groundBlocks = Array.from(this.svg.querySelectorAll('.block')).filter(b => !b._inPan);
+        const groundBlocks = Array.from(this.blockLayer.querySelectorAll('.block')).filter(b => !b._inPan);
         
-        // Sort by base position (center Y + half height)
+        // Sort by base position, but only affect overlapping blocks
         groundBlocks.sort((a, b) => {
             const aBase = a._centerY + (a._dimensions.height / 2);
             const bBase = b._centerY + (b._dimensions.height / 2);
@@ -376,34 +424,36 @@ class BalanceElementManager {
             
             // Only apply z-ordering if blocks overlap horizontally
             if (xOverlap) {
-                return aBase - bBase; // Lower base = higher Y value = appears in front
+                return aBase - bBase; // Lower base (higher Y) = appears in front
             }
             
             return 0; // No change if no overlap
         });
         
-        // Re-append in sorted order (lower base blocks will be in front)
+        // Re-append in sorted order
         groundBlocks.forEach(block => {
-            this.svg.appendChild(block);
+            this.blockLayer.appendChild(block);
         });
     }
     
     /**
      * Update block position within pan (local coordinates)
-     * UPDATED: No shadows for blocks in pans
      */
     updateBlockInPan(block, pan, localX, localY) {
         const dims = block._dimensions;
         
-        // Update all child elements to local coordinates
+        // Update block elements
         block._rect.setAttribute('x', localX - dims.width/2);
         block._rect.setAttribute('y', localY - dims.height/2);
         
-        block._shadow.setAttribute('cx', localX);
-        block._shadow.setAttribute('cy', localY + dims.height/2 + 3);
-        
         block._text.setAttribute('x', localX);
         block._text.setAttribute('y', localY);
+        
+        // Update shadow position (in global shadow layer)
+        const globalX = pan.currentX + localX;
+        const globalY = pan.currentY + localY;
+        block._shadow.setAttribute('cx', globalX);
+        block._shadow.setAttribute('cy', globalY + dims.height/2 + 3);
         
         // Remove transform from block group
         block.removeAttribute('transform');
@@ -412,12 +462,13 @@ class BalanceElementManager {
         block._centerX = localX;
         block._centerY = localY;
         
-        // UPDATED: Hide shadow for blocks in pans
+        // Hide shadow for blocks in pans
         this.hideBlockShadow(block);
     }
     
     /**
      * Update seesaw rotation and pan positions
+     * UPDATED: Shows/hides bar end shadows when touching ground
      */
     updateSeesawRotation(angle) {
         if (!this.seesawGroup) return false;
@@ -434,10 +485,16 @@ class BalanceElementManager {
         
         let groundHit = false;
         let actualAngle = angle;
+        let leftTouchingGround = false;
+        let rightTouchingGround = false;
         
         // Ground detection
         if (leftEndY >= grassTopY || rightEndY >= grassTopY) {
             groundHit = true;
+            
+            // Check which end is touching
+            if (leftEndY >= grassTopY) leftTouchingGround = true;
+            if (rightEndY >= grassTopY) rightTouchingGround = true;
             
             const leftLimitSin = (grassTopY - this.pivotY) / -halfBarWidth;
             const rightLimitSin = (grassTopY - this.pivotY) / halfBarWidth;
@@ -460,6 +517,19 @@ class BalanceElementManager {
             leftEndY = this.pivotY + (Math.sin(angleRad) * -halfBarWidth);
             rightEndX = this.pivotX + (Math.cos(angleRad) * halfBarWidth);
             rightEndY = this.pivotY + (Math.sin(angleRad) * halfBarWidth);
+        }
+        
+        // Update bar end shadows
+        if (this.leftBarEndShadow) {
+            this.leftBarEndShadow.setAttribute('cx', leftEndX);
+            this.leftBarEndShadow.setAttribute('cy', grassTopY + 2);
+            this.leftBarEndShadow.style.opacity = leftTouchingGround ? '1' : '0';
+        }
+        
+        if (this.rightBarEndShadow) {
+            this.rightBarEndShadow.setAttribute('cx', rightEndX);
+            this.rightBarEndShadow.setAttribute('cy', grassTopY + 2);
+            this.rightBarEndShadow.style.opacity = rightTouchingGround ? '1' : '0';
         }
         
         // Rotate bar and connection dots
@@ -498,7 +568,6 @@ class BalanceElementManager {
     
     /**
      * Create success glow group for balance achievement
-     * UPDATED: Wider glow (6x element width, was 4x)
      */
     createSuccessGlowGroup() {
         this.successGlowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -507,12 +576,11 @@ class BalanceElementManager {
         this.successGlowGroup.style.pointerEvents = 'none';
         
         // Insert before seesaw group so glow appears behind
-        this.svg.insertBefore(this.successGlowGroup, this.seesawGroup);
+        this.blockLayer.insertBefore(this.successGlowGroup, this.seesawGroup);
     }
     
     /**
      * Trigger success glow animation
-     * UPDATED: Wider glow (6x), longer duration (fade in 0.5s, hold 2s, fade out 1.5s)
      */
     flashBalanceSuccess() {
         if (!this.successGlowGroup) return;
@@ -536,7 +604,7 @@ class BalanceElementManager {
             const glow = element.cloneNode(true);
             glow.removeAttribute('class');
             
-            // Calculate glow width (6x original, was 4x)
+            // Calculate glow width (6x original)
             let originalWidth = 4;
             if (type === 'rect') {
                 originalWidth = parseFloat(element.getAttribute('height'));
@@ -546,7 +614,7 @@ class BalanceElementManager {
                 originalWidth = parseFloat(element.getAttribute('stroke-width')) || 3;
             }
             
-            const glowWidth = originalWidth * 6; // Increased from 4x to 6x
+            const glowWidth = originalWidth * 6;
             
             // Style the glow
             glow.setAttribute('stroke', 'rgba(76, 175, 80, 0.6)');
@@ -573,16 +641,16 @@ class BalanceElementManager {
             this.successGlowGroup.appendChild(glow);
         });
         
-        // UPDATED: Longer animation - fade in (0.5s) → hold (2s) → fade out (1.5s)
+        // Animation: fade in (0.5s) → hold (2s) → fade out (1.5s)
         this.successGlowGroup.style.transition = 'opacity 0.5s ease-in';
         this.successGlowGroup.style.opacity = '1';
         
         setTimeout(() => {
             this.successGlowGroup.style.transition = 'opacity 1.5s ease-out';
             this.successGlowGroup.style.opacity = '0';
-        }, 2500); // Hold for 2 seconds then fade out
+        }, 2500);
         
-        console.log('✅ Balance success glow triggered (wider, longer duration)');
+        console.log('✅ Balance success glow triggered');
     }
     
     /**
@@ -609,21 +677,37 @@ class BalanceElementManager {
      * Clear all moveable blocks (keep seesaw)
      */
     clearMoveableBlocks() {
-        // Clear blocks from main SVG
-        const blocks = this.svg.querySelectorAll('.block');
+        // Clear blocks from block layer
+        const blocks = this.blockLayer.querySelectorAll('.block');
         blocks.forEach(block => {
             if (!block._inPan) {
+                // Also remove shadow
+                if (block._shadow && block._shadow.parentNode) {
+                    block._shadow.parentNode.removeChild(block._shadow);
+                }
                 block.remove();
             }
         });
         
         // Clear ALL blocks from pans
         if (this.leftPan) {
-            this.leftPan.blocks.forEach(block => block.remove());
+            this.leftPan.blocks.forEach(block => {
+                // Remove shadow
+                if (block._shadow && block._shadow.parentNode) {
+                    block._shadow.parentNode.removeChild(block._shadow);
+                }
+                block.remove();
+            });
             this.leftPan.blocks = [];
         }
         if (this.rightPan) {
-            this.rightPan.blocks.forEach(block => block.remove());
+            this.rightPan.blocks.forEach(block => {
+                // Remove shadow
+                if (block._shadow && block._shadow.parentNode) {
+                    block._shadow.parentNode.removeChild(block._shadow);
+                }
+                block.remove();
+            });
             this.rightPan.blocks = [];
         }
         
@@ -644,7 +728,14 @@ class BalanceElementManager {
         this.leftExtension = null;
         this.rightExtension = null;
         this.pivotShadow = null;
+        this.leftBarEndShadow = null;
+        this.rightBarEndShadow = null;
         this.successGlowGroup = null;
+        this.shadowLayer = null;
+        this.blockLayer = null;
+        
+        // Recreate layers
+        this.createLayers();
     }
     
     /**
