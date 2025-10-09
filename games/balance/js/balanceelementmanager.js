@@ -404,16 +404,18 @@ class BalanceElementManager {
     
     /**
      * Update z-ordering for ground blocks based on BASE position
-     * FIXED: Only reorders blocks that actually overlap horizontally
+     * FIXED: Proper sorting - always sort by base, but only for overlapping blocks
      */
     updateGroundBlockZOrdering() {
         const groundBlocks = Array.from(this.blockLayer.querySelectorAll('.block')).filter(b => !b._inPan);
         
-        // Sort by base position, but only affect overlapping blocks
+        // Calculate base positions for all blocks
+        groundBlocks.forEach(block => {
+            block._sortBase = block._centerY + (block._dimensions.height / 2);
+        });
+        
+        // Sort by base position - lower base (higher Y) comes later = appears in front
         groundBlocks.sort((a, b) => {
-            const aBase = a._centerY + (a._dimensions.height / 2);
-            const bBase = b._centerY + (b._dimensions.height / 2);
-            
             // Check for horizontal overlap
             const aLeft = a._centerX - a._dimensions.width / 2;
             const aRight = a._centerX + a._dimensions.width / 2;
@@ -422,12 +424,13 @@ class BalanceElementManager {
             
             const xOverlap = !(aRight <= bLeft || aLeft >= bRight);
             
-            // Only apply z-ordering if blocks overlap horizontally
             if (xOverlap) {
-                return aBase - bBase; // Lower base (higher Y) = appears in front
+                // Overlapping blocks: sort by base position
+                return a._sortBase - b._sortBase;
+            } else {
+                // Non-overlapping blocks: maintain stable order by comparing X positions
+                return a._centerX - b._centerX;
             }
-            
-            return 0; // No change if no overlap
         });
         
         // Re-append in sorted order
