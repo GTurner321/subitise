@@ -1,4 +1,4 @@
-/* Balance Game Styles - Updated with always-ready drop zones */
+/* Balance Game Styles - Updated with shadows and success glow */
 
 /* Reset and base styles */
 * {
@@ -122,7 +122,20 @@ body {
     pointer-events: none !important;
 }
 
-/* UPDATED: Drop zone styling - always ready for drops, always shows green on hover */
+/* Block shadow styling - UPDATED: Lower z-index than blocks */
+.block-shadow {
+    z-index: -1;
+    pointer-events: none;
+    filter: blur(2px);
+}
+
+/* Success glow group - UPDATED: Pulsing green shadow effect */
+.success-glow-group {
+    pointer-events: none;
+    filter: blur(8px);
+}
+
+/* Drop zone styling - UPDATED: Extended height (3.5 visual + 2 invisible) */
 .drop-zone {
     fill: rgba(128, 128, 128, 0.2);
     stroke: rgba(100, 100, 100, 0.4);
@@ -134,16 +147,13 @@ body {
     ry: 8;
 }
 
-/* FIXED: Hover state always shows green, regardless of whether blocks are in the pan */
+/* Hover state always shows green */
 .drop-zone.hover {
     fill: rgba(76, 175, 80, 0.5) !important;
     stroke: rgba(76, 175, 80, 0.9) !important;
     stroke-width: 3 !important;
     stroke-dasharray: 3, 3 !important;
 }
-
-/* REMOVED: The 'occupied' class logic that was dimming the drop zone */
-/* Drop zones are always ready to receive blocks */
 
 /* Seesaw styling */
 .seesaw-group {
@@ -404,7 +414,8 @@ body {
     .play-again-btn,
     .seesaw-group,
     .game-area,
-    .rotation-message i {
+    .rotation-message i,
+    .success-glow-group {
         animation: none !important;
         transition: none !important;
     }
