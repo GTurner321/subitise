@@ -1,7 +1,8 @@
 /**
  * BalanceDragDropHandler - Handles all drag and drop interactions
  * Manages dragging blocks, drop validation, and pan placement
- * UPDATED: Smart column-based stacking, 6-block height limit, overflow handling, shadows
+ * UPDATED: Gravity-based stacking (drop in free space, fall until base touches floor/block),
+ * lighter green hover, restricted visual drop zone (3.5 blocks high)
  */
 class BalanceDragDropHandler {
     constructor(svg, elementManager, gameRenderer) {
@@ -58,7 +59,6 @@ class BalanceDragDropHandler {
     
     /**
      * Handle start of drag operation
-     * UPDATED: Hide shadow when picking up
      */
     handlePointerStart(e) {
         const point = this.getEventPoint(e);
@@ -139,7 +139,6 @@ class BalanceDragDropHandler {
     
     /**
      * Handle end of drag operation
-     * UPDATED: Show shadow when placing on ground
      */
     handlePointerEnd(e) {
         if (!this.isDragging || !this.draggedBlock) return;
@@ -176,6 +175,7 @@ class BalanceDragDropHandler {
     
     /**
      * Check if dragging over a pan and highlight drop zone
+     * UPDATED: Uses visual drop zone height (3.5 blocks from pan base)
      */
     checkPanHover(x, y) {
         const leftPan = this.elementManager.leftPan;
@@ -184,7 +184,7 @@ class BalanceDragDropHandler {
         let foundHover = false;
         
         // Check left pan
-        if (leftPan && this.isOverDropZone(x, y, leftPan)) {
+        if (leftPan && this.isOverVisualDropZone(x, y, leftPan)) {
             if (this.hoveredPan !== leftPan) {
                 this.clearPanHover();
                 this.hoveredPan = leftPan;
@@ -193,7 +193,7 @@ class BalanceDragDropHandler {
             foundHover = true;
         }
         // Check right pan
-        else if (rightPan && this.isOverDropZone(x, y, rightPan)) {
+        else if (rightPan && this.isOverVisualDropZone(x, y, rightPan)) {
             if (this.hoveredPan !== rightPan) {
                 this.clearPanHover();
                 this.hoveredPan = rightPan;
@@ -218,21 +218,42 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Check if point is over a pan's drop zone
+     * Check if point is over the VISUAL drop zone (3.5 blocks high from pan base)
+     * UPDATED: Uses visual height, not functional height
      */
-    isOverDropZone(x, y, pan) {
+    isOverVisualDropZone(x, y, pan) {
         const dropZone = pan.dropZone;
         const localX = parseFloat(dropZone.getAttribute('x'));
         const localY = parseFloat(dropZone.getAttribute('y'));
         const width = parseFloat(dropZone.getAttribute('width'));
-        const height = parseFloat(dropZone.getAttribute('height'));
+        const visualHeight = parseFloat(dropZone.getAttribute('height')); // Visual height (3.5 blocks)
         
         // Convert to global coordinates
         const globalX = pan.currentX + localX;
         const globalY = pan.currentY + localY;
         
-        // Check if point is inside drop zone
-        return x >= globalX && x <= globalX + width && y >= globalY && y <= globalY + height;
+        // Check if point is inside visual drop zone
+        return x >= globalX && x <= globalX + width && y >= globalY && y <= globalY + visualHeight;
+    }
+    
+    /**
+     * Check if point is over the FUNCTIONAL drop zone (5.5 blocks high for placement detection)
+     */
+    isOverFunctionalDropZone(x, y, pan) {
+        const dropZone = pan.dropZone;
+        const localX = parseFloat(dropZone.getAttribute('x'));
+        const width = parseFloat(dropZone.getAttribute('width'));
+        const functionalHeight = parseFloat(dropZone.getAttribute('data-functional-height'));
+        
+        // Functional drop zone extends higher
+        const localY = -pan.extensionHeight - functionalHeight;
+        
+        // Convert to global coordinates
+        const globalX = pan.currentX + localX;
+        const globalY = pan.currentY + localY;
+        
+        // Check if point is inside functional drop zone
+        return x >= globalX && x <= globalX + width && y >= globalY && y <= globalY + functionalHeight;
     }
     
     /**
@@ -242,168 +263,143 @@ class BalanceDragDropHandler {
         const leftPan = this.elementManager.leftPan;
         const rightPan = this.elementManager.rightPan;
         
-        // Check left pan first
-        if (leftPan && this.isOverDropZone(x, y, leftPan)) {
-            return this.placeBlockInPan(this.draggedBlock, leftPan, x);
+        // Check left pan first (use functional height for placement)
+        if (leftPan && this.isOverFunctionalDropZone(x, y, leftPan)) {
+            return this.placeBlockInPan(this.draggedBlock, leftPan, x, y);
         }
         
-        // Check right pan
-        if (rightPan && this.isOverDropZone(x, y, rightPan)) {
-            return this.placeBlockInPan(this.draggedBlock, rightPan, x);
+        // Check right pan (use functional height for placement)
+        if (rightPan && this.isOverFunctionalDropZone(x, y, rightPan)) {
+            return this.placeBlockInPan(this.draggedBlock, rightPan, x, y);
         }
         
         return false;
     }
     
     /**
-     * Place block in pan with smart column-based stacking
-     * UPDATED: Finds first available space in column, max 6 blocks high, overflow handling
+     * Place block in pan with gravity-based placement
+     * UPDATED: Complete rethink - drop in free space, fall with gravity until base touches floor/block
      */
-    placeBlockInPan(block, pan, dropX) {
+    placeBlockInPan(block, pan, dropX, dropY) {
         const blockDims = block._dimensions;
-        const unitBlockHeight = getBlockDimensions(1).height; // Height of a weight-1 block
         
-        // Calculate local x position relative to pan center
+        // Calculate local position relative to pan
         const localX = dropX - pan.currentX;
+        const localY = dropY - pan.currentY;
         
         // Clamp localX to stay within pan bounds
         const maxX = (pan.panDims.width / 2) - (blockDims.width / 2);
         const clampedLocalX = Math.max(-maxX, Math.min(maxX, localX));
         
-        // Find the first available position in the column
-        const placement = this.findAvailablePositionInColumn(pan, clampedLocalX, blockDims, unitBlockHeight);
+        // Check if this position overlaps with any existing block
+        const hasOverlap = this.checkOverlapAtPosition(pan, clampedLocalX, localY, blockDims);
         
-        if (!placement.canPlace) {
-            console.log('❌ Cannot place block - pan full or no space in column');
+        if (hasOverlap) {
+            console.log('❌ Cannot place block - overlaps with existing block at drop position');
             return false;
         }
         
-        // If this is an overflow placement, try adjacent columns
-        if (placement.isOverflow) {
-            console.log('⚠️ Column full, searching for alternative position...');
-            const altPlacement = this.findAlternativePosition(pan, clampedLocalX, blockDims, unitBlockHeight);
-            
-            if (!altPlacement.canPlace) {
-                console.log('❌ No alternative position found - pan is full');
-                return false;
-            }
-            
-            // Use alternative position
-            return this.placementBlockAtPosition(block, pan, altPlacement.localX, altPlacement.targetY);
+        // Find the resting position using gravity (fall until base touches floor or another block)
+        const restingY = this.findRestingPosition(pan, clampedLocalX, blockDims);
+        
+        if (restingY === null) {
+            console.log('❌ Cannot place block - no valid resting position found');
+            return false;
         }
         
-        // Place at found position
-        return this.placementBlockAtPosition(block, pan, clampedLocalX, placement.targetY);
+        // Check if resting position would exceed height limit (6 unit blocks)
+        const unitBlockHeight = getBlockDimensions(1).height;
+        const maxStackHeight = unitBlockHeight * 6;
+        const panLineY = -pan.extensionHeight;
+        const heightFromPan = panLineY - (restingY - blockDims.height / 2);
+        
+        if (heightFromPan > maxStackHeight) {
+            console.log(`❌ Cannot place block - would exceed max height: ${heightFromPan.toFixed(1)}px > ${maxStackHeight.toFixed(1)}px`);
+            return false;
+        }
+        
+        // Place block at resting position
+        return this.placeBlockAtPosition(block, pan, clampedLocalX, restingY);
     }
     
     /**
-     * Find first available position in a column (smart stacking)
-     * UPDATED: Column-based placement with 6-block height limit
+     * Check if a block at given position overlaps with any existing blocks
      */
-    findAvailablePositionInColumn(pan, localX, blockDims, unitBlockHeight) {
-        const maxStackHeight = unitBlockHeight * 6; // 6 unit blocks high
-        const panLineY = -pan.extensionHeight;
+    checkOverlapAtPosition(pan, localX, localY, blockDims) {
+        const blockLeft = localX - blockDims.width / 2;
+        const blockRight = localX + blockDims.width / 2;
+        const blockTop = localY - blockDims.height / 2;
+        const blockBottom = localY + blockDims.height / 2;
         
-        // Start at pan bottom
-        let targetYBase = panLineY;
-        
-        // Get all blocks sorted by height (bottom to top)
-        const sortedBlocks = [...pan.blocks].sort((a, b) => {
-            const aY = parseFloat(a.getAttribute('data-local-y'));
-            const bY = parseFloat(b.getAttribute('data-local-y'));
-            return bY - aY; // Higher Y (lower on screen) first
-        });
-        
-        // Check each existing block for horizontal overlap
-        for (const otherBlock of sortedBlocks) {
+        for (const otherBlock of pan.blocks) {
             const otherDims = otherBlock._dimensions;
             const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
             const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
             
-            // Calculate horizontal overlap
             const otherLeft = otherLocalX - otherDims.width / 2;
             const otherRight = otherLocalX + otherDims.width / 2;
-            const ourLeft = localX - blockDims.width / 2;
-            const ourRight = localX + blockDims.width / 2;
+            const otherTop = otherLocalY - otherDims.height / 2;
+            const otherBottom = otherLocalY + otherDims.height / 2;
             
-            const xOverlap = !(ourRight <= otherLeft || ourLeft >= otherRight);
+            // Check for overlap
+            const xOverlap = !(blockRight <= otherLeft || blockLeft >= otherRight);
+            const yOverlap = !(blockBottom <= otherTop || blockTop >= otherBottom);
+            
+            if (xOverlap && yOverlap) {
+                return true; // Overlap detected
+            }
+        }
+        
+        return false; // No overlap
+    }
+    
+    /**
+     * Find resting position for block using gravity
+     * Block falls until its base touches either the pan floor or the top of another block
+     */
+    findRestingPosition(pan, localX, blockDims) {
+        const panLineY = -pan.extensionHeight;
+        
+        // Start at pan bottom (base position)
+        let restingYBase = panLineY;
+        
+        // Check all existing blocks
+        for (const otherBlock of pan.blocks) {
+            const otherDims = otherBlock._dimensions;
+            const otherLocalX = parseFloat(otherBlock.getAttribute('data-local-x'));
+            const otherLocalY = parseFloat(otherBlock.getAttribute('data-local-y'));
+            
+            // Check if blocks overlap horizontally
+            const blockLeft = localX - blockDims.width / 2;
+            const blockRight = localX + blockDims.width / 2;
+            const otherLeft = otherLocalX - otherDims.width / 2;
+            const otherRight = otherLocalX + otherDims.width / 2;
+            
+            const xOverlap = !(blockRight <= otherLeft || blockLeft >= otherRight);
             
             if (xOverlap) {
-                // This block is in our column
-                const otherTop = otherLocalY - (otherDims.height / 2);
+                // This block is in our vertical path
+                const otherTop = otherLocalY - otherDims.height / 2;
                 
-                // Check if there's enough space between this block and the next
-                const spaceNeeded = blockDims.height;
-                const spaceAvailable = targetYBase - otherTop;
-                
-                if (spaceAvailable >= spaceNeeded) {
-                    // Found a gap! Place here
-                    targetYBase = otherTop;
-                    break;
-                } else {
-                    // Not enough space, move up to top of this block
-                    targetYBase = otherTop;
+                // If this block's top is higher than our current resting base, rest on it
+                if (otherTop < restingYBase) {
+                    restingYBase = otherTop;
                 }
             }
         }
         
         // Convert base position to center position
-        const targetY = targetYBase - (blockDims.height / 2);
+        const restingY = restingYBase - (blockDims.height / 2);
         
-        // Check if this exceeds max height (6 unit blocks from pan line)
-        const heightFromPan = panLineY - targetY - (blockDims.height / 2);
+        console.log(`Found resting position: base=${restingYBase.toFixed(1)}, center=${restingY.toFixed(1)}`);
         
-        if (heightFromPan > maxStackHeight) {
-            console.log(`⚠️ Column exceeds max height: ${heightFromPan.toFixed(1)}px > ${maxStackHeight.toFixed(1)}px`);
-            return { canPlace: false, isOverflow: true };
-        }
-        
-        return { canPlace: true, targetY, isOverflow: false };
-    }
-    
-    /**
-     * Find alternative position when primary column is full
-     * Searches left and right for available space
-     */
-    findAlternativePosition(pan, preferredX, blockDims, unitBlockHeight) {
-        const panWidth = pan.panDims.width;
-        const searchIncrement = blockDims.width * 0.5; // Search in half-block increments
-        const maxSearchDistance = panWidth / 2;
-        
-        // Try alternating left and right
-        for (let distance = searchIncrement; distance <= maxSearchDistance; distance += searchIncrement) {
-            // Try right
-            const rightX = preferredX + distance;
-            const maxX = (panWidth / 2) - (blockDims.width / 2);
-            
-            if (rightX <= maxX) {
-                const rightPlacement = this.findAvailablePositionInColumn(pan, rightX, blockDims, unitBlockHeight);
-                if (rightPlacement.canPlace && !rightPlacement.isOverflow) {
-                    console.log(`✓ Found space to the right at x=${rightX.toFixed(1)}`);
-                    return { canPlace: true, localX: rightX, targetY: rightPlacement.targetY };
-                }
-            }
-            
-            // Try left
-            const leftX = preferredX - distance;
-            const minX = -(panWidth / 2) + (blockDims.width / 2);
-            
-            if (leftX >= minX) {
-                const leftPlacement = this.findAvailablePositionInColumn(pan, leftX, blockDims, unitBlockHeight);
-                if (leftPlacement.canPlace && !leftPlacement.isOverflow) {
-                    console.log(`✓ Found space to the left at x=${leftX.toFixed(1)}`);
-                    return { canPlace: true, localX: leftX, targetY: leftPlacement.targetY };
-                }
-            }
-        }
-        
-        return { canPlace: false };
+        return restingY;
     }
     
     /**
      * Actually place the block at the determined position
      */
-    placementBlockAtPosition(block, pan, localX, targetY) {
+    placeBlockAtPosition(block, pan, localX, targetY) {
         // Add block to pan
         pan.blocks.push(block);
         block._inPan = pan;
@@ -418,8 +414,8 @@ class BalanceDragDropHandler {
         // Update block position
         this.elementManager.updateBlockInPan(block, pan, localX, targetY);
         
-        // Show shadow for block in pan
-        this.elementManager.showBlockShadow(block);
+        // Hide shadow for block in pan
+        this.elementManager.hideBlockShadow(block);
         
         // Update drop zone state
         this.updateDropZoneState(pan);
@@ -438,41 +434,7 @@ class BalanceDragDropHandler {
     }
     
     /**
-     * Collapse blocks in pan when one is removed
-     * UPDATED: Uses column-based repositioning
-     */
-    collapseBlocksInPan(pan, removedBlockY) {
-        // Recalculate all block positions using the smart stacking logic
-        const blocksToReposition = [...pan.blocks];
-        
-        blocksToReposition.forEach(block => {
-            const blockDims = block._dimensions;
-            const localX = parseFloat(block.getAttribute('data-local-x'));
-            const unitBlockHeight = getBlockDimensions(1).height;
-            
-            // Find new position for this block
-            const placement = this.findAvailablePositionInColumn(pan, localX, blockDims, unitBlockHeight);
-            
-            if (placement.canPlace) {
-                const oldY = parseFloat(block.getAttribute('data-local-y'));
-                
-                if (Math.abs(placement.targetY - oldY) > 0.1) {
-                    // Animate the fall
-                    block.style.transition = 'all 0.3s ease-out';
-                    block.setAttribute('data-local-y', placement.targetY);
-                    this.elementManager.updateBlockInPan(block, pan, localX, placement.targetY);
-                    
-                    setTimeout(() => {
-                        block.style.transition = '';
-                    }, 300);
-                }
-            }
-        });
-    }
-    
-    /**
-     * Place block on ground
-     * UPDATED: Shows shadow when settled
+     * Place block on ground with shadow
      */
     placeBlockOnGround(block, x, y) {
         const grassTop = vhToPx(BALANCE_CONFIG.GRASS_Y_MIN_PERCENT);
