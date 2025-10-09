@@ -1,7 +1,7 @@
 /**
  * BalanceElementManager - Handles creation and management of SVG elements
  * Creates seesaw, pans, blocks, drop zones, and manages their visual updates
- * UPDATED: Block scaling by weight, green flash on balance
+ * UPDATED: Block shadows, z-ordering, success glow effect, extended drop zones
  */
 class BalanceElementManager {
     constructor(svg) {
@@ -15,9 +15,12 @@ class BalanceElementManager {
         this.rightPan = null;
         this.leftConnectionDot = null;
         this.rightConnectionDot = null;
-        this.leftExtension = null;  // NEW: Store extension references
-        this.rightExtension = null; // NEW: Store extension references
+        this.leftExtension = null;
+        this.rightExtension = null;
         this.blocks = [];
+        
+        // Success glow elements
+        this.successGlowGroup = null;
         
         // Store pivot position for calculations
         this.pivotX = 0;
@@ -86,6 +89,9 @@ class BalanceElementManager {
         this.svg.appendChild(this.leftPan.group);
         this.svg.appendChild(this.rightPan.group);
         
+        // Create success glow group (initially hidden)
+        this.createSuccessGlowGroup();
+        
         console.log('Seesaw system created');
     }
     
@@ -101,6 +107,7 @@ class BalanceElementManager {
     
     /**
      * Create a pan unit (extension + pan bottom + lips + drop zone)
+     * UPDATED: Drop zone extended to 5.5 blocks high (3.5 visual + 2 invisible)
      */
     createPanUnit(xOffset, side) {
         const panDims = getPanDimensions();
@@ -132,11 +139,11 @@ class BalanceElementManager {
             this.rightExtension = extension;
         }
         
-        // Create drop zone FIRST (so it appears behind other elements)
+        // UPDATED: Create drop zone FIRST - 5.5 blocks high (3.5 visual + 2 invisible extension)
         const dropZone = this.createDropZone(panDims, extensionHeight, blockHeight);
         group.appendChild(dropZone);
         
-        // Pan bottom line (5 blocks wide) at top of extension
+        // Pan bottom line (6 blocks wide) at top of extension
         const panBottom = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         panBottom.setAttribute('x1', -panDims.width / 2);
         panBottom.setAttribute('y1', -extensionHeight);
@@ -146,8 +153,8 @@ class BalanceElementManager {
         panBottom.setAttribute('stroke-width', '3');
         group.appendChild(panBottom);
         
-        // Left lip - 0.4 blocks high
-        const lipHeight = blockHeight * 0.4;
+        // Left lip - 0.48 blocks high
+        const lipHeight = blockHeight * 0.48;
         const leftLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         leftLip.setAttribute('x1', -panDims.width / 2);
         leftLip.setAttribute('y1', -extensionHeight);
@@ -157,7 +164,7 @@ class BalanceElementManager {
         leftLip.setAttribute('stroke-width', '3');
         group.appendChild(leftLip);
         
-        // Right lip - 0.4 blocks high
+        // Right lip - 0.48 blocks high
         const rightLip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         rightLip.setAttribute('x1', panDims.width / 2);
         rightLip.setAttribute('y1', -extensionHeight);
@@ -181,8 +188,8 @@ class BalanceElementManager {
             lipHeight,
             blocks: [],
             dropZone: dropZone,
-            extension: extension, // Store extension reference
-            panBottom: panBottom, // Store pan bottom reference
+            extension: extension,
+            panBottom: panBottom,
             bounds: {
                 left: initialX - panDims.width / 2,
                 right: initialX + panDims.width / 2,
@@ -194,13 +201,14 @@ class BalanceElementManager {
     
     /**
      * Create drop zone rectangle for pan
+     * UPDATED: 5.5 blocks high total (3.5 visual + 2 invisible)
      */
     createDropZone(panDims, extensionHeight, blockHeight) {
         const dropZone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         dropZone.setAttribute('class', 'drop-zone');
         
-        // Position centered horizontally, 2.5 blocks high (allows 5 blocks to stack)
-        const dropZoneHeight = blockHeight * 2.5;
+        // UPDATED: Total height is 5.5 blocks (allows stacking up to 6 blocks with overhang)
+        const dropZoneHeight = blockHeight * 5.5;
         
         dropZone.setAttribute('x', -panDims.width / 2);
         dropZone.setAttribute('y', -extensionHeight - dropZoneHeight);
@@ -213,12 +221,13 @@ class BalanceElementManager {
     }
     
     /**
-     * Create a game block - UPDATED with weight-based scaling
+     * Create a game block with shadow
+     * UPDATED: Shadow added with lower z-index
      */
     createBlock(number, xPercent, yPercent, color, isFixed = false) {
         const x = vwToPx(xPercent);
         const y = vhToPx(yPercent);
-        const dimensions = getBlockDimensions(number); // CHANGED: Pass weight for scaling
+        const dimensions = getBlockDimensions(number);
         
         const blockGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         blockGroup.setAttribute('class', isFixed ? 'block fixed-block' : 'block');
@@ -226,14 +235,16 @@ class BalanceElementManager {
         blockGroup.setAttribute('data-weight', number);
         if (!isFixed) blockGroup.style.cursor = 'grab';
         
-        // Shadow
-        const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        shadow.setAttribute('x', x - dimensions.width/2 + 3);
-        shadow.setAttribute('y', y - dimensions.height/2 + 3);
-        shadow.setAttribute('width', dimensions.width);
-        shadow.setAttribute('height', dimensions.height);
-        shadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
-        shadow.setAttribute('rx', '8');
+        // Shadow (initially hidden for ground blocks, will fade in)
+        const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        shadow.setAttribute('class', 'block-shadow');
+        shadow.setAttribute('cx', x);
+        shadow.setAttribute('cy', y + dimensions.height/2 + 3);
+        shadow.setAttribute('rx', dimensions.width/2 * 0.9);
+        shadow.setAttribute('ry', dimensions.height/4);
+        shadow.setAttribute('fill', 'rgba(0,0,0,0.3)');
+        shadow.style.opacity = '0'; // Start hidden
+        shadow.style.transition = 'opacity 0.3s ease-in';
         
         // Block rectangle
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -262,7 +273,7 @@ class BalanceElementManager {
         blockGroup.appendChild(rect);
         blockGroup.appendChild(text);
         
-        // Store references and positions (BOTH pixels AND percentages for responsive)
+        // Store references and positions
         blockGroup._rect = rect;
         blockGroup._text = text;
         blockGroup._shadow = shadow;
@@ -273,13 +284,14 @@ class BalanceElementManager {
         blockGroup._dimensions = dimensions;
         blockGroup._isFixed = isFixed;
         blockGroup._inPan = null;
-        blockGroup._weight = number; // Store weight for reference
+        blockGroup._weight = number;
         
         return blockGroup;
     }
     
     /**
      * Update block position (pixel coordinates)
+     * UPDATED: Manages z-ordering and shadow visibility
      */
     updateBlockPosition(block, x, y) {
         if (block._isFixed && block._inPan) return;
@@ -289,8 +301,8 @@ class BalanceElementManager {
         block._rect.setAttribute('x', x - dims.width/2);
         block._rect.setAttribute('y', y - dims.height/2);
         
-        block._shadow.setAttribute('x', x - dims.width/2 + 3);
-        block._shadow.setAttribute('y', y - dims.height/2 + 3);
+        block._shadow.setAttribute('cx', x);
+        block._shadow.setAttribute('cy', y + dims.height/2 + 3);
         
         block._text.setAttribute('x', x);
         block._text.setAttribute('y', y);
@@ -301,6 +313,45 @@ class BalanceElementManager {
         // Update percentage coordinates for responsive
         block._xPercent = pxToVw(x);
         block._yPercent = pxToVh(y);
+        
+        // Update z-ordering for ground blocks
+        if (!block._inPan) {
+            this.updateGroundBlockZOrdering();
+        }
+    }
+    
+    /**
+     * Show shadow for a block (when it settles on ground)
+     */
+    showBlockShadow(block) {
+        if (block._shadow) {
+            block._shadow.style.opacity = '1';
+        }
+    }
+    
+    /**
+     * Hide shadow for a block (when picked up)
+     */
+    hideBlockShadow(block) {
+        if (block._shadow) {
+            block._shadow.style.opacity = '0';
+        }
+    }
+    
+    /**
+     * Update z-ordering for ground blocks
+     * Blocks lower on screen appear in front
+     */
+    updateGroundBlockZOrdering() {
+        const groundBlocks = Array.from(this.svg.querySelectorAll('.block')).filter(b => !b._inPan);
+        
+        // Sort by y position (lower y = higher on screen = behind)
+        groundBlocks.sort((a, b) => a._centerY - b._centerY);
+        
+        // Re-append in sorted order (lower blocks will be in front)
+        groundBlocks.forEach(block => {
+            this.svg.appendChild(block);
+        });
     }
     
     /**
@@ -313,19 +364,21 @@ class BalanceElementManager {
         block._rect.setAttribute('x', localX - dims.width/2);
         block._rect.setAttribute('y', localY - dims.height/2);
         
-        block._shadow.setAttribute('x', localX - dims.width/2 + 3);
-        block._shadow.setAttribute('y', localY - dims.height/2 + 3);
+        block._shadow.setAttribute('cx', localX);
+        block._shadow.setAttribute('cy', localY + dims.height/2 + 3);
         
         block._text.setAttribute('x', localX);
         block._text.setAttribute('y', localY);
         
-        // CRITICAL: Update the group's transform to position it correctly
-        // The block group itself needs no transform when in a pan (pan group handles positioning)
+        // Remove transform from block group
         block.removeAttribute('transform');
         
         // Store the center position for reference
         block._centerX = localX;
         block._centerY = localY;
+        
+        // Show shadow for blocks in pans
+        this.showBlockShadow(block);
     }
     
     /**
@@ -347,7 +400,7 @@ class BalanceElementManager {
         let groundHit = false;
         let actualAngle = angle;
         
-        // More lenient ground detection - only clamp if actually touching
+        // Ground detection
         if (leftEndY >= grassTopY || rightEndY >= grassTopY) {
             groundHit = true;
             
@@ -409,37 +462,92 @@ class BalanceElementManager {
     }
     
     /**
-     * NEW: Flash seesaw elements green when balance is achieved
+     * Create success glow group for balance achievement
+     * UPDATED: Green glow shadow effect (4x element width)
+     */
+    createSuccessGlowGroup() {
+        this.successGlowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        this.successGlowGroup.setAttribute('class', 'success-glow-group');
+        this.successGlowGroup.style.opacity = '0';
+        this.successGlowGroup.style.pointerEvents = 'none';
+        
+        // Insert before seesaw group so glow appears behind
+        this.svg.insertBefore(this.successGlowGroup, this.seesawGroup);
+    }
+    
+    /**
+     * Trigger success glow animation
+     * UPDATED: Pulsing green shadow behind seesaw elements
      */
     flashBalanceSuccess() {
-        const elementsToFlash = [
-            { element: this.bar, type: 'fill' },
-            { element: this.leftExtension, type: 'stroke' },
-            { element: this.rightExtension, type: 'stroke' },
-            { element: this.leftPan?.panBottom, type: 'stroke' },
-            { element: this.rightPan?.panBottom, type: 'stroke' }
+        if (!this.successGlowGroup) return;
+        
+        // Clear existing glow elements
+        this.successGlowGroup.innerHTML = '';
+        
+        const elementsToGlow = [
+            { element: this.pivot, type: 'polygon' },
+            { element: this.bar, type: 'rect', parent: this.seesawGroup },
+            { element: this.leftExtension, type: 'line', pan: this.leftPan },
+            { element: this.rightExtension, type: 'line', pan: this.rightPan },
+            { element: this.leftPan?.panBottom, type: 'line', pan: this.leftPan },
+            { element: this.rightPan?.panBottom, type: 'line', pan: this.rightPan }
         ];
         
-        elementsToFlash.forEach(({ element, type }) => {
+        elementsToGlow.forEach(({ element, type, parent, pan }) => {
             if (!element) return;
             
-            // Store original color
-            const originalColor = element.getAttribute(type);
+            // Create glow clone
+            const glow = element.cloneNode(true);
+            glow.removeAttribute('class');
             
-            // Flash green
-            element.style.transition = `${type} 0.3s ease`;
-            element.setAttribute(type, BALANCE_CONFIG.SUCCESS_COLOR);
+            // Calculate glow width (4x original)
+            let originalWidth = 4;
+            if (type === 'rect') {
+                originalWidth = parseFloat(element.getAttribute('height'));
+            } else if (type === 'line') {
+                originalWidth = parseFloat(element.getAttribute('stroke-width'));
+            } else if (type === 'polygon') {
+                originalWidth = parseFloat(element.getAttribute('stroke-width')) || 3;
+            }
             
-            // Return to original after 600ms
-            setTimeout(() => {
-                element.setAttribute(type, originalColor);
-                setTimeout(() => {
-                    element.style.transition = '';
-                }, 300);
-            }, 600);
+            const glowWidth = originalWidth * 4;
+            
+            // Style the glow
+            glow.setAttribute('stroke', 'rgba(76, 175, 80, 0.6)');
+            glow.setAttribute('fill', 'none');
+            
+            if (type === 'polygon') {
+                glow.setAttribute('stroke-width', glowWidth);
+                glow.setAttribute('stroke-linejoin', 'round');
+            } else if (type === 'rect') {
+                glow.setAttribute('stroke-width', glowWidth);
+                glow.setAttribute('fill', 'none');
+            } else if (type === 'line') {
+                glow.setAttribute('stroke-width', glowWidth);
+                glow.setAttribute('stroke-linecap', 'round');
+            }
+            
+            // Apply correct transform
+            if (parent === this.seesawGroup) {
+                glow.setAttribute('transform', this.seesawGroup.getAttribute('transform'));
+            } else if (pan) {
+                glow.setAttribute('transform', pan.group.getAttribute('transform'));
+            }
+            
+            this.successGlowGroup.appendChild(glow);
         });
         
-        console.log('✅ Balance success flash triggered');
+        // Animate: fade in (0.5s) → hold (1s) → fade out (1s)
+        this.successGlowGroup.style.transition = 'opacity 0.5s ease-in';
+        this.successGlowGroup.style.opacity = '1';
+        
+        setTimeout(() => {
+            this.successGlowGroup.style.transition = 'opacity 1s ease-out';
+            this.successGlowGroup.style.opacity = '0';
+        }, 1500); // Hold for 1 second then fade out
+        
+        console.log('✅ Balance success glow triggered');
     }
     
     /**
@@ -500,6 +608,7 @@ class BalanceElementManager {
         this.rightConnectionDot = null;
         this.leftExtension = null;
         this.rightExtension = null;
+        this.successGlowGroup = null;
     }
     
     /**
