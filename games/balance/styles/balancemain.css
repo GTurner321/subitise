@@ -108,7 +108,7 @@ body {
 .block.fixed-block {
     cursor: default !important;
     pointer-events: none !important;
-    opacity: 0.9;
+    opacity: 1.0;
 }
 
 .block.dragging {
