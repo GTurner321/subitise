@@ -122,11 +122,22 @@ body {
     pointer-events: none !important;
 }
 
-/* Block shadow styling - Lower z-index than blocks */
+/* Block shadow styling - All shadows in dedicated layer behind blocks */
 .block-shadow {
-    z-index: -1;
     pointer-events: none;
     filter: blur(2px);
+}
+
+/* Shadow layer - Behind everything */
+.shadow-layer {
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Block layer - Above shadows */
+.block-layer {
+    z-index: 2;
+    pointer-events: all;
 }
 
 /* Success glow group - Pulsing green shadow effect */
