@@ -1,7 +1,8 @@
 /**
  * BalanceElementManager - Handles creation and management of SVG elements
  * Creates seesaw, pans, blocks, drop zones, and manages their visual updates
- * UPDATED: Block shadows, z-ordering, success glow effect, extended drop zones
+ * UPDATED: Ground block shadows (wider, more transparent), no pan shadows, pivot shadow, 
+ * restricted drop zone visuals, longer/wider success glow, z-ordering by base position
  */
 class BalanceElementManager {
     constructor(svg) {
@@ -10,6 +11,7 @@ class BalanceElementManager {
         // SVG elements
         this.seesawGroup = null;
         this.pivot = null;
+        this.pivotShadow = null; // NEW: Pivot shadow
         this.bar = null;
         this.leftPan = null;
         this.rightPan = null;
@@ -37,6 +39,16 @@ class BalanceElementManager {
         const pivotWidth = pivotHeight * (2 / Math.sqrt(3));
         const pivotX = window.innerWidth / 2;
         const pivotY = vhToPx(BALANCE_CONFIG.PIVOT_Y_PERCENT);
+        
+        // NEW: Create pivot shadow first (behind pivot)
+        this.pivotShadow = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        this.pivotShadow.setAttribute('cx', pivotX);
+        this.pivotShadow.setAttribute('cy', pivotY + 2);
+        this.pivotShadow.setAttribute('rx', pivotWidth/2 * 1.2); // 120% wider
+        this.pivotShadow.setAttribute('ry', pivotHeight/4);
+        this.pivotShadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
+        this.pivotShadow.style.filter = 'blur(2px)';
+        this.svg.appendChild(this.pivotShadow);
         
         this.pivot = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
         const points = `${pivotX},${pivotY - pivotHeight} ${pivotX - pivotWidth/2},${pivotY} ${pivotX + pivotWidth/2},${pivotY}`;
@@ -107,7 +119,7 @@ class BalanceElementManager {
     
     /**
      * Create a pan unit (extension + pan bottom + lips + drop zone)
-     * UPDATED: Drop zone extended to 5.5 blocks high (3.5 visual + 2 invisible)
+     * UPDATED: Drop zone visual capture area restricted to 3.5 blocks high
      */
     createPanUnit(xOffset, side) {
         const panDims = getPanDimensions();
@@ -139,7 +151,7 @@ class BalanceElementManager {
             this.rightExtension = extension;
         }
         
-        // UPDATED: Create drop zone FIRST - 5.5 blocks high (3.5 visual + 2 invisible extension)
+        // UPDATED: Create drop zone - visual is 3.5 blocks, functional is 5.5 blocks
         const dropZone = this.createDropZone(panDims, extensionHeight, blockHeight);
         group.appendChild(dropZone);
         
@@ -201,28 +213,31 @@ class BalanceElementManager {
     
     /**
      * Create drop zone rectangle for pan
-     * UPDATED: 5.5 blocks high total (3.5 visual + 2 invisible)
+     * UPDATED: Visual area is 3.5 blocks (9.6% * 3.5), functional area is 5.5 blocks
      */
     createDropZone(panDims, extensionHeight, blockHeight) {
         const dropZone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         dropZone.setAttribute('class', 'drop-zone');
         
-        // UPDATED: Total height is 5.5 blocks (allows stacking up to 6 blocks with overhang)
-        const dropZoneHeight = blockHeight * 5.5;
+        // Visual height: 3.5 blocks (using original 9.6% sizing for visual consistency)
+        const visualHeight = vhToPx(9.6) * 3.5;
         
         dropZone.setAttribute('x', -panDims.width / 2);
-        dropZone.setAttribute('y', -extensionHeight - dropZoneHeight);
+        dropZone.setAttribute('y', -extensionHeight - visualHeight);
         dropZone.setAttribute('width', panDims.width);
-        dropZone.setAttribute('height', dropZoneHeight);
+        dropZone.setAttribute('height', visualHeight);
         dropZone.setAttribute('rx', '8');
         dropZone.setAttribute('ry', '8');
+        
+        // Store functional height for collision detection (5.5 blocks)
+        dropZone.setAttribute('data-functional-height', blockHeight * 5.5);
         
         return dropZone;
     }
     
     /**
      * Create a game block with shadow
-     * UPDATED: Shadow added with lower z-index
+     * UPDATED: Ground blocks have visible shadows (wider, more transparent), pan blocks have no shadows
      */
     createBlock(number, xPercent, yPercent, color, isFixed = false) {
         const x = vwToPx(xPercent);
@@ -235,16 +250,17 @@ class BalanceElementManager {
         blockGroup.setAttribute('data-weight', number);
         if (!isFixed) blockGroup.style.cursor = 'grab';
         
-        // Shadow (initially hidden for ground blocks, will fade in)
+        // Shadow - UPDATED: 120% wider, more transparent (0.2 opacity)
         const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
         shadow.setAttribute('class', 'block-shadow');
         shadow.setAttribute('cx', x);
         shadow.setAttribute('cy', y + dimensions.height/2 + 3);
-        shadow.setAttribute('rx', dimensions.width/2 * 0.9);
+        shadow.setAttribute('rx', dimensions.width/2 * 1.2); // 120% wider
         shadow.setAttribute('ry', dimensions.height/4);
-        shadow.setAttribute('fill', 'rgba(0,0,0,0.3)');
-        shadow.style.opacity = '0'; // Start hidden
+        shadow.setAttribute('fill', 'rgba(0,0,0,0.2)'); // More transparent
+        shadow.style.opacity = isFixed ? '0' : '1'; // Ground blocks visible, pan blocks hidden
         shadow.style.transition = 'opacity 0.3s ease-in';
+        shadow.style.filter = 'blur(2px)';
         
         // Block rectangle
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -291,7 +307,7 @@ class BalanceElementManager {
     
     /**
      * Update block position (pixel coordinates)
-     * UPDATED: Manages z-ordering and shadow visibility
+     * UPDATED: Z-ordering by base position (lower base = front)
      */
     updateBlockPosition(block, x, y) {
         if (block._isFixed && block._inPan) return;
@@ -314,7 +330,7 @@ class BalanceElementManager {
         block._xPercent = pxToVw(x);
         block._yPercent = pxToVh(y);
         
-        // Update z-ordering for ground blocks
+        // Update z-ordering for ground blocks based on base position
         if (!block._inPan) {
             this.updateGroundBlockZOrdering();
         }
@@ -324,13 +340,13 @@ class BalanceElementManager {
      * Show shadow for a block (when it settles on ground)
      */
     showBlockShadow(block) {
-        if (block._shadow) {
+        if (block._shadow && !block._inPan) {
             block._shadow.style.opacity = '1';
         }
     }
     
     /**
-     * Hide shadow for a block (when picked up)
+     * Hide shadow for a block (when picked up or in pan)
      */
     hideBlockShadow(block) {
         if (block._shadow) {
@@ -339,16 +355,34 @@ class BalanceElementManager {
     }
     
     /**
-     * Update z-ordering for ground blocks
-     * Blocks lower on screen appear in front
+     * Update z-ordering for ground blocks based on BASE position
+     * UPDATED: Blocks with lower base (higher Y + height/2) appear in front
      */
     updateGroundBlockZOrdering() {
         const groundBlocks = Array.from(this.svg.querySelectorAll('.block')).filter(b => !b._inPan);
         
-        // Sort by y position (lower y = higher on screen = behind)
-        groundBlocks.sort((a, b) => a._centerY - b._centerY);
+        // Sort by base position (center Y + half height)
+        groundBlocks.sort((a, b) => {
+            const aBase = a._centerY + (a._dimensions.height / 2);
+            const bBase = b._centerY + (b._dimensions.height / 2);
+            
+            // Check for horizontal overlap
+            const aLeft = a._centerX - a._dimensions.width / 2;
+            const aRight = a._centerX + a._dimensions.width / 2;
+            const bLeft = b._centerX - b._dimensions.width / 2;
+            const bRight = b._centerX + b._dimensions.width / 2;
+            
+            const xOverlap = !(aRight <= bLeft || aLeft >= bRight);
+            
+            // Only apply z-ordering if blocks overlap horizontally
+            if (xOverlap) {
+                return aBase - bBase; // Lower base = higher Y value = appears in front
+            }
+            
+            return 0; // No change if no overlap
+        });
         
-        // Re-append in sorted order (lower blocks will be in front)
+        // Re-append in sorted order (lower base blocks will be in front)
         groundBlocks.forEach(block => {
             this.svg.appendChild(block);
         });
@@ -356,6 +390,7 @@ class BalanceElementManager {
     
     /**
      * Update block position within pan (local coordinates)
+     * UPDATED: No shadows for blocks in pans
      */
     updateBlockInPan(block, pan, localX, localY) {
         const dims = block._dimensions;
@@ -377,8 +412,8 @@ class BalanceElementManager {
         block._centerX = localX;
         block._centerY = localY;
         
-        // Show shadow for blocks in pans
-        this.showBlockShadow(block);
+        // UPDATED: Hide shadow for blocks in pans
+        this.hideBlockShadow(block);
     }
     
     /**
@@ -463,7 +498,7 @@ class BalanceElementManager {
     
     /**
      * Create success glow group for balance achievement
-     * UPDATED: Green glow shadow effect (4x element width)
+     * UPDATED: Wider glow (6x element width, was 4x)
      */
     createSuccessGlowGroup() {
         this.successGlowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -477,7 +512,7 @@ class BalanceElementManager {
     
     /**
      * Trigger success glow animation
-     * UPDATED: Pulsing green shadow behind seesaw elements
+     * UPDATED: Wider glow (6x), longer duration (fade in 0.5s, hold 2s, fade out 1.5s)
      */
     flashBalanceSuccess() {
         if (!this.successGlowGroup) return;
@@ -501,7 +536,7 @@ class BalanceElementManager {
             const glow = element.cloneNode(true);
             glow.removeAttribute('class');
             
-            // Calculate glow width (4x original)
+            // Calculate glow width (6x original, was 4x)
             let originalWidth = 4;
             if (type === 'rect') {
                 originalWidth = parseFloat(element.getAttribute('height'));
@@ -511,7 +546,7 @@ class BalanceElementManager {
                 originalWidth = parseFloat(element.getAttribute('stroke-width')) || 3;
             }
             
-            const glowWidth = originalWidth * 4;
+            const glowWidth = originalWidth * 6; // Increased from 4x to 6x
             
             // Style the glow
             glow.setAttribute('stroke', 'rgba(76, 175, 80, 0.6)');
@@ -538,16 +573,16 @@ class BalanceElementManager {
             this.successGlowGroup.appendChild(glow);
         });
         
-        // Animate: fade in (0.5s) → hold (1s) → fade out (1s)
+        // UPDATED: Longer animation - fade in (0.5s) → hold (2s) → fade out (1.5s)
         this.successGlowGroup.style.transition = 'opacity 0.5s ease-in';
         this.successGlowGroup.style.opacity = '1';
         
         setTimeout(() => {
-            this.successGlowGroup.style.transition = 'opacity 1s ease-out';
+            this.successGlowGroup.style.transition = 'opacity 1.5s ease-out';
             this.successGlowGroup.style.opacity = '0';
-        }, 1500); // Hold for 1 second then fade out
+        }, 2500); // Hold for 2 seconds then fade out
         
-        console.log('✅ Balance success glow triggered');
+        console.log('✅ Balance success glow triggered (wider, longer duration)');
     }
     
     /**
@@ -608,6 +643,7 @@ class BalanceElementManager {
         this.rightConnectionDot = null;
         this.leftExtension = null;
         this.rightExtension = null;
+        this.pivotShadow = null;
         this.successGlowGroup = null;
     }
     
