@@ -278,7 +278,7 @@ class BalanceDragDropHandler {
     
     /**
      * Place block in pan with gravity-based placement
-     * UPDATED: Complete rethink - drop in free space, fall with gravity until base touches floor/block
+     * UPDATED: Forgiving placement - if overlap, tries to shift half-block left/right first
      */
     placeBlockInPan(block, pan, dropX, dropY) {
         const blockDims = block._dimensions;
@@ -295,12 +295,58 @@ class BalanceDragDropHandler {
         const hasOverlap = this.checkOverlapAtPosition(pan, clampedLocalX, localY, blockDims);
         
         if (hasOverlap) {
-            console.log('❌ Cannot place block - overlaps with existing block at drop position');
+            console.log('⚠️ Overlap detected at drop position, trying forgiving placement...');
+            
+            // UPDATED: Try shifting half-block to the side
+            const halfBlockWidth = blockDims.width / 2;
+            
+            // Check which side has space (no overlap at drop position)
+            const canShiftLeft = this.canShiftToSide(pan, clampedLocalX, localY, blockDims, -halfBlockWidth);
+            const canShiftRight = this.canShiftToSide(pan, clampedLocalX, localY, blockDims, halfBlockWidth);
+            
+            let adjustedX = clampedLocalX;
+            
+            if (canShiftRight) {
+                adjustedX = clampedLocalX + halfBlockWidth;
+                console.log('✓ Shifting half-block to the RIGHT');
+            } else if (canShiftLeft) {
+                adjustedX = clampedLocalX - halfBlockWidth;
+                console.log('✓ Shifting half-block to the LEFT');
+            } else {
+                console.log('❌ Cannot place block - no space on either side, falling to ground');
+                return false;
+            }
+            
+            // Try placement at adjusted position
+            return this.tryPlacementAtPosition(block, pan, adjustedX, blockDims);
+        }
+        
+        // No overlap, proceed with normal placement
+        return this.tryPlacementAtPosition(block, pan, clampedLocalX, blockDims);
+    }
+    
+    /**
+     * Check if block can shift to the side without overlap
+     */
+    canShiftToSide(pan, localX, localY, blockDims, shiftAmount) {
+        const shiftedX = localX + shiftAmount;
+        
+        // Check if shifted position is within pan bounds
+        const maxX = (pan.panDims.width / 2) - (blockDims.width / 2);
+        if (shiftedX < -maxX || shiftedX > maxX) {
             return false;
         }
         
-        // Find the resting position using gravity (fall until base touches floor or another block)
-        const restingY = this.findRestingPosition(pan, clampedLocalX, blockDims);
+        // Check if shifted position has overlap
+        return !this.checkOverlapAtPosition(pan, shiftedX, localY, blockDims);
+    }
+    
+    /**
+     * Try to place block at given X position
+     */
+    tryPlacementAtPosition(block, pan, localX, blockDims) {
+        // Find the resting position using gravity
+        const restingY = this.findRestingPosition(pan, localX, blockDims);
         
         if (restingY === null) {
             console.log('❌ Cannot place block - no valid resting position found');
@@ -319,7 +365,7 @@ class BalanceDragDropHandler {
         }
         
         // Place block at resting position
-        return this.placeBlockAtPosition(block, pan, clampedLocalX, restingY);
+        return this.placeBlockAtPosition(block, pan, localX, restingY);
     }
     
     /**
