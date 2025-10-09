@@ -1,7 +1,7 @@
 /**
  * BalanceResponsiveManager - Handles responsive resizing and screen rotation
  * Maintains element positions and dimensions on viewport changes
- * Similar to stacks game responsive system, adapted for balance game
+ * UPDATED: Supports extended drop zones (5.5 blocks high)
  */
 class BalanceResponsiveManager {
     constructor(elementManager, gameController) {
@@ -142,7 +142,8 @@ class BalanceResponsiveManager {
                 const localY = parseFloat(block.getAttribute('data-local-y') || 0);
                 
                 // Recalculate dimensions
-                const blockDims = getBlockDimensions();
+                const weight = parseInt(block.getAttribute('data-weight'));
+                const blockDims = getBlockDimensions(weight);
                 block._dimensions = blockDims;
                 
                 // Update visual position
@@ -154,8 +155,15 @@ class BalanceResponsiveManager {
                 const newY = vhToPx(block._yPercent);
                 
                 // Recalculate dimensions based on new viewport
-                const blockDims = getBlockDimensions();
+                const weight = parseInt(block.getAttribute('data-weight'));
+                const blockDims = getBlockDimensions(weight);
                 block._dimensions = blockDims;
+                
+                // Update shadow dimensions
+                if (block._shadow) {
+                    block._shadow.setAttribute('rx', blockDims.width/2 * 0.9);
+                    block._shadow.setAttribute('ry', blockDims.height/4);
+                }
                 
                 // Update position
                 this.elementManager.updateBlockPosition(block, newX, newY);
@@ -222,12 +230,13 @@ class BalanceResponsiveManager {
     
     /**
      * Update pan dimensions and positions
+     * UPDATED: Handles 5.5 block high drop zones
      */
     updatePans() {
         const panDims = getPanDimensions();
         const extensionHeight = vhToPx(BALANCE_CONFIG.EXTENSION_HEIGHT_PERCENT);
-        const blockHeight = getBlockDimensions().height;
-        const lipHeight = blockHeight * 0.4;
+        const blockHeight = getBlockDimensions(1).height;
+        const lipHeight = blockHeight * 0.48; // Updated from 0.4 to 0.48
         
         // Update left pan
         if (this.elementManager.leftPan) {
@@ -244,6 +253,7 @@ class BalanceResponsiveManager {
     
     /**
      * Update individual pan dimensions
+     * UPDATED: Handles 5.5 block high drop zones
      */
     updatePan(pan, panDims, extensionHeight, lipHeight, blockHeight) {
         pan.panDims = panDims;
@@ -286,9 +296,9 @@ class BalanceResponsiveManager {
                     child.setAttribute('y2', -extensionHeight - lipHeight);
                 }
             }
-            // Update drop zone - FIXED: Use current drop zone height (2.5 blocks)
+            // UPDATED: Drop zone - 5.5 blocks high
             else if (child.classList.contains('drop-zone')) {
-                const dropZoneHeight = blockHeight * 2.5;
+                const dropZoneHeight = blockHeight * 5.5; // Was 2.5, now 5.5
                 child.setAttribute('x', -panDims.width / 2);
                 child.setAttribute('y', -extensionHeight - dropZoneHeight);
                 child.setAttribute('width', panDims.width);
